@@ -1,0 +1,242 @@
+// ══ THE JOURNEY — ★★★ THE FLOW GRAMMAR (Bankers/STYLE.md §16, 2026-10-30) ═══════════════════════════════════════════════════════
+// Timur, after Video 21's render: "the most impactful difference between bankers and 100 basis points … has something to do with the way the
+// video moves … every scene is so separate from one another … it should be sort of a flow throughout the entire video". Measured against the
+// recent 100bps films (Style 3 V35–V40, scratchpad/motioncmp in the session): 100bps RESTS (29% still frames against Bankers' 8%), then
+// TRAVELS through one world — 44% of its big travels are cranes (Bankers 12%), it rarely repeats a direction (36% vs 61%), its light travels
+// with the camera (0.47× the content, Bankers 0.26×), and it has 4× the light frames. So, here:
+//   · NO PUSH / ZOOM-THROUGH HAND-OVERS ("they're terrible"): every hand-over is a TRUCK (sideways) or a CRANE (vertical), on the Style 3
+//     films' in-out (FAST), with their depth arc and a camera turn (yaw ±7° on a truck, pitch ±5° on a crane) — or a CARRIED hand-over,
+//     where the camera follows the next scene's subject in (whatB, Timur's worked example);
+//   · every scene ARRIVES ON ITS SUBJECT (the move lands framed in on `open`), RESTS, then pulls OUT to the whole, and rests again before it
+//     leaves ("They shouldn't start zoomed out. Try going to the subject first");
+//   · the background light belongs to its place and travels with the camera (0.4×); every 2–3 scenes a CHANGE OF PLACE (`newPlace`): the
+//     light stays with the outgoing scene as it leaves, the ground goes plain, and a new light arrives with the next;
+//   · more light frames (four white places, about 1 in 4).
+type Span = [number, number];
+type Kind = "truckR" | "truckL" | "craneU" | "craneD" | "carry";
+const sentAt = (re: RegExp) => { const s = SENTENCES.find((x) => re.test(x.text)); if (!s) throw new Error(`no sentence ${re}`); return s; };
+/** a truck crosses a frame and a margin; a crane a frame height and a margin (the Style 3 films use 1,600–2,000; the sweep's 15-f overlap
+ *  sets ours) */
+const SLIDE_X = 1020, CRANE_Y = 1700;
+/** kept for stylecheck's older checks (no push is built in the flow grammar) */
+const PUSH_Z = 1.25;
+const moveOf = (kind: Kind, k = 1): Partial<V3> =>
+  kind === "truckR" || kind === "carry" ? { x: SLIDE_X * k } : kind === "truckL" ? { x: -SLIDE_X * k } : kind === "craneU" ? { y: -CRANE_Y * k } : { y: CRANE_Y * k };
+
+export type PlaceId = "hookA" | "hookB" | "whatA" | "whatB" | "whatC" | "whatD" | "teachA" | "teachB" | "teachB2" | "teachC" | "teachD" | "teachD2" | "teachE" | "honestA" | "honestB" | "honestC" | "question";
+/** ★★★ THE CAMERA FOLLOWS THE ACTION (STYLE §8.7): a framing — the point (x, y) of the place as it stands when it has arrived, drawn `c` of the
+ *  way toward the frame's centre, with the camera `dz` nearer */
+type Aim = { x: number; y: number; dz: number; c?: number };
+type Key = Aim & { from: number; to: number; curve?: "fast" | "glide" };
+type Place = { id: PlaceId; kind?: Kind; t0: number; dur?: number; moves?: { from: number; to: number; d: Partial<V3> }[]; white?: boolean; whiteIn?: number;
+  keepMid?: number; keepFg?: number; slideK?: number; newPlace?: boolean; key: { x: number; y: number; angle: number };
+  /** the framing the hand-over LANDS on (the subject first) */
+  open?: Aim;
+  /** a second framing the camera travels to after its first rest (a long hold's ALONG) */
+  along?: Aim };
+
+/** ★ the Style 3 films' hand-over lengths at the Bankers pace: trucks 48 f, cranes 52 f, travels 48 f */
+const TRUCK_DUR = 48, CRANE_DUR = 52, TRAVEL = 48, ARC = 0.08;
+/** a scene RESTS after it lands and before it leaves (100bps: still runs of 0.5–3 s, 9 a minute) */
+const REST_IN = 18, REST_OUT = 14, KEY_DUR = 40;
+
+// ── the CARRIED hand-over into the side-on stunt (Timur's worked example, 2026-10-30): the board drifts out to the left; once it is clear the
+// Roadster enters from the left on its run-up, speeding up toward a ramp not yet in view, the camera travelling with it CLOSE and a touch
+// slower than the car; as the curl comes into view the camera slowly zooms out to the whole scene ──
+const CARRY = { start: PT0.whatB, end: PT0.whatB + 72, k: 1.5, zoom: 0.3, ax: [-230, 300] as [number, number], ay: 1120 };
+
+/** ★ SIXTEEN PLACES, NONE OVER 7 s (STYLE §1.3). Hand-overs alternate type and direction (never the same type and direction twice running). */
+export const PLACES: Place[] = [
+  { id: "hookA", t0: PT0.hookA, key: { x: 300, y: -280, angle: 10 } },
+  // ★ the payoff: the hook's own camera moves IN on the Roadster as the line-up drives off (hook.tsx — the hero is the subject); no house move
+  { id: "hookB", t0: PT0.hookB, key: { x: 300, y: -270, angle: 8 } },
+  // the event board: the camera CRANES DOWN off the pad to it (a change of place), landing on the date, then out to the whole board
+  { id: "whatA", kind: "craneD", t0: PT0.whatA, newPlace: true, key: { x: 760, y: -255, angle: -15 },
+    open: { x: MARKER.a.x, y: MARKER.a.y, dz: 0.12, c: 0.3 }, along: { x: MARKER.b.x, y: MARKER.b.y, dz: 0.1, c: 0.25 } },
+  // ★ CARRIED: the Roadster's run-up, followed in, then the whole curl (Video.tsx carryCam)
+  { id: "whatB", kind: "carry", t0: CARRY.start, dur: CARRY.end - CARRY.start, slideK: CARRY.k, key: { x: 300, y: -270, angle: 10 },
+    along: { x: PROFILE.b.x, y: PROFILE.b.y, dz: 0.08, c: 0.15 } },
+  // the thrusters: the camera CRANES UP to the hovering car (a change of place), landing on the nozzles, along to the engraved panel, out
+  { id: "whatC", kind: "craneU", t0: PT0.whatC, newPlace: true, key: { x: 280, y: -270, angle: 14 },
+    open: { x: THRUSTERS.a.x, y: THRUSTERS.a.y, dz: 0.12, c: 0.2 }, along: { x: THRUSTERS.b.x, y: THRUSTERS.b.y, dz: 0.1, c: 0.1 } },
+  // the speedometer: a truck left, landing on the needle, then out to the dial
+  { id: "whatD", kind: "truckL", t0: PT0.whatD, key: { x: 740, y: -255, angle: -15 },
+    open: { x: SPEEDO.a.x, y: SPEEDO.a.y, dz: 0.12, c: 0.3 } },
+  // ★ LIGHT: the strange part — a crane down onto the white stage (a change of place), on the tiny Roadster, along to the revenue, out
+  { id: "teachA", kind: "craneD", t0: PT0.teachA, white: true, newPlace: true, key: { x: 280, y: -270, angle: 12 },
+    open: { x: REVENUE_AT.a.x, y: REVENUE_AT.a.y, dz: 0.12, c: 0.3 }, along: { x: REVENUE_AT.b.x, y: REVENUE_AT.b.y, dz: 0.08, c: 0.2 } },
+  // the bars (back to the navy): a truck right, on the deliveries pair
+  { id: "teachB", kind: "truckR", t0: PT0.teachB, keepMid: 1, newPlace: true, key: { x: 760, y: -255, angle: -15 },
+    open: { x: BARS.first.x, y: BARS.first.y, dz: 0.1, c: 0.15 } },
+  // the travel to the profit pair
+  { id: "teachB2", kind: "truckR", t0: PT0.teachB2, moves: [{ from: 0, to: TRAVEL, d: { x: BARS.travel } }], key: { x: 300, y: -270, angle: 10 } },
+  // the counter: a crane up to it, on the drums, then out
+  { id: "teachC", kind: "craneU", t0: PT0.teachC, key: { x: 740, y: -255, angle: -15 },
+    open: { x: WORTH.a.x, y: WORTH.a.y, dz: 0.12, c: 0.3 } },
+  // the cars Tesla sells today: a truck left (a change of place), on today's cars, out
+  { id: "teachD", kind: "truckL", t0: PT0.teachD, keepMid: 1, newPlace: true, key: { x: 280, y: -270, angle: 12 },
+    open: { x: FUTURE.today.x, y: FUTURE.today.y, dz: 0.1, c: 0.25 } },
+  // ★ LIGHT: the travel onto what comes next — the Cybercab, along through the robot's hand to the Starship, out
+  { id: "teachD2", kind: "truckR", t0: PT0.teachD2, white: true, moves: [{ from: 0, to: TRAVEL, d: { x: FUTURE.travel } }], key: { x: 760, y: -255, angle: -15 },
+    open: { x: FUTURE.cab.x, y: FUTURE.cab.y, dz: 0.1, c: 0.2 }, along: { x: FUTURE.ship.x, y: FUTURE.ship.y, dz: 0.1, c: 0.2 } },
+  // the board folders (back to the navy): a crane down, close on the gap, then out
+  { id: "teachE", kind: "craneD", t0: PT0.teachE, key: { x: 740, y: -255, angle: -15 },
+    open: { x: COMMITTEE.close.x, y: COMMITTEE.close.y, dz: 0.15, c: 0.45 } },
+  // the honest part: THE SPINE RETURNS — a truck right (a change of place), on the car, along as it circles, out
+  { id: "honestA", kind: "truckR", t0: PT0.honestA, newPlace: true, key: { x: 280, y: -270, angle: 12 },
+    open: { x: FAA.a.x, y: FAA.a.y, dz: 0.12, c: 0.25 }, along: { x: FAA.wing.x, y: FAA.wing.y, dz: 0.08, c: 0.2 } },
+  // ★ LIGHT: the production rail — a crane up onto the white stage (a change of place), on 2028, out
+  { id: "honestB", kind: "craneU", t0: PT0.honestB, white: true, newPlace: true, key: { x: 300, y: -270, angle: 10 },
+    open: { x: TIMELINE.a.x, y: TIMELINE.a.y, dz: 0.1, c: 0.2 } },
+  // ★ LIGHT: the agreement — a truck left along the white, on its empty lines, out
+  { id: "honestC", kind: "truckL", t0: PT0.honestC, white: true, slideK: 1.12, key: { x: 740, y: -255, angle: -15 },
+    open: { x: UNSIGNED.a.x, y: UNSIGNED.a.y, dz: 0.1, c: 0.25 } },
+  // ★★★ the question arrives by a TRUCK onto the open field (STYLE §9.8) — a change of place; the house close exactly
+  { id: "question", kind: "truckR", t0: PT0.question, slideK: 1.2, newPlace: true, key: { x: 480, y: -280, angle: 3 } },
+];
+
+const DUR_OF = (p?: Place) => (p?.dur ?? (p?.moves ? Math.max(...p.moves.map((m) => m.to)) : p?.kind === "craneU" || p?.kind === "craneD" ? CRANE_DUR : TRUCK_DUR));
+/** kept for the score's older helpers */
+const SLIDE_DUR = TRUCK_DUR;
+const HERO_LAST = HERO[HERO.length - 1].at;
+const TRACK: Span = [HERO[0].at - 4, HERO_LAST + 24];
+/** the fly-through into the close: 56 f (the house close, unchanged) */
+const THRU: Span = [HERO_LAST + 24, HERO_LAST + 80];
+/** the question lifts away over 72 f (STYLE §8.10) */
+const LIFT: Span = [THRU[0], THRU[0] + 72];
+/** ★ THE OPENING PUSH — quick, from twice the distance (STYLE §16 2026-10-15) */
+const ARRIVE_DZ = 0.5;
+const ARRIVE: Span = [0, 30];
+const ARRIVE_Y = 0;
+
+/** ★ THE CAPTION CAMERA (§2.5.2) — important lines only: the hook, and the teach's key number ($1.6 trillion) */
+const s0 = SENTENCES[0];
+const teachLine = sentAt(/^Yet Tesla is worth/i);
+const CAP = {
+  hook: { span: [s0.at, s0.end] as Span, dz: 0.06, kind: "push" as const },
+  reveal: { span: [Math.max(teachLine.at, PT0.teachC + CRANE_DUR + 2), Math.min(teachLine.end, PT0.teachD - 2)] as Span, dz: 0.03, kind: "push" as const },
+};
+const CAP_R = 0.7;
+const CAM0: V3 = { x: 0, y: -ARRIVE_Y, z: -ARRIVE_DZ };
+const arrivalEnd = (i: number) => (i === 0 ? ARRIVE[1] : PLACES[i].t0 + (PLACES[i].kind ? DUR_OF(PLACES[i]) : 0));
+/** a framing's camera offset from where the place stands: Δ = p·(1 − (1 − c)(1 − dz)) */
+const keyOff = (k?: Aim): V3 => {
+  if (!k) return { x: 0, y: 0, z: 0 };
+  const s = (1 - (k.c ?? 0.35)) * (1 - k.dz);
+  return { x: (k.x - 540) * (1 - s), y: (k.y - 960) * (1 - s), z: k.dz };
+};
+/** ★ each place's camera after it lands: REST on its subject, (ALONG and rest), then OUT to the whole, and rest again before it leaves. A hold
+ *  too short for all of it keeps the OUT and lets it run into the next hand-over (the camera is then still moving as it leaves — never a
+ *  stop-start on the hand-over's first frame). */
+export const KEYS: Key[][] = PLACES.map((p, i) => {
+  if (!p.kind) return [];
+  const lo = arrivalEnd(i), next = PLACES[i + 1]?.t0 ?? THRU[0], out: Key[] = [];
+  const start = p.open ?? { x: 540, y: 960, dz: 0, c: 0 };
+  let at = lo + REST_IN;
+  if (p.along && next - REST_OUT - (at + KEY_DUR + REST_IN + KEY_DUR) >= 0) { out.push({ ...p.along, from: at, to: at + KEY_DUR, curve: "glide" }); at += KEY_DUR + REST_IN; }
+  if (!p.open && !out.length) return [];
+  const outTo = Math.max(at + 30, Math.min(at + KEY_DUR, next - REST_OUT));
+  out.push({ x: 540, y: 960, dz: 0, c: 0, from: at, to: outTo, curve: "glide" });
+  void start;
+  return out;
+});
+const OPEN_OFF = (i: number) => keyOff(PLACES[i].open);
+const buildMoves = (slideK: (p: Place) => number): Move[] => ([
+  { t0: ARRIVE[0], t1: ARRIVE[1], d: { y: ARRIVE_Y, z: ARRIVE_DZ }, ease: "out" as const },
+  ...PLACES.flatMap((p, i) => {
+    if (!p.kind) return [];
+    const o = OPEN_OFF(i), t1 = p.t0 + DUR_OF(p);
+    const base: Partial<V3> = p.moves ? { x: p.moves[0].d.x ?? 0, y: p.moves[0].d.y ?? 0 } : moveOf(p.kind, slideK(p));
+    // the hand-over: across (or up / down) on FAST, landing framed on the subject; its depth (the open's dz) on a zoom ease, and the arc
+    const ms: Move[] = [{ t0: p.t0, t1, d: { x: (base.x ?? 0) + o.x, y: (base.y ?? 0) + o.y }, ease: "io", curve: "fast" }];
+    if (o.z) ms.push({ t0: p.t0, t1, d: { z: o.z }, ease: "zoom", endD: MID - o.z, curve: "fast" });
+    if (p.kind !== "carry") ms.push({ t0: p.t0, t1, d: { z: -ARC }, ease: "arc", curve: "fast" });
+    return ms;
+  }),
+  ...KEYS.flatMap((ks, i) => ks.map((k, j) => {
+    const a = j ? keyOff(ks[j - 1]) : OPEN_OFF(i), b = keyOff(k), dz = b.z - a.z;
+    return { t0: k.from, t1: k.to, d: { x: b.x - a.x, y: b.y - a.y, z: dz }, ease: (Math.abs(dz) > 1e-6 ? "zoom" : "io") as "zoom" | "io", endD: MID - b.z, curve: "glide" as const };
+  })),
+  ...Object.values(CAP).map((c) => ({ t0: c.span[0], t1: c.span[1], d: { z: c.kind === "push" ? c.dz : -c.dz }, ease: "zoom" as const })),
+  { t0: TRACK[0], t1: TRACK[1], d: { z: 0.12 }, ease: "zoom" as const },
+  { t0: THRU[0], t1: THRU[1], d: { z: 1.2 }, ease: "zoom" as const },
+] as Move[]).sort((a, b) => a.t0 - b.t0);
+/** ★ A TRUCK CARRIES WHAT IT LEAVES A FULL FRAME: scaled by the outgoing construction's distance */
+const MOVES0 = buildMoves(() => 1);
+const midOwner = (i: number) => { for (let j = i - 1; j > 0; j--) if (PLACE_PARTS[PLACES[j].id]?.mid) return j; return 0; };
+const slideK = (p: Place) => {
+  if (p.slideK !== undefined) return p.slideK;
+  const i = PLACES.indexOf(p), zo = camPath(CAM0, MOVES0, arrivalEnd(midOwner(i)), false).z;
+  return Math.max(1, (zo + MID - camPath(CAM0, MOVES0, p.t0, false).z) / MID);
+};
+const MOVES: Move[] = buildMoves(slideK);
+const at = (f: number) => camPath(CAM0, MOVES, f, false);
+/** a station is where the camera stands, framing the WHOLE place, once it has arrived (the open framing taken off) */
+const ST: Record<PlaceId, V3> = Object.fromEntries(PLACES.map((p, i) => {
+  if (i === 0) return [p.id, { x: 0, y: 0, z: 0 }];
+  const a = at(arrivalEnd(i)), o = OPEN_OFF(i);
+  return [p.id, { x: a.x - o.x, y: a.y - o.y, z: a.z - o.z }];
+})) as Record<PlaceId, V3>;
+const ST_OUTRO = at(THRU[1]);
+
+/** ★ THE CARRIED CAMERA (whatB): over the hand-over it is blended onto a camera that FOLLOWS the car — the car held at a screen anchor that
+ *  runs from off the left edge to x 300 (the car a touch faster than the camera), framed CLOSE (dz CARRY.zoom); as the car reaches the curl
+ *  the anchor eases onto the car's own place and the zoom out to the whole: at CARRY.end the follow IS the station, so it hands back with
+ *  no seam. For a layer at the place's MID: screen = 540 + ((p − 540) − (cam − st)) / D, so cam = st + (p − 540) − (A − 540)·D. */
+const PF_C = { ...PF_CUES, end: 0 };
+const carryCam = (f: number, cam: V3): V3 => {
+  const p = PLACES.find((q) => q.id === "whatB")!;
+  if (f < p.t0 || f > CARRY.end) return cam;
+  const st = ST.whatB, car = profileCar(PF_C, f);
+  const zIn = CARRY.zoom * rInOut(f, CARRY.start, CARRY.start + 30), out = rInOut(f, CARRY.end - 40, CARRY.end);
+  const dz = zIn * (1 - out), D = MID - dz;
+  const ax0 = CARRY.ax[0] + (CARRY.ax[1] - CARRY.ax[0]) * rInOut(f, CARRY.start + 10, CARRY.end - 36);
+  const ax = ax0 + (car.x - ax0) * out, ay = CARRY.ay + (car.y - CARRY.ay) * out;
+  const follow: V3 = { x: st.x + (car.x - 540) - (ax - 540) * D, y: st.y + (car.y - 960) - (ay - 960) * D, z: st.z + dz };
+  const w = rInOut(f, CARRY.start, CARRY.start + 34);
+  return { x: cam.x + (follow.x - cam.x) * w, y: cam.y + (follow.y - cam.y) * w, z: cam.z + (follow.z - cam.z) * w };
+};
+
+/** ★ THE CAMERA TURNS AS IT TRAVELS (the Style 3 films' shot.tsx): a truck yaws ±7°, a crane pitches ±5°, both rising and returning on the
+ *  move's own eased progress — so a hand-over is the viewpoint moving, not the pictures sliding */
+const turnAt = (f: number) => {
+  let yaw = 0, pitch = 0;
+  for (const p of PLACES) {
+    if (!p.kind) continue;
+    const d = DUR_OF(p);
+    if (f < p.t0 || f > p.t0 + d) continue;
+    const q = Math.sin(Math.PI * FAST(clamp01((f - p.t0) / d)));
+    if (p.kind === "truckR" || p.kind === "carry") yaw += (p.moves ? -4 : p.kind === "carry" ? -4 : -7) * q;
+    else if (p.kind === "truckL") yaw += 7 * q;
+    else if (p.kind === "craneU") pitch += 5 * q;
+    else pitch -= 5 * q;
+  }
+  return { yaw, pitch };
+};
+
+/** ★★ THE LIGHT TRAVELS WITH ITS PLACE (the Style 3 films' E7; measured: their background moves 0.47× the content). Each place owns a lift and
+ *  a key cone, drawn at its station and moved on screen at 0.4 of the camera's travel. A plain hand-over hands the light over as the camera
+ *  moves (the old one fades over 0.3–1.0 of the move, the new one comes over its first 60%); at a CHANGE OF PLACE the old light stays WITH
+ *  its scene (0.9×) as it leaves, the ground between goes plain, and the new light arrives with the next scene (STYLE §16 2026-10-30). */
+const LIGHT_PAR = 0.4, LIGHT_PAR_NEW = 0.9;
+type PlaceLight = { i: number; o: number; dx: number; dy: number };
+const lightsAt = (f: number, cam: V3): PlaceLight[] => {
+  const out: PlaceLight[] = [];
+  PLACES.forEach((p, i) => {
+    if (i === 1) return;   // (hookB shares the hook's light)
+    const nx = PLACES[i === 0 ? 2 : i + 1], pv = i === 0 ? undefined : PLACES[i === 2 ? 0 : i - 1];
+    // arrival: this place's own hand-over; departure: the next one's
+    const arrT = p.kind ? p.t0 : -Infinity, arrD = p.kind ? DUR_OF(p) : 1;
+    const depT = nx?.t0 ?? Infinity, depD = nx?.kind ? DUR_OF(nx) : 1;
+    const inQ = clamp01((f - arrT) / arrD), outQ = clamp01((f - depT) / depD);
+    const newIn = !!p.newPlace, newOut = !!nx?.newPlace;
+    const oIn = arrT === -Infinity ? 1 : newIn ? rInOut(inQ, 0.45, 1) : rInOut(inQ, 0, 0.6);
+    const oOut = newOut ? 1 - rInOut(outQ, 0.55, 1) : 1 - rInOut(outQ, 0.3, 1);
+    const o = oIn * oOut;
+    if (o <= 0.003) return;
+    const par = (f < depT ? newIn : newOut) ? LIGHT_PAR_NEW : LIGHT_PAR;
+    void pv;
+    out.push({ i, o, dx: -(cam.x - ST[p.id].x) * par, dy: -(cam.y - ST[p.id].y) * par });
+  });
+  return out;
+};

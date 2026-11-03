@@ -1,0 +1,226 @@
+BANKERS VIDEO 21 — the brief as Timur sent it (2026-10-28), verbatim. Timur: "Keep in mind, this is video 21."
+Then, mid-build, his style list (recorded in Bankers/STYLE.md §16, 2026-10-28 rows), whose music table sets
+"21: music_yeat.mp3, from its start at 15/97".
+
+────────────────────────────────────────────────────────────────────
+Read Bankers/CLAUDE.md, Bankers/STYLE.md, Bankers/Resources/ and Videos/log.md first —
+they are authoritative; this prompt only covers what's SPECIFIC to this video.
+
+NEW VIDEO — "The Last Car You'll Drive"
+CATEGORY: CULTURE BRIDGE (Tesla's flying Roadster reveal, Oct 15, 2026, set against
+Tesla's Q3 2026 results and its $1.6T valuation). News post in the Bankers format — one
+current event carrying one evergreen teach. Content-only prompt: hook, story, script,
+facts — visual, caption and pacing decisions are yours, EXCEPT the hook scene and the
+song brief below. Build in the DEMO ANCHOR's world with every STYLE.md §16 rule to date
+(2-D by default, real 3-D where depth matters, dark-blue metal, the camera following
+the action, close zooms, richer compositions, no text-only scenes, the house close).
+Folder: Bankers/Videos/ — next video number. Composition: TeslaFlyingRoadster.
+1080×1920 @30fps. Tone: calm, neutral, educational.
+
+★ RUNTIME — HARD CAP 80 SECONDS, end card included. Script is ~185 words.
+  If the take runs long, tighten pauses first, never add beats.
+
+★ TIMING: everything is published. The one live figure is Tesla's market value:
+  stamp "Market value as of Oct 27, 2026 close". The reveal and the Q3 results are
+  fixed history.
+
+★ SONG (Timur's brief): quick and catchy, high energy, ~130–145 BPM, with a clean
+  drop. The drop lands on the Roadster's flip in the hook. UNKNOWN: the track — ask
+  Timur for the file before mixing. Don't reuse 711.mp3 or the earlier beds without
+  his word. One volume for the whole film, fading out under the closing logo
+  (STYLE §11.3).
+
+★★★ CONTENT RULES (standing, retention-critical):
+  1. EVERY BEAT GETS A DISTINCT VISUAL — no asset or animation reused. The Roadster
+     is the ONE named spine: it returns once (in the honest part), changed.
+  2. HOOK VISUAL LITERALLY MATCHES THE WORDS — see ★★ HOOK SCENE.
+  3. Compared numbers use the same scale and are aligned. 4. No orphan micro-labels.
+  5. No dead stretches. 6. ONE-DATASET RULE: Q3 figures come from Tesla's Q3 2026
+     results (Oct 21) and its Q3 deliveries release. The reveal facts come from the
+     Oct 15 event as reported by TechCrunch, CBS and Axios. The market value comes from
+     the Oct 27 close.
+  7. Every sentence gets its own visual, built from its own data, with the real object
+     the sentence names acting in the scene. Vehicles are on the NEVER list; Timur has
+     asked for the Roadster and the Tesla line-up here, so they are this film's named
+     objects. Keep everything else inside the vocabulary.
+  8. Tesla and SpaceX logos: official marks as inline SVG in the stage's ink, never
+     redrawn or recoloured to brand colours. Musk is named, NOT shown (no photo).
+
+★ HOOK (≤14 words + kicker):
+  "Tesla built a car that flies over other cars."
+  "And Elon Musk calls it the last of the human-driven cars."
+
+★★ HOOK SCENE (mandatory) — THE STUNT, ALREADY MID-AIR. Detailed, and moving every frame.
+  The hook stages the real demo: the Roadster climbs an upside-down ramp, flips, and
+  thrusts over a row of Teslas. Nothing on screen is ever still; the payoff is the
+  biggest motion.
+  • THE CONSTRUCTION (≤ ~6 elements on the last frame; real 3-D, plane rig, because
+    the idea is motion through space):
+    - THE ROADSTER (hero, built to 100bps detail, §6.8a): the low, angular two-seater
+      in its real white with deep-blue glass. Its parts: the wedge nose, the canopy
+      glass with a specular sweep, wheels with real spokes and rotating hubs, the rear
+      diffuser, and SMALL ROUND THRUSTER NOZZLES set into the body that glow blue and
+      breathe short white cold-gas jets. Real proportions, not a toy.
+    - THE RAMP: a glossy dark-blue metal track that rises and curls over into an
+      upside-down section, its rails catching the key light, standing on the test-site
+      floor with a reflection.
+    - THE LINE-UP: five Teslas parked in a row on the floor beyond the ramp, simpler
+      but recognisable by silhouette: Cybercab, Cybertruck, Semi cab, Model Y and
+      Model 3, in the dark-blue metal. They are the hook's background detail and what
+      the car flies over.
+    - BACKDROP: the navy field and one overhead spotlight, with the floor's grid of
+      faint test-pad markings receding into the dark for depth. No city, no crowd,
+      no gantry.
+  • BEATS (sync to the VO words):
+    FRAME 0 — no fade-in, NO TEXT, already moving: the house opening push drives in
+    fast from far out (STYLE §8) as the Roadster is ALREADY racing up the curl, wheels
+    spinning, about to go upside down. This frame is the thumbnail.
+    "Tesla built a car…" → the car runs through the upside-down section, clinging to
+    the track. The camera rides alongside in one long follow, rolling slightly with
+    the car.
+    "…that flies over other cars." → it leaves the end of the ramp, ROLLS 180° in
+    mid-air (the song's drop lands here), and the thrusters fire. It arcs over the
+    whole row of five Teslas, its shadow sweeping across their roofs, then lands on
+    its wheels with a short, real suspension squat. "0–60 IN 1 SECOND" prints along
+    the car's flank early in the arc (figures ride the action).
+    "And Elon Musk calls it the last of the human-driven cars." → the PAYOFF: as the
+    Roadster settles under the spotlight, the five Teslas behind it pull away BY
+    THEMSELVES, empty cabins and no one at the wheel, the Cybercab leading, gliding
+    off in a smooth line. A small label lands on the Roadster: "THE LAST OF THE
+    HUMAN-DRIVEN". The camera eases back to show the car alone in its light while
+    the driverless line drives off.
+    EXIT: the Roadster pulls away too, and the camera follows it into scene two (the
+    house "follow a thing into its scene" hand-over).
+  • QUALITY BARS:
+    - every frame of the hook has something in motion: the car, the jets, the
+      shadow, the line-up
+    - the car's flip and landing are physically plausible: one smooth arc, a real
+      squat on landing, no snapping
+    - the camera follow is one transform on a steady eased path (followjit.py)
+    - sound off, two seconds in, the read is "a Tesla flipping over other Teslas"
+    - the payoff (cars driving off empty) reads in the full frame ≥1s before any
+      transition swells
+    - close-up check of the Roadster at full size before handback (§6.8a): wheels,
+      canopy, nozzles, joins
+    - never Video 12's construction or hero object (log.md)
+    - SFX: a whoosh up the ramp, a sub on the flip, short thruster hisses on the jets,
+      a soft landing thump, a swoosh as the line-up drives off
+
+★ SCOPE: ONE teach — a stock price is a bet on the future, and Tesla's is priced on
+  what comes after cars (robotaxis, robots, possibly SpaceX), not on today's car sales.
+  NEUTRAL:
+  - no call on TSLA or SPCX, and no view on Musk
+  - the honest part gets equal weight: the FAA says it isn't an aircraft, production
+    is planned for 2028, Musk says success isn't guaranteed, and no merger terms are
+    agreed
+  - Not financial advice.
+
+────────────────────────────────────────────────────────────────────
+SCRIPT — full declarative sentences, one caption per screen.
+────────────────────────────────────────────────────────────────────
+
+[HOOK]
+Tesla built a car that flies over other cars.
+And Elon Musk calls it the last of the human-driven cars.
+
+[WHAT HAPPENED]
+On October fifteenth, outside Waco, Texas, Tesla showed off its new Roadster.
+It climbed an upside-down ramp, flipped in mid-air and landed on its wheels.
+Then compressed-air thrusters, built with SpaceX, lifted it over a row of other Teslas.
+Tesla says it goes from zero to sixty in one second.
+
+[THE TEACH]
+Here's the strange part.
+Even Musk says the Roadster may not move Tesla's revenue much.
+And Tesla's car business is shrinking.
+From July to September, deliveries fell two percent, and profit fell forty-three percent.
+Yet Tesla is worth about one point six trillion dollars.
+Investors aren't paying for the cars Tesla sells today.
+They're paying for what Musk says comes next: robotaxis, robots, and maybe SpaceX.
+Musk has said both companies set up committees to discuss a merger.
+
+[THE HONEST PART]
+Now, the honest part.
+The FAA says the Roadster doesn't meet its definition of an aircraft.
+Production isn't planned until twenty twenty-eight, and Musk admits success isn't
+guaranteed.
+And no merger terms have been agreed.
+
+[AUDIENCE QUESTION]
+So be honest.
+Is Tesla still a car company?
+Tell us below.
+
+[CTA — the house close, unchanged]
+
+────────────────────────────────────────────────────────────────────
+CONTENT-LEVEL VISUAL NOTES — the object each sentence names and what it does.
+Composition, camera, finish and KIND assignment are yours (one of each chart kind; ONE
+light frame).
+────────────────────────────────────────────────────────────────────
+• HOOK: as specified in ★★ HOOK SCENE.
+• WHAT HAPPENED:
+  - "October fifteenth, outside Waco, Texas" → the reveal's date as a real object
+    acting (a date block or a lit event marker on the test pad), brief.
+  - "climbed an upside-down ramp, flipped… landed" → a new angle on the stunt, not the
+    hook's: the ramp seen side-on as a clean profile, the car's path traced as a lit
+    arc that draws as the car travels it (KIND steps or line, your call).
+  - "compressed-air thrusters, built with SpaceX" → a close, slow orbit around the
+    rear of the car: the nozzles glow, and a cutaway-free view of the jets with
+    "10 THRUSTERS" and the SpaceX mark engraved on a body panel.
+  - "zero to sixty in one second" → a speedometer DIAL whose needle sweeps 0 → 60 in
+    exactly one second of screen time, the readout counting with it.
+• THE TEACH:
+  - "may not move Tesla's revenue much" → the Roadster on a scale or plinth against
+    Tesla's revenue as a large solid, the Roadster tiny beside it (no invented
+    number: the point is Musk's own words).
+  - "deliveries fell two percent, profit fell forty-three percent" → BARS: Q3 2025 vs
+    Q3 2026 for deliveries (497,099 → 486,532) and net income ($1.37B → $787M), each
+    pair on its own honest scale, the falls lit red.
+  - "worth about one point six trillion dollars" → a COUNTER rolling up to "$1.6T",
+    labelled MARKET VALUE, with the stamp "as of Oct 27, 2026".
+  - "what Musk says comes next: robotaxis, robots, and maybe SpaceX" → three objects
+    arriving in turn on their words: a Cybercab gliding in with no driver, a robot
+    hand or silhouette kept abstract (no human figure), and the SpaceX mark on a
+    glossy plinth.
+  - "committees to discuss a merger" → the Tesla and SpaceX marks on two metal blocks
+    sliding toward each other and stopping with a visible gap (talks, no deal).
+• THE HONEST PART (both sides equal weight):
+  - "doesn't meet its definition of an aircraft" → the spine returns once: the
+    Roadster parked on the floor, the camera circling it slowly, an aircraft outline
+    behind it that it doesn't fit (keep it abstract, no plane detail).
+  - "production… twenty twenty-eight, success isn't guaranteed" → a timeline rail
+    from OCT 2026 to 2028 with the far end left open.
+  - "no merger terms have been agreed" → resolved without reusing the blocks (your
+    choice).
+• AUDIENCE QUESTION: the house close (tracking text, then the BANKER$ close).
+
+★ FACTS & VERIFY BEFORE POST:
+  - Reveal: Oct 15, 2026, livestreamed from a SpaceX test facility near Waco, Texas
+    (CBS, TechCrunch). The car climbed an inverted ramp, spun and landed. Thrusters
+    hopped it over a Cybercab, Cybertruck, Tesla Semi, Model Y and Model 3
+    (TechCrunch). 10 thrusters fed by 600 litres of compressed air (Tesla VP Lars
+    Moravy). 0–60 mph in one second shown by Tesla. Production planned for 2028, no
+    price (TechCrunch, CBS). ✓
+  - Musk quotes: "the best of the last of the human-driven cars" (TechCrunch).
+    Two-seater "the only manually driven car Tesla makes in the long term" (Axios).
+    "not sure it moves the needle massively from a revenue standpoint" (TechCrunch).
+    "success is not guaranteed" (CBS). ✓ The hook paraphrases these as "the last of
+    the human-driven cars".
+  - "flies over other cars": thruster hops over parked Teslas (TechCrunch). Musk:
+    "Flying cars are real" (CBS). The FAA told CBS the vehicle does not meet its
+    definition of an aircraft — said in the honest part. ✓
+  - Q3 2026 (Tesla, Oct 21; Electrek, Just Auto): deliveries 486,532, −2.1% y/y; net
+    income attributable to common stockholders $787M, −42.7% y/y; total revenue
+    $28.05B (flat); automotive revenue $20.56B, −3%. ★ Verify the Q3 2025 comparison
+    values (deliveries 497,099; net income $1.37B) against Tesla's own releases
+    before the bars are built.
+  - Market value: about $1.61T at the Oct 27 close of $407.46 (Yahoo Finance,
+    Oct 28). ★ Re-pull on the build day; the voice says "about one point six trillion".
+  - Merger: Tesla and SpaceX formed special committees of independent directors.
+    Musk: they "have not reached agreement on the terms of any transaction" (Yahoo
+    Finance, Oct 28). Barclays upgraded Tesla on Oct 26, citing a merger as part of
+    the bull case. ✓
+  - Excluded on purpose: the Roadster's reservation prices, Musk's safety remarks,
+    the stock's daily moves, Barclays' target, and any view on whether a merger is
+    good.

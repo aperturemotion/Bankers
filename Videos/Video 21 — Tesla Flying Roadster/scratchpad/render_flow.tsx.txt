@@ -1,0 +1,59 @@
+  // the white places: the stage floods as the camera travels in and drains as it travels out (a white run never dips between its places)
+  let fieldLight = 0;
+  PLACES.forEach((p, i) => {
+    if (!p.white || PLACES[i - 1]?.white) return;
+    let j = i;
+    while (PLACES[j + 1]?.white) j++;
+    // (the Style 3 films: the stage dissolves to white WHILE the camera moves into the place — about the move's middle — and back across its exit)
+    const inA = p.t0 + (p.whiteIn ?? Math.round(DUR_OF(p) * 0.2)), next = PLACES[j + 1];
+    const outA = next ? next.t0 + Math.round(DUR_OF(next) * 0.2) : Infinity;
+    fieldLight = Math.max(fieldLight, rInOut(f, inA, inA + 26) - (outA === Infinity ? 0 : rInOut(f, outA, outA + 26)));
+  });
+  fieldLight = clamp01(fieldLight);
+  // the caption ink and the watermark read the stage AND the lens bloom together (Style 3: 1 − (1 − stage)(1 − flare))
+  const flr = 0;
+  const lit = 1 - (1 - fieldLight) * (1 - flr);
+  const capLight = lit >= 0.5 ? 1 : 0;
+
+  const cam = carryCam(f, camPath(CAM0, MOVES, f));
+  const heroOn = f >= HERO_ON && f < P.heroEnd;
+  const turn = turnAt(f);
+  // ★ each place's own light, travelling with it (lightsAt): its lift (alternating sides) and its key cone
+  const lights = lightsAt(f, cam);
+
+  // ── the layers: each place's MID, mounted from its hand-over to the end of the next one ──
+  const camND = carryCam(f, camPath(CAM0, MOVES, f, false));
+  const drift: V3 = { x: cam.x - camND.x, y: cam.y - camND.y, z: cam.z - camND.z };
+  const leaveOf = (q?: Place) => (q?.kind ? q.t0 + DUR_OF(q) + 4 : THRU[1] + 12);
+  const endOf = (q?: Place) => (q?.kind ? q.t0 + DUR_OF(q) : THRU[1]);
+  const layers: LayerSpec[] = [];
+  PLACES.forEach((p, i) => {
+    const next = PLACES[i + 1];
+    const from = i === 0 ? -100 : p.t0 - 10;
+    const after = p.keepMid ? PLACES[i + 1 + p.keepMid] : next;
+    const fgAfter = p.keepFg ? PLACES[i + 1 + p.keepFg] : next;
+    const until = leaveOf(fgAfter);
+    const untilMid = leaveOf(after);
+    if (f < from || f >= untilMid) return;
+    const endAt = endOf(after);
+    // (the hook's opening push starts it 1.5 away: the default far fade [1.25, 1.5] would hide it on frame 0)
+    const farMid: [number, number] | undefined = i === 0 ? [2.2, 3.2] : p.keepMid ? [2.2, 3.2] : [1.8, 2.8];
+    const parts = PLACE_PARTS[p.id];
+    const ctx = { f, light: fieldLight, t0: p.t0, end: endAt, exit: next?.t0, leave: after?.t0 };
+    const mid = parts?.mid?.(ctx);
+    const spans = p.keepMid ? PLACES.slice(i + 1, i + 1 + p.keepMid).filter((q) => f >= q.t0) : [];
+    const curSpan = spans.at(-1), prevSpan = spans.at(-2);
+    const also = curSpan ? [curSpan.id, ...(prevSpan && f < curSpan.t0 + DUR_OF(curSpan) + 4 ? [prevSpan.id] : [])].join(" ") : undefined;
+    const tag = (n: React.ReactNode) => (also ? <div data-probe-also={also} style={{ position: "absolute", inset: 0 }}>{n}</div> : n);
+    for (const pl of parts?.planes?.(ctx) ?? []) {
+      layers.push({ id: `${p.id}:${pl.key}`, st: ST[p.id], R: pl.R, op: 1, cam: pl.pinXY ? { x: ST[p.id].x + drift.x, y: ST[p.id].y + drift.y, z: cam.z } : undefined,
+        far: farMid, node: tag(pl.node) });
+    }
+    const kNow = (ST[p.id].z + MID - cam.z) / MID;
+    const k0 = (ST[p.id].z + MID - at(THRU[0]).z) / MID;
+    const pass = f >= THRU[0] && k0 > 0.4 ? clamp01((kNow - 0.35) / (k0 - 0.35)) : 1;
+    if (mid) layers.push({ id: `${p.id}:mid`, st: ST[p.id], R: MID, op: pass, far: farMid, node: tag(mid) });
+    if (f >= until) return;
+    const fg = parts?.fg?.({ f, light: fieldLight, t0: p.t0, end: endAt });
+    if (fg) layers.push({ id: `${p.id}:fg`, st: ST[p.id], R: FG, op: 1, node: fg });
+  });

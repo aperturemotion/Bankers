@@ -1,0 +1,3 @@
+Hook and 23-s thruster sounds for Bankers Video 21 (2026-10-29). ElevenLabs, eleven_text_to_sound_v2, flow RL1VvPTamCNaR7LDBAFc (Timur's account), 10 takes, ~3 cents. Fetched by fetch.mjs (signed URLs expire after 2 h).
+Prompts: ramp = electric sports car whine up a steel ramp; jets = compressed-air thruster hiss; land = landing thump; brake = tyre scrub (both takes were loud squeals, rejected); driveoff = electric cars pulling away.
+Chosen by measurement (analyse.py): ramp_b, jets_a + jets_b (thrusters scene), jets_b (hook), land_a, driveoff_b. Built into public/sfx21/hook.wav and thrusters.wav by scratchpad/mkhooksfx21.py.

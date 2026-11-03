@@ -1,0 +1,629 @@
+import React from "react";
+import { AbsoluteFill, Audio, Img, Sequence, staticFile, useCurrentFrame } from "remotion";
+import { rInOut, rOut, rIn, drift2, clamp01, INOUT } from "./anim";
+import { Field, KeyLight } from "./stage";
+import { BrandClose } from "./close";
+import { WordCaption } from "./text";
+import { TrackText, trackBottom, type TrackLine } from "./track";
+import { CHIPS, HERO, VO_LEAD, VO_CUT, VO_GAP, TOTAL_FRAMES, SYNTHETIC, SENTENCES } from "./captions";
+import { SfxLayer, within, type Cue, type SfxName } from "./SfxLayer";
+import { World, camPath, zoomFrac, zoomT, FgEnter, FG, MID, SETTLE, type Move, type V3, type LayerSpec } from "./world";
+import { Probe } from "./Probe";
+import { theme } from "./theme";
+import { PLACE_PARTS, TIMES, T0 as PT0 } from "./places/registry";
+import { MARKER } from "./places/marker";
+import { PROFILE } from "./places/profile";
+import { THRUSTERS } from "./places/thrusters";
+import { SPEEDO } from "./places/speedo";
+import { REVENUE_AT } from "./places/revenue";
+import { BARS } from "./places/bars";
+import { WORTH } from "./places/worth";
+import { FUTURE } from "./places/future";
+import { COMMITTEE } from "./places/committee";
+import { FAA } from "./places/faa";
+import { TIMELINE } from "./places/timeline";
+import { UNSIGNED } from "./places/unsigned";
+import { figLand } from "./places/land";
+import { HOOK_SFX_BUILT, THRUSTER_SFX_BUILT } from "./hooksfx.gen";
+
+// ══════════════════════════════════════════════════════════════════════════════════════════════
+// ★ BANKERS VIDEO 21 — "The Last Car You'll Drive" (TeslaFlyingRoadster, ≤ 80 s — the brief's HARD CAP, end card included). ONE DATASET
+// PER FIGURE FAMILY (data.ts): Tesla's deliveries releases; its Q3 2026 10-Q (profit, revenue); the Oct 27, 2026 close × the 10-Q's
+// share count; the reveal as reported by TechCrunch, CBS, CNN and AP.
+// ★★ BUILT FROM THE DEMO (Resources/visual-vocabulary.md → DEMO ANCHOR) with every STYLE §16 rule: 2-D by default, real 3-D where the idea
+// needs depth (the stunt, the car, the gauge), the dark-blue metal, the camera following the action, ONE light frame, the house close.
+// ONE CONTINUOUS JOURNEY, none over 7 s:
+//   hookA     ★ THE BRIEF'S HOOK: THE STUNT, ALREADY MID-AIR (hook.tsx) — the Roadster racing up a twisting ramp, upside down, rolling back
+//             in mid-air on its thrusters over five Teslas, landing; its own following camera
+//   hookB     (pull-back) the line-up drives off by itself, the Cybercab first: BEST OF THE LAST HUMAN-DRIVEN
+//   whatA     (slide, following the Roadster out) the reveal's date: an event board on the test pad, OCT 15, 2026, WACO, TEXAS
+//   whatB     (slide) the stunt side-on: the ramp's profile, the path drawn as the car travels it
+//   whatC     (push) the thrusters: a slow orbit round the Roadster's tail, 10 THRUSTERS and the SpaceX mark on its panel, the car lifting
+//   whatD     (slide) the speedometer: 0 → 60 in under a second
+//   teachA    (push) the strange part: the Roadster tiny beside Tesla's quarterly revenue in cash
+//   teachB    (slide) the bars: deliveries Q3 2025 vs Q3 2026, −2%; teachB2 (travel) profit, −43%
+//   teachC    (slide) the counter rolling to $1.6T, MARKET VALUE
+//   teachD    (push) the cars Tesla sells today, their light dimming; teachD2 WHITE — the one light frame · (travel) what comes next:
+//             a Cybercab with no driver, a robot's hand, a Starship
+//   teachE    (slide, back to the navy) two board folders, Tesla and SpaceX, sliding together and stopping with a gap
+//   honestA   (push) THE SPINE RETURNS: the Roadster parked, the camera circling it, an aircraft's outline it does not fit
+//   honestB   (slide) the production rail: OCT 2026 → 2028, the far end open
+//   honestC   (slide) the merger agreement, its two signature lines empty
+//   question  (slide) the closing question as TRACKING TEXT on the open field; then the Bankers close (the house close, unchanged)
+// ★ The camera: the Bankers durations on SETTLE, every long hold phrased ZOOM IN → MOVE → ZOOM OUT, every key gliding (STYLE §16).
+// The take: ElevenLabs "Jon – Calm Presence" (eleven_v4), generated from the final VO_SCRIPT.txt (Bankers/CLAUDE.md §1, 2026-10-18).
+
+export const VIDEO_FRAMES = TOTAL_FRAMES;
+const HAS_VO = true;
+const HAS_SFX = true;
+/** ★ ON THE PROVISIONAL TAKE THE SCORE PLAYS IN THE STUDIO, for review (STYLE §11.4). stylecheck STAGE enforces `SFX_PREVIEW = SYNTHETIC`. */
+const SFX_PREVIEW = SYNTHETIC;
+const HAS_MUSIC = true;
+// ★★ THE SONG: music_yeat.mp3 FROM ITS START at 15/97 (Timur's song table, 2026-10-28: "20 (approved), 21 | music_yeat.mp3, from its start
+// at 15/97"). The file Videos 1, 4 and 6 used, copied from Video 1's public/, untouched; it plays as written from the first frame (its quiet
+// intro under the hook, its drop at 13.33 s in the file), at ONE gain for the whole film, fading out under the closing logo (STYLE §11.3).
+// ⚠ The brief asked for the drop on the hook's flip; the table says "from its start" — asked of Timur in the handback. ⚠ Commercial: the
+// client's rights are flagged in every handback.
+const MUSIC_SRC = "music_yeat.mp3", MUSIC_FROM_S = 0;
+const MUSIC_VOL = 15 / 97;
+export type Solo = "vo" | "music" | "sfx" | undefined;
+
+// ══ THE JOURNEY ════════════════════════════════════════════════════════════════════════════
+type Span = [number, number];
+type Kind = "push" | "slideR" | "slideL";
+const sentAt = (re: RegExp) => { const s = SENTENCES.find((x) => re.test(x.text)); if (!s) throw new Error(`no sentence ${re}`); return s; };
+const PUSH_Z = 1.25, SLIDE_X = 1020;
+/** `k`: a slide's scale — the outgoing construction's distance (slideK below), so it always crosses a full frame */
+const moveOf = (kind: Kind, k = 1): Partial<V3> => (kind === "push" ? { z: PUSH_Z } : kind === "slideR" ? { x: SLIDE_X * k } : { x: -SLIDE_X * k });
+
+export type PlaceId = "hookA" | "hookB" | "whatA" | "whatB" | "whatC" | "whatD" | "teachA" | "teachB" | "teachB2" | "teachC" | "teachD" | "teachD2" | "teachE" | "honestA" | "honestB" | "honestC" | "question";
+type Place = { id: PlaceId; kind?: Kind; rackGain?: number; t0: number; dur?: number; farIn?: [number, number]; fgDelay?: number; moves?: { from: number; to: number; d: Partial<V3> }[]; white?: boolean; whiteIn?: number; tilt?: number; aim?: number; keepMid?: number; keepFg?: number; slideK?: number; key: { x: number; y: number; angle: number }; keys?: Key[] };
+
+/** ★★ THE STYLE 3 FILMS' INTENSITY, AT THE BANKERS SPEED (STYLE §8.2): pushes 56 f, slides 48 f, travels 48 f, all on SETTLE; each plain
+ *  slide pulls back 8% at its middle and returns (ARC). */
+const PUSH_DUR = 56, SLIDE_DUR = 48, TRAVEL = 48, ARC = 0.08;
+/** ★★★ THE CAMERA FOLLOWS THE ACTION (STYLE §8.7, §16 2026-10-15): each key is a FRAMING — the point (x, y) of the place as it stands when
+ *  it has arrived, drawn `c` of the way toward the frame's centre, with the camera `dz` nearer — reached over [from, to]. */
+type Key = { from: number; to: number; x: number; y: number; dz: number; c?: number; curve?: "fast" | "glide"; pan?: number; panY?: number };
+/** ★★★ THE "ZOOM IN → MOVE → ZOOM OUT" PHRASE (Timur, 2026-10-18; STYLE §16) */
+type Aim = Omit<Key, "from" | "to">;
+const phrase = (lo: number, hi: number, inK: Aim, moveK: Aim, outK: Aim, inF = 34, outF = 34): Key[] => {
+  // a hold too short for all three (under ~98 f: not a "long hold", STYLE §16) comes IN and goes OUT, each key ≥ 30 f (the CAMERA rule)
+  if (hi - lo < 98) { const m = Math.round((lo + hi) / 2); return hi - lo >= 62 ? [{ from: lo, to: m - 1, curve: "glide", ...inK }, { from: m + 1, to: hi, curve: "glide", ...outK }] : glide(lo, hi, inK); }
+  const room = hi - lo - 34;
+  if (inF + outF > room) { const k = Math.max(30, Math.floor(room / 2)); inF = Math.min(inF, k); outF = Math.min(outF, k); }
+  const b = lo + inF, c = hi - outF;
+  if (c - 2 - (b + 2) < 30) throw new Error(`a camera phrase ${lo}–${hi} has no room for its travel (${c - b - 4} f)`);
+  return [{ from: lo, to: b, ...inK }, { from: b + 2, to: c - 2, curve: "glide", ...moveK }, { from: c, to: hi, ...outK }];
+};
+/** one gliding key over a short hold (a place too short for a whole phrase — its slide or push is its move in) */
+const glide = (lo: number, hi: number, k: Aim): Key[] => (hi - lo >= 30 ? [{ from: lo, to: hi, curve: "glide", ...k }] : []);
+const AFTER_SLIDE = (t0: number) => t0 + SLIDE_DUR + 2, AFTER_PUSH = (t0: number) => t0 + PUSH_DUR + 2;
+/** ★ SIXTEEN PLACES, NONE OVER 7 s (STYLE §1.3). Each first frame is computed ONCE (places/registry.tsx T0). Four pushes (into the thrusters,
+ *  the teach, the cars of today, the honest part), never two in a row; three travels across one construction (the hook's pull-back, the
+ *  bars' second pair, what comes next). */
+export const PLACES: Place[] = [
+  // ★ the hook carries its OWN following camera (hook.tsx); the house's opening push drives in from far out over it
+  { id: "hookA", t0: PT0.hookA, farIn: [2.2, 3.2], keepMid: 1, key: { x: 300, y: -280, angle: 10 } },
+  // ★ the PAYOFF: the camera eases back as the line-up drives off by itself (the biggest move of the hook)
+  // then IN on the line-up as it leaves, ALONG after the Cybercab leading it out, OUT to the label (the hook's own camera keeps following)
+  { id: "hookB", kind: "slideR", t0: PT0.hookB, moves: [{ from: 0, to: TRAVEL, d: { z: -0.16 } }], key: { x: 300, y: -270, angle: 8 },
+    keys: phrase(PT0.hookB + TRAVEL + 2, PT0.whatA - 2,
+      { x: 540, y: 1000, dz: 0.1, c: 0.2 }, { x: 660, y: 980, dz: 0.1, c: 0.2 }, { x: 540, y: 960, dz: 0, c: 0.1 }) },
+  // the event board: IN on the date, ALONG to the place, OUT to all of it
+  { id: "whatA", kind: "slideR", t0: PT0.whatA, key: { x: 760, y: -255, angle: -15 },
+    keys: phrase(AFTER_SLIDE(PT0.whatA), PT0.whatB - 2,
+      { x: MARKER.a.x, y: MARKER.a.y, dz: 0.1, c: 0.2 }, { x: MARKER.b.x, y: MARKER.b.y, dz: 0.1, c: 0.2 }, { x: MARKER.x, y: MARKER.y, dz: 0.02, c: 0.1 }) },
+  // the stunt side-on: IN at the ramp's start, ALONG the path with the car, OUT to the whole arc
+  { id: "whatB", kind: "slideR", t0: PT0.whatB, key: { x: 300, y: -270, angle: 10 },
+    keys: phrase(AFTER_SLIDE(PT0.whatB), PT0.whatC - 2,
+      { x: PROFILE.a.x, y: PROFILE.a.y, dz: 0.1, c: 0.15 }, { x: PROFILE.b.x, y: PROFILE.b.y, dz: 0.1, c: 0.15 }, { x: PROFILE.x, y: PROFILE.y, dz: 0.02, c: 0.1 }) },
+  // the push into the thrusters: IN on the nozzles, ALONG to the engraved panel / the car lifting, OUT
+  { id: "whatC", kind: "push", t0: PT0.whatC, key: { x: 280, y: -270, angle: 14 },
+    keys: phrase(AFTER_PUSH(PT0.whatC), PT0.whatD - 2,
+      { x: THRUSTERS.a.x, y: THRUSTERS.a.y, dz: 0.1, c: 0.12 }, { x: THRUSTERS.b.x, y: THRUSTERS.b.y, dz: 0.1, c: 0.08 }, { x: THRUSTERS.x, y: THRUSTERS.y, dz: 0.02, c: 0.1 }) },
+  // the speedometer: a glide in on the needle as it sweeps
+  { id: "whatD", kind: "slideL", t0: PT0.whatD, key: { x: 740, y: -255, angle: -15 },
+    keys: glide(AFTER_SLIDE(PT0.whatD), PT0.teachA - 2, { x: SPEEDO.a.x, y: SPEEDO.a.y, dz: 0.08, c: 0.25 }) },
+  // the push into the teach: IN on the tiny Roadster, ALONG to the revenue's stack, OUT
+  { id: "teachA", kind: "push", t0: PT0.teachA, key: { x: 280, y: -270, angle: 12 },
+    keys: phrase(AFTER_PUSH(PT0.teachA), PT0.teachB - 2,
+      { x: REVENUE_AT.a.x, y: REVENUE_AT.a.y, dz: 0.1, c: 0.25 }, { x: REVENUE_AT.b.x, y: REVENUE_AT.b.y, dz: 0.08, c: 0.2 }, { x: REVENUE_AT.x, y: REVENUE_AT.y, dz: 0.02, c: 0.1 }) },
+  // the bars: IN on the deliveries pair as it climbs, ALONG, OUT
+  { id: "teachB", kind: "slideR", t0: PT0.teachB, keepMid: 1, key: { x: 760, y: -255, angle: -15 },
+    keys: phrase(AFTER_SLIDE(PT0.teachB), PT0.teachB2 - 2,
+      { x: BARS.first.x, y: BARS.first.y, dz: 0.1, c: 0.1 }, { x: BARS.first.x + 40, y: BARS.first.y - 40, dz: 0.1, c: 0.1 }, { x: BARS.first.x, y: BARS.first.y, dz: 0.02, c: 0.1 }) },
+  // the travel to the profit pair
+  { id: "teachB2", kind: "slideR", t0: PT0.teachB2, moves: [{ from: 0, to: TRAVEL, d: { x: BARS.travel } }], key: { x: 300, y: -270, angle: 10 } },
+  // the counter: a glide in on the drums as they roll (a slide RIGHT: the bars travelled right, so a slide back left would carry the camera over them — Video 7's lesson)
+  { id: "teachC", kind: "slideR", t0: PT0.teachC, key: { x: 740, y: -255, angle: -15 },
+    keys: glide(AFTER_SLIDE(PT0.teachC), PT0.teachD - 2, { x: WORTH.a.x, y: WORTH.a.y, dz: 0.08, c: 0.25 }) },
+  // the push onto today's cars (navy), a short glide as their light dims
+  { id: "teachD", kind: "push", t0: PT0.teachD, keepMid: 1, key: { x: 280, y: -270, angle: 12 },
+    keys: glide(AFTER_PUSH(PT0.teachD), PT0.teachD2 - 2, { x: FUTURE.today.x, y: FUTURE.today.y, dz: 0.05, c: 0.2 }) },
+  // ★ the ONE light frame: the travel onto what comes next — IN on the Cybercab, ALONG through the robot's hand to the Starship, OUT
+  { id: "teachD2", kind: "slideR", t0: PT0.teachD2, white: true, moves: [{ from: 0, to: TRAVEL, d: { x: FUTURE.travel } }], key: { x: 760, y: -255, angle: -15 },
+    keys: phrase(PT0.teachD2 + TRAVEL + 2, PT0.teachE - 2,
+      { x: FUTURE.cab.x, y: FUTURE.cab.y, dz: 0.1, c: 0.2 }, { x: FUTURE.ship.x, y: FUTURE.ship.y, dz: 0.1, c: 0.2 }, { x: FUTURE.next.x, y: FUTURE.next.y, dz: 0.02, c: 0.1 }) },
+  // the board folders (back to the navy): a glide in on the gap (a slide RIGHT, past the showroom's right half, for the same reason)
+  { id: "teachE", kind: "slideR", t0: PT0.teachE, slideK: 1.18, key: { x: 740, y: -255, angle: -15 },
+    keys: glide(AFTER_SLIDE(PT0.teachE), PT0.honestA - 2, { x: COMMITTEE.close.x, y: COMMITTEE.close.y, dz: 0.18, c: 0.5 }) },
+  // ★ the push into the honest part: THE SPINE RETURNS — IN on the car, ALONG as the camera circles it, OUT to the outline
+  { id: "honestA", kind: "push", t0: PT0.honestA, key: { x: 280, y: -270, angle: 12 },
+    keys: phrase(AFTER_PUSH(PT0.honestA), PT0.honestB - 2,
+      { x: FAA.a.x, y: FAA.a.y, dz: 0.1, c: 0.2 }, { x: FAA.wing.x, y: FAA.wing.y, dz: 0.06, c: 0.2 }, { x: FAA.x, y: FAA.y, dz: 0.0, c: 0.1 }) },
+  // the production rail: a glide in toward 2028
+  { id: "honestB", kind: "slideR", t0: PT0.honestB, key: { x: 300, y: -270, angle: 10 },
+    keys: glide(AFTER_SLIDE(PT0.honestB), PT0.honestC - 2, { x: TIMELINE.x, y: TIMELINE.a.y, dz: 0.05, c: 0.1 }) },
+  // the agreement: a glide along its empty lines
+  { id: "honestC", kind: "slideL", t0: PT0.honestC, slideK: 1.12, key: { x: 740, y: -255, angle: -15 },
+    keys: glide(AFTER_SLIDE(PT0.honestC), PT0.question - 2, { x: UNSIGNED.a.x, y: UNSIGNED.a.y, dz: 0.06, c: 0.25 }) },
+  // ★★★ the question ARRIVES BY A SLIDE onto the open field (STYLE §9.8) — the house close exactly
+  { id: "question", kind: "slideR", t0: PT0.question, slideK: 1.2, key: { x: 480, y: -280, angle: 3 } },
+];
+
+/** ★ a push runs 56 f, a slide 48 f, on SETTLE (world.tsx) */
+const DUR_OF = (p?: Place) => (p?.dur ?? (p?.kind === "push" ? PUSH_DUR : SLIDE_DUR));
+const HERO_LAST = HERO[HERO.length - 1].at;
+const TRACK: Span = [HERO[0].at - 4, HERO_LAST + 24];
+/** the fly-through into the close: 56 f, like a push */
+const THRU: Span = [HERO_LAST + 24, HERO_LAST + 80];
+/** the question lifts away over 72 f (STYLE §8.10) */
+const LIFT: Span = [THRU[0], THRU[0] + 72];
+/** ★ THE OPENING PUSH — quick and aggressive, from twice the distance (STYLE §16 2026-10-15): frame 0 stands at z −0.5 and drives in over
+ *  30 f, already at full speed on frame 0 and decelerating onto the hook's framing ("out") */
+const ARRIVE_DZ = 0.5;
+const ARRIVE: Span = [0, 30];
+/** ★ (Timur, 2026-10-22: "the camera starts with an angle too low in the hook scene"): frame 0 framed the empty floor under the pad with
+ *  the nose cut off at the top. The opening push now starts RAISED by ARRIVE_Y — the whole rocket on its pad in frame — and settles onto
+ *  the hook's framing as it lands */
+const ARRIVE_Y = 0;
+
+/** ★ THE CAPTION CAMERA (§2.5.2) — important lines only: the hook, and the teach's key number ($1.6 trillion) */
+const s0 = SENTENCES[0];
+const teachLine = sentAt(/^Yet Tesla is worth/i);
+const CAP = {
+  hook: { span: [s0.at, s0.end] as Span, dz: 0.06, kind: "push" as const },
+  reveal: { span: [Math.max(teachLine.at, PT0.teachC + SLIDE_DUR + 2), Math.min(teachLine.end, PT0.teachD - 2)] as Span, dz: 0.03, kind: "push" as const },
+};
+const CAP_R = 0.7;
+const CAM0: V3 = { x: 0, y: -ARRIVE_Y, z: -ARRIVE_DZ };
+const arrivalEnd = (i: number) => (i === 0 ? ARRIVE[1] : PLACES[i].t0 + (PLACES[i].moves ? Math.max(...PLACES[i].moves!.map((m) => m.to)) : DUR_OF(PLACES[i])));
+/** the camera keys' intensity (STYLE §16 2026-10-18: "the tiniest bit" less) */
+const KEY_GENTLE = 0.9;
+/** ★★★ a key's camera offset from where the place arrived: Δ = p·(1 − (1 − c)(1 − dz)) (+ pan) */
+const keyOff = (k: Key): V3 => {
+  // ★ (Timur, 2026-10-18: "only lower the camera movement intensity by the tiniest bit"): every key comes 0.9 of its depth in
+  const dzK = k.dz * KEY_GENTLE, s = (1 - (k.c ?? 0.35)) * (1 - dzK);
+  return { x: (k.x - 540) * (1 - s) + (k.pan ?? 0), y: (k.y - 960) * (1 - s) + (k.panY ?? 0), z: dzK };
+};
+/** the place's keys, clamped inside its hold; a key squeezed under 16 f is a refusal, not a silent drop (a still scene is the defect) */
+export const KEYS = PLACES.map((p, i) => {
+  const lo = arrivalEnd(i) + 1, hi = (PLACES[i + 1]?.t0 ?? TOTAL_FRAMES) - 1;
+  return (p.keys ?? []).map((k) => {
+    const from = Math.max(lo, Math.round(k.from)), to = Math.min(hi, Math.round(k.to));
+    if (to - from < 16) throw new Error(`${p.id}: a camera key squeezed to ${to - from} f (${k.from}–${k.to} in the hold ${lo}–${hi})`);
+    return { ...k, from, to, place: p.id };
+  });
+});
+const lastKey = (i: number): V3 => { const k = KEYS[i]?.at(-1); return k ? keyOff(k) : { x: 0, y: 0, z: 0 }; };
+const buildMoves = (slideK: (p: Place) => number): Move[] => ([
+  { t0: ARRIVE[0], t1: ARRIVE[1], d: { y: ARRIVE_Y, z: ARRIVE_DZ }, ease: "out" as const },
+  ...PLACES.flatMap((p, i) => !p.kind ? [] : p.moves
+    ? p.moves.map((m, j) => {
+      const k = j === 0 ? lastKey(i - 1) : { x: 0, y: 0, z: 0 };
+      const d = { x: (m.d.x ?? 0) - k.x, y: (m.d.y ?? 0) - k.y, z: (m.d.z ?? 0) - k.z };
+      return m.d.z ? { t0: p.t0 + m.from, t1: p.t0 + m.to, d, ease: "zoom" as const, endD: MID - m.d.z }
+        : { t0: p.t0 + m.from, t1: p.t0 + m.to, d, ease: "io" as const };
+    })
+    : [
+      { t0: p.t0, t1: p.t0 + DUR_OF(p), d: { ...moveOf(p.kind!, p.kind === "push" ? 1 : slideK(p)), ...(p.tilt ? { y: -p.tilt } : {}), ...(p.aim ? { x: p.aim } : {}) }, ease: (p.kind === "push" ? "zoom" : "io") as "zoom" | "io" },
+      ...(p.kind !== "push" ? [{ t0: p.t0, t1: p.t0 + DUR_OF(p), d: { z: -ARC }, ease: "arc" as const }] : []),
+    ]),
+  ...KEYS.flatMap((ks) => ks.map((k, j) => {
+    const a = j ? keyOff(ks[j - 1]) : { x: 0, y: 0, z: 0 }, b = keyOff(k), dz = b.z - a.z;
+    // ★ every key GLIDES (the gentle sine in-out — STYLE §16 2026-10-18: "a little smoother")
+    return { t0: k.from, t1: k.to, d: { x: b.x - a.x, y: b.y - a.y, z: dz }, ease: (Math.abs(dz) > 1e-6 ? "zoom" : "io") as "zoom" | "io", endD: MID - b.z, curve: "glide" as const };
+  })),
+  ...Object.values(CAP).map((c) => ({ t0: c.span[0], t1: c.span[1], d: { z: c.kind === "push" ? c.dz : -c.dz }, ease: "zoom" as const })),
+  { t0: TRACK[0], t1: TRACK[1], d: { z: 0.12 }, ease: "zoom" as const },
+  { t0: THRU[0], t1: THRU[1], d: { z: 1.2 }, ease: "zoom" as const },
+] as Move[]).sort((a, b) => a.t0 - b.t0);
+/** ★ A SLIDE CARRIES WHAT IT LEAVES A FULL FRAME (Timur, 2026-09-29): the slide is scaled by the outgoing construction's distance */
+const MOVES0 = buildMoves(() => 1);
+const midOwner = (i: number) => { for (let j = i - 1; j > 0; j--) if (PLACE_PARTS[PLACES[j].id]?.mid) return j; return 0; };
+const slideK = (p: Place) => {
+  if (p.slideK !== undefined) return p.slideK;
+  const i = PLACES.indexOf(p), zo = camPath(CAM0, MOVES0, arrivalEnd(midOwner(i)), false).z;
+  return Math.max(1, (zo + MID - camPath(CAM0, MOVES0, p.t0, false).z) / MID);
+};
+const MOVES: Move[] = buildMoves(slideK);
+const at = (f: number) => camPath(CAM0, MOVES, f, false);
+/** a station is where the camera stands when it has ARRIVED (no drift); the hook's is the origin */
+const ST: Record<PlaceId, V3> = Object.fromEntries(PLACES.map((p, i) => [p.id, i === 0 ? { x: 0, y: 0, z: 0 } : at(arrivalEnd(i))])) as Record<PlaceId, V3>;
+const ST_OUTRO = at(THRU[1]);
+/** each push's own move, and the camera as if THAT push had already landed */
+const PUSH_MOVE = new Map(PLACES.filter((p) => p.kind === "push" && !p.moves).map((p) => {
+  const m = MOVES.find((x) => x.t0 === p.t0 && x.ease === "zoom" && x.d.z === PUSH_Z);
+  if (!m) throw new Error(`${p.id}: its push is not in MOVES`);
+  return [p.id, m];
+}));
+/** ★ THE RACK, EASED IN (STYLE §8.4) */
+const RACK_IN = 12;
+const rackNear = (f: number, outT: number, k: number, nearFull: number, gain: number) => {
+  if (f < outT) return 0.6;
+  const dofAt = (n: number) => (k < n ? (22 * gain * (n - k)) / n : 0);
+  const b0 = dofAt(0.6), b = b0 + rInOut(f, outT, outT + RACK_IN) * Math.max(0, dofAt(nearFull) - b0);
+  if (b <= 1e-6) return 0.6;
+  return k / (1 - Math.min(0.97, b / (22 * gain)));
+};
+/** ★★★ A PUSH HANDS OVER IN TIME (STYLE §9.8) */
+const PUSH_OUT: Span = [4, 16], PUSH_IN: Span = [16, 28];
+
+const landed = (cam: V3, m: Move, f: number): V3 => {
+  const done = camPath({ x: 0, y: 0, z: 0 }, [m], f, false);
+  return { x: cam.x + (m.d.x ?? 0) - done.x, y: cam.y + (m.d.y ?? 0) - done.y, z: cam.z + (m.d.z ?? 0) - done.z };
+};
+
+/** ★ (Timur, 2026-10-18: a "small visual glitch at around 1 minute and 21" — the caption BLINKED: "And these are averages." left at 1825
+ *  and "Your own raise may" came at 1830, an empty slot of 5 f; the same 2–6-f blinks at 1150, 1183, 1909). A gap under 12 f between
+ *  two chips is closed: the chip holds until the next one comes. */
+const CHIPS_V = CHIPS.map((w, k) => { const nx = CHIPS[k + 1]; return nx && w.until !== undefined && nx.at - w.until < 12 ? { ...w, until: nx.at } : w; });
+/** the chip on screen at frame f, as [at, end) — undefined in a pause */
+const chipAt = (f: number) => {
+  const i = CHIPS_V.findIndex((w, k) => f >= w.at && f < (w.until ?? CHIPS_V[k + 1]?.at ?? Infinity));
+  return i < 0 ? undefined : { at: CHIPS_V[i].at, end: CHIPS_V[i].until ?? CHIPS_V[i + 1]?.at ?? Infinity };
+};
+/** the caption's own scale, eased exactly as the camera's zoom. ★ It may only JUMP at a chip swap or in an empty slot (STYLE §8.6). */
+const capScale = (f: number) => {
+  const s = (dz: number) => CAP_R / (CAP_R - dz);
+  for (const c0 of Object.values(CAP)) {
+    const c = c0 as { span: Span; dz: number; kind: "push" | "pull" };
+    const from = c.kind === "pull" ? chipAt(c.span[0])?.at ?? c.span[0] : c.span[0];
+    const until = c.kind === "push" ? Math.max(c.span[1], chipAt(c.span[1] - 1)?.end ?? c.span[1]) : c.span[1];
+    if (f >= from && f < until) {
+      const e = zoomT(f, c.span[0], c.span[1]);
+      return c.kind === "push" ? s(c.dz * zoomFrac(e, c.dz, CAP_R - c.dz)) : s(c.dz * (1 - zoomFrac(e, -c.dz, CAP_R)));
+    }
+  }
+  return 1;
+};
+
+/** the question: "Is Tesla still a car company?" — SHORT lines (STYLE §16 2026-10-28, V20: never one wide line), the accent nearest the lens
+ *  ("car" — the word the whole film turns on), the lower lines on near planes (words fly in from depth toward the block's centre) */
+const QUESTION: TrackLine[] = [
+  { idx: [0, 1], size: 96, weight: 500, z: 0 },                   // "Is Tesla"
+  { idx: [2, 3], size: 88, weight: 500, z: 30 },                  // "still a"
+  { idx: [4], size: 190, weight: 400, z: 70, accent: true },      // "car" — the accent
+  { idx: [5], size: 104, weight: 800, z: 50 },                    // "company?"
+];
+if (HERO.length !== 6) throw new Error("the question has " + HERO.length + " words, the tracking text lays out 6");
+const P = { heroEnd: HERO_LAST + 70, brand: HERO_LAST + 30 };
+/** ★ (Timur, 2026-10-18: "at 1:08:11, some subtitle appears for a split second"): a chip that begins under the closing question never
+ *  shows — "Tell us below." resurfaced for 2 f when the question's hold ended (2051–2052) */
+const CHIPS_SHOWN = CHIPS_V.filter((w) => w.at < HERO[0].at - 3);
+/** ★★ THE SONG FADES OUT SLOWLY AS THE BANKERS LOGO APPEARS (STYLE §11.3, 2026-10-15) */
+const musicVol = (f: number) => (f < P.brand ? MUSIC_VOL : MUSIC_VOL * (1 - rInOut(f, P.brand, TOTAL_FRAMES - 1)));
+/** the chips give way to the tracking text as its first word starts out of depth (track.tsx: at − 3) */
+const HERO_ON = (() => {
+  const a = HERO[0].at - 3, c = chipAt(a - 1);
+  if (!c) return a;
+  const last = CHIPS.find((w) => w.at === c.at)?.parts?.at(-1)?.at ?? c.at;
+  return Math.min(Math.max(a, last + 8), c.end);
+})();
+
+/** ★ what Bankers/Resources/stylecheck.mjs reads (STYLE §15.1): the journey as the render runs it */
+export const JOURNEY = { PLACES, DUR_OF, MOVES, CAP, capScale, chipAt, CHIPS: CHIPS_V, ARRIVE, TRACK, THRU, PUSH_Z, SLIDE_X, HERO_ON, TOTAL: TOTAL_FRAMES, KEYS, ARC, ARRIVAL_END: PLACES.map((_, i) => arrivalEnd(i)) };
+
+// ══ SOUND (§2.5.3, §11) — the swoosh family on every camera move, a different one each time; context SFX in the places ══
+const w = within({ at: 0, end: TOTAL_FRAMES });
+const SWOOSH: { s: "swoosh" | "whooshlong" | "airwoosh" | "lowwoosh" | "whooshsoft"; peak: number; vol: number }[] = [
+  // (Timur's Epidemic Sound set: each file's onset → peak gap, measured on the cuts — whooshlong 5, swoosh 12, airwoosh 9, lowwoosh 8,
+  // whooshsoft 2)
+  { s: "whooshlong", peak: 5, vol: 1.6 }, { s: "swoosh", peak: 12, vol: 1.5 }, { s: "airwoosh", peak: 9, vol: 0.8 },
+  { s: "lowwoosh", peak: 8, vol: 1.1 }, { s: "whooshsoft", peak: 2, vol: 1.0 },
+];
+/** ★★ A PROCESS SOUND LASTS AS LONG AS ITS ANIMATION (STYLE §11.2) */
+const FIT: [SfxName, number][] = [["datashort", 29], ["datamid", 48], ["data", 68]];
+const SFX_SPANS: [number, number][] = [];
+const proc = (from: number, to: number, vol: number): Cue[] => {
+  SFX_SPANS.push([from, to]);
+  const fit = FIT.find(([, L2]) => to - from <= L2);
+  if (fit) return [w(fit[0], from, to, vol)];
+  const out: Cue[] = [];
+  for (let a = from; a < to - 6; a = Math.min(to, a + 64) - 6) out.push(w("data", a, Math.min(to, a + 64), vol * (out.length ? 0.85 : 1)));
+  return out;
+};
+/** ★★ A MOVE'S WHOOSH PEAKS ON THE MOVE'S FASTEST FRAME (SETTLE peaks ~29% in), read off SETTLE itself */
+const SETTLE_PEAK = (() => { let best = 0, a = 0.5; for (let k = 1; k <= 1000; k++) { const v = SETTLE(k / 1000) - SETTLE((k - 1) / 1000); if (v > best) { best = v; a = (k - 0.5) / 1000; } } return a; })();
+void INOUT;
+/** a move's whoosh is moved off SETTLE's peak only where the picture is measured to move most elsewhere (scratchpad/whooshsync.py) */
+const PEAK_SHIFT: Partial<Record<PlaceId, number>> = {
+  whatA: 15,   // the slide in: the picture moves most as the board's date lights (287), 13 f past the camera's fastest frame
+  whatC: 12,   // the push: the picture moves most as the thrusters car fades up out of the dissolve (595)
+  // (hookB is NOT moved: its picture peaks on the landing at 96 — the hook's own action, scored with the thud — while the pull-back the
+  // whoosh belongs to peaks at ~124; whooshsync reports it, and that is the reason)
+};
+const SWOOSH_OF: Partial<Record<PlaceId, (typeof SWOOSH)[number]>> = {
+  // ★ the hook's pull-back: the long one; the travels soft or air
+  hookB: { s: "whooshlong", peak: 5, vol: 1.2 },
+  teachB2: { s: "airwoosh", peak: 9, vol: 0.7 },
+  teachD2: { s: "whooshsoft", peak: 2, vol: 0.8 },
+};
+/** the places the whoosh CYCLE counts: the travels are left out, so the others keep alternating families */
+const CYCLE_SKIP = new Set<PlaceId>(["hookB", "teachB2", "teachD2"]);
+const CYCLED = PLACES.filter((p) => p.kind && !CYCLE_SKIP.has(p.id));
+/** ★★ EVERY CONTEXT SOUND IS TIMED BY ITS ANIMATION'S OWN WINDOW (registry.tsx TIMES). `when(win, level, ease)`: the first frame the
+ *  eased window reaches `level`. A landing's hit goes where the eye sees it ARRIVE: 0.4 of its OUT window. */
+const when = (win: [number, number], level = 0.5, ease = rInOut) => {
+  for (let f = Math.floor(win[0]); f <= Math.ceil(win[1]); f++) if (ease(f, win[0], win[1]) >= level) return f;
+  return win[1];
+};
+const lands = (win: [number, number]) => when(win, 0.4, rOut);
+/** ★ each file's ONSET → PEAK gap in frames (Timur's Epidemic Sound cuts): `peakAt(s, f)` puts the file's PEAK on frame f */
+const PEAK_GAP: Partial<Record<SfxName, number>> = { whooshsoft: 2, whooshlong: 5, airwoosh: 9, lowwoosh: 8, swoosh: 12, sub: 6, flash: 1, coin: 1, click: 1 };
+const peakAt = (sname: SfxName, f: number, end?: number, vol = 1) => w(sname, f - (PEAK_GAP[sname] ?? 0), end, vol);
+void figLand; void proc;
+/** ★ A PUSH'S WHOOSH PEAKS ON THE OUTGOING PLACE'S RUSH (STYLE §9.8): mid-dissolve */
+const pushFast = (p: Place) => p.t0 + Math.round((PUSH_OUT[0] + PUSH_OUT[1]) / 2);
+const LIGHT_CUES: Cue[] = [];
+const HK = TIMES.hook;
+const MK = TIMES.marker, PF = TIMES.profile, TH = TIMES.thrusters, SP = TIMES.speedo, RV = TIMES.revenue, BR = TIMES.bars, WT = TIMES.worth;
+const FU = TIMES.future, CM = TIMES.committee, FA = TIMES.faa, TL = TIMES.timeline, UN = TIMES.unsigned;
+const mid = (q: [number, number]) => Math.round((q[0] + q[1]) / 2);
+/** an in-out glide is fastest ~40% in (the carriage's rInOut) */
+const FA_GLIDE_PEAK = (q: [number, number]) => q[0] + 0.4 * (q[1] - q[0]);
+/** the camera's own whooshes: ARRIVE, every place's move (scratchpad/whooshsync.py judges these against the picture) */
+const CAM_CUES: Cue[] = [
+  w("whooshsoft", ARRIVE[0] + 1, ARRIVE[1] + 1, 0.6),   // from frame 0: the opening push is fastest on its first frames
+  ...PLACES.filter((p) => p.kind).map((p) => {
+    const i = CYCLED.indexOf(p); const m = SWOOSH_OF[p.id] ?? SWOOSH[Math.max(0, i) % SWOOSH.length]; const d = p.moves ? Math.max(...p.moves.map((x) => x.to)) : DUR_OF(p);
+    const fast = (p.kind === "push" && !p.moves ? pushFast(p) : Math.round(p.t0 + SETTLE_PEAK * d)) + (PEAK_SHIFT[p.id] ?? 0);
+    return w(m.s, fast - m.peak, p.t0 + d + 6, m.vol);
+  }),
+  // (no whoosh under the fly-through into the close — STYLE §16 2026-10-23)
+];
+/** ★ A RATTLE FOR EXACTLY ITS ANIMATION (bars climbing — the bike chain, STYLE §16 2026-10-18: audible over the bed) */
+const CHAIN_LIFT = 7;
+const rattle = (a: number, b: number, vol: number): Cue[] => {
+  const out: Cue[] = [];
+  for (let s0 = a; ; s0 += 24) {
+    const c = w("chainshort", s0, b + 2, vol * CHAIN_LIFT * (out.length ? 0.9 : 1));
+    out.push(c);
+    if (c.at + (c.dur ?? 0) >= b || s0 > b) break;
+  }
+  if (Math.max(...out.map((c) => c.at + (c.dur ?? 0))) < b) throw new Error(`SFX: the rattle for ${a}–${b} stops early`);
+  return out;
+};
+void rattle;
+/** ★ the families' heard levels matched to Video 16's, measured from the rendered SFX stem (scratchpad/sfxlevels.py, 2026-10-28: flicks sat
+ *  2.9 dB, pingshorts 2.7 and clicks 1.6 under Video 16's medians) */
+const LEVEL: Partial<Record<SfxName, number>> = { flick: 1.4, pingshort: 1.36, click: 1.2 };
+const CUES: Cue[] = [
+  ...CAM_CUES,
+  // ── context: ONLY actions visibly on screen (§2.5.3), each on its animation's own frames (registry.tsx TIMES), from Timur's Epidemic set ──
+  // ★ the hook: its car sounds are REAL sounds in their own file (public/sfx21/hook.wav, played below — STYLE §16 2026-10-29: "the right
+  // sound effects… subtle and in the background"): the electric whine up the ramp, the thrusters' cold-gas hiss, the landing thump, the
+  // line-up's whir as it rolls away. The pack keeps only a soft low boom on the mid-air roll and the label's flick (no ping in the hook)
+  peakAt("sub", Math.round((HK.flip[0] + HK.flip[1]) / 2), undefined, 0.2),
+  w("flick", lands(HK.label), undefined, 0.4),
+  // ── whatA: the event board — each word's lamps come up (a flick), the engraved T latches on (a click), the light crosses the panel ──
+  w("flick", lands(MK.dateA), undefined, 0.34),
+  w("flick", lands(MK.dateB), undefined, 0.3),
+  w("flick", lands(MK.placeA), undefined, 0.32),
+  w("flick", lands(MK.placeB), undefined, 0.3),
+  w("click", MK.logo[0] + 4, undefined, 0.26),
+  peakAt("whooshsoft", mid(MK.sweep), undefined, 0.3),
+  // ── whatB: the stunt side-on — a long whoosh round the curl, a swoosh off the deck, a soft whoosh through the half-roll, the touchdown ──
+  peakAt("whooshlong", PF.climb[1] - 4, PF.launch[1], 0.36),
+  peakAt("whooshsoft", mid(PF.roll), undefined, 0.3),
+  w("thud", PF.touchdown[0] + 2, undefined, 0.42),
+  // ── whatC: the thrusters — the nozzles arm (click), the engraving inks (flicks); the jets' cold-gas hiss from the frame they fire, swelling
+  // as they lift the car, is a real sound in its own file (public/sfx21/thrusters.wav, played below — STYLE §16 2026-10-29) ──
+  w("click", TH.arm[0] + 4, undefined, 0.26),
+  w("flick", lands(TH.inkLabel), undefined, 0.3),
+  w("flick", lands(TH.inkMark), undefined, 0.3),
+  // ── whatD: the speedometer — the backlight clicks on, the read-out COUNTS (data, the length of the sweep), 60 lands (ping), the plate ──
+  w("click", SP.power[0] + 4, undefined, 0.24),
+  ...proc(SP.count[0], SP.count[1], 0.12),
+  w("pingshort", SP.count[1] - 1, undefined, 0.24),
+  w("flick", lands(SP.plate), undefined, 0.34),
+  // ── teachA: the turntable turns the tiny car (soft), its ring lights (click); the revenue's plate inks in (flick) ──
+  peakAt("whooshsoft", mid(RV.turn), undefined, 0.26),
+  w("click", RV.ring[0] + 4, undefined, 0.22),
+  w("flick", lands(RV.plate), undefined, 0.36),
+  // ── teachB: the bars — the bike chain under every climb, a flick per figure, a low whoosh as each shortfall draws, the verdicts ──
+  ...rattle(BR.grow[0][0], BR.grow[1][1], 0.16),
+  ...rattle(BR.grow[2][0], BR.grow[3][1], 0.16),
+  // (the profit pair's figures, shortfall and −43% all land within ~6 f: its second figure and its shortfall play under the −43% ping — PILE)
+  ...BR.fig.slice(0, 3).map((q) => w("flick", lands(q), undefined, 0.32)),
+  peakAt("lowwoosh", mid(BR.gap[0]), undefined, 0.26),
+  w("flick", lands(BR.verdict[0]), undefined, 0.36),
+  w("pingshort", lands(BR.verdict[1]), undefined, 0.24),
+  // ── teachC: the counter — the drums COUNT (data), they land (click), the label (flick), the ring light and glint (soft) ──
+  ...proc(WT.count[0], WT.count[1], 0.12),
+  w("click", WT.count[1], undefined, 0.28),
+  w("flick", lands(WT.label), undefined, 0.34),
+  peakAt("whooshsoft", mid(WT.light), undefined, 0.22),
+  // ── teachD: today's cars — the lamps (click), the light dims (low); teachD2: the rims (ticks), the Cybercab glides in and stops,
+  // the robot's hand and the Starship rise (swooshes), the Starship settles (sub) ──
+  w("click", FU.lamps[0] + 4, undefined, 0.24),
+  peakAt("lowwoosh", mid(FU.dim), undefined, 0.22),
+  ...FU.rims.map((q) => w("tick", q[0] + 4, undefined, 0.5)),
+  peakAt("whooshsoft", FU.cab[0] + 8, undefined, 0.3),   // (the car is fastest as it enters the frame, braking to its turntable)
+  w("click", FU.cab[1], undefined, 0.22),
+  peakAt("swoosh", mid(FU.hand), undefined, 0.3),
+  w("click", FU.hand[1], undefined, 0.22),   // the hand seats on its turntable
+  peakAt("swoosh", mid(FU.ship), undefined, 0.3),
+  peakAt("sub", FU.ship[1] - 2, undefined, 0.2),
+  // ── teachE: the two folders slide together (soft) and stop with their gap (click) ──
+  peakAt("whooshsoft", mid(CM.slide), undefined, 0.28),
+  w("click", CM.slideR[1], undefined, 0.26),
+  // ── honestA: the aircraft's outline draws round the car (soft, long), it lights on "aircraft" (the verdict: a low whoosh) ──
+  peakAt("whooshsoft", mid(FA.draw), undefined, 0.22),
+  peakAt("lowwoosh", FA.lit[1] - 4, undefined, 0.3),
+  // ── honestB: the carriage glides along the rail (soft), passes 2027 (tick), seats at 2028 (click); PRODUCTION lands (flick) ──
+  peakAt("whooshsoft", Math.round(FA_GLIDE_PEAK(TL.glide)), undefined, 0.28),
+  w("tick", Math.round(TL.glide[0] + 0.45 * (TL.glide[1] - TL.glide[0])), undefined, 0.45),
+  w("click", TL.seat, undefined, 0.28),
+  // (PRODUCTION lands as the carriage seats: the click carries both — PILE)
+  // ── honestC: a light runs along each empty signature line (very quiet) ──
+  peakAt("whooshsoft", mid(UN.lineL), undefined, 0.18),
+  peakAt("whooshsoft", mid(UN.lineR), undefined, 0.18),
+  // ── the question: each line flies in from depth on its first word (track.tsx: at − 3) ──
+  ...QUESTION.map((l) => w("flick", HERO[l.idx[0]].at + 2, undefined, 0.5)),
+].map((c) => (LEVEL[c.s] ? { ...c, vol: (c.vol ?? 1) * (LEVEL[c.s] ?? 1) } : c));   // (untouched cues keep their identity: sfxsheet marks the CAM ones by it)
+// ★ the check: the hook's and the thrusters' baked sound files were built on THESE frames — if a window moves, re-run
+// scratchpad/mkhooksfx21.py with the new ones (fails the bundle, so a sound can never drift off its motion)
+{
+  const built = { ...HOOK_SFX_BUILT, ...THRUSTER_SFX_BUILT };
+  const now = { leave: HK.leave, jets0: HK.jets[0], jets1: HK.jets[1], land: HK.land, drive0: HK.drive[0], fire0: TH.fire[0], swell0: TH.swell[0], lift1: TH.lift[1] };
+  for (const [k, v] of Object.entries(now)) if (built[k as keyof typeof built] !== v) throw new Error(`SFX: public/sfx21 was built with ${k} = ${built[k as keyof typeof built]}, the film now has ${v} — re-run scratchpad/mkhooksfx21.py`);
+}
+// ★ the check: every process window is covered, start to end, by the cues proc() made for it (fails the bundle)
+for (const [a, b] of SFX_SPANS) {
+  const cov = CUES.filter((c) => c.s.startsWith("data") && c.at <= b && c.at + (c.dur ?? 0) >= a).reduce((m, c) => Math.max(m, c.at + (c.dur ?? 0)), -Infinity);
+  if (cov < b - 1) throw new Error(`SFX: the process sound for frames ${a}–${b} stops at ${cov} — shorter than its animation; refusing`);
+}
+// (★ NO SYNTHESIZED SOUND EFFECTS — STYLE §16 2026-10-20; the library is Timur's Epidemic set — 2026-10-23)
+/** what scratchpad/sfxsheet.mjs reads: the score as the render plays it */
+export const SFX_SHEET = { CUES, SPANS: SFX_SPANS, CAM: CAM_CUES, LIGHT: LIGHT_CUES };
+
+export const TeslaFlyingRoadster: React.FC<{ solo?: Solo; probe?: boolean }> = ({ solo, probe }) => {
+  const f = useCurrentFrame();
+  const play = (k: Exclude<Solo, undefined>) => !solo || solo === k;
+
+  // the white places: the stage floods as the camera arrives and drains as it leaves (one white run)
+  let fieldLight = 0;
+  PLACES.forEach((p, i) => {
+    if (!p.white || PLACES[i - 1]?.white) return;
+    let j = i;
+    while (PLACES[j + 1]?.white) j++;
+    // ★ NO FLASH (STYLE §9.6): pushed out of a DARK place, the white stage floods only once the outgoing place is through the lens
+    const inA = p.t0 + (p.whiteIn ?? (p.kind === "push" && !PLACES[i - 1]?.white ? 16 : 6)), next = PLACES[j + 1];
+    const outA = next ? next.t0 + 6 : Infinity;
+    fieldLight = Math.max(fieldLight, rInOut(f, inA, inA + 24) - (outA === Infinity ? 0 : rInOut(f, outA, outA + 24)));
+  });
+  fieldLight = clamp01(fieldLight);
+  // the caption ink and the watermark read the stage AND the lens bloom together (Style 3: 1 − (1 − stage)(1 − flare))
+  const flr = 0;
+  const lit = 1 - (1 - fieldLight) * (1 - flr);
+  const capLight = lit >= 0.5 ? 1 : 0;
+
+  // the key light, per place, blended from each move's midpoint
+  const mids = PLACES.map((p, i) => (i === 0 ? 0 : p.t0 + DUR_OF(p) / 2));
+  const idx = Math.max(0, mids.findIndex((m, i) => f >= m && (i === PLACES.length - 1 || f < mids[i + 1])));
+  const cur = PLACES[idx], prev = PLACES[Math.max(0, idx - 1)];
+  const kb = idx === 0 ? 1 : rInOut(f, mids[idx], mids[idx] + 24);
+  const key = { x: prev.key.x + (cur.key.x - prev.key.x) * kb, y: prev.key.y + (cur.key.y - prev.key.y) * kb, angle: prev.key.angle + (cur.key.angle - prev.key.angle) * kb };
+  const lx = (n: number) => (n % 2 ? 66 : 24);
+  const lightX = lx(Math.max(0, idx - 1)) + (lx(idx) - lx(Math.max(0, idx - 1))) * kb;
+
+  const cam = camPath(CAM0, MOVES, f);
+  const heroOn = f >= HERO_ON && f < P.heroEnd;
+
+  // ── the layers: each place's MID, mounted from its arrival to its departure ──
+  const camND = camPath(CAM0, MOVES, f, false);
+  const drift: V3 = { x: cam.x - camND.x, y: cam.y - camND.y, z: cam.z - camND.z };
+  const leaveOf = (q?: Place) => (q?.kind ? q.t0 + (q.moves ? Math.max(...q.moves.map((m) => m.to)) : DUR_OF(q)) + 4 : THRU[1] + 12);
+  const endOf = (q?: Place) => (q?.kind ? q.t0 + (q.moves ? Math.max(...q.moves.map((m) => m.to)) : DUR_OF(q)) : THRU[1]);
+  const layers: LayerSpec[] = [];
+  PLACES.forEach((p, i) => {
+    const next = PLACES[i + 1];
+    const from = i === 0 ? -100 : p.t0 - 10;
+    const after = p.keepMid ? PLACES[i + 1 + p.keepMid] : next;
+    const fgAfter = p.keepFg ? PLACES[i + 1 + p.keepFg] : next;
+    const until = leaveOf(fgAfter);
+    const untilMid = leaveOf(after);
+    if (f < from || f >= untilMid) return;
+    const pushIn = p.kind === "push" && !p.moves, pushOut = after?.kind === "push" && !after.moves;
+    const outT = after?.t0 ?? Infinity;
+    const kOut = pushOut ? (ST[p.id].z + MID - at(outT).z) / MID : 1;
+    const blurGain = pushOut ? (kOut > 1.2 ? 2 * kOut : 1.8) * (p.rackGain ?? 1) : undefined;
+    const kMidNow = (ST[p.id].z + MID - cam.z) / MID;
+    const nearAt = pushOut ? rackNear(f, outT, kMidNow, kOut + (kOut > 1.2 ? 0.4 : 0.25), (kOut > 1.2 ? 2 * kOut : 1.8) * (p.rackGain ?? 1)) : undefined;
+    const gate = pushIn ? rInOut(f, p.t0 + PUSH_IN[0], p.t0 + PUSH_IN[1]) : 1;
+    const gone = pushOut ? 1 - rInOut(f, outT + PUSH_OUT[0], outT + PUSH_OUT[1]) : 1;
+    const endAt = endOf(after);
+    // (the hook's opening push starts it 1.5 away: the default far fade [1.25, 1.5] hid it on frame 0 — its own farIn spans the push)
+    const farMid: [number, number] | undefined = p.farIn ?? (pushIn ? [1.8, 2.8] : p.keepMid ? [2.2, 3.2] : undefined);
+    const parts = PLACE_PARTS[p.id];
+    const ctx = { f, light: fieldLight, t0: p.t0, end: endAt, exit: next?.t0, leave: after?.t0 };
+    const mid = parts?.mid?.(ctx);
+    const spans = p.keepMid ? PLACES.slice(i + 1, i + 1 + p.keepMid).filter((q) => f >= q.t0) : [];
+    const curSpan = spans.at(-1), prevSpan = spans.at(-2);
+    const also = curSpan ? [curSpan.id, ...(prevSpan && f < curSpan.t0 + DUR_OF(curSpan) + 4 ? [prevSpan.id] : [])].join(" ") : undefined;
+    const tag = (n: React.ReactNode) => (also ? <div data-probe-also={also} style={{ position: "absolute", inset: 0 }}>{n}</div> : n);
+    for (const pl of parts?.planes?.(ctx) ?? []) {
+      const kPl = pushOut ? (ST[p.id].z + pl.R - at(outT).z) / pl.R : 1;
+      const nearPl = pushOut ? rackNear(f, outT, (ST[p.id].z + pl.R - cam.z) / pl.R, kPl + (kPl > 1.2 ? 0.4 : 0.25), (kPl > 1.2 ? 2 * kPl : 1.8) * (p.rackGain ?? 1)) : undefined;
+      layers.push({ id: `${p.id}:${pl.key}`, st: ST[p.id], R: pl.R, op: gate * gone, cam: pl.pinXY ? { x: ST[p.id].x + drift.x, y: ST[p.id].y + drift.y, z: cam.z } : undefined, nearAt: nearPl,
+        blurGain: pushOut ? (kPl > 1.2 ? 2 * kPl : 1.8) * (p.rackGain ?? 1) : undefined, far: farMid, farUntil: pushIn ? p.t0 + DUR_OF(p) : undefined, node: tag(pl.node) });
+    }
+    const kNow = (ST[p.id].z + MID - cam.z) / MID;
+    const k0 = (ST[p.id].z + MID - at(THRU[0]).z) / MID;
+    const pass = f >= THRU[0] && k0 > 0.4 ? clamp01((kNow - 0.35) / (k0 - 0.35)) : 1;
+    if (mid) layers.push({ id: `${p.id}:mid`, st: ST[p.id], R: MID, op: gate * pass * gone, nearAt, blurGain, far: farMid, farUntil: pushIn ? p.t0 + DUR_OF(p) : undefined, node: tag(mid) });
+    if (f >= until) return;
+    const nearFg = fgAfter?.kind === "push" ? 0.6 + 0.65 * rInOut(f, fgAfter.t0 - 2, fgAfter.t0 + 2) : undefined;
+    const fgGone = fgAfter?.kind === "push" ? 1 - rInOut(f, fgAfter.t0 + PUSH_OUT[0], fgAfter.t0 + PUSH_OUT[1]) : 1;
+    const fg = parts?.fg?.({ f, light: fieldLight, t0: p.t0, end: endAt });
+    const pm = pushIn ? PUSH_MOVE.get(p.id) : undefined;
+    if (pushIn && fg && !parts?.fgSide) throw new Error(`${p.id}: a pushed-in FG needs fgSide (registry.tsx)`);
+    const fgNode = pm && parts?.fgSide ? <FgEnter at={p.t0 + (p.fgDelay ?? 0)} side={parts.fgSide}>{fg}</FgEnter> : fg;
+    if (fg) layers.push({ id: `${p.id}:fg`, st: ST[p.id], R: FG, op: gate * fgGone, nearAt: nearFg, cam: pm && f < pm.t1 ? landed(cam, pm, f) : undefined, node: fgNode });
+  });
+  // the close: small and sharp behind the question as it lifts away; it waits for the gap (demo §2.5.2)
+  const dolly = 240 * rInOut(f, TRACK[0], TRACK[1]) + 220 * rIn(f, THRU[0], THRU[0] + 32);
+  const lift = 1800 * rInOut(f, ...LIFT);
+  const hold = rInOut(f, TRACK[0], THRU[0] + 8);
+  const heroBlur = 6 * rIn(f, THRU[0] + 6, THRU[0] + 30);
+  const kE = (ST_OUTRO.z + MID - cam.z) / MID;
+  const logoTop = 960 - 94 * (1 / Math.max(kE, 0.2)) * (0.84 + 0.16 * rOut(f, P.brand, P.brand + 44));
+  const textBottom = trackBottom(HERO, QUESTION, 900, dolly, lift);
+  const logoGate = f >= P.heroEnd ? 1 : rInOut(clamp01((logoTop - 24 - textBottom) / 260), 0, 1);
+  if (f >= THRU[0] - 4) layers.push({ id: "outro:mid", st: ST_OUTRO, R: MID, op: logoGate, far: [1.5, 2.0], node: <BrandClose at={P.brand} /> });
+
+  const cs = capScale(f);
+  const logoY = (1 - rOut(f, 0, 26)) * 210 + rIn(f, THRU[0], THRU[0] + 26) * 210 + drift2(f, 190, 77, 2);
+
+  return (
+    <AbsoluteFill style={{ backgroundColor: theme.bg, overflow: "hidden" }}>
+      {HAS_VO && play("vo") && (
+        <>
+          <Sequence from={VO_LEAD} durationInFrames={VO_CUT}><Audio src={staticFile("vo_trimmed.wav")} volume={1} /></Sequence>
+          <Sequence from={VO_LEAD + VO_CUT + VO_GAP}><Audio src={staticFile("vo_trimmed.wav")} startFrom={VO_CUT} volume={1} /></Sequence>
+        </>
+      )}
+      {(HAS_SFX || SFX_PREVIEW) && play("sfx") && <SfxLayer cues={CUES} total={VIDEO_FRAMES} />}
+      {/* ★ the hook's and the thrusters' REAL sounds (scratchpad/mkhooksfx21.py: levels and fades baked in, one gain) */}
+      {(HAS_SFX || SFX_PREVIEW) && play("sfx") && <Sequence from={0} durationInFrames={330}><Audio src={staticFile("sfx21/hook.wav")} volume={1} /></Sequence>}
+      {(HAS_SFX || SFX_PREVIEW) && play("sfx") && <Sequence from={THRUSTER_SFX_BUILT.fire0} durationInFrames={130}><Audio src={staticFile("sfx21/thrusters.wav")} volume={1} /></Sequence>}
+      {HAS_MUSIC && play("music") && <Audio src={staticFile(MUSIC_SRC)} startFrom={Math.round(MUSIC_FROM_S * 30)} volume={musicVol} />}
+
+      <Field light={fieldLight} lightX={lightX} lightY={12} />
+      {fieldLight < 0.995 && <KeyLight at={0} x={key.x} y={key.y} angle={key.angle} len={2200} spread={520} strength={0.35 * (1 - fieldLight)} />}
+
+      {/* ★ THE WORLD IS ITS OWN STACKING CONTEXT (STYLE §5.4a): every depth layer stays below the text above it */}
+      <div style={{ position: "absolute", inset: 0, zIndex: 0 }}>
+        <World cam={cam} layers={layers} />
+      </div>
+
+      <div data-probe-group="caption" style={{ position: "absolute", inset: 0, transformOrigin: "540px 291px", transform: cs !== 1 ? `scale(${cs.toFixed(5)})` : undefined }}>
+        {!heroOn && <WordCaption words={CHIPS_SHOWN} onLight={capLight} />}
+      </div>
+      <div data-probe-group="hero" data-blur={heroBlur.toFixed(2)} data-exiting={lift > 1 ? "1" : "0"} style={{ position: "absolute", inset: 0, filter: heroBlur > 0.2 ? `blur(${heroBlur.toFixed(2)}px)` : undefined }}>
+        <TrackText words={HERO} lines={QUESTION} y={900} dolly={dolly} hold={hold} end={P.heroEnd} lift={lift} />
+      </div>
+
+      {/* §2.5.4: the watermark — 30%, the black file on the white stage */}
+      {logoY < 205 && (
+        <div data-probe-group="logo" style={{ position: "absolute", left: 540 - 65, top: 1745 - 20 + logoY, width: 130, height: 130 / (530.2 / 160), opacity: 0.3 }}>
+          <Img src={staticFile("brand/bankers-logo-white.svg")} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 1 - lit }} />
+          <Img src={staticFile("brand/bankers-logo-black.svg")} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: lit }} />
+        </div>
+      )}
+      {probe && <Probe />}
+    </AbsoluteFill>
+  );
+};

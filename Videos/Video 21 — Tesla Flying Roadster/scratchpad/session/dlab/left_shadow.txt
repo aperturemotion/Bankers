@@ -1,0 +1,8 @@
+
+/** a soft contact shadow on the floor: the footprint, darkest in a thin line at its base, leaning right (away from the key) */
+const Shadow: React.FC<{ x0: number; x1: number; a: number; g?: number }> = ({ x0, x1, a, g = G }) => (
+  <g data-probe-skip>
+    <ellipse cx={(x0 + x1) / 2 + 18} cy={g + 1} rx={(x1 - x0) / 2 + 34} ry={13} fill="url(#fuShadow)" opacity={a} />
+    <rect x={x0 + 8} y={g - 1.5} width={x1 - x0 - 16} height={3.5} rx={1.75} fill="#000814" opacity={0.5 * a} />
+  </g>
+);

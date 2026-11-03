@@ -1,0 +1,115 @@
+// ── drawing helpers ──
+type XY = [number, number];
+/** a smooth open curve through the points (Catmull-Rom as cubic Béziers), continuing an existing path */
+const smooth = (p: XY[]) => {
+  let d = "";
+  for (let i = 0; i < p.length - 1; i++) {
+    const a = p[Math.max(0, i - 1)], b = p[i], c = p[i + 1], e = p[Math.min(p.length - 1, i + 2)];
+    const c1: XY = [b[0] + (c[0] - a[0]) / 6, b[1] + (c[1] - a[1]) / 6], c2: XY = [c[0] - (e[0] - b[0]) / 6, c[1] - (e[1] - b[1]) / 6];
+    d += ` C${c1[0].toFixed(1)} ${c1[1].toFixed(1)} ${c2[0].toFixed(1)} ${c2[1].toFixed(1)} ${c[0].toFixed(1)} ${c[1].toFixed(1)}`;
+  }
+  return d;
+};
+const closedSmooth = (p: XY[]) => `M${p[0][0].toFixed(1)} ${p[0][1].toFixed(1)}${smooth([...p, p[0]])} Z`;
+
+type CarSpec = { x0: number; L: number; H: number; wr: number; uf: number; ur: number; g: number };
+type Profile = { upper: XY[]; dlo: XY[]; sill: number; seams: [number, number, number, number][]; handles: XY[]; mirror: XY; head: XY[]; tail: XY[]; belt: XY[] };
+
+/** ★ the body's side outline: the upper line (rear bumper → roof → nose, smooth), then the sill with the two wheel arches cut in it */
+const bodyPath = (s: CarSpec, pr: Profile, ox = 0, oy = 0) => {
+  const X = (u: number) => s.x0 + u * s.L + ox, Y = (h: number) => s.g - h * s.H + oy;
+  const up = pr.upper.map(([u, h]) => [X(u), Y(h)] as XY);
+  const ys = Y(pr.sill), R = s.wr + 7;
+  const arch = (u: number) => {
+    const cx = X(u), cy = s.g - s.wr + oy, dy = ys - cy, dx = Math.sqrt(Math.max(0, R * R - dy * dy));
+    return { a: [cx + dx, ys] as XY, b: [cx - dx, ys] as XY, large: dy > 0 ? 1 : 0 };
+  };
+  const fa = arch(s.uf), ra = arch(s.ur);
+  return `M${up[0][0].toFixed(1)} ${up[0][1].toFixed(1)}${smooth(up)}` +
+    ` L${fa.a[0].toFixed(1)} ${fa.a[1].toFixed(1)} A${R} ${R} 0 ${fa.large} 0 ${fa.b[0].toFixed(1)} ${fa.b[1].toFixed(1)}` +
+    ` L${ra.a[0].toFixed(1)} ${ra.a[1].toFixed(1)} A${R} ${R} 0 ${ra.large} 0 ${ra.b[0].toFixed(1)} ${ra.b[1].toFixed(1)} Z`;
+};
+
+/** one wheel: the tyre, the rim (five twin spokes, or an aero cover with five slots), the hub; `spin` in radians */
+const Wheel: React.FC<{ cx: number; cy: number; r: number; spin: number; aero?: boolean; far?: boolean }> = ({ cx, cy, r, spin, aero, far }) => {
+  const deg = (spin * 180) / Math.PI;
+  if (far) return <circle data-probe-skip cx={cx} cy={cy} r={r} fill="#010A16" />;
+  return (
+    <g data-probe-skip>
+      <circle cx={cx} cy={cy} r={r} fill="#040D1A" />
+      <circle cx={cx} cy={cy} r={r - 2} fill="none" stroke={alpha("#4D8ED9", 0.28)} strokeWidth={1.4} />
+      <circle cx={cx} cy={cy} r={r * 0.7} fill="url(#fuRim)" />
+      <g transform={`translate(${cx} ${cy}) rotate(${deg.toFixed(2)})`}>
+        {aero
+          ? [0, 1, 2, 3, 4].map((i) => (
+            <path key={i} transform={`rotate(${i * 72})`} d={`M${r * 0.3} ${-r * 0.06} L${r * 0.6} ${-r * 0.1} L${r * 0.6} ${r * 0.02} L${r * 0.3} ${r * 0.04} Z`} fill={alpha("#011A38", 0.6)} />
+          ))
+          : <>
+            <circle r={r * 0.62} fill="#06152B" />
+            {[0, 1, 2, 3, 4].map((i) => (
+              <path key={i} transform={`rotate(${i * 72})`} d={`M${-r * 0.06} ${-r * 0.12} L${-r * 0.09} ${-r * 0.63} L${r * 0.09} ${-r * 0.63} L${r * 0.06} ${-r * 0.12} Z`} fill="url(#fuRim)" />
+            ))}
+          </>}
+        <circle r={r * 0.17} fill="#0B3F82" stroke={alpha("#DCE8F6", 0.6)} strokeWidth={1.2} />
+      </g>
+      {/* the rim's lip catching the key at its top left */}
+      <path d={`M${cx - r * 0.66} ${cy - r * 0.18} A${r * 0.69} ${r * 0.69} 0 0 1 ${cx + r * 0.2} ${cy - r * 0.66}`} fill="none" stroke={alpha("#FFFFFF", 0.55)} strokeWidth={1.4} />
+    </g>
+  );
+};
+
+/** ★ A CAR, SIDE-ON, nose to the right, in the house 2-D build: its far wheels and its body's depth swept up-right behind the face, the wheel
+ *  wells, the painted side (one gradient: lit shoulder, a reflected band, dark sills), the glasshouse, door cuts, handles, mirror, lamps,
+ *  the near wheels. `lamp` lights the head lamp 0..1; `spin` turns the wheels; `inside` draws what is seen through the glass. */
+const Car: React.FC<{ s: CarSpec; pr: Profile; lamp: number; spin: number; aero?: boolean; inside?: React.ReactNode; tailBar?: boolean }> = ({ s, pr, lamp, spin, aero, inside, tailBar }) => {
+  const X = (u: number) => s.x0 + u * s.L, Y = (h: number) => s.g - h * s.H;
+  const DX = 1.9, DY = -1.35, N = 8;   // the body's depth: 8 copies up and to the right
+  const wf = { x: X(s.uf), y: s.g - s.wr }, wr = { x: X(s.ur), y: s.g - s.wr };
+  const body = bodyPath(s, pr);
+  return (
+    <g>
+      {/* the far side's wheels, behind, offset by the body's depth */}
+      <Wheel cx={wf.x + DX * N} cy={wf.y + DY * N} r={s.wr} spin={spin} far />
+      <Wheel cx={wr.x + DX * N} cy={wr.y + DY * N} r={s.wr} spin={spin} far />
+      {/* the depth: stepped copies of the body, darkest at the back */}
+      {Array.from({ length: N }, (_, i) => N - i).map((k) => (
+        <path key={k} data-probe-skip d={bodyPath(s, pr, DX * k, DY * k)} fill={k === N ? "#0B2F5E" : "#164A88"} stroke={k === N ? "#021A3A" : "none"} strokeWidth={1.2} />
+      ))}
+      {/* the wheel wells (dark, seen through the arches) */}
+      <circle data-probe-skip cx={wf.x} cy={wf.y} r={s.wr + 6} fill="#010A16" />
+      <circle data-probe-skip cx={wr.x} cy={wr.y} r={s.wr + 6} fill="#010A16" />
+      {/* the painted side */}
+      <path d={body} fill="url(#fuBody)" />
+      <path data-probe-skip d={body} fill="url(#fuSheen)" />
+      {/* the glasshouse and what is seen through it */}
+      <path data-probe-skip d={closedSmooth(pr.dlo.map(([u, h]) => [X(u), Y(h)] as XY))} fill="url(#fuGlass)" stroke="#010E1E" strokeWidth={2.4} strokeLinejoin="round" />
+      {inside}
+      <path data-probe-skip d={closedSmooth(pr.dlo.map(([u, h]) => [X(u), Y(h)] as XY))} fill="url(#fuGlassSheen)" />
+      {/* the shoulder line catching the key, and the beltline under the glass */}
+      <path data-probe-skip d={`M${X(pr.belt[0][0]).toFixed(1)} ${Y(pr.belt[0][1]).toFixed(1)}${smooth(pr.belt.map(([u, h]) => [X(u), Y(h)] as XY))}`} fill="none" stroke={alpha("#DCE8F6", 0.5)} strokeWidth={2.2} strokeLinecap="round" />
+      {/* door cuts and flush handles */}
+      {pr.seams.map(([u0, h0, u1, h1], i) => (
+        <line key={i} data-probe-skip x1={X(u0)} y1={Y(h0)} x2={X(u1)} y2={Y(h1)} stroke={alpha("#011A38", 0.75)} strokeWidth={1.8} />
+      ))}
+      {pr.handles.map(([u, h], i) => (
+        <g key={i} data-probe-skip>
+          <rect x={X(u) - 13} y={Y(h) - 2.6} width={26} height={5.2} rx={2.6} fill={alpha("#011A38", 0.55)} />
+          <rect x={X(u) - 12} y={Y(h) - 2.6} width={24} height={2} rx={1} fill={alpha("#DCE8F6", 0.45)} />
+        </g>
+      ))}
+      {/* the mirror on its stalk at the front of the side glass */}
+      <g data-probe-skip>
+        <line x1={X(pr.mirror[0]) - 4} y1={Y(pr.mirror[1]) + 5} x2={X(pr.mirror[0]) + 2} y2={Y(pr.mirror[1]) - 2} stroke="#0B2F5E" strokeWidth={4} strokeLinecap="round" />
+        <ellipse cx={X(pr.mirror[0]) + 6} cy={Y(pr.mirror[1]) - 5} rx={s.L * 0.024} ry={s.H * 0.045} transform={`rotate(-12 ${X(pr.mirror[0]) + 6} ${Y(pr.mirror[1]) - 5})`} fill="url(#fuBody)" stroke="#011A38" strokeWidth={1} />
+        <ellipse cx={X(pr.mirror[0]) + 3} cy={Y(pr.mirror[1]) - 8} rx={s.L * 0.012} ry={s.H * 0.016} fill={alpha("#FFFFFF", 0.45)} />
+      </g>
+      {/* the lamps: the head lamp's slim sliver (it lights on "cars"), the tail lamp (a full-width bar on the Cybercab) */}
+      <path data-probe-skip d={closedSmooth(pr.head.map(([u, h]) => [X(u), Y(h)] as XY))} fill={mixHex("#2D6AB1", "#F5F9FD", lamp)} stroke="#011A38" strokeWidth={1} />
+      <path data-probe-skip d={closedSmooth(pr.tail.map(([u, h]) => [X(u), Y(h)] as XY))} fill={tailBar ? mixHex("#4D8ED9", "#DCE8F6", lamp) : "#4D8ED9"} stroke="#011A38" strokeWidth={1} />
+      {/* the near wheels */}
+      <Wheel cx={wf.x} cy={wf.y} r={s.wr} spin={spin} aero={aero} />
+      <Wheel cx={wr.x} cy={wr.y} r={s.wr} spin={spin} aero={aero} />
+    </g>
+  );
+};
+
