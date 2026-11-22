@@ -1,0 +1,136 @@
+{
+  "_doc": [
+    "RECOVERED 2026-11-22 from the published Studio bundle. Webpack kept only the keys the film reads at runtime (WD). `script` is REBUILT from the caption SENTENCES (vo = take = the caption text, which is what the take says); the original _doc, figures, labels and any other keys did not survive."
+  ],
+  "script": [
+    {
+      "scene": "hook",
+      "vo": "Americans spent $104.7 billion on lottery tickets in one year.",
+      "take": "Americans spent $104.7 billion on lottery tickets in one year."
+    },
+    {
+      "scene": "hook",
+      "vo": "About a third never came back as prizes.",
+      "take": "About a third never came back as prizes."
+    },
+    {
+      "scene": "sales",
+      "vo": "Census Bureau data for fiscal 2024",
+      "take": "Census Bureau data for fiscal 2024"
+    },
+    {
+      "scene": "sales2",
+      "vo": "show ticket sales nearly doubled from $52.8 billion in fiscal 2008.",
+      "take": "show ticket sales nearly doubled from $52.8 billion in fiscal 2008."
+    },
+    {
+      "scene": "prizes",
+      "vo": "Prizes paid back $70.2 billion.",
+      "take": "Prizes paid back $70.2 billion."
+    },
+    {
+      "scene": "lotteries",
+      "vo": "The other $34.5 billion stayed with the lotteries.",
+      "take": "The other $34.5 billion stayed with the lotteries."
+    },
+    {
+      "scene": "nobody",
+      "vo": "Here's what almost nobody understands.",
+      "take": "Here's what almost nobody understands.",
+      "hero": true
+    },
+    {
+      "scene": "ev",
+      "vo": "That split has a name: expected value.",
+      "take": "That split has a name: expected value."
+    },
+    {
+      "scene": "pie",
+      "vo": "On average, every dollar spent on tickets paid back about 67 cents.",
+      "take": "On average, every dollar spent on tickets paid back about 67 cents."
+    },
+    {
+      "scene": "counter",
+      "vo": "So a ticket is worth less than it costs before a single number is drawn.",
+      "take": "So a ticket is worth less than it costs before a single number is drawn."
+    },
+    {
+      "scene": "virginia",
+      "vo": "It varies by state.",
+      "take": "It varies by state."
+    },
+    {
+      "scene": "virginia",
+      "vo": "Virginia paid back 80 cents of every dollar, the most in the country.",
+      "take": "Virginia paid back 80 cents of every dollar, the most in the country."
+    },
+    {
+      "scene": "jackpot",
+      "vo": "And jackpots grow only when nobody wins them.",
+      "take": "And jackpots grow only when nobody wins them."
+    },
+    {
+      "scene": "powerball",
+      "vo": "The $847 million Powerball won on November 4",
+      "take": "The $847 million Powerball won on November 4"
+    },
+    {
+      "scene": "powerball2",
+      "vo": "grew draw after draw, paid for by tickets that missed.",
+      "take": "grew draw after draw, paid for by tickets that missed."
+    },
+    {
+      "scene": "honest",
+      "vo": "Now, the honest part.",
+      "take": "Now, the honest part.",
+      "hero": true
+    },
+    {
+      "scene": "honest",
+      "vo": "Many states put their share toward schools, and a ticket buys a little fun.",
+      "take": "Many states put their share toward schools, and a ticket buys a little fun."
+    },
+    {
+      "scene": "favors",
+      "vo": "But on average, the math favors the lottery.",
+      "take": "But on average, the math favors the lottery."
+    },
+    {
+      "scene": "close",
+      "vo": "So be honest.",
+      "take": "So be honest.",
+      "hero": true
+    },
+    {
+      "scene": "close",
+      "vo": "Do you buy a ticket when the jackpot gets big?",
+      "take": "Do you buy a ticket when the jackpot gets big?"
+    },
+    {
+      "scene": "close",
+      "vo": "Tell us below.",
+      "take": "Tell us below."
+    }
+  ],
+  "WD": {
+    "neverPaidOut": "NEVER PAID OUT",
+    "ticketSales": "TICKET SALES",
+    "nearlyDoubled": "NEARLY DOUBLED",
+    "fiscal": "FY",
+    "prizes": "PRIZES",
+    "lotteries": "LOTTERIES",
+    "expectedValue": "EXPECTED VALUE",
+    "perDollar": "PER $1",
+    "paidBack": "PAID BACK",
+    "us": "U.S.",
+    "virginia": "VIRGINIA",
+    "mostInUs": "MOST IN U.S.",
+    "jackpot": "JACKPOT",
+    "schools": "SCHOOLS",
+    "aLittleFun": "A LITTLE FUN",
+    "onAverage": "ON AVERAGE",
+    "jackpotPowerball": "POWERBALL",
+    "counterWorth": "WORTH",
+    "counterCosts": "COSTS"
+  }
+}

@@ -1,5 +1,21 @@
+# installed packages and render outputs never go in
 node_modules/
 **/node_modules/
 **/out/
-!**/out/*.mp4
 .studio*/
+# already saved in Bankers-migration-2026-10-23.zip (unzip to restore)
+Bankers/Archive/
+Bankers/Demo/
+Bankers/Style frames/
+Bankers/Videos/Video 9 — SpaceX vs Carriers/
+Bankers/Videos/Video 10 — Same Payment Smaller House/
+Bankers/Videos/Video 11 — JPMorgan Buyback Pause/
+Bankers/Videos/Video 12 — Paycheck vs Prices/
+Bankers/Videos/Video 13 — Layoffs Since 1969/
+Bankers/Videos/Video 14 — Phones Worst Quarter/
+Bankers/Videos/Video 15 — SpaceX AI Revenue/
+Bankers/Videos/Video 16 — Private Equity Backlog/
+# the decoded bundle dump (regenerable from the published Studio)
+Bankers/Videos/Video 35 — Lottery Tear/recovery/audiodata.gen.from-bundle.ts.txt
+Bankers/Videos/Video 35 — Lottery Tear/recovery/bundle-embedded/
+Bankers/Videos/Video 35 — Lottery Tear/recovery/decoded-from-bundle/

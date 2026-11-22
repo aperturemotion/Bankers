@@ -1,0 +1,89 @@
+{
+ "words": "scratchpad/fw_words.json",
+ "beats": [
+  {
+   "id": "hook",
+   "enter": 0,
+   "gone": 276
+  },
+  {
+   "id": "sales",
+   "enter": 276,
+   "gone": 367
+  },
+  {
+   "id": "sales2",
+   "enter": 367,
+   "gone": 536
+  },
+  {
+   "id": "prizes",
+   "enter": 536,
+   "gone": 632
+  },
+  {
+   "id": "lotteries",
+   "enter": 632,
+   "gone": 737
+  },
+  {
+   "id": "ev",
+   "enter": 806,
+   "gone": 906
+  },
+  {
+   "id": "pie",
+   "enter": 906,
+   "gone": 1060
+  },
+  {
+   "id": "counter",
+   "enter": 1060,
+   "gone": 1208
+  },
+  {
+   "id": "virginia",
+   "enter": 1208,
+   "gone": 1364
+  },
+  {
+   "id": "jackpot",
+   "enter": 1364,
+   "gone": 1462
+  },
+  {
+   "id": "powerball",
+   "enter": 1462,
+   "gone": 1587
+  },
+  {
+   "id": "powerball2",
+   "enter": 1587,
+   "gone": 1703
+  },
+  {
+   "id": "honest",
+   "enter": 1746,
+   "gone": 1880
+  },
+  {
+   "id": "favors",
+   "enter": 1880,
+   "gone": 1966
+  },
+  {
+   "id": "close",
+   "enter": 2004,
+   "gone": 2096
+  },
+  {
+   "id": "brand",
+   "enter": 2096,
+   "gone": 2182
+  }
+ ],
+ "breaks": [
+  742,
+  1708
+ ]
+}
