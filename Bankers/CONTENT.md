@@ -292,3 +292,5 @@ See the chat report of 2026-11-22; record each ruling here when given.
 - RULED (2026-11-23): company names on objects are OK (FREEPORT-McMoRAN plate).
 - RULED (Video 36, 2026-11-23): the fact-check's script changes to the brief stand ("keep all the script changes"); "6¢" stays on
   the collapse tag (not C$0.06).
+- RULED (Video 36, 2026-11-23): C$ stays on screen for the film's Canadian figures (Timur: "keep"), over the house US$ default;
+  the US$ equivalents stay in FACTCHECK.md for the post caption if wanted.
