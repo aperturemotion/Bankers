@@ -1,9 +1,9 @@
 // @ts-nocheck
 // ★ V36 "Bre-X Gold" — builder F. THE VAULT CABINET of the pension place: a bank vault's steel cabinet — a crown cap, a body with a
-//   brushed face, a recessed toe plinth, fifteen safe-deposit box doors (each with its number plate, the two locks of dual control and
+//   brushed face, a recessed toe plinth, eighteen safe-deposit box doors (each with its number plate, the two locks of dual control and
 //   two hinge knuckles) and, at the top, the plan's heavy drawer: a steel front with its engraved nameplate ONTARIO TEACHERS', a bar
-//   pull on two posts, two keyholes and corner screws, riding out on full-extension slides. The drawer's FLOOR is a pair of trap
-//   flaps (the bottom falls out): they swing down on their hinges and the banded cash in the drawer falls through and away.
+//   pull on two posts, two keyholes and corner screws, riding out on full-extension slides. The drawer's FLOOR over its hatch is a
+//   sliding steel plate (the bottom falls out): it runs back into the cabinet and the banded cash drops through and away.
 //   Parts the drawer carries INSIDE the cabinet are drawn only through the opening (STYLE 2026-10-22: a drawer never passes through
 //   its own carcass): the drawer group is clipped to the hull of the opening and the drawer's protruding volume.
 //   Local coordinates: u (x) right, v (y) DOWN (the floor is v 0, the cabinet rises to negative v), w (z) toward the viewer.
@@ -29,12 +29,10 @@ export const V_CROWN = V_TOP - VT.crown;    // the cabinet's highest point
 const OP = { u: 328, v0: V_TOP + 34, v1: V_TOP + 34 + 166 };
 export const DR = { W: 644, v0: OP.v0 + 6, v1: OP.v1 - 6, t: 26, boxW: 624, wall: 10, boxD: 480, floorT: 10, ext: 450 };
 const BOX = { v0: DR.v0 + 22, v1: DR.v1 - 6 };          // the box's walls run v0 → v1 (the floor's underside)
-export const FLOOR_TOP = BOX.v1 - DR.floorT;            // the inner floor (the flaps' top surface)
+export const FLOOR_TOP = BOX.v1 - DR.floorT;            // the inner floor (the sliding plate's top surface)
 const IN_U = DR.boxW / 2 - DR.wall;                      // the inner half-width
-// the hatch: an opening in the floor from the back flap's hinge to the front flap's hinge (z relative to the panel's back face)
+// the hatch: an opening in the floor under the sliding plate (z relative to the panel's back face)
 export const HATCH = { u: IN_U - 8, back: -410, front: -10, t: 6 };
-const HINGE_V = FLOOR_TOP + HATCH.t;                     // both flaps turn about their BOTTOM edge
-export const FLAP_L = HATCH.front - HATCH.back;      // ONE trap door, hinged at the back edge: the cash falls in front of it
 // the safe-deposit doors under the drawer: 3 × 5
 const DOORS = { u0: -VT.W / 2 + 26, u1: VT.W / 2 - 26, v0: OP.v1 + 26, v1: -VT.plinth - 22, cols: 3, rows: 6, gap: 8, t: 5 };
 const DOOR_W = (DOORS.u1 - DOORS.u0 - (DOORS.cols - 1) * DOORS.gap) / DOORS.cols;
@@ -232,39 +230,27 @@ export const drawerClip = (rig, pose, s) => {
   const h = [...lo.slice(0, -1), ...hi.slice(0, -1)];
   return `M${h.map((q) => `${f2(q[0])},${f2(q[1])}`).join("L")}Z`;
 };
-/** a flap's transform (drawer-local, z relative to the panel's back face): the back flap turns down about its BOTTOM-BACK edge,
- *  the front flap about its BOTTOM-FRONT edge, both through `deg` (0 = shut, 90 = hanging) */
-export const flapXf = (which, deg) => {
-  const zh = which === "back" ? HATCH.back : HATCH.front;
-  const a = which === "back" ? -deg : deg;
-  return xfMul(xfTrans([0, HINGE_V, zh]), xfMul(xfRotX(a), xfTrans([0, -HINGE_V, -zh])));
-};
-const flapFaces = (which) => {
-  const z0 = which === "back" ? HATCH.back : HATCH.back + FLAP_L, z1 = which === "back" ? HATCH.back + FLAP_L : HATCH.front;
-  return wound(prism(rrectPts(2 * HATCH.u - 2, HATCH.t, 1, 1, 0, FLOOR_TOP + HATCH.t / 2), z1 - z0 - 1, 1.2, 0, 1, () => false, [0, 0, (z0 + z1) / 2]));
-};
-const FLAPS = { back: null, front: null };
-const flapFacesOf = (w) => FLAPS[w] ??= flapFaces(w);
-/** does the camera see a flap's TOP (the face the cash rests on)? then the cash is in front of it */
-export const flapTopSeen = (rig, pose, s, which, deg) => {
-  const x = xfMul(pose, xfMul(xfTrans([0, 0, panelZ(s)]), flapXf(which, deg)));
-  const zc = which === "back" ? HATCH.back + FLAP_L / 2 : HATCH.front - FLAP_L / 2;
-  return facingM((q) => xfApply(x, q), rig, [0, -1, 0], [0, FLOOR_TOP, zc]) > 0;
-};
-export const DrawerFlap = ({ rig, pose, s, which, deg }) => {
-  // (the hatch's flaps are 6 px plates flush with the floor's top; HATCH.t)
-  const x = xfMul(pose, xfMul(xfTrans([0, 0, panelZ(s)]), flapXf(which, deg)));
+/** the drawer's SLIDING FLOOR PLATE (the hatch): a 6-px steel plate flush with the floor over the opening. On the latch it slides
+ *  BACK through a slot in the drawer's back rim into the cabinet, so the floor opens from the front and the cash drops through,
+ *  front row first. `e` 0 = shut … 1 = gone into the slot (the visible plate is the part still in front of the slot).
+ *  (It replaced a hinged trap door: a 400-px door swinging down sweeps its edge 130 px a frame — popscan reads that as a VANISH.) */
+export const PLATE_TRAVEL = HATCH.front - HATCH.back;
+export const plateEdge = (e) => HATCH.front - PLATE_TRAVEL * clamp01(e);   // the plate's front edge (z rel. to the panel's back face)
+export const DrawerPlate = ({ rig, pose, s, e }) => {
+  const x = xfMul(pose, xfTrans([0, 0, panelZ(s)]));
   const map = (q) => xfApply(x, q);
-  const zc = which === "back" ? HATCH.back + FLAP_L / 2 : HATCH.front - FLAP_L / 2;
-  // shut, the trap shows as a fine seam round the opening in the floor
-  const seam = mapPath((q) => xfApply(pose, [q[0], q[1], q[2] + panelZ(s)]), rig, rrectPts(2 * HATCH.u, FLAP_L, 2, 1, 0, (HATCH.back + HATCH.front) / 2).map(([u, z]) => [u, FLOOR_TOP - 0.3, z]));
-  // the hinge pin along the hinge line (a steel rod under the floor's edge)
-  const zh = which === "back" ? HATCH.back : HATCH.front;
-  const pinXf = xfMul(pose, xfMul(xfTrans([-HATCH.u + 2, HINGE_V, panelZ(s) + zh]), xfRotZ(-90)));
+  const z1 = plateEdge(e) - 0.5, z0 = HATCH.back;
+  const slot = mapPath(map, rig, [[-HATCH.u, FLOOR_TOP - 0.3, z0 - 0.5], [HATCH.u, FLOOR_TOP - 0.3, z0 - 0.5]], false);
+  if (z1 - z0 < 1) return /* @__PURE__ */ (0,jsx_runtime.jsx)("svg", { width: 1, height: 1, style: { position: "absolute", left: 0, top: 0, overflow: "visible" }, children: /* @__PURE__ */ (0,jsx_runtime.jsx)("path", { d: slot, stroke: "#000000", strokeOpacity: 0.6, strokeWidth: 2.2, fill: "none" }) });
+  const faces = wound(prism(rrectPts(2 * HATCH.u - 2, HATCH.t, 1, 1, 0, FLOOR_TOP + HATCH.t / 2), z1 - z0, 1.2, 0, 1, () => false, [0, 0, (z0 + z1) / 2]));
+  // its outline on the floor (a fine seam), its leading edge's lip, and the slot in the back rim it runs into
+  const seam = mapPath(map, rig, [[-HATCH.u, FLOOR_TOP - 0.3, z0], [-HATCH.u, FLOOR_TOP - 0.3, z1], [HATCH.u, FLOOR_TOP - 0.3, z1], [HATCH.u, FLOOR_TOP - 0.3, z0]], false);
+  const lip = mapPath(map, rig, [[-HATCH.u + 3, FLOOR_TOP - 0.4, z1 - 1.5], [HATCH.u - 3, FLOOR_TOP - 0.4, z1 - 1.5]], false);
   return /* @__PURE__ */ (0,jsx_runtime.jsxs)("svg", { width: 1, height: 1, style: { position: "absolute", left: 0, top: 0, overflow: "visible" }, children: [
-    /* @__PURE__ */ (0,jsx_runtime.jsx)(Paint, { faces: flapFacesOf(which), map, rig, ramp: SF_DOOR, spec: 0.35, dim: 0.12 }),
-    /* @__PURE__ */ (0,jsx_runtime.jsx)("path", { d: seam, stroke: "#000000", strokeOpacity: 0.5 * (1 - clamp01(deg / 6)), strokeWidth: 1.6, fill: "none" }),
-    /* @__PURE__ */ (0,jsx_runtime.jsx)(Turned, { id: `pnPin${which}`, rig, xf: pinXf, profile: [{ y: 0, r: 0 }, { y: 0, r: 3.6 }, { y: 2 * HATCH.u - 4, r: 3.6 }, { y: 2 * HATCH.u - 4, r: 0 }], ramp: SF_STEEL, spec: 0.9, n: 14 })
+    /* @__PURE__ */ (0,jsx_runtime.jsx)(Paint, { faces, map, rig, ramp: SF_DOOR, spec: 0.35, dim: 0.12 }),
+    /* @__PURE__ */ (0,jsx_runtime.jsx)("path", { d: seam, stroke: "#000000", strokeOpacity: 0.5, strokeWidth: 1.6, fill: "none" }),
+    /* @__PURE__ */ (0,jsx_runtime.jsx)("path", { d: lip, stroke: "#ffffff", strokeOpacity: 0.22, strokeWidth: 1.1, fill: "none", strokeLinecap: "round" }),
+    /* @__PURE__ */ (0,jsx_runtime.jsx)("path", { d: slot, stroke: "#000000", strokeOpacity: 0.6, strokeWidth: 2.2, fill: "none" })
   ] });
 };
 /** the drawer's FAR parts (behind the cash): back wall, the far (right) side wall, the floor's rim */

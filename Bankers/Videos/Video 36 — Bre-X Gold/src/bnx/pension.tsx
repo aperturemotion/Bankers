@@ -2,10 +2,11 @@
 // ★ V36 "Bre-X Gold" — place PENSION (builder F). "The Ontario Teachers' Pension Plan alone lost a hundred million dollars."
 //   A bank vault's steel cabinet (pension_vault.tsx) rises from below. On "Ontario Teachers'" its top drawer — the plan's, its
 //   engraved nameplate ONTARIO TEACHERS' on it from the first frame — rides out on its slides, full of banded C$ cash bundles
-//   (sales_cash.tsx, Video 35's bundle), and the camera pushes in on it. On "lost" the drawer's bottom falls out: the trap flaps
-//   swing down and the cash drops through, six stacks tumbling under gravity out through the bottom of the frame (they land on
-//   the floor at the cabinet's foot, out of shot), as C$100M LOST lands on "a hundred million dollars". Then the place cranes out
-//   (the composition's hand-over) under the "To be fair…" card.
+//   (sales_cash.tsx, Video 35's bundle), and the camera pushes in on it. On "lost" the drawer's bottom falls out: its floor plate
+//   runs back into the cabinet and the cash drops through row by row, six stacks tumbling down (gravity with air drag, so every
+//   edge stays trackable frame to frame) out through the bottom of the frame — they land at the cabinet's foot, out of shot — as
+//   C$100M LOST lands on "a hundred million dollars". Then the place pushes out into light (the composition's hand-over) into the
+//   "To be fair…" card.
 import * as esm from "remotion";
 import * as jsx_runtime from "react/jsx-runtime";
 import { clamp01, rIn, rInOut, rOut } from "./anim";
@@ -20,7 +21,7 @@ import { TK_FLOOR_Y } from "./tk_slab";
 import { TkFloor } from "./tk_floor";
 import { CB, CashBody, CashContact, CashTopPlanes, cashFace, cashXf } from "./sales_cash";
 import { PENSION_LOSS_M } from "./pension_data";
-import { DR, DrawerFar, DrawerFlap, DrawerNear, FLOOR_TOP, HATCH, V_CROWN, VT, VaultCabinet, ZF, drawerClip, drawerCorners, drawerShadow, panelZ, vaultCorners } from "./pension_vault";
+import { DR, DrawerFar, DrawerNear, DrawerPlate, FLOOR_TOP, HATCH, PLATE_TRAVEL, V_CROWN, VT, VaultCabinet, ZF, drawerClip, drawerCorners, drawerShadow, panelZ, vaultCorners } from "./pension_vault";
 
 const RIG = { cx: 540, cy: TK_FLOOR_Y - 1500, persp: 3600, yaw: 16, pitch: -9 };
 const X = 540;
@@ -35,7 +36,12 @@ const ROW_Z = [0, 1, 2].map((r) => HATCH.back + HATCH.t + 8 + CB.D / 2 + r * (CB
 if (ROW_Z[2] + CB.D / 2 > HATCH.front - 4) throw new Error("pension: the front row must sit over the trap");
 const COL_U = [-1, 1].map((s) => s * (CB.W / 2 + 5));
 if (CB.W + 5 > HATCH.u) throw new Error("pension: the columns must sit over the hatch");
-const G = 3.2;   // px / frame²
+// ★ the fall: gravity with air drag — it starts from rest at G0 and tends to a terminal speed V_TERM (world px a frame), so a bundle's
+//   edge never jumps more than ~45 px a frame on screen (popscan tracks it; a straight 3.2 px/f² fall reached ~110 and read as a
+//   VANISH), yet it still reads as falling: it accelerates from rest and leaves through the bottom edge (pensionTimes checks when)
+const G0 = 4.0, V_TERM = 37;
+const fallY = (u) => V_TERM * V_TERM / G0 * Math.log(Math.cosh(G0 * u / V_TERM));
+const fallT = (h) => V_TERM / G0 * Math.acosh(Math.exp(h * G0 / (V_TERM * V_TERM)));
 const rnd = seeded(1997);
 const STACKS = [];
 for (let r = 0; r < 3; r++) for (let c = 0; c < 2; c++) {
@@ -43,9 +49,10 @@ for (let r = 0; r < 3; r++) for (let c = 0; c < 2; c++) {
   STACKS.push({
     c, r,
     u: COL_U[c], z: ROW_Z[r],
-    // the trap swings down from the front: the front row drops first, the back row (over the hinge) last; the left column a half
-    //   frame after the right
-    lag: [4, 2.5, 1][r] + (c === 0 ? 0.5 : 0),
+    // the floor plate slides back from the front: a row drops once the plate's edge has passed its back edge (front row first);
+    //   the left column a half frame after the right
+    backEdge: ROW_Z[r] - CB.D / 2,
+    lag: c === 0 ? 0.5 : 0,
     vx: out * (0.7 + 0.3 * rnd()),
     dyaw: out * (1.5 + 1.5 * rnd()),
     roll: -out * (5 + 4 * rnd()),
@@ -56,19 +63,19 @@ for (let r = 0; r < 3; r++) for (let c = 0; c < 2; c++) {
 }
 const Y_REST = TK_FLOOR_Y + FLOOR_TOP - LAYERS * H / 2;     // a stack's centre in the drawer
 const Y_LAND = TK_FLOOR_Y - LAYERS * H / 2;                 // on the floor
-const T_FALL = Math.sqrt(2 * (Y_LAND - Y_REST) / G);
+const T_FALL = fallT(Y_LAND - Y_REST);
 const bounce = (u) => u <= 0 ? 0 : 2 * Math.exp(-u / 2.4) * Math.abs(Math.sin(Math.PI * u / 3.2));
 const rot = (yaw, tx, tz) => xfMul(xfRotY(yaw), xfMul(xfRotX(tx), xfRotZ(tz)));
 /** every bundle's pose at frame g: { x (cash transform), top (a top bundle), st, k, fall (0 rest … 1 landed), c (stack centre) } */
 const cashAt = (t, g, s) => {
   const out = [];
   for (const st of STACKS) {
-    const T = t.hatch + st.lag, dt = g - T;
+    const T = t.drop[st.r] + st.lag, dt = g - T;
     let cx = X + st.u, cy = Y_REST, cz = BACK + panelZ(s) + st.z, yaw = st.yaw0, tx = 0, tz = 0, sep = 0, phase = 0;
     if (dt > 0) {
       const tt = Math.min(dt, T_FALL), e = tt / T_FALL, k = Math.sin(Math.PI * e) ** 2;
       cx += st.vx * tt;
-      cy += 0.5 * G * tt * tt;
+      cy += fallY(tt);
       yaw += st.dyaw * (e * e * (3 - 2 * e));
       tx = st.pitch * k;
       tz = st.roll * k;
@@ -94,14 +101,32 @@ export const pensionTimes = (w, end) => {
     slide: { a: w.ontario - 4, b: w.ontario + 30 },        // the drawer rides out on "Ontario Teachers'"
     plate: { a: w.ontario - 8, b: w.teachers + 14 },        // a light runs across its nameplate
     push: { a: w.ontario - 6, dur: 38 },                    // the camera pushes in on the open drawer
-    hatch: w.lost - 3,                                     // the bottom falls out on "lost"
+    hatch: w.lost - 8,                                     // the latch lets go: the floor plate starts back (eased in, under the cash);
+                                                           //   the front row drops on "lost"
     dip: { a: w.lost - 1, dur: 26 },                        // the camera dips a little after the fall
     loss: { a: w.k100 - 7, b: w.k100 + 13 },                // C$100M LOST lands on "a hundred million"
     crane: end + 2 - 22                                    // the composition's push-light out (HO.pension)
   };
-  if (t.slide.b > t.hatch - 12) throw new Error("pension: the drawer must be out and still before the bottom falls out");
-  if (t.loss.b > t.crane) throw new Error("pension: C$100M LOST must be landed before the crane out");
-  if (t.hatch + 3 + 22 > t.crane + 6) throw new Error("pension: the cash must be out of frame by the crane");
+  if (t.slide.b > t.hatch - 8) throw new Error("pension: the drawer must be out and still before the bottom falls out");
+  // each row drops as the plate's edge clears its back edge (the plate's ease, inverted)
+  //   (the last 12 px of a stack's foot are over the plate's edge as it starts down: it clears them in a third of a frame)
+  t.drop = [0, 1, 2].map((r) => t.hatch + plateTime(HATCH.front - (ROW_Z[r] - CB.D / 2) - 12));
+  t.plateEnd = t.hatch + plateTime(PLATE_TRAVEL);
+  if (Math.abs(t.drop[2] - t.w.lost) > 3) throw new Error("pension: the front row must drop on \"lost\"");
+  if (t.loss.b > t.crane) throw new Error("pension: C$100M LOST must be landed before the push-light out");
+  // every stack must be wholly out through the frame's bottom edge before the push-light out: the frame's bottom in place
+  //   coordinates at the dip framing (less a margin for the parallax zoom), against each stack's highest projected edge
+  const aimY = W2S([0, FLOOR_TOP - 40, panelZ(DR.ext) - 120]).y - DRW_UP + DIP;
+  //   (the composition's parallax zoom only ever shrinks the visible frame, so the nominal bottom is the worst case; + 8 for its drift)
+  const yBottom = aimY + (1920 - 110 - 883.2) / Z_DIP + 8;
+  for (const st of STACKS) {
+    let u = 0;
+    const topAt = (uu) => worldScr(RIG, [X + st.u + st.vx * uu, Y_REST + fallY(uu) - LAYERS * H / 2 - 12, BACK + panelZ(DR.ext) + st.z - CB.D / 2])[1];
+    while (u < T_FALL && topAt(u) < yBottom) u += 0.5;
+    if (u >= T_FALL) throw new Error(`pension: a stack lands before it leaves the frame (top ${topAt(T_FALL).toFixed(0)} vs frame bottom ${yBottom.toFixed(0)}, aim ${aimY.toFixed(0)})`);
+    t.exitAt = Math.max(t.exitAt ?? 0, t.drop[st.r] + st.lag + u);
+  }
+  if (t.exitAt > t.crane - 2) throw new Error(`pension: the cash must be out of frame before the push-light out (${t.exitAt.toFixed(1)} > ${t.crane - 2}; drops ${t.drop.map((x) => x.toFixed(1))}; aim ${aimY.toFixed(0)} bottom ${yBottom.toFixed(0)} start ${worldScr(RIG, [X, Y_REST - LAYERS * H / 2 - 12, BACK + panelZ(DR.ext) + ROW_Z[0] - CB.D / 2])[1].toFixed(0)})`);
   return t;
 };
 const slideOf = (t, g) => {
@@ -110,28 +135,31 @@ const slideOf = (t, g) => {
   const u = g - t.slide.b, stop = u > 0 ? 4 * Math.exp(-u / 3) * Math.sin(Math.PI * u / 5) : 0;
   return DR.ext * e - stop;
 };
-// the trap door swings down on its back hinge and comes to hang against the cabinet's face (a small bounce off it)
-const flapBack = (t, g) => {
-  const dt = g - t.hatch;
-  if (dt <= 0) return 0;
-  const T = 6.5;
-  if (dt < T) return 90 * (dt / T) ** 2;
-  return 90 - 7 * Math.exp(-(dt - T) / 3) * Math.abs(Math.sin(Math.PI * (dt - T) / 4));
-};
+// the floor plate's travel: it eases in over PLATE.ease frames to PLATE.cap px a frame and runs on into its slot (its edge, the only
+//   part of it seen moving, never passes ~40 px a frame on screen)
+const PLATE = { ease: 6, cap: 34 };
+const plateDist = (u) => u <= 0 ? 0 : u < PLATE.ease ? PLATE.cap * u * u / (2 * PLATE.ease) : PLATE.cap * (u - PLATE.ease / 2);
+const plateTime = (d) => d <= PLATE.cap * PLATE.ease / 2 ? Math.sqrt(2 * PLATE.ease * d / PLATE.cap) : d / PLATE.cap + PLATE.ease / 2;
+const plateE = (t, g) => clamp01(plateDist(g - t.hatch) / PLATE_TRAVEL);
 // ── the camera ─────────────────────────────────────────────────────────────────────────────────────────────────────────
 const lay = (p) => ({ x: p[0], y: p[1] });
 const W2S = (q) => lay(worldScr(RIG, xfApply(POSE, q)));
+// the drawer framing sits DRW_UP above the drawer (so the drawer is lower in the frame: less for the cash to fall through), and the
+//   dip follows the fall DIP px down (the loss's top stays ≥ 450 on screen: geom_sweep)
+const DRW_UP = 236, DIP = 14, Z_PUSH = 1.25, Z_DIP = 1.24;
 const shots = (t) => {
   const whole = W2S([0, (V_CROWN - 0) / 2 + 30, 0]);
   const drw = W2S([0, FLOOR_TOP - 40, panelZ(DR.ext) - 120]);
+  drw.y -= DRW_UP;
   return [
     // the whole cabinet as it rises
     { a: -9999, z: 0.84, push: 0.02, at: still(whole.x, whole.y) },
     // in on the open drawer and its nameplate (room above it for the loss)
-    { a: t.push.a, dur: t.push.dur, z: 1.1, push: 0.02, at: still(drw.x, drw.y) },
+    { a: t.push.a, dur: t.push.dur, z: Z_PUSH, push: 0.02, at: still(drw.x, drw.y) },
     // a small dip with the fall (★ integrator: 18, not 30 — with the push-light exit the dip's framing now holds ~10 f before the
     //   push, and at 30 C$100M LOST settled at top y 445, inside the caption headroom: geom_sweep 1485–1488)
-    { a: t.dip.a, dur: t.dip.dur, z: 1.09, push: 0, at: still(drw.x, drw.y + 18) }
+    //   (builder F, popscan fix: the framing now sits DRW_UP higher, so the dip can follow the fall DIP px and the loss still clears it)
+    { a: t.dip.a, dur: t.dip.dur, z: Z_DIP, push: 0, at: still(drw.x, drw.y + DIP) }
   ];
 };
 export const pensionCamWindows = (t) => actionCamWindows(shots(t));
@@ -143,8 +171,10 @@ export const pensionSfx = (t) => [
   { job: "click", a: t.slide.b + 1, b: t.slide.b + 2, vol: 0.4 },
   // the slides bottom out
   { job: "click", a: t.hatch, b: t.hatch + 1, vol: 0.6 },
-  // the trap's latch lets go
-  { job: "obj", a: t.hatch + 1, b: t.hatch + 22, k: "in", vol: 0.65 },
+  // the plate's latch lets go
+  { job: "mech", a: t.hatch, b: Math.round(t.plateEnd), vol: 0.45 },
+  // the floor plate runs back into the cabinet
+  { job: "obj", a: Math.round(t.drop[2]), b: Math.round(t.exitAt), vol: 0.65 },
   // the cash drops through and away
   { job: "label", a: t.loss.a, b: t.loss.b, vol: 0.5 }
   // C$100M LOST
@@ -176,7 +206,7 @@ export const BxPension = ({ at, end, w, stage }) => {
   const s = slideOf(t, f);
   const cash = cashAt(t, f, s);
   const falling = f > t.hatch;
-  const dB = flapBack(t, f);
+  const plate = plateE(t, f);
   // painter's order: stacks far → near (their centre's view depth), each bottom → top
   const depth = (c) => worldView(RIG, c)[2];
   const byStack = STACKS.map((st) => cash.filter((p) => p.st === st)).sort((A, B) => depth(A[0].c) - depth(B[0].c));
@@ -197,7 +227,7 @@ export const BxPension = ({ at, end, w, stage }) => {
       /* @__PURE__ */ (0,jsx_runtime.jsx)(VaultCabinet, { id: "pnV", rig: RIG, pose: POSE, sheen, shadow: drawerShadow(RIG, POSE, s) }),
       /* @__PURE__ */ (0,jsx_runtime.jsx)("div", { style: { position: "absolute", inset: 0, clipPath: `path("${clip}")` }, children: /* @__PURE__ */ (0,jsx_runtime.jsx)(DrawerFar, { rig: RIG, pose: POSE, s }) }),
       /* @__PURE__ */ (0,jsx_runtime.jsxs)("div", { style: { position: "absolute", inset: 0, clipPath: falling ? void 0 : `path("${clip}")` }, children: [
-        /* @__PURE__ */ (0,jsx_runtime.jsx)(DrawerFlap, { rig: RIG, pose: POSE, s, which: "back", deg: dB }),
+        /* @__PURE__ */ (0,jsx_runtime.jsx)(DrawerPlate, { rig: RIG, pose: POSE, s, e: plate }),
         stackEls("c")
       ] }),
       /* @__PURE__ */ (0,jsx_runtime.jsx)("div", { style: { position: "absolute", inset: 0, clipPath: `path("${clip}")` }, children: /* @__PURE__ */ (0,jsx_runtime.jsx)(DrawerNear, { id: "pnD", rig: RIG, pose: POSE, s, text: L("pensionDrawer"), sheen: 40 * rInOut(f, t.plate.a, t.plate.b) + 300 * rInOut(f, t.slide.a, t.slide.b), plateLit }) })
