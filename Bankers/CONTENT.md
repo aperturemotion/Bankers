@@ -8,6 +8,9 @@ Authoritative for CONTENT. STYLE.md stays authoritative for the LOOK. Moved in f
 - 2026-11-22 — daily routine set: 06:00 Moscow (fires 05:40 to finish by 6), check the Aperture Motion Worker app for Bankers
   pieces (client "LFG Equities", brand Bankers) due today/tomorrow; build tomorrow's piece from its script slot; no script → no build.
   The app numbers Bankers pieces per contract ("Video 3 of 15" = our next video after Video 35 / the lottery reel = "Video 2 of 15").
+- 2026-11-23 — Video 36 (Bre-X): Timur "generate the voiceover" — the take was generated in ElevenLabs (Jon - Calm Presence,
+  eleven_v4) for this film (the VO conflict below is ruled for Video 36; the standing rule for later films is still open).
+  Timur: a real company's name on an object is OK ("it ok to show the name": FREEPORT-McMoRAN on the partner's rig plate).
 
 =====================================================================
 PART 1 — THE ACCOUNT (content view)
@@ -285,3 +288,5 @@ PART 9 — QUICK CHECKLIST BEFORE ANY BUILD
 OPEN CONFLICTS (listed for Timur's ruling, 2026-11-22 — not resolved silently)
 =====================================================================
 See the chat report of 2026-11-22; record each ruling here when given.
+- RULED (Video 36 only, 2026-11-23): VO — Timur asked me to generate it ("generate the voiceover"). Open for later films.
+- RULED (2026-11-23): company names on objects are OK (FREEPORT-McMoRAN plate).

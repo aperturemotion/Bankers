@@ -47,7 +47,8 @@ CONTENT-LEVEL VISUAL NOTES (≤ 3 objects per scene, ≤ 7 s per place; real obj
 - claim2 — a drum COUNTER rolling to 70,950,000 OZ → "71M OZ CLAIMED" (FEB 1997). (counter)
 - hype — a one-cent coin on a plinth grows into the hook's gold bar (PENNIES → C$6B); three engraved pension plaques slide in
   beneath it: ONTARIO TEACHERS', OMERS, CAISSE (names only, no logos unless the real marks are available). (object)
-- partner — two drill rigs side by side: Bre-X's and the partner's (FREEPORT-McMoRAN plate), the partner's bit spinning down;
+- partner — two drill rigs side by side: Bre-X's and the partner's (FREEPORT-McMoRAN plate — Timur 2026-11-23: "it ok to show the
+  name"), the partner's bit spinning down;
   MARCH 1997. (object)
 - mystery — plain and respectful: a helicopter on its pad at dusk lifting away out of frame; MARCH 19, 1997 · the name label
   MICHAEL DE GUZMAN / CHIEF GEOLOGIST. No fall shown. (object)
