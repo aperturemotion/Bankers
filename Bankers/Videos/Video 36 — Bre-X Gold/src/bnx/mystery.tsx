@@ -99,7 +99,10 @@ export const mysterySfx = (t) => [
   { job: "label", a: t.name.a, b: t.name.b + 6, vol: 0.4 },
   // the helicopter flies away to the right (one soft whoosh peaking as it crosses the frame — nothing louder: the line is a death,
   //   stated plainly)
-  { job: "obj", a: t.fly.a, b: t.fly.a + 70, k: "io", vol: 0.4 }
+  { job: "obj", a: t.fly.a, b: t.fly.a + 70, k: "io", vol: 0.4 },
+  // ★ (integrator, sfxgaps 850–871) the hover off the H and the pedal turn moved with no sound under them (the departure's whoosh
+  //   is only audible from ~868): a quieter soft whoosh carries the lift and the turn
+  { job: "obj", a: t.hover.a, b: t.turn.b, k: "io", vol: 0.3 }
 ];
 const Label = ({ x, y, w = 760, size, color, on, text, probe }) => {
   if (on <= 3e-3) return null;

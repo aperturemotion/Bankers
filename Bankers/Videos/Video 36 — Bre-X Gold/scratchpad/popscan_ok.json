@@ -1,0 +1,12 @@
+[
+  {"kinds": ["BLIP"], "frames": [389, 393], "box": [400, 1560, 700, 1800], "why": "claim -> claim2 hand-over: the counter's plate and its rolling drums rise through the bottom edge at the move's peak speed (continuous; looked at 390-393, 2026-11-23)"},
+  {"kinds": ["BLIP"], "frames": [499, 503], "box": [440, 1720, 680, 1860], "why": "claim2 -> hype hand-over: the counter base's two steel rails pass the watermark at the move's peak speed (continuous; looked at 500-503)"},
+  {"kinds": ["BLIP"], "frames": [755, 761], "box": [700, 360, 1060, 600], "why": "partner -> mystery crane: the partner's rig lamp and MARCH 1997 rise out through the top at the crane's peak speed (continuous; looked at 756-759)"},
+  {"kinds": ["BLIP"], "frames": [902, 911], "box": [320, 460, 800, 1120], "why": "mystery -> crack crane: the pad's rail and MARCH 19, 1997 / MICHAEL DE GUZMAN rise out at the crane's peak speed (continuous; looked at 904-907)"},
+  {"kinds": ["BLIP"], "frames": [914, 921], "box": [260, 1580, 640, 1900], "why": "mystery -> crack crane: crack's MARCH 26, 1997 rises in through the watermark at the crane's peak speed (continuous; looked at 916-919)"},
+  {"kinds": ["BLIP"], "frames": [1025, 1033], "box": [80, 560, 760, 1130], "why": "crack -> truth crane: INSIGNIFICANT GOLD, its date and the split core rise out at the crane's peak speed (continuous; looked at 1027-1030)"},
+  {"kinds": ["BLIP"], "frames": [1040, 1045], "box": [80, 1490, 340, 1680], "why": "crack -> truth crane: truth's MAY 4, 1997 rises in over the white stage at the crane's peak speed (continuous; looked at 1041-1044)"},
+  {"kinds": ["BLIP"], "frames": [1379, 1382], "box": [400, 110, 780, 180], "why": "collapse -> pension crane: the ~40,000 SHAREHOLDERS plate leaves through the top edge at the crane's peak speed (continuous; looked at 1379-1382)"},
+  {"kinds": ["BLIP"], "frames": [1757, 1760], "box": [880, 690, 980, 780], "why": "felderhof's travel to the bench: the gavel's head comes into frame with the camera (continuous; looked at 1757-1760)"},
+  {"kinds": ["POP"], "frames": [2040, 2043], "box": [460, 1070, 600, 1170], "why": "rule: the steel seal strikes down onto the core tray (a 22-level step at the strike; looked at 2040-2043)"}
+]

@@ -129,8 +129,9 @@ const shots = (t) => {
     { a: -9999, z: 0.84, push: 0.02, at: still(whole.x, whole.y) },
     // in on the open drawer and its nameplate (room above it for the loss)
     { a: t.push.a, dur: t.push.dur, z: 1.1, push: 0.02, at: still(drw.x, drw.y) },
-    // a small dip with the fall
-    { a: t.dip.a, dur: t.dip.dur, z: 1.09, push: 0, at: still(drw.x, drw.y + 30) }
+    // a small dip with the fall (★ integrator: 18, not 30 — with the push-light exit the dip's framing now holds ~10 f before the
+    //   push, and at 30 C$100M LOST settled at top y 445, inside the caption headroom: geom_sweep 1485–1488)
+    { a: t.dip.a, dur: t.dip.dur, z: 1.09, push: 0, at: still(drw.x, drw.y + 18) }
   ];
 };
 export const pensionCamWindows = (t) => actionCamWindows(shots(t));

@@ -503,6 +503,13 @@ const CUES_RAW = [
   // ── the two hero cards clearing (their rack focus releasing) as the next place rises under them (V35's line after its punch card)
   span("whooshsoft", heroEnd("fair") - 26, heroEnd("fair") - 6, 0.35),
   span("whooshsoft", heroEnd("lesson") - 26, heroEnd("lesson") - 6, 0.35),
+  // ★ (integrator, sfxgaps 1826–1837) felderhof → the lesson card is the film's one push-light with no break or flare under it
+  //   (moveCue gives push-lights none), so it carries its own whoosh, peaking at the push's end (rIn: fastest at its end)
+  //   and decays past it into the card (cut at the push's end it stopped at its peak: sfxends)
+  span("whooshlong", whooshOn("whooshlong", HO.felderhof.exit.at, HO.felderhof.exit.at + HO.felderhof.exit.dur, "in"), HO.felderhof.exit.at + HO.felderhof.exit.dur + 16, 0.45),
+  // ★ (integrator, sfxgaps 1734–1745) the travel to the bench starts ~12 f before its window (smoothFollow is a centred ±12-f
+  //   Gaussian), under the airwoosh's slow swell: a soft whoosh leads it in
+  whoosh(P.felderhof, "whooshsoft", T_.felderhof.travel.a - 12, T_.felderhof.travel.a + 8, 0.25),
   // ── both flares: V46's own flare line, the low whoosh swelling with the bloom
   ...FLARES.map((fl) => {
     const T = ft(fl);
