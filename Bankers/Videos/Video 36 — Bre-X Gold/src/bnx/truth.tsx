@@ -23,7 +23,7 @@ import { TkFloor } from "./tk_floor";
 import { theme } from "./theme";
 import { BX_FLOOR_Y, BxCore, CORE_R, bxRig, coreCorners } from "./bx_core";
 import { VG_ACCENT, VG_ACCENT_D, VG_FIG, VG_FIG_D, VG_NAME, VG_NAME_D } from "./counter_ink";
-import { LoupeCover, LoupeRim, LoupeView, StandArm, StandBack, lensScr, loupeGeo } from "./truth_loupe";
+import { LoupeRim, LoupeView, StandArm, StandBack, lensScr, loupeGeo } from "./truth_loupe";
 import { SaltGrains } from "./truth_grains";
 
 const jsx = (t, p, k) => (0,jsx_runtime.jsx)(t, p, k);
@@ -62,9 +62,9 @@ const geoAt = (u) => {
   const C = [P[0] + V[0] * LENS.gap, P[1] + V[1] * LENS.gap, P[2] + V[2] * LENS.gap];
   // the base stands behind the core and along it toward the sawn end, so the arm reaches across and forward to the glass
   const B = [P[0] + NB[0] * 150 + A[0] * 250, FY, P[2] + NB[2] * 150 + A[2] * 250];
-  const g0 = loupeGeo({ C, V, R: LENS.R, B, H: 100 });
+  const g0 = loupeGeo({ C, V, R: LENS.R, B, H: 100, tilt: LENS.tilt });
   // the post stops short of the knuckle: the arm rises from its collar to the knuckle over the glass
-  return loupeGeo({ C, V, R: LENS.R, B, H: FY - g0.K[1] - 46 });
+  return loupeGeo({ C, V, R: LENS.R, B, H: FY - g0.K[1] - 46, tilt: LENS.tilt });
 };
 const KEYS = ["s0", "may", "k4", "independent", "auditors", "confirmed", "core", "samples", "salted", "outside", "gold"];
 export const truthTimes = (w, end) => {
@@ -182,7 +182,6 @@ export const BxTruth = ({ at, end, w, stage }) => {
     ] }) }),
     jsx("div", { "data-probe-object": "the magnifier's arm and lens head; through the glass the core magnified: grains only on its skin, the broken end grey", style: { position: "absolute", inset: 0 }, children: jsxs("svg", { width: 1, height: 1, style: { position: "absolute", left: 0, top: 0, overflow: "visible" }, children: [
       jsx(StandArm, { id: "trA", rig: RIG, g }),
-      jsx(LoupeCover, { id: "trK", rig: RIG, g }),
       jsx(LoupeView, { id: "trV", rig: RIG, g, M: LENS.M, stage: s, glint, children: jsx("g", { "data-probe-skip": true, children: core("trM", cull, gx < 0 ? -1 : Ls.x + (gx - Ls.x) / LENS.M) }) }),
       jsx(LoupeRim, { id: "trR", rig: RIG, g })
     ] }) }),

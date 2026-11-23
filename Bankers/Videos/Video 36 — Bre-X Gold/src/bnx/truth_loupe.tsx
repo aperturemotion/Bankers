@@ -104,38 +104,100 @@ const ringPts = (rig, g, rr, off = 0, n = 72) => Array.from({ length: n }, (_, i
   return worldScr(rig, add(add(g.C, mul(g.V, off)), add(mul(g.e1, rr * Math.cos(a)), mul(g.e2, rr * Math.sin(a)))));
 });
 const pathOf = (pts, close = true) => `M${pts.map((p) => `${f2(p[0])},${f2(p[1])}`).join("L")}${close ? "Z" : ""}`;
-/** base + post (behind the specimen) */
-export const StandBack = ({ id, rig, g }) => {
-  const base = lathe(g.B, [[0, -27], [34, -27], [44, -24], [96, -14], [108, -9], [110, -3], [108, 0]], 44);
-  const boss = lathe(g.B, [[0, -40], [16, -40], [18, -36], [20, -27]], 24);
-  const post = tube([[g.B[0], g.B[1] - 36, g.B[2]], [g.B[0], g.B[1] - g.H - 6, g.B[2]]], 7.5, 16);
+// knurling on a short cylinder (axis a→b, radius r): crossed strokes on the half that faces the lens
+const knurl = (rig, a, b, r, n = 36) => {
+  const t = unit3(sub(b, a));
+  const up = Math.abs(t[1]) > 0.9 ? [1, 0, 0] : [0, 1, 0];
+  const u = unit3(cross(t, up)), v = unit3(cross(t, u));
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const a1 = i / n * 2 * Math.PI, a2 = a1 + 2 * Math.PI / n;
+    const d1 = add(mul(u, Math.cos(a1)), mul(v, Math.sin(a1))), d2 = add(mul(u, Math.cos(a2)), mul(v, Math.sin(a2)));
+    const mid = add(a, mul(d1, r));
+    const p = worldView(rig, mid), w = sub(worldView(rig, add(mid, d1)), p);
+    if (w[0] * -p[0] + w[1] * -p[1] + w[2] * (rig.persp - p[2]) <= 0) continue;
+    const P = (q) => worldScr(rig, q);
+    const p0 = P(add(a, mul(d1, r + 0.3))), p1 = P(add(b, mul(d2, r + 0.3))), q0 = P(add(a, mul(d2, r + 0.3))), q1 = P(add(b, mul(d1, r + 0.3)));
+    out.push(`M${f2(p0[0])},${f2(p0[1])}L${f2(p1[0])},${f2(p1[1])}M${f2(q0[0])},${f2(q0[1])}L${f2(q1[0])},${f2(q1[1])}`);
+  }
+  return out.join("");
+};
+// a slotted screw head lying in a plane (centre c, plane axes u/v), radius r
+const ScrewHead = ({ rig, c, u, v, r, slot = 0.6 }) => {
+  const pts = Array.from({ length: 20 }, (_, i) => worldScr(rig, add(c, add(mul(u, r * Math.cos(i / 20 * 2 * Math.PI)), mul(v, r * Math.sin(i / 20 * 2 * Math.PI))))));
+  const s0 = worldScr(rig, add(c, add(mul(u, -r * 0.7 * Math.cos(slot)), mul(v, -r * 0.7 * Math.sin(slot))))), s1 = worldScr(rig, add(c, add(mul(u, r * 0.7 * Math.cos(slot)), mul(v, r * 0.7 * Math.sin(slot)))));
   return jsxs("g", { children: [
-    jsx(Loft, { id: `${id}ba`, rig, geo: base, mat: matOf(rig, NAVY, 0.86, 0.02, 0.35) }),
-    jsx(Loft, { id: `${id}bo`, rig, geo: boss, mat: matOf(rig, PL_STEEL, 0.8) }),
-    jsx(Loft, { id: `${id}po`, rig, geo: post, mat: matOf(rig, PL_STEEL, 0.82, 0.02, 0.45) })
+    jsx("path", { d: pathOf(pts.map((p) => [p[0] + 0.8, p[1] + 1])), fill: "#000000", opacity: 0.35 }),
+    jsx("path", { d: pathOf(pts), fill: rampAt(PL_STEEL, 0.74) }),
+    jsx("path", { d: `M${f2(s0[0])},${f2(s0[1])}L${f2(s1[0])},${f2(s1[1])}`, stroke: "#14171B", strokeWidth: 1.3, opacity: 0.8 })
   ] });
 };
-/** collar, arm, knuckle and drop link (over the specimen) */
-export const StandArm = ({ id, rig, g }) => {
-  const collar = tube([[g.B[0], g.B[1] - g.H + 16, g.B[2]], [g.B[0], g.B[1] - g.H - 16, g.B[2]]], 14, 20);
+/** the stand's geometry beyond loupeGeo: the elbow (the arm rises from the post's collar to the elbow, then reaches down to the loupe's
+ *  clamp) and the axis the elbow turns about */
+const armOf = (g) => {
+  const mid = mul(add(g.postTop, g.K), 0.5);
+  const E = add(mid, [0, -70, 0]);
   const dir = unit3(sub(g.K, g.postTop));
-  const side = unit3(cross([0, -1, 0], dir));
-  const screw = tube([add(g.postTop, mul(side, 13)), add(g.postTop, mul(side, 30))], 4.5, 12);
-  const knob = tube([add(g.postTop, mul(side, 30)), add(g.postTop, mul(side, 38))], 9, 16);
-  const arm = tube([add(g.postTop, mul(dir, 10)), g.K], 6.5, 16);
-  const link = tube([g.K, g.top], 5, 14);
-  const k = worldScr(rig, g.K), kz = rig.persp / Math.max(1, rig.persp - worldView(rig, g.K)[2]);
+  const ax = unit3(cross([0, -1, 0], dir));
+  return { E, ax };
+};
+/** the weighted base (cast, bevelled, a felt ring under it, three screws round its boss) and the post with its cap (behind the
+ *  specimen) — rev 1: "more detail to the stand itself" */
+export const StandBack = ({ id, rig, g }) => {
+  const felt = lathe(g.B, [[0, -4], [114, -4], [116, -2], [114, 0]], 44);
+  const base = lathe(g.B, [[0, -38], [40, -38], [52, -35], [98, -24], [114, -14], [120, -10], [120, -6], [116, -4]], 48);
+  const boss = lathe(g.B, [[0, -54], [18, -54], [21, -50], [24, -38]], 24);
+  const post = tube([[g.B[0], g.B[1] - 50, g.B[2]], [g.B[0], g.B[1] - g.H - 26, g.B[2]]], 8, 16);
+  const cap = lathe([g.B[0], g.B[1] - g.H - 26, g.B[2]], [[0, -9], [5, -8], [8.5, -4], [9, 0]], 16);
+  const screws = [0.4, 2.5, 4.6].map((a) => [g.B[0] + 58 * Math.cos(a), g.B[1] - 33.5, g.B[2] + 58 * Math.sin(a)]);
+  return jsxs("g", { children: [
+    jsx(Loft, { id: `${id}fe`, rig, geo: felt, mat: matOf(rig, PL_BODY, 0.55, 0.0, 0.05) }),
+    jsx(Loft, { id: `${id}ba`, rig, geo: base, mat: matOf(rig, NAVY, 0.86, 0.02, 0.35) }),
+    screws.map((c, k) => jsx(ScrewHead, { rig, c, u: [1, 0, 0], v: [0, -0.18, 1], r: 6, slot: 0.4 + k }, k)),
+    jsx(Loft, { id: `${id}bo`, rig, geo: boss, mat: matOf(rig, PL_STEEL, 0.8) }),
+    jsx(Loft, { id: `${id}po`, rig, geo: post, mat: matOf(rig, PL_STEEL, 0.82, 0.02, 0.45) }),
+    jsx(Loft, { id: `${id}cp`, rig, geo: cap, mat: matOf(rig, PL_STEEL, 0.82, 0.02, 0.45) })
+  ] });
+};
+/** the clamp collar on the post with its thumb screw, the jointed arm with its knurled tension knob at the elbow, and the clamp
+ *  that holds the loupe (over the specimen) */
+export const StandArm = ({ id, rig, g }) => {
+  const { E, ax } = armOf(g);
+  const collar = tube([[g.B[0], g.B[1] - g.H + 18, g.B[2]], [g.B[0], g.B[1] - g.H - 18, g.B[2]]], 15, 20);
+  const d1 = unit3(sub(E, g.postTop)), s1 = unit3(cross([0, -1, 0], d1));
+  const thumbA = add(g.postTop, mul(s1, -14)), thumbB = add(g.postTop, mul(s1, -32)), thumbC = add(g.postTop, mul(s1, -42));
+  const screw = tube([thumbA, thumbB], 4.5, 12);
+  const knob = tube([thumbB, thumbC], 10, 18);
+  const lower = tube([add(g.postTop, mul(d1, 12)), E], 7, 16);
+  const upper = tube([E, g.K], 6, 16);
+  // the elbow: two hinge plates either side of the joint, then the tension knob on the side facing the lens
+  const side = worldView(rig, add(E, ax))[2] > worldView(rig, sub(E, ax))[2] ? 1 : -1;
+  const plates = tube([add(E, mul(ax, -9)), add(E, mul(ax, 9))], 14, 22);
+  const kA = add(E, mul(ax, side * 9)), kB = add(E, mul(ax, side * 26));
+  const tknob = tube([kA, kB], 12, 22);
+  // the clamp holding the loupe: a block on the barrel's top with its two screws, and the drop link from the arm's end into it
+  const clampA = add(g.top, mul(g.e1, -16)), clampB = add(g.top, mul(g.e1, 16));
+  const clamp = tube([clampA, clampB], 9, 14);
+  const link = tube([g.K, add(g.top, mul(g.e2, 8))], 5, 14);
+  const kz = (q) => rig.persp / Math.max(1, rig.persp - worldView(rig, q)[2]);
+  const kc = worldScr(rig, g.K);
   return jsxs("g", { children: [
     jsx(Loft, { id: `${id}co`, rig, geo: collar, mat: matOf(rig, NAVY, 0.86, 0.03, 0.35) }),
     jsx(Loft, { id: `${id}sc`, rig, geo: screw, mat: matOf(rig, PL_STEEL, 0.8) }),
     jsx(Loft, { id: `${id}kn`, rig, geo: knob, mat: matOf(rig, PL_BODY, 0.85) }),
-    jsx(Loft, { id: `${id}ar`, rig, geo: arm, mat: matOf(rig, PL_STEEL, 0.82, 0.02, 0.45) }),
+    jsx("path", { "data-probe-skip": true, d: knurl(rig, thumbB, thumbC, 10, 28), stroke: rampAt(PL_STEEL, 0.7), strokeWidth: 0.7, opacity: 0.6, fill: "none" }),
+    jsx(Loft, { id: `${id}lo`, rig, geo: lower, mat: matOf(rig, PL_STEEL, 0.82, 0.02, 0.45) }),
+    jsx(Loft, { id: `${id}up`, rig, geo: upper, mat: matOf(rig, PL_STEEL, 0.82, 0.02, 0.45) }),
+    jsx(Loft, { id: `${id}pl`, rig, geo: plates, mat: matOf(rig, NAVY, 0.86, 0.03, 0.35) }),
+    jsx(Loft, { id: `${id}tk`, rig, geo: tknob, mat: matOf(rig, PL_BODY, 0.85, 0.02, 0.25) }),
+    jsx("path", { "data-probe-skip": true, d: knurl(rig, kA, kB, 12, 36), stroke: rampAt(PL_STEEL, 0.72), strokeWidth: 0.8, opacity: 0.65, fill: "none" }),
+    jsx(ScrewHead, { rig, c: kB, u: unit3(cross(ax, [0, 1, 0])), v: [0, 1, 0], r: 4.5, slot: 0.9 }),
     jsx(Loft, { id: `${id}li`, rig, geo: link, mat: matOf(rig, PL_STEEL, 0.82, 0.02, 0.45) }),
-    jsxs("g", { children: [
-      jsx("circle", { cx: f2(k[0]), cy: f2(k[1]), r: f2(11 * kz), fill: rampAt(NAVY, 0.28) }),
-      jsx("circle", { cx: f2(k[0] - 3 * kz), cy: f2(k[1] - 3.5 * kz), r: f2(5.5 * kz), fill: rampAt(NAVY, 0.72), opacity: 0.85 }),
-      jsx("circle", { cx: f2(k[0] - 4 * kz), cy: f2(k[1] - 4.5 * kz), r: f2(1.8 * kz), fill: "#FFFFFF", opacity: 0.8 })
-    ] })
+    // the knuckle where the arm meets the drop link
+    jsx("circle", { cx: f2(kc[0]), cy: f2(kc[1]), r: f2(8 * kz(g.K)), fill: rampAt(NAVY, 0.3) }),
+    jsx("circle", { cx: f2(kc[0] - 2.4 * kz(g.K)), cy: f2(kc[1] - 2.8 * kz(g.K)), r: f2(3.6 * kz(g.K)), fill: rampAt(NAVY, 0.75), opacity: 0.85 }),
+    jsx(Loft, { id: `${id}cl`, rig, geo: clamp, mat: matOf(rig, NAVY, 0.86, 0.03, 0.35) }),
+    [-1, 1].map((sg) => jsx(ScrewHead, { rig, c: add(add(g.top, mul(g.e1, sg * 10)), mul(g.V, 9.5)), u: g.e1, v: g.e2, r: 3.6, slot: 0.3 + sg }, sg))
   ] });
 };
 /** the view through the glass: children (the specimen, drawn in the same screen space) clipped to the glass and scaled M× about its
@@ -178,45 +240,8 @@ export const LoupeView = ({ id, rig, g, M, stage, glint = 0, children }) => {
 // polished chrome: a high-contrast ramp read through banded gradients (the studio's reflection)
 const CHROME = ["#121820", "#3B4654", "#8A96A5", "#DDE4EB", "#FFFFFF"];
 const lensPt = (g, rr, a, off = 0) => add(add(g.C, mul(g.V, off)), add(mul(g.e1, rr * Math.cos(a)), mul(g.e2, rr * Math.sin(a))));
-/** the jeweller's loupe head (rev 1: "a real jeweller's loupe, more detailed"): its folding chrome cover swung open on a rivet
- *  behind the lens (draw <LoupeCover> BEFORE the view), and the chrome barrel — the front ring, the barrel's side with its knurled
- *  grip ring, the thick lens's refracting edge and its reflections (draw <LoupeRim> AFTER the view) */
-export const LoupeCover = ({ id, rig, g, open = 1 }) => {
-  // the hinge: a rivet on the barrel's upper left (128°); the cover (a shallow dish of R + 17) swings back about the hinge's tangent
-  const ah = 128 * Math.PI / 180, Rc = g.R + 17;
-  const H = lensPt(g, g.R + 14, ah, -g.depth * 0.5);
-  const T = unit3(add(mul(g.e1, -Math.sin(ah)), mul(g.e2, Math.cos(ah))));
-  const phi = -(112 + 6 * open) * Math.PI / 180;
-  // a point of the closed cover (in the lens plane, in front of the lens) rotated about the hinge line (Rodrigues)
-  const rot = (p) => {
-    const v = sub(p, H), c = Math.cos(phi), sn = Math.sin(phi);
-    const kv = cross(T, v), kd = T[0] * v[0] + T[1] * v[1] + T[2] * v[2];
-    return add(H, add(add(mul(v, c), mul(kv, sn)), mul(T, kd * (1 - c))));
-  };
-  const cc = lensPt(g, 0, 0, 6);
-  const rim = (off, rr) => Array.from({ length: 56 }, (_, i) => worldScr(rig, rot(lensPt(g, rr, i / 56 * 2 * Math.PI, off))));
-  const outer = rim(10, Rc), lip = rim(4, Rc), inner = rim(9, Rc - 10);
-  const P = (q) => worldScr(rig, q);
-  const a = P(rot(lensPt(g, Rc, 2.4, 10))), b = P(rot(lensPt(g, Rc, -0.7, 10)));
-  const hv = P(H);
-  const kz = rig.persp / Math.max(1, rig.persp - worldView(rig, H)[2]);
-  return jsxs("g", { children: [
-    jsx("defs", { "data-probe-skip": true, children: jsxs("linearGradient", { id: `${id}Cv`, gradientUnits: "userSpaceOnUse", x1: f2(a[0]), y1: f2(a[1]), x2: f2(b[0]), y2: f2(b[1]), children: [
-      jsx("stop", { offset: "0", stopColor: rampAt(CHROME, 0.92) }),
-      jsx("stop", { offset: "0.18", stopColor: rampAt(CHROME, 0.55) }),
-      jsx("stop", { offset: "0.4", stopColor: rampAt(CHROME, 0.28) }),
-      jsx("stop", { offset: "0.62", stopColor: rampAt(CHROME, 0.74) }),
-      jsx("stop", { offset: "1", stopColor: rampAt(CHROME, 0.3) })
-    ] }) }),
-    jsx("path", { d: pathOf(lip), fill: rampAt(CHROME, 0.2) }),
-    jsx("path", { d: pathOf(outer), fill: `url(#${id}Cv)` }),
-    jsx("path", { d: pathOf(inner), fill: "none", stroke: "#FFFFFF", strokeWidth: 0.9, opacity: 0.35, "data-probe-skip": true }),
-    jsx("path", { d: pathOf(outer), fill: "none", stroke: rampAt(CHROME, 0.1), strokeWidth: 1, opacity: 0.6, "data-probe-skip": true }),
-    // the rivet the cover swings on
-    jsx("circle", { cx: f2(hv[0]), cy: f2(hv[1]), r: f2(7 * kz), fill: rampAt(CHROME, 0.25) }),
-    jsx("circle", { cx: f2(hv[0] - 1.5 * kz), cy: f2(hv[1] - 1.8 * kz), r: f2(4 * kz), fill: rampAt(CHROME, 0.9) })
-  ] });
-};
+/** the jeweller's loupe head: the chrome barrel — the front ring, the barrel's side with its knurled grip ring, the thick lens's
+ *  refracting edge and its reflections (draw <LoupeRim> AFTER the view). (Rev 1b: the folding cover is gone, at Timur's note.) */
 export const LoupeRim = ({ id, rig, g }) => {
   const r0 = g.R, r1 = g.R + g.bezel;
   const ring = (rr, off, n = 72) => Array.from({ length: n }, (_, i) => worldScr(rig, lensPt(g, rr, i / n * 2 * Math.PI, off)));
