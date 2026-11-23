@@ -97,7 +97,7 @@ export const pensionTimes = (w, end) => {
     hatch: w.lost - 3,                                     // the bottom falls out on "lost"
     dip: { a: w.lost - 1, dur: 26 },                        // the camera dips a little after the fall
     loss: { a: w.k100 - 7, b: w.k100 + 13 },                // C$100M LOST lands on "a hundred million"
-    crane: end + 2 - 36                                    // the composition's crane out (HO.pension)
+    crane: end + 2 - 22                                    // the composition's push-light out (HO.pension)
   };
   if (t.slide.b > t.hatch - 12) throw new Error("pension: the drawer must be out and still before the bottom falls out");
   if (t.loss.b > t.crane) throw new Error("pension: C$100M LOST must be landed before the crane out");
@@ -152,7 +152,7 @@ export const pensionSfx = (t) => [
 const Bundle = ({ id, p, under, top }) => /* @__PURE__ */ (0,jsx_runtime.jsxs)(jsx_runtime.Fragment, { children: [
   under && /* @__PURE__ */ (0,jsx_runtime.jsx)(CashContact, { id: `${id}k`, rig: RIG, upper: p.x, lower: under }),
   /* @__PURE__ */ (0,jsx_runtime.jsx)(CashBody, { id, rig: RIG, x: p.x, seed: p.b.seed, dim: p.b.dim }),
-  top && /* @__PURE__ */ (0,jsx_runtime.jsx)(CashTopPlanes, { rig: RIG, x: p.x, kh: 1, sheen: p.b.sheen, shade: 0.04 })
+  top && /* @__PURE__ */ (0,jsx_runtime.jsx)(CashTopPlanes, { rig: RIG, x: p.x, kh: 1, sheen: p.b.sheen, shade: 0.04, plain: true })
 ] });
 const LossLabel = ({ x, y, on, text }) => {
   if (on <= 3e-3) return null;

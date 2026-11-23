@@ -45,12 +45,14 @@ const HAS_VO = false;
 const HAS_MUSIC = true;
 const HAS_SFX = true;
 const MUSIC_VOL = 1;
-// ★ V36: still Video 35's bed (the song rule: the previous film's song unless Timur names one). The file is baked for V35's
-//   take and is 72.78 s (BED_FRAMES) with its own fade at its end; it is NOT re-cut to this film yet. Until it is, the bed is faded
-//   out by volume over the last BED_FADE frames of min(TOTAL_FRAMES, BED_FRAMES) so it never stops dead on the brand.
+// ★ V36: the previous film's song (the song rule): Radiohead, "Everything In Its Right Place" (Instrumental), cut PROVISIONALLY to
+//   this film — scratchpad/music_radiohead.mp3 (kept out of public/ so the Studio bundle stays small; from Video 10/11's public/, md5 b10b3791a1ec, 267.6 s) from its top (no intro to skip,
+//   as Video 35's bed), −13.5 dB flat (Video 35's baked bed measured −30.2 dB mean; this cut is −30.2), 0.3-s fade-in, the last 3 s
+//   faded, 74.28 s ≥ TOTAL_FRAMES. Fades are baked into the file (static volume, the V16 rule). ⚠ Re-mix against the take (bedenv)
+//   once it exists: this level has no voice to sit under.
 const BED_FILE = "bed_radiohead.mp3";
-const BED_FRAMES = 2183;
-const BED_FADE = 45;
+const BED_FRAMES = 2228;
+if (BED_FRAMES < TOTAL_FRAMES) throw new Error("Composition: the bed is shorter than the film — re-cut public/bed_radiohead.mp3");
 // ★ V36: no spoken question — the close is the house close alone (flare 2 → the white stage → BANKER$). question.ts makes it optional.
 const HAS_QUESTION = Q !== null;
 // ★ V36: the close's frames after the lesson's last word — ONE copy (scratchpad/synth_captions.py reads it to size TOTAL_FRAMES):
@@ -296,9 +298,9 @@ const HO = (() => {
     truth: { enter: { k: "fromBelow", ...crane(P.truth.at) }, exit: { k: "craneDown", ...crane(P.truth.end) } },
     collapse: { enter: { k: "fromBelow", ...crane(P.collapse.at) }, exit: { k: "craneDown", ...crane(P.collapse.end) } },
     // pension → the fair HERO: the pension cranes out, done by the card's paint, under LightBreak 2's rise
-    pension: { enter: { k: "fromBelow", ...crane(P.pension.at) }, exit: { k: "craneDown", ...before(P.pension.end, 36) } },
+    pension: { enter: { k: "fromBelow", ...crane(P.pension.at) }, exit: { k: "pushLight", ...before(P.pension.end, 22) } },
     // the fair hero → felderhof rising from below under the card's end (V35's ev after its punch card); out before the lesson card
-    felderhof: { enter: { k: "fromBelow", at: heroEnd("fair") - 17, dur: 44 }, exit: { k: "craneDown", ...before(P.felderhof.end, 36) } },
+    felderhof: { enter: { k: "fromBelow", at: heroEnd("fair") - 17, dur: 44 }, exit: { k: "pushLight", ...before(P.felderhof.end, 22) } },
     // the lesson hero → rule rising from below under it; rule pushes into flare 2
     rule: { enter: { k: "fromBelow", at: heroEnd("lesson") - 17, dur: 44 }, exit: { k: "pushLight", ...before(P.rule.end, 22) } },
     close: { enter: { k: "approach", at: P.close.at + 2, dur: 36 }, exit: own }
@@ -523,8 +525,7 @@ const CUES = DEDUPED.map((c) => {
   const peak = c.vis ?? c.at;
   return VOICE_CLEAR.some((v) => peak >= v.a && peak <= v.b) ? { ...c, vol: (c.vol ?? 1) * 0.4 } : c;
 });
-const BED_END = Math.min(TOTAL_FRAMES, BED_FRAMES);
-const bedVolume = (f) => MUSIC_VOL * (1 - rInOut(f, BED_END - BED_FADE, BED_END));
+const bedVolume = MUSIC_VOL;   // static: the fades are baked into the file
 export const BreXGold = ({ solo, probe, dumpCues, orbcheck }) => {
   const f = (0,esm.useCurrentFrame)();
   setOrbCheck(orbcheck === true);

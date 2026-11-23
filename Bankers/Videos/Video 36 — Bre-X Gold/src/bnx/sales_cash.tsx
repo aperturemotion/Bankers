@@ -104,10 +104,10 @@ export const CashBody = ({ id, rig, x, seed, dim }) => {
     ] }, `band${i}`))
   ] });
 };
-export const CashTopPlanes = ({ rig, x, kh, sheen, shade, probe }) => {
+export const CashTopPlanes = ({ rig, x, kh, sheen, shade, probe, plain = false }) => {
   const w = CB.H / 2 + 0.35 / kh;
   return /* @__PURE__ */ (0,jsx_runtime.jsxs)(jsx_runtime.Fragment, { children: [
-    /* @__PURE__ */ (0,jsx_runtime.jsx)(XPlane, { rig, x, u: -CB.W / 2, v: -CB.D / 2, w, width: CB.W, height: CB.D, probe, children: /* @__PURE__ */ (0,jsx_runtime.jsx)(CashTop, { w: CB.W, d: CB.D }) }),
+    /* @__PURE__ */ (0,jsx_runtime.jsx)(XPlane, { rig, x, u: -CB.W / 2, v: -CB.D / 2, w, width: CB.W, height: CB.D, probe, children: /* @__PURE__ */ (0,jsx_runtime.jsx)(CashTop, { w: CB.W, d: CB.D, plain }) }),
     /* @__PURE__ */ (0,jsx_runtime.jsx)(XPlane, { rig, x, u: -CB.W / 2, v: -CB.D / 2, w: w + 0.05 / kh, width: CB.W, height: CB.D, children: /* @__PURE__ */ (0,jsx_runtime.jsx)(CashTopLight, { w: CB.W, d: CB.D, sheen, shade }) })
   ] });
 };

@@ -221,10 +221,26 @@ const CashEnd = ({ b, seed, loss = 0, shade = 0 }) => {
   ] });
 };
 const strapOf = (w) => ({ sw: w * 0.22, sx: w * 0.39 });
-export const CashTop = ({ w, d, loss = 0 }) => {
+// Video 36: a PLAIN note face for Canadian-dollar money (no US $100 art): engraved paper in the cash's own paper tones, a
+// double border, a guilloche oval (no portrait, no national symbol) right of the strap, corner numerals left of it.
+const PlainNote = ({ w, d }) => {
+  const ink = "#4D534E";
+  const ox = w * 0.805, ow = w * 0.27, oh = d * 0.66;
+  const num = (style) => /* @__PURE__ */ (0,jsx_runtime.jsx)("div", { "data-probe": "bg", style: { position: "absolute", fontFamily: SHOUT, fontSize: Math.round(d * 0.17), lineHeight: 1, letterSpacing: 0.5, color: ink, opacity: 0.8, ...style }, children: "100" });
+  return /* @__PURE__ */ (0,jsx_runtime.jsxs)("div", { style: { position: "absolute", left: 0, top: 0, width: w, height: d, background: "linear-gradient(160deg, #E6EAE1 0%, #CED4CA 55%, #B4BBB1 100%)" }, children: [
+    /* @__PURE__ */ (0,jsx_runtime.jsx)("div", { style: { position: "absolute", inset: 0, background: "repeating-linear-gradient(115deg, rgba(77,83,78,0.10) 0px 1px, rgba(0,0,0,0) 1px 4px), repeating-linear-gradient(65deg, rgba(77,83,78,0.07) 0px 1px, rgba(0,0,0,0) 1px 5px)" } }),
+    /* @__PURE__ */ (0,jsx_runtime.jsx)("div", { style: { position: "absolute", left: 6, top: 5, right: 6, bottom: 5, border: `2px solid ${ink}`, opacity: 0.55, borderRadius: 3 } }),
+    /* @__PURE__ */ (0,jsx_runtime.jsx)("div", { style: { position: "absolute", left: 11, top: 10, right: 11, bottom: 10, border: `1px solid ${ink}`, opacity: 0.35, borderRadius: 2 } }),
+    /* @__PURE__ */ (0,jsx_runtime.jsx)("div", { style: { position: "absolute", left: ox - ow / 2, top: (d - oh) / 2, width: ow, height: oh, borderRadius: "50%", border: `1.5px solid ${ink}`, opacity: 0.6,
+      background: "repeating-radial-gradient(ellipse at 50% 50%, rgba(77,83,78,0.22) 0px 1px, rgba(0,0,0,0) 1px 3.5px), radial-gradient(ellipse at 42% 38%, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 70%)" } }),
+    num({ left: 17, top: 15 }),
+    num({ left: 17, bottom: 15 })
+  ] });
+};
+export const CashTop = ({ w, d, loss = 0, plain = false }) => {
   const { sw, sx } = strapOf(w);
   return /* @__PURE__ */ (0,jsx_runtime.jsxs)("div", { style: { position: "absolute", left: 0, top: 0, width: w, height: d, overflow: "hidden", borderRadius: 2 }, children: [
-    /* @__PURE__ */ (0,jsx_runtime.jsx)(esm.Img, { src: aud("bill100.png"), style: { position: "absolute", left: 0, top: 0, width: w, height: d, objectFit: "cover" } }),
+    plain ? /* @__PURE__ */ (0,jsx_runtime.jsx)(PlainNote, { w, d }) : /* @__PURE__ */ (0,jsx_runtime.jsx)(esm.Img, { src: aud("bill100.png"), style: { position: "absolute", left: 0, top: 0, width: w, height: d, objectFit: "cover" } }),
     /* @__PURE__ */ (0,jsx_runtime.jsxs)("div", { style: {
       position: "absolute",
       left: sx,
@@ -244,7 +260,7 @@ export const CashTop = ({ w, d, loss = 0 }) => {
         fontSize: Math.min(16, sw * 0.2),
         letterSpacing: 0.5,
         color: "#005CC6"
-      }, children: "$10,000" }),
+      }, children: plain ? "C$10,000" : "$10,000" }),
       " "
     ] }),
     loss > 1e-3 && /* @__PURE__ */ (0,jsx_runtime.jsx)("div", { style: { position: "absolute", inset: 0, background: LOSS, opacity: 0.62 * clamp01(loss), mixBlendMode: "multiply" } })

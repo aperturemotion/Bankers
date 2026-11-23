@@ -106,7 +106,7 @@ export const felderhofTimes = (w, end) => {
     strike: { a: w.not - 6, b: w.not },                    // and strikes the block ON "not"
     verdict: { a: w.not, b: w.guilty + 6 },                // NOT GUILTY with the strike, fully read on "guilty"
     date: { a: w.not + 3, b: w.not + 17 },                 // its date
-    crane: end + 2 - 36                                    // the composition's crane out (HO.felderhof)
+    crane: end + 2 - 22                                    // the composition's push-light out (HO.felderhof)
   };
   if (t.fig.a <= t.build.b) throw new Error("felderhof: C$84M must land once the last bundle is down (no bundle flies through it)");
   if (t.back.a < t.fig.b + 4) throw new Error("felderhof: C$84M must be read at the top before the camera eases back");
@@ -205,7 +205,7 @@ const SETTLE = 9;
 const Bundle = ({ id, x, under, b, face }) => /* @__PURE__ */ (0,jsx_runtime.jsxs)(jsx_runtime.Fragment, { children: [
   under && /* @__PURE__ */ (0,jsx_runtime.jsx)(CashContact, { id: `${id}k`, rig: RIG, upper: x, lower: under }),
   /* @__PURE__ */ (0,jsx_runtime.jsx)(CashBody, { id, rig: RIG, x, seed: b.seed, dim: b.dim }),
-  face && /* @__PURE__ */ (0,jsx_runtime.jsx)(CashTopPlanes, { rig: RIG, x, kh: KH, sheen: b.sheen, shade: 0.04 })
+  face && /* @__PURE__ */ (0,jsx_runtime.jsx)(CashTopPlanes, { rig: RIG, x, kh: KH, sheen: b.sheen, shade: 0.04, plain: true })
 ] });
 /** a figure with one small label over it (Video 35's TopLabel), easing up into place */
 const TopLabel = ({ x, y, on, fig, sub, subOn = 0, probe, size = 78 }) => {
