@@ -22,7 +22,7 @@ import { TkFloor } from "./tk_floor";
 import { CB, CB_DEPTH, CB_SLOT, CashBody, CashContact, CashDrop, CashTopPlanes, cashFace, cashXf } from "./sales_cash";
 import { FELDERHOF_SOLD_M } from "./felderhof_data";
 import { FB, FB_BASE, FB_TOP, FdBase, fdBaseCorners } from "./felderhof_base";
-import { BENCH, BENCH_TOP_V, BLOCK, Bench, GV, Gavel, GavelShadow, SoundBlock, benchCorners } from "./felderhof_gavel";
+import { BENCH, BENCH_TOP_V, BLOCK, Bench, GV, Gavel, GavelShadow, Microphone, SoundBlock, benchCorners } from "./felderhof_gavel";
 
 const RIG = { cx: 540, cy: TK_FLOOR_Y - 1300, persp: 3600, yaw: 16, pitch: -5 };
 // ── the column: its height IS the C$ sold (one scale, PX_PER_M), built of banded bundles two deep ───────────────────────────
@@ -51,7 +51,7 @@ const BUNDLES = Array.from({ length: NB }, (_, i) => {
 const slotZ = (i) => i % 2 === 1 ? CB_SLOT : -CB_SLOT;
 const prof = (x) => {
   const c = clamp01(x);
-  return 0.4 * c + 0.6 * c * c * (3 - 2 * c);
+  return 0.6 * c + 0.4 * c * c * (3 - 2 * c);
 };
 const profInv = (y) => {
   let a = 0, b = 1;
@@ -84,7 +84,9 @@ const STRUCK = (() => {
 })();
 const RAISE = -38;
 // the gavel framing's aim: between the knob and the block, a little above the bench top
-const GAV_AIM = [BLK[0] - 120, BLOCK_TOP - 150, BLK[2] + 60];
+const GAV_AIM = [BLK[0] - 70, BLOCK_TOP - 70, BLK[2] + 60];
+// the bench's desk microphone: behind and right of the block, its neck reaching toward the front
+const MIC = [BLK[0] + 215, Y_TOP, BLK[2] - 70];
 const mixV = (a, b, e) => a.map((x, i) => x + (b[i] - x) * e);
 // ── times ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
 export const felderhofTimes = (w, end) => {
@@ -101,7 +103,7 @@ export const felderhofTimes = (w, end) => {
     rideIn: { a: build.a + 2, dur: 40 },                   // the camera closes on the build…
     ride: { a: build.a + 22, b: build.b + 3 },             // …and rides its top up
     back: { a: w.stock - 22, dur: 32 },                    // back to the whole column (the year at its foot)
-    travel: { a: w.found - 28, dur: 32 },                  // ★ the split: on "and was found" the camera travels to the bench
+    travel: { a: w.found - 36, dur: 40 },                  // ★ the split: on "and was found" the camera travels to the bench
     lift: { a: w.found - 14, b: w.not - 7 },               // the gavel rises off the bench as the camera arrives
     strike: { a: w.not - 6, b: w.not },                    // and strikes the block ON "not"
     verdict: { a: w.not, b: w.guilty + 6 },                // NOT GUILTY with the strike, fully read on "guilty"
@@ -116,7 +118,7 @@ export const felderhofTimes = (w, end) => {
   return t;
 };
 // ── the column's poses (Video 35's sales_seq drop: each bundle falls the last stretch onto the column, then settles) ────────
-const DROP = { fly: 14, h: 120, fade: 6, s0: 0.97 };
+const DROP = { fly: 18, h: 110, fade: 12, s0: 0.97 };   // REV1: a 12-f eased fade-in and a softer landing (popscan tracks every bundle)
 const bounce = (u) => u <= 0 ? 0 : 2 * Math.exp(-u / 2.4) * Math.abs(Math.sin(Math.PI * u / 3.2));
 const scaled = (x, s) => s === 1 ? x : xfMul(x, { m: [s, 0, 0, 0, s, 0, 0, 0, s], t: [0, 0, 0] });
 const hAt = (t, g) => H_COL * prof((g - t.build.a + 1) / (t.build.b - t.build.a + 1));
@@ -138,7 +140,7 @@ const poses = (t, g) => {
       yaw += b.turn * q;
       tx = b.tx * q * q;
       tz = b.tz * q * q;
-      const fin = rOut(age, 0, DROP.fade);
+      const fin = rInOut(age, 0, DROP.fade);   // (eased in, not front-loaded: no first-frame jump in opacity)
       op = fin;
       s = DROP.s0 + (1 - DROP.s0) * fin;
     } else y = rest - bounce(g - T);
@@ -169,14 +171,13 @@ const shots = (t) => {
   const whole = at(COLX + 6, (FB_BASE - H_COL - 150 + TK_FLOOR_Y) / 2);
   const gav = at(GAV_AIM[0], GAV_AIM[1], GAV_AIM[2]);
   return [
-    // the base and the first courses as the place rises
-    { a: -9999, z: 1.06, push: 0.02, at: () => at(COLX - 20, FB_BASE - 230) },
-    // close on the build, then RIDE its top up
-    { a: t.rideIn.a, dur: t.rideIn.dur, z: 1.24, push: 0, ride: t.ride, at: (g) => at(COLX - 40, Math.min(FB_BASE - 220, colTop(t, g) + 170)) },
-    // back to the whole column: C$84M · STOCK SOLD over it, 1996 at its foot
+    // REV1: the whole column held while it builds (a camera riding the top kept each arriving course on the same pixels, which
+    //   popscan read as a repeating blip), with a slow push; then a re-centre for C$84M · STOCK SOLD and 1996
+    { a: -9999, z: 0.98, push: 0.02, at: () => whole },
+    { a: t.rideIn.a, dur: 70, z: 1.03, push: 0, at: () => ({ x: whole.x, y: whole.y + 10 }) },
     { a: t.back.a, dur: t.back.dur, z: 1.04, push: 0.02, at: () => whole },
     // ★ the travel to the bench: the gavel and its block, centred
-    { a: t.travel.a, dur: t.travel.dur, z: 1.55, push: 0.02, at: () => gav }
+    { a: t.travel.a, dur: t.travel.dur, z: 1.36, push: 0.02, at: () => gav }
   ];
 };
 export const felderhofCamWindows = (t) => actionCamWindows(shots(t));
@@ -259,9 +260,10 @@ export const BxFelderhof = ({ at: at0, end, w, stage }) => {
   const sheen = 520 * rInOut(f, t.travel.a + 6, t.strike.b + 10);
   return /* @__PURE__ */ (0,jsx_runtime.jsx)(PlaceRoot, { children: /* @__PURE__ */ (0,jsx_runtime.jsx)(CamFn, { at: actionCam(shots(t)), children: /* @__PURE__ */ (0,jsx_runtime.jsx)("div", { "data-probe-leaving": travelling(f, felderhofCamWindows(t)), style: { position: "absolute", inset: 0 }, children: /* @__PURE__ */ (0,jsx_runtime.jsxs)(Turn, { at: at0, end, from: -5, to: 3, amp: 0.8, children: [
     /* @__PURE__ */ (0,jsx_runtime.jsx)(TkFloor, { id: "fdF", rig: RIG, at: { x: 980, z: -60 }, reach: 1700, casters, stage, on: 1 - stage }),
-    /* @__PURE__ */ (0,jsx_runtime.jsxs)("div", { "data-probe-object": "the judge's bench with its sound block and gavel", style: { position: "absolute", inset: 0 }, children: [
+    /* @__PURE__ */ (0,jsx_runtime.jsxs)("div", { "data-probe-object": "the judge's bench (panelled front, pilasters, steel rail, leather inlay) with its sound block, gavel and desk microphone", style: { position: "absolute", inset: 0 }, children: [
       /* @__PURE__ */ (0,jsx_runtime.jsx)(Bench, { id: "fdB", rig: RIG, pose: BPOSE, sheen }),
       /* @__PURE__ */ (0,jsx_runtime.jsx)(GavelShadow, { rig: RIG, pose: g, shadowY: Y_TOP }),
+      /* @__PURE__ */ (0,jsx_runtime.jsx)(Microphone, { id: "fdM", rig: RIG, c: MIC }),
       /* @__PURE__ */ (0,jsx_runtime.jsx)(SoundBlock, { id: "fdK", rig: RIG, c: BLK, lit: rOut(f, t.strike.b, t.strike.b + 3) * (1 - rInOut(f, t.strike.b + 3, t.strike.b + 20)) }),
       /* @__PURE__ */ (0,jsx_runtime.jsx)(Gavel, { id: "fdG", rig: RIG, pose: g, blockC: BLK })
     ] }),

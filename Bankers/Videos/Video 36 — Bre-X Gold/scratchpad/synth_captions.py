@@ -120,6 +120,7 @@ LABELS = {
     # pension — a vault drawer marked ONTARIO TEACHERS' slides out and empties
     "pensionDrawer":   ("pension", "ONTARIO TEACHERS'", "engraved on the drawer"),
     "pensionLoss":     ("pension", "C$100M LOST", "label"),
+    "pensionNfld":     ("pension", "NEWFOUNDLAND", "the chart's fourth bar: Newfoundland Public Sector Pension Plan, C$5M (Maclean's, May 19, 1997)"),
     # felderhof — banded cash bundles stacking to C$84M (the film's ONE bar scene); a gavel: NOT GUILTY
     "felderhofFigure": ("felderhof", "C$84M", "the cash stack's figure (C$83.96M, OSC)"),
     "felderhofLabel":  ("felderhof", "STOCK SOLD", "label"),

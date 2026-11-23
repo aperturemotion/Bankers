@@ -240,6 +240,11 @@
       "text": "C$100M LOST",
       "note": "label"
     },
+    "pensionNfld": {
+      "place": "pension",
+      "text": "NEWFOUNDLAND",
+      "note": "the chart's fourth bar: Newfoundland Public Sector Pension Plan, C$5M (Maclean's, May 19, 1997)"
+    },
     "felderhofFigure": {
       "place": "felderhof",
       "text": "C$84M",
@@ -316,6 +321,7 @@
     "collapseHolders": "~40,000 SHAREHOLDERS",
     "pensionDrawer": "ONTARIO TEACHERS'",
     "pensionLoss": "C$100M LOST",
+    "pensionNfld": "NEWFOUNDLAND",
     "felderhofFigure": "C$84M",
     "felderhofLabel": "STOCK SOLD",
     "felderhofYear": "1996",
