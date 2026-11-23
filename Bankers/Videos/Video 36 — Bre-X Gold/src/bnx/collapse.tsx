@@ -2,7 +2,7 @@
 // ★ V36 "Bre-X Gold" — place `collapse` (builder C). "Two days later, the shares sank to six cents. About forty thousand shareholders
 //   were nearly wiped out."
 //   Beat 1: the hook's gold bar (plain cast ingot) stands on the floor; beside it a heavy steel price tag hangs on its ring from a
-//   machined T-stand, engraved C$6 BILLION (collapseFrom). The bar's studio sheen slides off its face; on "sank" it CRUMBLES from
+//   machined T-stand, engraved C$6 BILLION (collapseFrom). The bar keeps the hook's shine (its studio sheen sliding across the face); on "sank" it CRUMBLES from
 //   the top into grey rock chunks and dust that fall into a pile at its foot (bx_bar crumble, true gravity); on "six cents" the
 //   tag twists round on its ring to its back: 6¢ filled red (collapseTo) over MAY 6, 1997 (collapseDate), read ON "cents".
 //   Beat 2: on "About forty thousand" the camera TRUCKS right (the rig's eye moves with it: the bar and tag parallax away) to a
@@ -10,6 +10,7 @@
 //   plate's engraving fills ~40,000 SHAREHOLDERS (collapseHolders) ON "shareholders", and the plates GO DARK row by row from the
 //   top (the light out of each face, the gold drained from its stamp), the last row done on "wiped".
 //   Objects: the bar, the tag (on its stand), the certificate wall — the film's one grid. Nothing overlaps anything else's print.
+//   (rev 1: in by panFromR, out by panR — the bar and tag are unmounted once wholly off-screen after the truck)
 import * as esm from "remotion";
 import * as jsx_runtime from "react/jsx-runtime";
 import { clamp01, mix, rInOut, rLin } from "./anim";
@@ -21,7 +22,7 @@ import { Turn } from "./kit";
 import { worldScr, xfApply, xfMul, xfScale, xfTrans } from "./tk_rig";
 import { TkFloor } from "./tk_floor";
 import { BX_FLOOR_Y, bxRig } from "./bx_core";
-import { BAR, BxBar, barDims } from "./bx_bar";
+import { BAR, BarBody, barDims } from "./bx_bar";
 import { CW, CollapseTag, CollapseWall, tagCorners, tagXfOf, standCorners, wallCorners } from "./collapse_set";
 
 const jsx = (t, p, k) => (0,jsx_runtime.jsx)(t, p, k);
@@ -50,8 +51,8 @@ export const collapseTimes = (w, end) => {
   const t = {
     w,
     end,
-    // the studio sheen slides across the bar's face and off it just as the top breaks
-    sheen: { a: w.s0 - 26, b: crumble.a },
+    // the studio sheen slides across the bar's face (as in the hook and hype) until the top breaks
+    sheen: { a: w.s0 - 30, b: crumble.a + 10 },
     crumble,
     // the tag twists round to its back: 6¢ read ON "cents"
     flip: { a: w.cents - 20, b: w.cents - 2 },
@@ -76,7 +77,7 @@ const targetAt = (t, g) => {
   return lerp3(lerp3(T1, T1N, e1), T2, e2);
 };
 // the rig's eye rides with the target (a truck, not a swing): the wall arrives square to the lens
-const rigAt = (t, g) => bxRig({ cx: targetAt(t, g)[0], cy: FY - 600, yaw: -8, pitch: -10, lens: 3200 });
+const rigAt = (t, g) => bxRig({ cx: targetAt(t, g)[0], cy: FY - 600, yaw: -10, pitch: -14, lens: 3200 });
 const camOf = (t) => (g) => {
   const { e1, e2 } = camE(t, g);
   const p = worldScr(rigAt(t, g), targetAt(t, g));
@@ -110,7 +111,8 @@ export const BxCollapse = ({ at, end, w, stage }) => {
   const t = collapseTimes(w, end);
   const rig = rigAt(t, f);
   const crumble = rLin(f, t.crumble.a, t.crumble.b);
-  const sheen = -1.25 + 3.6 * rInOut(f, t.sheen.a, t.sheen.b);
+  // the hook's and hype's studio sheen ON the face (its two light streaks), sliding slowly across it until the top breaks
+  const sheen = -0.85 + 1.35 * rInOut(f, t.sheen.a, t.sheen.b);
   // the tag: a slow idle twist and sway from the first frame, the turn to its back, a damped settle on its ring
   const pf = rInOut(f, t.flip.a, t.flip.b), dt = f - t.flip.b;
   const settle = dt > 0 ? 7 * Math.exp(-dt / 7) * Math.sin(dt / 2.6) : 0;
@@ -123,17 +125,21 @@ export const BxCollapse = ({ at, end, w, stage }) => {
   })();
   const back = [{ text: L("collapseTo"), size: 150 }, { text: L("collapseDate"), size: 28, gap: 2 }];
   const txf = tagXfOf(STAND, turn, sway);
+  // ★ once the truck has carried the bar and the tag wholly off the left edge they are unmounted (an opacity cut only off-screen):
+  //   the slide out (panR) would otherwise carry them back across the frame, into pension arriving from the left
+  const beat1 = f <= t.pan.a + t.pan.dur + 2;
   const casters = [
-    ...(crumble < 0.985 ? [{ corners: barShadowCorners(crumble), k: 1 - crumble * 0.6 }] : []),
-    { corners: standCorners(STAND), k: 0.35 },
-    { corners: tagCorners(txf), k: 0.6 },
+    ...(beat1 && crumble < 0.985 ? [{ corners: barShadowCorners(crumble), k: 1 - crumble * 0.6 }] : []),
+    ...(beat1 ? [{ corners: standCorners(STAND), k: 0.35 }, { corners: tagCorners(txf), k: 0.6 }] : []),
     { corners: wallCorners(WALL), k: 0.8 }
   ];
-  const svg = (el) => jsx("svg", { width: 1, height: 1, style: { position: "absolute", left: 0, top: 0, overflow: "visible" }, children: el });
+  const svg = (el) => jsx("svg", { width: 1080, height: 1920, style: { position: "absolute", left: 0, top: 0, overflow: "visible" }, children: el });
   return jsx(PlaceRoot, { children: jsx(CamFn, { at: camOf(t), children: jsx("div", { "data-probe-leaving": travelling(f, collapseCamWindows(t)), style: { position: "absolute", inset: 0 }, children: jsxs(Turn, { at, end, from: -5, to: 4, amp: 0.8, children: [
     svg(jsx(TkFloor, { id: "clF", rig, at: { x: 900, z: -60 }, reach: 1900, casters, stage })),
     jsx("div", { "data-probe-object": "the certificate wall: a machined frame of steel share certificates struck BRE-X, its engraved header plate", style: { position: "absolute", inset: 0 }, children: jsx(CollapseWall, { id: "clW", rig, pose: WALL, lit, stamp: L("partnerBrex"), head: L("collapseHolders"), headOn: rInOut(f, t.head.a, t.head.b), sheen: -1 + 2 * rLin(f, at - 30, end) }) }),
-    jsx("div", { "data-probe-object": "the price tag hanging on its machined stand", style: { position: "absolute", inset: 0 }, children: jsx(CollapseTag, { id: "clT", rig, pose: STAND, turn, sway, front, back }) }),
-    jsx(BxBar, { id: "clB", rig, xf: BAR_XF, m: 1, gold: 1, seed: 5, crumble, crumbleFrames: CRUMBLE, sheen, probe: "the gold bar crumbling from the top into grey rock, dust and a pile" })
+    beat1 && jsx("div", { "data-probe-object": "the price tag hanging on its machined stand", style: { position: "absolute", inset: 0 }, children: jsx(CollapseTag, { id: "clT", rig, pose: STAND, turn, sway, front, back }) }),
+    // (the bar's body in a FULL-FRAME svg: a 1×1 svg box still off-screen during the slide in was culled whole by Chrome, then
+    //   popped in as its box crossed the edge — popscan 1302→1303)
+    beat1 && jsx("div", { "data-probe-object": "the gold bar crumbling from the top into grey rock, dust and a pile", style: { position: "absolute", inset: 0 }, children: svg(jsx(BarBody, { id: "clB", rig, xf: BAR_XF, m: 1, gold: 1, seed: 5, crumble, crumbleFrames: CRUMBLE, sheen })) })
   ] }) }) }) });
 };

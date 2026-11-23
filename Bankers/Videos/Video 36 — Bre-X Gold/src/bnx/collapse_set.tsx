@@ -95,7 +95,7 @@ export const CollapseWall = ({ id, rig, pose, lit, stamp, head, headOn = 0, shee
   const LIT_FACE = [rampAt(BX_STEEL, 0.86), rampAt(BX_STEEL, 0.76), rampAt(BX_STEEL, 0.64)];
   const DARK = "#0A1420";
   return jsxs(jsx_runtime.Fragment, { children: [
-    jsxs("svg", { width: 1, height: 1, style: { position: "absolute", left: 0, top: 0, overflow: "visible" }, children: [
+    jsxs("svg", { width: 1080, height: 1920, style: { position: "absolute", left: 0, top: 0, overflow: "visible" }, children: [
       jsxs("defs", { children: [
         jsxs("linearGradient", { id: `${id}Bd`, gradientUnits: "userSpaceOnUse", x1: f2(g0[0]), y1: f2(g0[1]), x2: f2(g1[0]), y2: f2(g1[1]), children: [
           jsx("stop", { offset: "0", stopColor: rampAt(PL_BODY, 0.36) }),
@@ -222,7 +222,7 @@ export const CollapseTag = ({ id, rig, pose, turn = 0, sway = 0, front, back }) 
   });
   const ringD = `M${ringPts.map((p) => `${f2(p[0])},${f2(p[1])}`).join("L")}Z`;
   return jsxs(jsx_runtime.Fragment, { children: [
-    jsxs("svg", { width: 1, height: 1, style: { position: "absolute", left: 0, top: 0, overflow: "visible" }, children: [
+    jsxs("svg", { width: 1080, height: 1920, style: { position: "absolute", left: 0, top: 0, overflow: "visible" }, children: [
       jsxs("defs", { children: [jsxs("linearGradient", { id: `${id}Fc`, gradientUnits: "userSpaceOnUse", x1: f2(g0[0]), y1: f2(g0[1]), x2: f2(g1[0]), y2: f2(g1[1]), children: [
         jsx("stop", { offset: "0", stopColor: rampAt(PL_STEEL, Math.min(0.97, 0.5 + 0.62 * l)) }),
         jsx("stop", { offset: "0.45", stopColor: rampAt(PL_STEEL, Math.min(0.9, 0.4 + 0.55 * l)) }),
