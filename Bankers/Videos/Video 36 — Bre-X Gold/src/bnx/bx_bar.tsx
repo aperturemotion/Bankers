@@ -23,6 +23,9 @@
 //                                     crumble is driven linearly over crumbleFrames) into a pile at the bar's foot; the broken top
 //                                     shows grey rock inside a thin gold skin. Drive it with rLin; the pile is complete at 1 (the
 //                                     body is gone from 0.985: only the rubble remains). The stamp hides once crumbling starts.
+//                                     ★ Nothing swaps in a frame (builder C, 2026-11-23): the clean top turns into the broken one
+//                                     over the first 8 frames (the foot keeps its taper and bevel), the face's polish fades with it,
+//                                     and the pile grows with the rock that has LANDED, out from under the foot.
 //        sheen={0}                   −1…1 slides the studio's sheen band across the face (a turn of the light)
 //        capArt                       optional (props) => element drawn on the source's top cap while m < 1 (the coin's face)
 //        dim stage probe />           (the bar can be scaled: put xfScale(k) in xf — the hype bar is the hook's at k = 0.6;
@@ -141,6 +144,7 @@ const Stamp = ({ rig, xf, d, k, fig, fine, dimK = 1 }) => {
 };
 // ── the crumble: chunks breaking off the top, falling with gravity into a pile at the foot ──────────────────────────────────────────
 const G_PX = 10.9;  // world units (≈ mm) per frame² — real gravity at 30 fps
+const BREAK_F = 8;  // frames over which the clean top turns into the broken top as the crumble starts
 const chunkMemo = new Map();
 const chunksOf = (seed) => {
   if (chunkMemo.has(seed)) return chunkMemo.get(seed);
@@ -159,7 +163,11 @@ const Crumble = ({ rig, xf, d, c, frames, seed, front }) => {
   const S = (q) => worldScr(rig, map(q));
   const W2 = d.qb + d.c, T2 = d.qh + d.c;
   const cc = clamp01(c);
-  const pileR = W2 + 40 + 150 * Math.sqrt(cc), pileH = 230 * Math.pow(cc, 0.75);
+  // ★ the pile grows with the rock that has LANDED (each chunk's own break time + fall), out from under the foot, fading up as the
+  //   first rock arrives — never a full ring in the crumble's first frame (popscan, 2026-11-23)
+  const L = landedFrac(seed, H, frames, cc);
+  const grow = smooth01(L / 0.2), pileOp = smooth01(L / 0.12);
+  const pileR = W2 * 0.6 + (W2 * 0.4 + 40 + 150 * Math.sqrt(L)) * grow, pileH = 230 * Math.pow(L, 0.75);
   const pileY = (x, z) => {
     const q = Math.hypot(x / pileR, z / (pileR * 0.75));
     return foot - pileH * Math.max(0, 1 - q * q);
@@ -187,7 +195,8 @@ const Crumble = ({ rig, xf, d, c, frames, seed, front }) => {
     if (front !== (zc > zb)) continue;
     const p = S([x, y, z]);
     const sc = rig.persp / Math.max(1, rig.persp - zc);
-    const s = k.s * sc;
+    // a chunk cracks out of the skin: it grows to its size over its first frames (never born whole in one frame)
+    const s = k.s * sc * (0.25 + 0.75 * smooth01(t / 5));
     const ang = k.rot + k.spin * (landed ? Math.sqrt(Math.max(0, 2 * (rest - yb) / G_PX)) : t);
     const pts = k.a.map((r, i) => {
       const a = ang + i / k.a.length * 2 * Math.PI;
@@ -204,7 +213,7 @@ const Crumble = ({ rig, xf, d, c, frames, seed, front }) => {
   }
   // the pile: a mound of grey rock dust at the foot, its far half behind the bar
   const pile = [];
-  if (cc > 1e-3 && !front) {
+  if (pileOp > 1e-3 && !front) {
     const ring = [];
     for (let i = 0; i <= 48; i++) {
       const a = i / 48 * 2 * Math.PI;
@@ -223,7 +232,7 @@ const Crumble = ({ rig, xf, d, c, frames, seed, front }) => {
       const s2 = 2 + 4 * rnd(), t = rnd();
       return { d: `M${f2(p[0] - s2)},${f2(p[1])}L${f2(p[0])},${f2(p[1] - s2 * 0.7)}L${f2(p[0] + s2)},${f2(p[1])}L${f2(p[0])},${f2(p[1] + s2 * 0.6)}Z`, t };
     });
-    pile.push(jsxs("g", { children: [
+    pile.push(jsxs("g", { opacity: f2(pileOp), children: [
       jsx("defs", { children: jsxs("linearGradient", { id: gid, gradientUnits: "userSpaceOnUse", x1: f2(g0[0]), y1: f2(g0[1]), x2: f2(g1[0]), y2: f2(g1[1]), children: [
         jsx("stop", { offset: "0", stopColor: rampAt(BX_ROCK, 0.6) }),
         jsx("stop", { offset: "0.55", stopColor: rampAt(BX_ROCK, 0.36) }),
@@ -237,6 +246,7 @@ const Crumble = ({ rig, xf, d, c, frames, seed, front }) => {
   }
   // dust: a fine haze shed at the breaking front, drifting down
   const dust = [];
+  const dustOn = smooth01(cc * frames / BREAK_F);
   if (cc > 1e-3 && cc < 1 && front) {
     const yb = top + cc * H, rnd = seeded(5 + seed);
     for (let i = 0; i < 90; i++) {
@@ -245,7 +255,7 @@ const Crumble = ({ rig, xf, d, c, frames, seed, front }) => {
       const y = yb + 0.5 * 0.7 * t * t;
       if (y > foot) continue;
       const p = S([Math.cos(th) * (W2 + 6 + t * 1.6 * r0), y, Math.sin(th) * (T2 + 6 + t * 1.6 * r0)]);
-      dust.push(jsx("circle", { cx: f2(p[0]), cy: f2(p[1]), r: f2(1 + 2 * rnd()), fill: rampAt(BX_ROCK, 0.72), opacity: f2(0.6 * (1 - t / 36)) }, i));
+      dust.push(jsx("circle", { cx: f2(p[0]), cy: f2(p[1]), r: f2(1 + 2 * rnd()), fill: rampAt(BX_ROCK, 0.72), opacity: f2(0.6 * (1 - t / 36) * dustOn) }, i));
     }
   }
   return jsxs("g", { "data-probe-skip": true, children: [...pile, ...els, ...dust] });
@@ -263,6 +273,17 @@ const hull2 = (pts) => {
     hi.push(q);
   }
   return [...lo.slice(0, -1), ...hi.slice(0, -1)];
+};
+const smooth01 = (x) => {
+  const t = clamp01(x);
+  return t * t * (3 - 2 * t);
+};
+// the fraction of the rock that has come down onto the pile by crumble cc (normalised so the pile is complete at cc = 1)
+const landedFrac = (seed, H, frames, cc) => {
+  const ks = chunksOf(seed);
+  const at = (q) => ks.reduce((n, k) => n + (k.v * frames + Math.sqrt(2 * H * (1 - k.v) / G_PX) <= q * frames ? 1 : 0), 0);
+  const all = at(1);
+  return all > 0 ? Math.min(1, at(cc) / all) : clamp01(cc);
 };
 // the gold spreading out of the dust: discs on the visible surface, growing until they cover it
 const spotMemo = new Map();
@@ -305,11 +326,21 @@ export const BarBody = ({ id, rig, xf, m = 1, gold, gild = 0, src = SRC0, glitte
   const off = cut == null ? 0 : (cut + d0.len / 2) / 2;
   const prof = profBar({ qb: d0.qb, qf: d0.qf, qh: d0.qh, c: d0.c, n: 64, aR: A_R });
   const rnd = seeded(91 + seed);
+  // ★ the break comes on over the crumble's first BREAK_F frames: the ingot's sloped, bevelled top turns into the broken top, and
+  //   the foot keeps its taper and bevel throughout (the loft gets the taper per vertex, so only the top changes) — popscan,
+  //   2026-11-23: the first crumble frame used to swap the top's and the foot's geometry at once
+  const brk = cut == null ? 0 : smooth01(clamp01(crumble) * Math.max(1, crumbleFrames) / BREAK_F);
   const jag = cut == null ? void 0 : (() => {
     const a = Array.from({ length: prof.pts.length }, () => rnd());
-    return (end, j) => end === 0 ? (a[j] - 0.5) * 44 + 14 + 10 * Math.sin(j * 0.7 + seed) : 0;
+    let z0 = Infinity, z1 = -Infinity;
+    for (const p of prof.pts) {
+      z0 = Math.min(z0, p[1]);
+      z1 = Math.max(z1, p[1]);
+    }
+    const tOf = (j) => (prof.pts[j][1] - z0) / Math.max(1e-6, z1 - z0);
+    return (end, j) => end === 0 ? (1 - brk) * d0.taper * tOf(j) + brk * ((a[j] - 0.5) * 44 + 14 + 10 * Math.sin(j * 0.7 + seed)) : -d0.taper * tOf(j);
   })();
-  const geo = loftGeo({ prof, len, taper: cut == null ? d0.taper : 0, bev: cut == null ? d0.bev : 0, jag });
+  const geo = loftGeo({ prof, len, taper: cut == null ? d0.taper : 0, bev: d0.bev, jag });
   const geoXf = xfMul(xf, xfTrans([0, off, 0]));
   const map = (q) => xfApply(geoXf, q);
   const pt = loftPaint(id, rig, map, geo, matOf(src.kind, spread ? 0 : g));
@@ -320,30 +351,41 @@ export const BarBody = ({ id, rig, xf, m = 1, gold, gild = 0, src = SRC0, glitte
   const top = pt.caps.find((c) => c.which === "top");
   // the top cap: gold (lit by its own normal) — or, broken, grey rock inside a thin gold skin
   const capFill = (c, gg = g) => {
-    if (cut != null && c.which === "top") return rampAt(BX_ROCK, 0.1 + 0.75 * rockLight(c.n));
     const l = metalLight(c.n, c.c, 3200) + envOf(c.c);
     const gold = rampAt(BX_GOLD, Math.min(1, l * 1.02));
     const own = src.kind === "copper" ? rampAt(BX_COPPER, Math.min(1, l)) : rampAt(BX_ROCK, 0.04 + 0.8 * rockLight(c.n));
-    return mixHex(own, gold, gg);
+    const metal = mixHex(own, gold, gg);
+    if (cut != null && c.which === "top") {
+      const rock = rampAt(BX_ROCK, 0.1 + 0.75 * rockLight(c.n));
+      return brk >= 0.999 ? rock : mixHex(metal, rock, brk);
+    }
+    return metal;
   };
   // the face's polish: a soft sheen band, a lit hairline on its top bevel, faint cooling ripples of the cast
   const fd = d0;
   const zf = fd.qh + fd.c + 0.4;
   const fy0 = -fd.len / 2 + fd.taper + fd.bev, fy1 = fd.len / 2 - fd.taper - fd.bev;
+  // breaking, the polish fades out with the clean top and keeps below the broken edge (its lowest point ≈ cut + 46)
+  const polK = cut == null ? 1 : 1 - brk;
+  const fyT = cut == null ? fy0 : Math.max(fy0, cut + (1 - brk) * fd.taper + fd.bev + brk * 50);
   const S = (x, y, z = zf) => {
     const p = worldScr(rig, xfApply(xf, [x, y, z]));
     return `${f2(p[0])},${f2(p[1])}`;
   };
   const sx = sheen * fd.qf;
   const cl = (x) => Math.max(-fd.qf, Math.min(fd.qf, x));
-  const face = cut == null && g > 0.05 && fd.qf > 20;
-  const band = face ? `M${[[cl(sx - fd.qf * 0.62), fy0], [cl(sx - fd.qf * 0.12), fy0], [cl(sx + fd.qf * 0.42), fy1], [cl(sx - fd.qf * 0.08), fy1]].map(([x, y]) => S(x, y)).join("L")}Z` : null;
-  const band2 = face ? `M${[[cl(sx + fd.qf * 0.02), fy0], [cl(sx + fd.qf * 0.14), fy0], [cl(sx + fd.qf * 0.68), fy1], [cl(sx + fd.qf * 0.56), fy1]].map(([x, y]) => S(x, y)).join("L")}Z` : null;
-  const hair = face ? `M${S(-fd.qf, fy0 - fd.bev * 0.5, zf + 0.2)}L${S(fd.qf, fy0 - fd.bev * 0.5, zf + 0.2)}` : null;
-  const ripples = face ? RIPPLES.map((r) => `M${Array.from({ length: 13 }, (_, i) => {
-    const x = -fd.qf * 0.94 + i / 12 * fd.qf * 1.88;
-    return S(x, fy0 + r.v * (fy1 - fy0) + r.a * Math.sin(i * 0.9 + r.p) + r.b * (i / 12 - 0.5));
-  }).join("L")}`).join("") : null;
+  const face = (cut == null || brk < 0.999) && g > 0.05 && fd.qf > 20 && fyT < fy1 - 40;
+  const band = face ? `M${[[cl(sx - fd.qf * 0.62), fyT], [cl(sx - fd.qf * 0.12), fyT], [cl(sx + fd.qf * 0.42), fy1], [cl(sx - fd.qf * 0.08), fy1]].map(([x, y]) => S(x, y)).join("L")}Z` : null;
+  const band2 = face ? `M${[[cl(sx + fd.qf * 0.02), fyT], [cl(sx + fd.qf * 0.14), fyT], [cl(sx + fd.qf * 0.68), fy1], [cl(sx + fd.qf * 0.56), fy1]].map(([x, y]) => S(x, y)).join("L")}Z` : null;
+  const hair = face ? `M${S(-fd.qf, fyT - fd.bev * 0.5, zf + 0.2)}L${S(fd.qf, fyT - fd.bev * 0.5, zf + 0.2)}` : null;
+  // each cooling ripple stays where it was cast; breaking, one the edge comes down to fades out ahead of it
+  const ripples = face ? RIPPLES.map((r) => {
+    const yv = fy0 + r.v * (fy1 - fy0);
+    return { k: cut == null ? 1 : clamp01((yv - 20 - fyT) / 40), d: `M${Array.from({ length: 13 }, (_, i) => {
+      const x = -fd.qf * 0.94 + i / 12 * fd.qf * 1.88;
+      return S(x, yv + r.a * Math.sin(i * 0.9 + r.p) + r.b * (i / 12 - 0.5));
+    }).join("L")}` };
+  }).filter((r) => r.k > 1e-3) : null;
   const skinOp = 1 - g;
   return jsxs("g", { "data-probe-object": probe || void 0, children: [
     cr > 1e-3 && jsx(Crumble, { rig, xf, d: d0, c: clamp01(crumble), frames: crumbleFrames, seed, front: false }),
@@ -362,15 +404,15 @@ export const BarBody = ({ id, rig, xf, m = 1, gold, gild = 0, src = SRC0, glitte
         ptG.caps.map((c) => jsx("path", { d: c.d, fill: capFill(c, 1), stroke: capFill(c, 1), strokeWidth: 0.6 }, c.which))
       ] })
     ] }),
-    !gone && cut != null && top && jsx("path", { d: top.d, fill: "none", stroke: rampAt(BX_GOLD, 0.75), strokeWidth: 3.2, strokeLinejoin: "round", "data-probe-skip": true }),
+    !gone && cut != null && top && brk > 1e-3 && jsx("path", { d: top.d, fill: "none", stroke: rampAt(BX_GOLD, 0.75), strokeWidth: 3.2, strokeLinejoin: "round", opacity: f2(brk), "data-probe-skip": true }),
     skinOp > 0.01 && src.kind === "rock" && jsx(RockSkin, { rig, map: (q) => xfApply(xf, q), len: d0.len, r: d0.c, seed, glitter: Math.min(1, glitter + 0.6 * k + gild), dust: [dust[0] * (1 - clamp01(gild)), dust[1] + (1.1 - dust[1]) * clamp01(gild)], sparkle, op: skinOp * (1 - clamp01(k * 2.2)) }),
     skinOp > 0.01 && src.kind === "rock" && (k > 0.02 || gild > 0.02) && jsx(Glints, { rig, map: (q) => xfApply(xf, q), d: d0, a: Math.max(Math.sin(Math.PI * clamp01(k * 1.2)), clamp01(gild) * (1 - k)) * skinOp, sparkle, seed }),
     capArt && top && k < 1 && capArt({ rig, map, y: -len / 2, r: d0.c, op: 1 - clamp01(k * 3) }),
-    ripples && jsx("path", { d: ripples, stroke: rampAt(BX_GOLD_DEEP, 0.55), strokeWidth: 1.1, opacity: 0.16 * g, fill: "none", "data-probe-skip": true }),
-    band && jsx("path", { d: band, fill: "#FFF6DA", opacity: 0.16 * g, style: { filter: "blur(6px)" }, "data-probe-skip": true }),
-    band && jsx("path", { d: band, fill: "#FFF6DA", opacity: 0.08 * g, "data-probe-skip": true }),
-    band2 && jsx("path", { d: band2, fill: "#FFF6DA", opacity: 0.09 * g, style: { filter: "blur(3px)" }, "data-probe-skip": true }),
-    hair && jsx("path", { d: hair, stroke: "#FFF6DA", strokeWidth: 1.6, opacity: 0.6 * g, fill: "none", "data-probe-skip": true }),
+    ripples && (cut == null ? jsx("path", { d: ripples.map((r) => r.d).join(""), stroke: rampAt(BX_GOLD_DEEP, 0.55), strokeWidth: 1.1, opacity: 0.16 * g, fill: "none", "data-probe-skip": true }) : ripples.map((r, i) => jsx("path", { d: r.d, stroke: rampAt(BX_GOLD_DEEP, 0.55), strokeWidth: 1.1, opacity: 0.16 * g * polK * r.k, fill: "none", "data-probe-skip": true }, `rp${i}`))),
+    band && jsx("path", { d: band, fill: "#FFF6DA", opacity: 0.16 * g * polK, style: { filter: "blur(6px)" }, "data-probe-skip": true }),
+    band && jsx("path", { d: band, fill: "#FFF6DA", opacity: 0.08 * g * polK, "data-probe-skip": true }),
+    band2 && jsx("path", { d: band2, fill: "#FFF6DA", opacity: 0.09 * g * polK, style: { filter: "blur(3px)" }, "data-probe-skip": true }),
+    hair && jsx("path", { d: hair, stroke: "#FFF6DA", strokeWidth: 1.6, opacity: 0.6 * g * polK, fill: "none", "data-probe-skip": true }),
     cr > 1e-3 && jsx(Crumble, { rig, xf, d: d0, c: clamp01(crumble), frames: crumbleFrames, seed, front: true })
   ] });
 };
