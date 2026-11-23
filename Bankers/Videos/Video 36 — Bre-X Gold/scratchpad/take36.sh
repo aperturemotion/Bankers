@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# V36 THE TAKE, end to end (re-runnable): trim (holds) → shift Scribe's raw words through the cut map → ×1.03 atempo fit (pitch kept;
+# V36 THE TAKE, end to end (re-runnable): trim (holds) → shift Scribe's raw words through the cut map → ×1.04 atempo fit (pitch kept;
 # the 80-s cap) and the words scaled with it → public/vo_trimmed.mp3 → captions.ts / episode.json from the take → the bed against it.
 #   bash scratchpad/take36.sh
 set -e
@@ -10,14 +10,14 @@ python3 scratchpad/vo/shiftwords.py
 mkdir -p out
 cp public/vo_trimmed.wav out/vo_trimmed_unstretched.wav
 cp scratchpad/fw_words.json out/fw_words_unstretched.json
-ffmpeg -v error -y -i out/vo_trimmed_unstretched.wav -af atempo=1.03 -ar 44100 -ac 1 -c:a pcm_s16le public/vo_trimmed.wav
+ffmpeg -v error -y -i out/vo_trimmed_unstretched.wav -af atempo=1.04 -ar 44100 -ac 1 -c:a pcm_s16le public/vo_trimmed.wav
 python3 - <<'PY'
 import json
-K = 1.03
+K = 1.04
 d = json.load(open("out/fw_words_unstretched.json"))
 for w in d["words"]: w["a"] = round(w["a"] / K, 3); w["b"] = round(w["b"] / K, 3)
 d["_doc"] = ("V36 take B: ElevenLabs Scribe words on the RAW take, shifted through scratchpad/vo/trimmap.json (vo/shiftwords.py), then "
-             "scaled by 1/1.03 for the atempo fit (public/vo_trimmed.wav is the trim stretched x1.03, pitch kept; the unstretched trim "
+             "scaled by 1/1.04 for the atempo fit (public/vo_trimmed.wav is the trim stretched x1.04, pitch kept; the unstretched trim "
              "is out/vo_trimmed_unstretched.wav). Written by scratchpad/take36.sh.")
 json.dump(d, open("scratchpad/fw_words.json", "w"))
 PY

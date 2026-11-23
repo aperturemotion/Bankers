@@ -39,7 +39,7 @@ export const WIDTH = 1080;
 export const HEIGHT = 1920;
 
 // ★ V36 THE TAKE (Timur, 2026-11-23: "generate the voiceover"): take B, ElevenLabs "Jon - Calm Presence", eleven_v4, read word for
-//   word (Scribe 187/187); trimmed with holds (scratchpad/vo_hold.json), fitted ×1.03 (pitch kept) to the 80-s cap → 74.24 s,
+//   word (Scribe 187/187); trimmed with holds (scratchpad/vo_hold.json), fitted ×1.04 (pitch kept) to the 80-s cap, 0.45-s pauses at scene changes → 75.2 s,
 //   public/vo_trimmed.mp3; captions.ts from `python3 scratchpad/synth_captions.py --take`.
 const HAS_VO = true;
 const HAS_MUSIC = true;
@@ -51,7 +51,7 @@ const MUSIC_VOL = 1;
 //   (Video 35's measured relation with its own take: 9.7 mean, 7.9–12.4 by window), the gain interpolated between window centres,
 //   held through the close, a 0.3-s fade-in, the last 3 s faded, 78.24 s ≥ TOTAL_FRAMES. Static volume (the V16 rule).
 const BED_FILE = "bed_radiohead.mp3";
-const BED_FRAMES = 2355;
+const BED_FRAMES = 2375;
 if (BED_FRAMES < TOTAL_FRAMES) throw new Error("Composition: the bed is shorter than the film — re-cut public/bed_radiohead.mp3");
 // ★ V36: no spoken question — the close is the house close alone (flare 2 → the white stage → BANKER$). question.ts makes it optional.
 const HAS_QUESTION = Q !== null;

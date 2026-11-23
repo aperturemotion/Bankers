@@ -1,6 +1,6 @@
 {
   "source": "ElevenLabs_2026-11-23_Jon - Calm Presence_v4_take36B_raw.mp3",
-  "_doc": "V36 take B (2026-11-23): the three section moments keep 0.50 s of their pause — flare 1 after the hook ('...company.' -> 'In'), LightBreak 1 before 'That March', LightBreak 2 before 'To be fair'. Raw-take gap starts (silencedetect -33 dB, d 0.45). ★ The hook's hold keeps 0.70 s of its 0.84-s pause (holdPads): on the real read 'company' starts at 173 f, and C$6 BILLION (read as the bar stands, k6 + 30) needs ≥ 30 f before flare 1's peak (hookTimes). ★ truth → collapse ('…outside gold.' → 'Two days later') keeps 0.40 s of its 0.74-s pause: at 0.30 truth's glint on 'outside gold' (to gold + 8) ran 1 f into the hand-over (truthTimes).",
+  "_doc": "V36 take B (2026-11-23): the three section moments keep 0.50 s of their pause — flare 1 after the hook ('...company.' -> 'In'), LightBreak 1 before 'That March', LightBreak 2 before 'To be fair'. Raw-take gap starts (silencedetect -33 dB, d 0.45). ★ The hook's hold keeps 0.70 s of its 0.84-s pause (holdPads): on the real read 'company' starts at 173 f, and C$6 BILLION (read as the bar stands, k6 + 30) needs ≥ 30 f before flare 1's peak (hookTimes). ★ truth → collapse ('…outside gold.' → 'Two days later') keeps 0.40 s of its 0.74-s pause: at 0.30 truth's glint on 'outside gold' (to gold + 8) ran 1 f into the hand-over (truthTimes). ★ Every scene change without a hold keeps 0.45 s of its pause (holdPads; each raw pause is 0.58–0.78 s): at 0.30 the gaps between scenes were 8–9 f and the cranes carried things through the caption band under live chips (geom_sweep, 50 spans); Video 35's real gaps were 14–16 f. Paid for by the ×1.04 fit (was ×1.03).",
   "rawGapStarts": [
     6.57499,
     25.6078,
@@ -8,6 +8,15 @@
   ],
   "holdPads": {
     "6.57499": 0.7,
-    "47.0546": 0.4
+    "47.0546": 0.45,
+    "14.5846": 0.45,
+    "19.2905": 0.45,
+    "30.3178": 0.45,
+    "35.6032": 0.45,
+    "39.9874": 0.45,
+    "54.509": 0.45,
+    "62.4767": 0.45,
+    "71.0651": 0.45,
+    "75.1875": 0.45
   }
 }
