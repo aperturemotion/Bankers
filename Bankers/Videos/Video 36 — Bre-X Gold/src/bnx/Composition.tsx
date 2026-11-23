@@ -38,20 +38,20 @@ import { HeroSentence, WordCaption } from "./text";
 export const WIDTH = 1080;
 export const HEIGHT = 1920;
 
-// ★ TODO (V36, take pending): there is NO voice file yet — the ElevenLabs take waits on Timur. public/vo_trimmed.mp3 is still
-//   VIDEO 35's voice (cloned), so the voice stays OFF: the Studio plays the bed + SFX on the provisional timing. When the take
-//   lands: trim it to public/vo_trimmed.mp3, regenerate captions.ts with scratchpad/captions_vo.js, then set HAS_VO = true.
-const HAS_VO = false;
+// ★ V36 THE TAKE (Timur, 2026-11-23: "generate the voiceover"): take B, ElevenLabs "Jon - Calm Presence", eleven_v4, read word for
+//   word (Scribe 187/187); trimmed with holds (scratchpad/vo_hold.json), fitted ×1.03 (pitch kept) to the 80-s cap → 74.24 s,
+//   public/vo_trimmed.mp3; captions.ts from `python3 scratchpad/synth_captions.py --take`.
+const HAS_VO = true;
 const HAS_MUSIC = true;
 const HAS_SFX = true;
 const MUSIC_VOL = 1;
-// ★ V36: the previous film's song (the song rule): Radiohead, "Everything In Its Right Place" (Instrumental), cut PROVISIONALLY to
-//   this film — scratchpad/music_radiohead.mp3 (kept out of public/ so the Studio bundle stays small; from Video 10/11's public/, md5 b10b3791a1ec, 267.6 s) from its top (no intro to skip,
-//   as Video 35's bed), −13.5 dB flat (Video 35's baked bed measured −30.2 dB mean; this cut is −30.2), 0.3-s fade-in, the last 3 s
-//   faded, 74.28 s ≥ TOTAL_FRAMES. Fades are baked into the file (static volume, the V16 rule). ⚠ Re-mix against the take (bedenv)
-//   once it exists: this level has no voice to sit under.
+// ★ V36: the previous film's song (the song rule): Radiohead, "Everything In Its Right Place" (Instrumental), from its top
+//   (scratchpad/music_radiohead.mp3, from Video 10/11's public/, md5 b10b3791a1ec, 267.6 s; kept out of public/ so the Studio bundle
+//   stays small). ★ With the take (2026-11-23), scratchpad/bed36.py sets it 9.7 dB under the speech-gated voice in every 10-s window
+//   (Video 35's measured relation with its own take: 9.7 mean, 7.9–12.4 by window), the gain interpolated between window centres,
+//   held through the close, a 0.3-s fade-in, the last 3 s faded, 78.24 s ≥ TOTAL_FRAMES. Static volume (the V16 rule).
 const BED_FILE = "bed_radiohead.mp3";
-const BED_FRAMES = 2228;
+const BED_FRAMES = 2355;
 if (BED_FRAMES < TOTAL_FRAMES) throw new Error("Composition: the bed is shorter than the film — re-cut public/bed_radiohead.mp3");
 // ★ V36: no spoken question — the close is the house close alone (flare 2 → the white stage → BANKER$). question.ts makes it optional.
 const HAS_QUESTION = Q !== null;

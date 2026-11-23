@@ -19,11 +19,11 @@ if not cands: sys.exit("no VO found in public/")
 src=sorted(cands, key=os.path.getmtime)[-1]
 print("source:", src)
 # 1. detect silences
-out=subprocess.run([FF+r"\ffmpeg.exe","-i",src,"-af","silencedetect=noise=-33dB:d=0.45","-f","null","-"],
+out=subprocess.run([__import__("os").path.join(FF,"ffmpeg"),"-i",src,"-af","silencedetect=noise=-33dB:d=0.45","-f","null","-"],
     capture_output=True,text=True).stderr
 starts=[float(m) for m in re.findall(r"silence_start: ([\d.]+)",out)]
 ends=[float(m) for m in re.findall(r"silence_end: ([\d.]+)",out)]
-dur=float(subprocess.run([FF+r"\ffprobe.exe","-v","error","-show_entries","format=duration","-of","csv=p=0",src],capture_output=True,text=True).stdout.strip())
+dur=float(subprocess.run([__import__("os").path.join(FF,"ffprobe"),"-v","error","-show_entries","format=duration","-of","csv=p=0",src],capture_output=True,text=True).stdout.strip())
 # 2. build keep-segments: audio between silences, plus a 0.16s pad of each gap
 gaps=list(zip(starts,ends))
 # ★ (style file, 2026-10-20, V37: "make the vo slower, its fine if the video is like 2.5 minutes long") a GENERATED take keeps
@@ -54,7 +54,7 @@ if os.path.exists("scratchpad/vo_hold.json"):
     for h in HOLDS:
         if not any(abs(s-h)<0.05 for s,_ in gaps): sys.exit(f"vo_hold: no detected gap starts at {h}s")
     if hj.get("rawShortGapStarts"):
-        o2=subprocess.run([FF+r"\ffmpeg.exe","-i",src,"-af","silencedetect=noise=-33dB:d=0.10","-f","null","-"],
+        o2=subprocess.run([__import__("os").path.join(FF,"ffmpeg"),"-i",src,"-af","silencedetect=noise=-33dB:d=0.10","-f","null","-"],
             capture_output=True,text=True).stderr
         sg=list(zip([float(m) for m in re.findall(r"silence_start: ([\d.]+)",o2)],
                     [float(m) for m in re.findall(r"silence_end: ([\d.]+)",o2)]))
@@ -96,8 +96,8 @@ _json.dump({"source": os.path.basename(src), "segs": [[round(a, 4), round(b, 4)]
 # 3. build filter to concat — NATIVE 44.1 kHz, mono, 16-bit PCM (no resample, no re-encode loss)
 parts="".join(f"[0:a]atrim={a:.3f}:{b:.3f},asetpts=N/SR/TB[a{i}];" for i,(a,b) in enumerate(segs))
 conc="".join(f"[a{i}]" for i in range(len(segs)))+f"concat=n={len(segs)}:v=0:a=1[out]"
-subprocess.run([FF+r"\ffmpeg.exe","-y","-i",src,"-filter_complex",parts+conc,"-map","[out]",
+subprocess.run([__import__("os").path.join(FF,"ffmpeg"),"-y","-i",src,"-filter_complex",parts+conc,"-map","[out]",
     "-ar","44100","-ac","1","-c:a","pcm_s16le","public/vo_trimmed.wav"],check=True,capture_output=True)
-info=subprocess.run([FF+r"\ffprobe.exe","-v","error","-show_entries","stream=sample_rate,channels","-show_entries","format=duration","-of","default=noprint_wrappers=1","public/vo_trimmed.wav"],capture_output=True,text=True).stdout
+info=subprocess.run([__import__("os").path.join(FF,"ffprobe"),"-v","error","-show_entries","stream=sample_rate,channels","-show_entries","format=duration","-of","default=noprint_wrappers=1","public/vo_trimmed.wav"],capture_output=True,text=True).stdout
 print(f"raw {dur:.1f}s -> trimmed ({len(gaps)} gaps, {len(segs)} segments)")
 print(info.strip())
