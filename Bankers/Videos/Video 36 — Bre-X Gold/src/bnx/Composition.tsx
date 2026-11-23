@@ -45,12 +45,12 @@ const HAS_VO = true;
 const HAS_MUSIC = true;
 const HAS_SFX = true;
 const MUSIC_VOL = 1;
-// ★ V36: the previous film's song (the song rule): Radiohead, "Everything In Its Right Place" (Instrumental), from its top
-//   (scratchpad/music_radiohead.mp3, from Video 10/11's public/, md5 b10b3791a1ec, 267.6 s; kept out of public/ so the Studio bundle
-//   stays small). ★ With the take (2026-11-23), scratchpad/bed36.py sets it 9.7 dB under the speech-gated voice in every 10-s window
-//   (Video 35's measured relation with its own take: 9.7 mean, 7.9–12.4 by window), the gain interpolated between window centres,
-//   held through the close, a 0.3-s fade-in, the last 3 s faded, 78.24 s ≥ TOTAL_FRAMES. Static volume (the V16 rule).
-const BED_FILE = "bed_radiohead.mp3";
+// ★ V36 (Timur, 2026-11-23: "change the song to the song that was used in The Apple is Worth $5 Trillion"): Video 28's song, Luke
+//   Muzzic, "Me And The Devil" (Instrumental) — scratchpad/music_devil.mp3 (Video 13's file, md5 2d99b020915f, 182.6 s), cut from its
+//   fifth hit (5.55 s; Timur on Video 13: "the music needs to begin at the start"). scratchpad/bed36.py shapes it per 10-s window
+//   against the voice and sets its level AS HEARD to the Radiohead bed it replaces (−28.8 LUFS both; 6.2 dB RMS under the speech-gated
+//   voice), the gain interpolated between window centres, a 0.3-s fade-in, the last 3 s faded. Static volume (the V16 rule).
+const BED_FILE = "bed_devil.mp3";
 const BED_FRAMES = 2375;
 if (BED_FRAMES < TOTAL_FRAMES) throw new Error("Composition: the bed is shorter than the film — re-cut public/bed_radiohead.mp3");
 // ★ V36: no spoken question — the close is the house close alone (flare 2 → the white stage → BANKER$). question.ts makes it optional.

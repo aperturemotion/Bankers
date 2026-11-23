@@ -8,16 +8,23 @@
 import json, os, re, subprocess, sys
 import numpy as np
 FF = os.environ.get("FFMPEG", "/home/user/ffbin/ffmpeg")
-TARGET = 9.7
-SRC, VO, OUT = "scratchpad/music_radiohead.mp3", "public/vo_trimmed.wav", "public/bed_radiohead.mp3"
+TARGET = 6.2   # Me And The Devil: 3.5 LU quieter than Radiohead at the same RMS relation (9.7) — matched as heard to the Radiohead bed (-28.8 LUFS)
+# ★ (Timur, 2026-11-23: "change the song to the song that was used in The Apple is Worth $5 Trillion" = Video 28, "Me And The
+#   Devil", Luke Muzzic (Instrumental)): cut from its fifth hit (5.55 s; its intro is sparse hits over near-silence — Timur on Video 13:
+#   "the music needs to begin at the start"); TARGET is set so its integrated loudness under the film matches the Radiohead bed's (as heard)
+SRC = os.environ.get("BED_SRC", "scratchpad/music_devil.mp3")
+OFFSET = float(os.environ.get("BED_OFFSET", "5.55"))
+TARGET = float(os.environ.get("BED_TARGET", str(TARGET)))
+VO = "public/vo_trimmed.wav"
+OUT = os.environ.get("BED_OUT", "public/bed_devil.mp3")
 cap = open("src/bnx/captions.ts", encoding="utf8").read()
 TOTAL = int(re.search(r"TOTAL_FRAMES = (\d+)", cap).group(1))
 L = (TOTAL + 1) / 30.0
-def load(p, sr, ch):
-    raw = subprocess.run([FF, "-v", "error", "-i", p, "-ac", str(ch), "-ar", str(sr), "-f", "f32le", "-"], capture_output=True).stdout
+def load(p, sr, ch, off=0.0):
+    raw = subprocess.run([FF, "-v", "error", "-ss", str(off), "-i", p, "-ac", str(ch), "-ar", str(sr), "-f", "f32le", "-"], capture_output=True).stdout
     return np.frombuffer(raw, np.float32).reshape(-1, ch)
 SR = 48000
-music = load(SRC, SR, 2)[: int(L * SR)].copy()
+music = load(SRC, SR, 2, OFFSET)[: int(L * SR)].copy()
 if len(music) < int(L * SR): sys.exit("the source is shorter than the film")
 voice = load(VO, SR, 1)[:, 0]
 blk = int(0.05 * SR)
@@ -27,7 +34,7 @@ def rms_blocks(x):
 db = lambda x: 20 * np.log10(x + 1e-9)
 # ★ the music is measured through ffmpeg's own mono downmix, as Video 35's reference relation was (a plain L/R average reads ~3 dB
 #   lower on this track and left the bed at ~7 dB under, not 9.7)
-music_mono = load(SRC, SR, 1)[: len(music), 0]
+music_mono = load(SRC, SR, 1, OFFSET)[: len(music), 0]
 vr, mr = rms_blocks(voice), rms_blocks(music_mono)
 gate = db(vr) > -45
 W = 200
