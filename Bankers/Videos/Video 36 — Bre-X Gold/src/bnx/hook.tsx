@@ -4,9 +4,10 @@
 //   Frame 0: far out over a galvanised core tray of four rows of grey drill core, a fine stream of gold dust ALREADY falling onto the
 //   front row; the camera pushes in fast onto the stream and rides along the core with it as the sprinkle travels the run, the dust
 //   settling into the stone and its skin starting to glitter ("sprinkled into rock samples"). On "That's all it took" the camera eases
-//   back to the whole glittering run; on "build" the core RISES straight out of its row, and on "six billion" it turns upright and
-//   SWELLS into a towering cast gold bar that lands on its foot in front of the tray (the biggest motion), stamped C$6 BILLION
-//   (hookFigure, read from "billion"), PEAK VALUE (hookLabel) under it on "company". The bar holds ≥ 1 s, then the composition's
+//   back to the whole glittering run; on "to build" the core RISES straight out of its row, and through "six billion dollar" it turns
+//   upright and SWELLS into a towering cast gold bar (the biggest motion), standing by "company" and dropping onto its foot in front
+//   of the tray, stamped C$6 BILLION (hookFigure, read as it stands), PEAK VALUE (hookLabel) under it on "company".
+//   ★ (integrator, popscan): the swing is spread so no visible part moves faster than ~41 px/f on screen (hookMotionProbe). The bar holds ≥ 1 s, then the composition's
 //   pushLight carries the frame into flare 1 at the bar's lit crown (hookFlarePoint).
 //   Objects: the tray, the core → bar, the dust stream (+ the figure and one label).
 import * as esm from "remotion";
@@ -20,7 +21,7 @@ import { Turn, label } from "./kit";
 import { worldScr, xfApply, xfMul, xfRotZ, xfTrans } from "./tk_rig";
 import { TkFloor } from "./tk_floor";
 import { BX_FLOOR_Y, BxTray, CORE_LEN, CORE_R, bxRig, coreXf, trayCoreY, trayCorners, trayRowZ, trayWidth } from "./bx_core";
-import { BAR, BarBody, BarStamp, barCorners, barPoint } from "./bx_bar";
+import { BAR, BarBody, BarStamp, barCorners, barDims, barPoint } from "./bx_bar";
 import { DustRidge, HookDust, dustFront, fallFrames } from "./hook_dust";
 
 const jsx = (t, p, k) => (0,jsx_runtime.jsx)(t, p, k);
@@ -39,9 +40,12 @@ const DROP_H = 2000;
 const KEYS = ["s0", "gold", "dust", "sprinkled", "rock", "samples", "s1", "took", "build", "k6", "billion", "company"];
 export const hookTimes = (w, end) => {
   for (const k of KEYS) if (!Number.isFinite(w[k])) throw new Error(`hook: the take has no word frame "${k}"`);
-  const lift = { a: Math.min(w.build, w.k6 - 16), b: Math.min(w.build, w.k6 - 16) + 24 };
-  const rot = { a: Math.max(w.k6, lift.a + 16), b: Math.max(w.k6, lift.a + 16) + 18 };
-  const apex = Math.max(lift.b + 1, rot.a + 13), land = apex + 10;
+  // ★ (integrator, popscan): the swing is SPREAD so no visible part of the bar moves faster than the pop scan can follow
+  //   (≤ ~45 px/f at full size; measured with hookMotionProbe): a sine-eased rise on "to build", the turn upright over 36 f
+  //   centred on "billion", the drop onto its foot after "company"'s onset. The rise peaks before the turn does.
+  const lift = { a: w.build - 10, b: w.build + 14 };
+  const rot = { a: w.k6 - 10, b: w.k6 + 30 };
+  const apex = rot.b - 4, land = rot.b + 5;
   const t = {
     w,
     end,
@@ -57,8 +61,11 @@ export const hookTimes = (w, end) => {
     apex,
     land,
     // the camera follows the rise and settles on the towering bar
-    rise: { a: lift.a - 4, dur: land - lift.a + 6 },
-    fig: { a: w.billion - 14, b: w.billion + 8 },
+    rise: { a: lift.a - 4, dur: rot.b - lift.a },
+    // then in onto the standing bar as it drops onto its foot
+    settle: { a: rot.b - 12, dur: 30 },
+    // C$6 BILLION eases in as the face forms through the turn, fully read as the bar stands (≥ 30 f before flare 1's peak)
+    fig: { a: w.billion + 1, b: rot.b },
     label: { a: w.company - 14, b: w.company }
   };
   if (t.fig.b + 30 > end - 2) throw new Error(`hook: C$6 BILLION must read ≥ 1 s before flare 1 (${t.fig.b} vs peak ${end - 2})`);
@@ -75,14 +82,15 @@ const rigAt = (t, g) => {
   const p = rInOut(g, t.lift.a - 6, t.rot.b + 6);
   return bxRig({ cx: 540, cy: mix(FY - 260, FY - 560, p), yaw: mix(-17, -12, p), pitch: mix(-31, -14, p), lens: 3200 });
 };
+const rSine = (g, a, b) => 0.5 - 0.5 * Math.cos(Math.PI * clamp01((g - a) / (b - a)));
 const heroAt = (t, g) => {
-  const eL = rInOut(g, t.lift.a, t.lift.b);
+  const eL = rSine(g, t.lift.a, t.lift.b);
   let cy = Y0 - LIFT * eL;
   if (g > t.apex) {
-    const ya = Y0 - LIFT * rInOut(t.apex, t.lift.a, t.lift.b), tau = Math.min(g, t.land) - t.apex, D = t.land - t.apex;
+    const ya = Y0 - LIFT * rSine(t.apex, t.lift.a, t.lift.b), tau = Math.min(g, t.land) - t.apex, D = t.land - t.apex;
     cy = ya + (YB - ya) * (tau / D) ** 2;
   }
-  const e = rInOut(g, t.rot.a, t.rot.b);
+  const e = rSine(g, t.rot.a, t.rot.b);
   const z = Z0 + (ZB - Z0) * e;
   return { xf: xfMul(xfTrans([TX, FY + cy, z]), xfRotZ(-90 * (1 - e))), m: e, lift: Y0 - cy, cy, e };
 };
@@ -91,7 +99,7 @@ const scr = (t, g, q) => {
   return { x: p[0], y: p[1] };
 };
 const coreAt = (u) => [TX - CORE_LEN / 2 + u * CORE_LEN, FY + Y0 - CORE_R, Z0];
-const HZ = { far: 0.56, ride: 2.15, back: 0.86, bar: 0.76 };
+const HZ = { far: 0.56, ride: 2.15, back: 0.86, swing: 0.64, bar: 0.76 };
 // the camera: focuses blended in order, z interpolated geometrically (the zoom RATE eased), the push-in on OUT (fast from frame 0)
 const shots = (t) => {
   const T = fallFrames(DROP_H), u = srcU(t);
@@ -105,7 +113,12 @@ const shots = (t) => {
       return { x: p.x + 40, y: p.y - 150 };
     } },
     { a: t.back.a, dur: t.back.dur, z: HZ.back, push: 0.035, at: (g) => scr(t, g, [TX + 40, FY - 60, Z0 - 40]) },
-    { a: t.rise.a, dur: t.rise.dur, z: HZ.bar, push: 0.03, at: (g) => {
+    // wide enough through the swing that its ends stay within the pop scan's reach (≤ ~45 px/f)
+    { a: t.rise.a, dur: t.rise.dur, z: HZ.swing, push: 0, at: (g) => {
+      const p = scr(t, g, [TX, FY - BAR.H * 0.56, ZB]);
+      return { x: p.x + 10, y: p.y };
+    } },
+    { a: t.settle.a, dur: t.settle.dur, z: HZ.bar, push: 0.03, at: (g) => {
       const p = scr(t, g, [TX, FY - BAR.H * 0.53, ZB]);
       return { x: p.x + 10, y: p.y };
     } }
@@ -142,13 +155,18 @@ export const hookSfx = (t) => [
   { job: "move", a: 0, b: 30, k: "out", vol: 0.7 },
   // the gold dust trickling onto the stone (★ the pack has no sand/dust trickle: Falling Coins, quiet, stands in — see the handback)
   { job: "coin", a: 2, vol: 0.32 },
+  // the camera riding the core with the sprinkle (its own soft air under the ride, after the push's whoosh has gone)
+  { job: "move", a: t.push.a + t.push.dur, b: t.back.a, k: "io", vol: 0.5 },
+  // the dust still landing and the skin starting to glitter: two quieter passes of the same stand-in
+  { job: "coin", a: t.push.a + t.push.dur - 4, vol: 0.24 },
+  { job: "coin", a: Math.round((t.push.a + t.push.dur + t.back.a) / 2) + 2, vol: 0.2 },
   // the core rises straight out of its row
   { job: "obj", a: t.lift.a, b: t.lift.b, k: "out", vol: 0.75 },
   // it turns upright and swells into the bar
   { job: "obj", a: t.rot.a, b: t.rot.b, k: "io", vol: 0.6 },
   // C$6 BILLION eases onto the face
   { job: "label", a: t.fig.a, b: t.fig.b + 6, vol: 0.45 },
-  // the bar lands on its foot: the weight
+  // the bar drops onto its foot: the weight
   { job: "thud", a: t.land, vol: 0.9 },
   { job: "land", a: t.land - 4, b: t.land + 2, vol: 0.7 },
   // PEAK VALUE
@@ -167,6 +185,31 @@ export const hookFlarePoint = (w, end, g) => {
   const t = hookTimes(w, end), h = heroAt(t, g), p = worldScr(rigAt(t, g), barPoint(h.xf, "crown", h.m, SRC)), c = camOf(t)(g);
   return { place: { x: p[0], y: p[1] }, cam: { x: 540 + c.z * (p[0] + c.x - 540), y: 883.2 + c.z * (p[1] + c.y - 883.2) } };
 };
+/** motion check: screen points (camera applied, place coords) on the core/bar's hull and the tray's corners at frame g — the
+ *  per-frame displacement of these is the on-screen speed the pop scan must be able to follow (≤ ~45 px/f at full size) */
+export const hookMotionProbe = (w, end, g) => {
+  const t = hookTimes(w, end), h = heroAt(t, g), rig = rigAt(t, g), c = camOf(t)(g), d = barDims(h.m, SRC);
+  const W2 = d.qb + d.c, T2 = d.qh + d.c, pts = [];
+  for (const fy of [-0.5, -0.375, -0.25, -0.125, 0, 0.125, 0.25, 0.375, 0.5]) for (const [x, z] of [[-W2, -T2], [W2, -T2], [-W2, T2], [W2, T2]]) pts.push(xfApply(h.xf, [x, fy * d.len, z]));
+  pts.push(...trayCorners(TRAY_XF, ROWS));
+  return pts.map((q) => {
+    const p = worldScr(rig, q);
+    return [540 + c.z * (p[0] + c.x - 540), 883.2 + c.z * (p[1] + c.y - 883.2)];
+  });
+};
+/** clearance check: the lowest world y of the core/bar's hull vs the tray top (while over it) / the floor; > 0 = clear */
+export const hookClearance = (w, end, g) => {
+  const t = hookTimes(w, end), h = heroAt(t, g), d = barDims(h.m, SRC);
+  const W2 = d.qb + d.c, T2 = d.qh + d.c;
+  let low = -Infinity, back = Infinity;
+  for (const fy of [-0.5, 0.5]) for (const [x, z] of [[-W2, -T2], [W2, -T2], [-W2, T2], [W2, T2]]) {
+    const q = xfApply(h.xf, [x, fy * d.len, z]);
+    low = Math.max(low, q[1]);
+    back = Math.min(back, q[2]);
+  }
+  const overTray = back < TZ + trayWidth(ROWS) / 2 + 4;
+  return (overTray ? FY - 60 : FY) - low + (h.lift < 70 ? 1e4 : 0);
+};
 export const BxHook = ({ at, end, w, stage }) => {
   const f = (0,esm.useCurrentFrame)();
   const t = hookTimes(w, end);
@@ -179,7 +222,7 @@ export const BxHook = ({ at, end, w, stage }) => {
   const restXf = xfMul(TRAY_XF, coreXf(0, trayCoreY, trayRowZ(HERO, ROWS)));
   const inTray = h.lift < 70;
   const gild = 0.5 * rInOut(f, t.glow.a, t.glow.b) + 0.5 * rInOut(f, t.lift.a - 4, t.rot.a + 6);
-  const gold = rInOut(f, t.rot.a - 4, t.rot.a + 12);
+  const gold = rInOut(f, t.rot.a + 2, t.rot.a + 22);
   // after the landing the studio's sheen slides across the face (the bar keeps moving while it holds)
   const sweepK = rInOut(f, t.land - 6, t.end);
   const heroBody = (key) => jsx(BarBody, { id: `hkB${key}`, rig, xf: h.xf, m: h.m, gold, gild, src: SRC, glitter, dust: front, sparkle: f, seed: 5, sheen: -0.9 + 1.5 * sweepK }, key);
