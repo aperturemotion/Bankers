@@ -130,6 +130,7 @@ LABELS = {
     "ruleSeal":        ("rule", "QUALIFIED PERSON", "embossed on the seal"),
     "ruleCode":        ("rule", "NI 43-101", "on the seal"),
     "ruleYear":        ("rule", "2001", "on the seal"),
+    "ruleIndependent": ("rule", "INDEPENDENT", "the second, smaller seal (builder C)"),
 }
 
 # ── syllables: a heuristic, with this script's exceptions spelled out (checked by eye: --syl prints every word) ─────────────

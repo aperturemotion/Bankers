@@ -279,6 +279,11 @@
       "place": "rule",
       "text": "2001",
       "note": "on the seal"
+    },
+    "ruleIndependent": {
+      "place": "rule",
+      "text": "INDEPENDENT",
+      "note": "the second, smaller seal (builder C)"
     }
   },
   "WD": {
@@ -318,6 +323,7 @@
     "felderhofDate": "JULY 31, 2007",
     "ruleSeal": "QUALIFIED PERSON",
     "ruleCode": "NI 43-101",
-    "ruleYear": "2001"
+    "ruleYear": "2001",
+    "ruleIndependent": "INDEPENDENT"
   }
 }
