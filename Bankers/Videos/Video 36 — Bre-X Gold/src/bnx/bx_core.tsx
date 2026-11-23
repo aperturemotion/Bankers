@@ -18,8 +18,13 @@
 //     salted   0…1  rounded placer-gold grains sitting ONLY on the outer skin (the truth place); never inside a split face
 //     split    0…1  the core sawn lengthwise: the two halves part and roll until both sawn faces lie face-up (grey through and
 //              through — no gold inside, whatever `glitter`/`salted` show on the skin)
-//     pieces   [[a, b, endA, endB], …]  fractions of the length the run is broken into (ends "saw" | "break" | "block" — a
-//              block end is sawn, and in a tray a wooden run block stands after it); default one unbroken piece
+//     pieces   [[a, b, endA, endB, form?], …]  fractions of the length the run is broken into (ends "saw" | "break" | "block" — a
+//              block end is sawn, and in a tray a wooden run block stands after it); default one unbroken piece.
+//              ★ rev 1: a "break" is a NATURAL fracture — an inclined, irregular surface with relief, shared by the two pieces either
+//              side of it (they fit together across the gap). form "half" keeps that piece as HALF core: sawn lengthwise, the sawn
+//              face up showing the inside (matrix, clasts, veinlets), sitting in its channel.
+//     orient   (default true) the geologist's orientation line drawn along the run with down-hole chevrons
+//     wet      (default 1) the slight wet sheen along the top under the key light (0 = dry)
 //     lit      0…1  a cool rim light along the top (a reveal). There is no stage prop: on the white stage the core keeps its stone
 //     cull     optional [x0, y0, x1, y1] screen rect: skin detail outside it is skipped (a close-up of a long run)
 //     probe    the data-probe-object description (pass null when an outer wrapper carries it: print and shapes of one object
@@ -28,11 +33,12 @@
 //   coreCorners(xf, len, r) → 8 world points (TkFloor casters)
 //
 // ── THE TRAY ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-//   <BxTray id rig xf rows len cores hero heroEl cull probe />   (an SVG <g>) a galvanised-steel core tray: base plate, slotted rows (channels with
+//   <BxTray id rig xf rows len cores hero heroEl cull stencil probe />   (an SVG <g>) a galvanised-steel core tray: base plate, slotted rows (channels with
 //     dividers), thick end blocks with hand slots and their screws, depth graduations stamped along the front rim, run blocks between
 //     broken pieces. It draws its own cores (painter-ordered with the walls) from `cores` (one entry per row: { seed, pieces,
 //     glitter, dust, sparkle, lift }: lift softens that row's contact shadow as its core rises); row `hero` is drawn by the caller instead: pass `heroEl(map)` → element to draw it IN ORDER (so the
 //     walls in front still cover it), or null when the caller draws it after the tray (once it has risen clear of the walls).
+//     stencil: the box's sprayed ID on its front face (default L("claimStencil") = BUSANG; null for none — never typed figures).
 //     LOCAL frame: x along the rows (−len/2 … len/2 inner), z across (row 0 at the back), y = 0 the tray's FOOT (floor).
 //   TRAY = { rows, pitch, wall, base, end }, trayRowZ(i, rows) → the row's centre z, trayCoreY = the core axis height (local y),
 //   trayCorners(xf, rows, len) → 8 world points.
@@ -45,7 +51,8 @@
 //   strip carries its own gradient from the vertex normals (a turned body is smooth, a flat face takes a gradient along its run from
 //   the studio reflection); draw with <StripDefs strips/> + <StripPaths strips/>, caps ({ d, n, l, which }) yourself.
 //   mat = { light(nv, vp) → l (any value), ramp(l, part "side"|"bev") → colour }. ROCK_MAT(tone) is the stone's.
-//   <RockSkin …/> the stone's grains, veins, mottling, glitter flecks and salted nuggets on a round skin; <GrainDefs/> + <GrainTex/>
+//   <RockSkin …/> the stone's grains, clasts (light and dark), quartz veinlets, pyrite specks, mottling, the wet sheen, the orientation
+//   line, glitter flecks and salted nuggets on a round skin (orient / wet props as BxCore's); <GrainDefs/> + <GrainTex/>
 //   the fine granular grain (one SVG turbulence mapped onto a run's own surface by an affine from its projected axis — it rides with
 //   the core under any rig or pose and never swims).
 import * as jsx_runtime from "react/jsx-runtime";
@@ -57,6 +64,8 @@ import { normalM, unit3, worldScr, worldView, xfApply, xfMul, xfRotZ, xfTrans, w
 import { box3 } from "./solid_engine";
 import { paintXf } from "./tk_rig";
 import { BX_FLECK, BX_GRAIN, BX_ROCK, BX_ROCK_MIN, BX_ROCK_VEIN, BX_STEEL, BX_STEEL_IN, rockLight } from "./bx_gold";
+import { L } from "./data";
+import { SHOUT } from "./fonts";
 
 const jsx = (t, p, k) => (0,jsx_runtime.jsx)(t, p, k);
 const jsxs = (t, p, k) => (0,jsx_runtime.jsxs)(t, p, k);
@@ -275,7 +284,11 @@ const grainsOf = (seed, len, r) => {
   const fl = Array.from({ length: Math.round(len * 1.6) }, () => ({ th: (rnd() - 0.5) * 2.3 * Math.pow(rnd(), 0.7), u: rnd(), s: 1.1 + 1.9 * rnd(), thr: rnd(), ph: rnd() * 6.283, w: 0.05 + 0.11 * rnd(), rot: rnd() * Math.PI, big: rnd() < 0.04 }));
   // salted grains: rounded placer nuggets on the skin
   const sa = Array.from({ length: Math.round(len / 34) }, () => ({ th: rnd() * 2 * Math.PI, u: 0.02 + 0.96 * rnd(), s: 2.6 + 4.2 * rnd(), thr: rnd(), el: 0.7 + 0.3 * rnd(), rot: rnd() * Math.PI }));
-  const out = { g, mot, veins, fl, sa };
+  // clasts: angular rock fragments in the matrix (light and dark), a breccia's character
+  const cl = Array.from({ length: Math.round(area / 1500) }, () => ({ th: rnd() * 2 * Math.PI, u: rnd(), s: 3.5 + 6 * rnd(), dark: rnd() < 0.45, rot: rnd() * 6.28, j: Array.from({ length: 6 }, () => 0.55 + 0.45 * rnd()) }));
+  // pyrite: tiny brassy cubes, sparse
+  const py = Array.from({ length: Math.round(area / 3200) }, () => ({ th: rnd() * 2 * Math.PI, u: rnd(), s: 0.9 + 1.1 * rnd(), rot: rnd() * 1.5 }));
+  const out = { g, mot, veins, fl, sa, cl, py };
   if (grainMemo.size > 64) grainMemo.clear();
   grainMemo.set(key, out);
   return out;
@@ -284,7 +297,7 @@ const MIN_INK = BX_ROCK_MIN;
 // a point and its frame on a round skin (local: axis y, section x/z), θ from +X toward +Z
 const skin = (r, th, y) => [r * Math.cos(th), y, r * Math.sin(th)];
 const skinN = (th) => [Math.cos(th), 0, Math.sin(th)];
-export const RockSkin = ({ rig, map, len, r, seed, u0 = 0, u1 = 1, glitter = 0, dust = [0, 1], sparkle = 0, salted = 0, op = 1, half = 0, cull }) => {
+export const RockSkin = ({ rig, map, len, r, seed, u0 = 0, u1 = 1, glitter = 0, dust = [0, 1], sparkle = 0, salted = 0, op = 1, half = 0, cull, orient = true, wet = 1 }) => {
   const G = grainsOf(seed, len, r);
   const eye = (q, n) => {
     const v = worldView(rig, map(q)), vn = normalM(map, rig, n, q);
@@ -348,6 +361,69 @@ export const RockSkin = ({ rig, map, len, r, seed, u0 = 0, u1 = 1, glitter = 0, 
     }
     flush();
   }
+  // clasts and pyrite
+  const cls = [[], []], pys = [];
+  for (const c0 of G.cl) {
+    if (!inU(c0.u) || !keep(c0.th)) continue;
+    const c = skin(r, c0.th, yOf(c0.u));
+    if (eye(c, skinN(c0.th)).f < 0.12 || !inCull(c)) continue;
+    const pts = c0.j.map((jj, k) => {
+      const a = c0.rot + k / 6 * 2 * Math.PI, rr = c0.s * jj;
+      return P(skin(r + 0.25, c0.th + rr * 0.8 * Math.sin(a) / r, yOf(c0.u) + rr * Math.cos(a)));
+    });
+    cls[c0.dark ? 0 : 1].push(`M${pts.join("L")}Z`);
+  }
+  for (const q0 of G.py) {
+    if (!inU(q0.u) || !keep(q0.th)) continue;
+    const c = skin(r, q0.th, yOf(q0.u));
+    if (eye(c, skinN(q0.th)).f < 0.2 || !inCull(c)) continue;
+    const pts = [0, 1, 2, 3].map((k) => {
+      const a = q0.rot + k * Math.PI / 2 + Math.PI / 4;
+      return P(skin(r + 0.3, q0.th + q0.s * Math.sin(a) / r, yOf(q0.u) + q0.s * Math.cos(a)));
+    });
+    pys.push(`M${pts.join("L")}Z`);
+  }
+  // the wet sheen: where the key light glances off the round top (found by scanning the skin's angle at mid-run), along the run
+  const sheenRuns = [];
+  if (wet > 1e-3) {
+    const KEYv = unit3([-0.52, -0.62, 0.58]), HALFv = unit3([KEYv[0], KEYv[1], KEYv[2] + 1]);
+    const ym = yOf((Math.max(u0, 0) + Math.min(u1, 1)) / 2);
+    let best = -2, thH = 0;
+    for (let k = 0; k < 72; k++) {
+      const th = k / 72 * 2 * Math.PI;
+      if (!keep(th)) continue;
+      const n = normalM(map, rig, skinN(th), skin(r, th, ym));
+      const d = dot3(n, HALFv);
+      if (d > best) {
+        best = d;
+        thH = th;
+      }
+    }
+    if (best > 0.4) {
+      const run = [];
+      for (let k = 0; k <= 24; k++) {
+        const u = Math.max(u0, 0) + (Math.min(u1, 1) - Math.max(u0, 0)) * (0.02 + 0.96 * k / 24);
+        run.push(P(skin(r + 0.3, thH, yOf(u))));
+      }
+      sheenRuns.push({ d: `M${run.join("L")}`, k: clamp01((best - 0.4) / 0.4) });
+    }
+  }
+  // the orientation line: the geologist's marker line along the run, chevrons pointing down-hole (+y)
+  const ori = [];
+  if (orient && half === 0) {
+    const thO = 0.62;
+    const q = skin(r, thO, yOf((u0 + u1) / 2));
+    if (eye(q, skinN(thO)).f > 0.08) {
+      const a0 = Math.max(u0, 0) + 4 / len, a1 = Math.min(u1, 1) - 4 / len;
+      if (a1 > a0) {
+        ori.push(`M${P(skin(r + 0.4, thO, yOf(a0)))}L${P(skin(r + 0.4, thO, yOf(a1)))}`);
+        for (let y = Math.ceil((yOf(a0) + 30) / 140) * 140; y < yOf(a1) - 20; y += 140) {
+          const w = 5 / r;
+          ori.push(`M${P(skin(r + 0.4, thO - w, y - 7))}L${P(skin(r + 0.4, thO, y))}L${P(skin(r + 0.4, thO + w, y - 7))}`);
+        }
+      }
+    }
+  }
   // glitter: flecks on the dusted upper skin, each with its own threshold and twinkle
   const fl = [], glow = [], stars = [];
   if (glitter > 1e-3) {
@@ -400,7 +476,16 @@ export const RockSkin = ({ rig, map, len, r, seed, u0 = 0, u1 = 1, glitter = 0, 
     buckets[1].length > 0 && jsx("path", { d: buckets[1].join(""), fill: MIN_INK[1], opacity: 0.45 }),
     buckets[2].length > 0 && jsx("path", { d: buckets[2].join(""), fill: MIN_INK[2], opacity: 0.4 }),
     buckets[3].length > 0 && jsx("path", { d: buckets[3].join(""), fill: MIN_INK[3], opacity: 0.5 }),
-    veins.map((v, k) => jsx("path", { d: v.d, fill: "none", stroke: BX_ROCK_VEIN, strokeWidth: v.w, opacity: 0.42, strokeLinecap: "round", strokeLinejoin: "round" }, `v${k}`)),
+    cls[0].length > 0 && jsx("path", { d: cls[0].join(""), fill: "#24272B", opacity: 0.55, stroke: "#15171A", strokeWidth: 0.5, strokeOpacity: 0.5 }),
+    cls[1].length > 0 && jsx("path", { d: cls[1].join(""), fill: "#B4B7B3", opacity: 0.42, stroke: "#6C6F6E", strokeWidth: 0.5, strokeOpacity: 0.45 }),
+    veins.map((v, k) => jsx("path", { d: v.d, fill: "none", stroke: BX_ROCK_VEIN, strokeWidth: v.w, opacity: 0.5, strokeLinecap: "round", strokeLinejoin: "round" }, `v${k}`)),
+    pys.length > 0 && jsx("path", { d: pys.join(""), fill: "#B39A55", opacity: 0.9, stroke: "#F0E0A6", strokeWidth: 0.4, strokeOpacity: 0.7 }),
+    sheenRuns.map((q, k) => jsxs("g", { children: [
+      jsx("path", { d: q.d, stroke: "#ffffff", strokeWidth: r * 0.42, opacity: 0.08 * q.k * wet, fill: "none", strokeLinecap: "round" }),
+      jsx("path", { d: q.d, stroke: "#ffffff", strokeWidth: r * 0.16, opacity: 0.16 * q.k * wet, fill: "none", strokeLinecap: "round" }),
+      jsx("path", { d: q.d, stroke: "#ffffff", strokeWidth: 1.2, opacity: 0.42 * q.k * wet, fill: "none", strokeLinecap: "round" })
+    ] }, `wt${k}`)),
+    ori.length > 0 && jsx("path", { d: ori.join(""), stroke: "#121519", strokeWidth: 1.6, opacity: 0.85, fill: "none", strokeLinecap: "round", strokeLinejoin: "round" }),
     fl.length > 0 && jsx("path", { d: fl.filter((q) => q.tw < 0.5).map((q) => q.d).join(""), fill: BX_FLECK.base, opacity: 0.9 * Math.min(1, glitter * 1.4) }),
     fl.length > 0 && jsx("path", { d: fl.filter((q) => q.tw >= 0.5).map((q) => q.d).join(""), fill: BX_FLECK.lit, opacity: Math.min(1, glitter * 1.4) }),
     stars.map((q, k) => jsx("path", { d: `M${f2(q.x - q.s)},${f2(q.y)}L${f2(q.x + q.s)},${f2(q.y)}M${f2(q.x)},${f2(q.y - q.s)}L${f2(q.x)},${f2(q.y + q.s)}`, stroke: BX_FLECK.glint, strokeWidth: 1.1, opacity: 0.85 * q.a, strokeLinecap: "round" }, `st${k}`)),
@@ -425,7 +510,8 @@ const capGrains = (seed, r) => {
   capMemo.set(key, g);
   return g;
 };
-const CoreCap = ({ rig, map, cap, y, r, seed, kind, sideOf }) => {
+const CoreCap = ({ rig, map, cap, y, r, seed, kind, sideOf, F }) => {
+  const yF = (x, z) => y + (F ? F(x, z) : 0);
   const g = capGrains(seed + (y > 0 ? 17 : 0), r);
   const P = (q) => {
     const s = worldScr(rig, map(q));
@@ -436,10 +522,31 @@ const CoreCap = ({ rig, map, cap, y, r, seed, kind, sideOf }) => {
     if (sideOf && sideOf(q.z) === false) continue;
     const pts = [0, 1, 2, 3].map((k) => {
       const a = q.rot + k * Math.PI / 2;
-      return P([q.x + q.s * Math.cos(a), y, q.z + q.s * 0.7 * Math.sin(a)]);
+      const x = q.x + q.s * Math.cos(a), z = q.z + q.s * 0.7 * Math.sin(a);
+      return P([x, yF(x, z), z]);
     });
     b[q.tone].push(`M${pts.join("L")}Z`);
   }
+  // fracture steps: contour lines of the broken surface (its relief)
+  const steps = (Fn, dy = 0) => [-6, -2, 2, 6].map((lv) => {
+    const pts = [];
+    for (let k = 0; k <= 40; k++) {
+      const a = k / 40 * 2 * Math.PI;
+      let lo = 0, hi = r * 0.95;
+      // walk out along the ray to the radius where F crosses lv (if it does)
+      const f = (rr) => Fn(rr * Math.cos(a), rr * Math.sin(a)) - lv;
+      if (f(lo) * f(hi) > 0) continue;
+      for (let it = 0; it < 14; it++) {
+        const m = (lo + hi) / 2;
+        if (f(lo) * f(m) <= 0) hi = m;
+        else lo = m;
+      }
+      const x = lo * Math.cos(a), z = lo * Math.sin(a);
+      if (sideOf && sideOf(z) === false) continue;
+      pts.push(P([x, yF(x, z) - dy, z]));
+    }
+    return pts.length > 2 ? `M${pts.join("L")}` : "";
+  }).join("");
   const saw = kind === "saw" ? Array.from({ length: 9 }, (_, i) => {
     const R = r * (1.6 + 0.22 * i), cx = -r * 2.2;
     const pts = [];
@@ -450,21 +557,25 @@ const CoreCap = ({ rig, map, cap, y, r, seed, kind, sideOf }) => {
     return pts.length > 1 ? `M${pts.join("L")}` : "";
   }).join("") : "";
   return jsxs("g", { "data-probe-skip": true, children: [
-    jsx("path", { d: cap.d, fill: rampAt(BX_ROCK, (kind === "saw" ? 0.18 : 0.06) + 0.86 * cap.l), stroke: rampAt(BX_ROCK, 0.9 * cap.l), strokeWidth: 0.6 }),
+    jsx("path", { d: cap.d, fill: rampAt(BX_ROCK, (kind === "saw" ? 0.18 : 0.1) + 0.86 * cap.l), stroke: rampAt(BX_ROCK, 0.9 * cap.l), strokeWidth: 0.6 }),
     jsx("path", { d: b[0].join(""), fill: MIN_INK[0], opacity: 0.5 }),
     jsx("path", { d: b[1].join(""), fill: MIN_INK[1], opacity: 0.45 }),
     jsx("path", { d: b[2].join(""), fill: MIN_INK[2], opacity: 0.3 }),
     saw && jsx("path", { d: saw, fill: "none", stroke: "#ffffff", strokeWidth: 0.7, opacity: 0.12 }),
+    F && jsx("path", { d: steps(F), fill: "none", stroke: "#000000", strokeWidth: 0.9, opacity: 0.35, strokeLinejoin: "round" }),
+    F && jsx("path", { d: steps(F, 1.4), fill: "none", stroke: "#ffffff", strokeWidth: 0.6, opacity: 0.16, strokeLinejoin: "round" }),
     jsx("path", { d: cap.d, fill: "none", stroke: kind === "saw" ? "#ffffff" : "#000000", strokeWidth: 1, opacity: kind === "saw" ? 0.18 : 0.3 })
   ] });
 };
-// jagged break: a per-vertex end offset along the axis
-const jagOf = (seed, M, ends) => {
-  const rnd = seeded(4271 * seed + 9);
-  const a = Array.from({ length: M }, () => rnd()), b = Array.from({ length: M }, () => rnd());
-  const sm = (arr, j) => (arr[(j - 1 + M) % M] + 2 * arr[j] + arr[(j + 1) % M]) / 4 - 0.5;
-  return (end, j) => ends[end] === "break" ? (end === 0 ? 1 : -1) * 0 + 9 * sm(end ? b : a, j) + (end ? -1 : 1) * 3 : 0;
+// a natural fracture: an inclined, irregular surface F(x, z) (an axial offset), the SAME for both pieces of one break (keyed by the
+//   break's place on the run) so they fit together across their gap — never a neat disc
+const fracture = (key, r) => {
+  const rnd = seeded(4271 * key + 9);
+  const A = r * Math.tan((18 + 30 * rnd()) * Math.PI / 180), phi = rnd() * 2 * Math.PI;
+  const p = [rnd() * 6, rnd() * 6, rnd() * 6, rnd() * 6];
+  return (x, z) => A * (x * Math.cos(phi) + z * Math.sin(phi)) / r + 3.2 * Math.sin(x * 0.29 + p[0]) * Math.cos(z * 0.23 + p[1]) + 2.2 * Math.sin(x * 0.61 + z * 0.47 + p[2]) + 1.3 * Math.sin(x * 1.3 - z * 1.1 + p[3]);
 };
+const jagOf = (prof, fr) => (end, j) => fr[end] ? fr[end](prof.pts[j][0], prof.pts[j][1]) : 0;
 // the sawn face of a split half (the flat strip): stone through and through
 const SawnFace = ({ rig, map, len, r, seed, side }) => {
   const rnd = seeded(661 * seed + 3);
@@ -493,42 +604,47 @@ const SawnFace = ({ rig, map, len, r, seed, side }) => {
   ] });
 };
 /** the drill core — see the API at the top of this file */
-export const BxCore = ({ id, rig, xf, len = CORE_LEN, r = CORE_R, seed = 1, pieces, glitter = 0, dust = [0, 1], sparkle = 0, salted = 0, split = 0, lit = 0, cull, probe = "the drill core: a grey stone cylinder, sawn ends" }) => {
+export const BxCore = ({ id, rig, xf, len = CORE_LEN, r = CORE_R, seed = 1, pieces, glitter = 0, dust = [0, 1], sparkle = 0, salted = 0, split = 0, lit = 0, cull, orient = true, wet = 1, probe = "the drill core: a grey stone cylinder, sawn ends" }) => {
   const runs = pieces ?? [[0, 1, "saw", "saw"]];
   const s = clamp01(split);
-  const body = runs.map(([a, b, ea, eb], k) => {
+  // one fracture surface per break, shared by the two pieces either side of it (keyed by where the break sits on the run)
+  const frAt = (pos) => fracture(seed * 131 + Math.round(pos * 997), r);
+  const body = runs.map(([a, b, ea, eb, form], k) => {
     const y0 = -len / 2 + a * len, y1 = -len / 2 + b * len, L = y1 - y0, cy = (y0 + y1) / 2;
     const pxf = xfMul(xf, xfTrans([0, cy, 0]));
-    const skinU = [a, b];
+    const fr = [ea === "break" ? frAt(k > 0 ? (runs[k - 1][1] + a) / 2 : a) : null, eb === "break" ? frAt(k + 1 < runs.length ? (b + runs[k + 1][0]) / 2 : b) : null];
     // the skin's fields are laid out over the WHOLE run (so a piece keeps its own grains when broken)
     const skinMap = (q) => xfApply(xf, q);
-    if (s < 1e-3) {
+    const half = form === "half";
+    if (s < 1e-3 && !half) {
       const map = (q) => xfApply(pxf, q);
       return jsxs("g", { children: [
-        jsx(CorePieceBody, { id: `${id}p${k}`, rig, map, len: L, r, seed: seed * 7 + k, ends: [ea, eb] }),
-        jsx(RockSkin, { rig, map: skinMap, len, r, seed, glitter, dust, sparkle, salted, cull, u0: a, u1: b }),
+        jsx(CorePieceBody, { id: `${id}p${k}`, rig, map, len: L, r, seed: seed * 7 + k, ends: [ea, eb], fr }),
+        jsx(RockSkin, { rig, map: skinMap, len, r, seed, glitter, dust, sparkle, salted, cull, u0: a, u1: b, orient, wet }),
         lit > 3e-3 && jsx(TopRim, { rig, map, len: L, r, lit })
       ] }, k);
     }
-    // split: two halves rolling until both sawn faces lie face-up, parting sideways (local z)
-    const e = s, ang = 90 * e, gap = 1.08 * r * e;
-    const halfXf = (side) => xfMul(pxf, xfMul(xfTrans([0, 0, side * gap]), rotAxisY(-side * ang)));
-    const halves = [-1, 1].map((side) => {
-      const hx = halfXf(side), map = (q) => xfApply(hx, q);
+    // split (or a piece kept as HALF core — sawn lengthwise, its sawn face up, as cores are kept after sampling): the halves part and
+    //   roll until both sawn faces lie face-up; a half piece is the back half alone, already rolled, sitting in its channel
+    const e = half ? 1 : s, ang = 90 * e, gap = half ? 0 : 1.08 * r * e;
+    const sides = half ? [-1] : [-1, 1];
+    const halfXf = (side, base) => xfMul(base, xfMul(xfTrans([0, 0, side * gap]), rotAxisY(-side * ang)));
+    const halves = sides.map((side) => {
+      const hx = halfXf(side, pxf), map = (q) => xfApply(hx, q);
       const pr = profHalf(r, side, 40);
-      const geo = loftGeo({ prof: pr, len: L });
+      const geo = loftGeo({ prof: pr, len: L, jag: jagOf(pr, fr) });
       const pt = loftPaint(`${id}p${k}h${side}`, rig, map, geo, ROCK_MAT(toneOf(seed * 7 + k)));
       const sawn = pt.strips.filter((q) => q.flat && q.j >= pr.pts.length - 2);
       const zc = worldView(rig, map([0, 0, 0]))[2];
-      const hmap = (q) => xfApply(xfMul(xf, xfMul(xfTrans([0, 0, side * gap]), rotAxisY(-side * ang))), q);
+      const wmap = (q) => xfApply(halfXf(side, xf), q);
       return { zc, el: jsxs("g", { children: [
         jsx(StripDefs, { strips: pt.strips }),
         jsx(StripPaths, { strips: pt.strips }),
-        jsx(RockSkin, { rig, map: (q) => xfApply(xfMul(xfMul(xf, xfTrans([0, 0, side * gap])), rotAxisY(-side * ang)), q), len, r, seed, glitter, dust, sparkle, salted, half: side, u0: a, u1: b, cull }),
+        jsx(RockSkin, { rig, map: wmap, len, r, seed, glitter, dust, sparkle, salted, half: side, u0: a, u1: b, cull, orient: false, wet }),
         sawn.length > 0 && jsx(SawnFace, { rig, map, len: L, r, seed: seed * 13 + k, side }),
         sawn.length > 0 && jsx(GrainTex, { clipId: `${id}p${k}h${side}sc`, strips: sawn, rig, map, len: L, r, op: 0.5 }),
         jsx(GrainTex, { clipId: `${id}p${k}h${side}gc`, strips: pt.strips.filter((q) => !sawn.includes(q)), rig, map, len: L, r, op: 0.5 }),
-        pt.caps.map((c) => jsx(CoreCap, { rig, map, cap: c, y: c.which === "top" ? -L / 2 : L / 2, r, seed: seed * 7 + k, kind: [ea, eb][c.which === "top" ? 0 : 1], sideOf: (z) => side * z >= 0 }, c.which))
+        pt.caps.map((c) => jsx(CoreCap, { rig, map, cap: c, y: c.which === "top" ? -L / 2 : L / 2, r, seed: seed * 7 + k, kind: [ea, eb][c.which === "top" ? 0 : 1], sideOf: (z) => side * z >= 0, F: fr[c.which === "top" ? 0 : 1] }, c.which))
       ] }) };
     });
     halves.sort((p, q) => p.zc - q.zc);
@@ -541,15 +657,15 @@ const rotAxisY = (deg) => {
   const a = deg * Math.PI / 180, c = Math.cos(a), s = Math.sin(a);
   return { m: [c, 0, s, 0, 1, 0, -s, 0, c], t: [0, 0, 0] };
 };
-const CorePieceBody = ({ id, rig, map, len, r, seed, ends }) => {
+const CorePieceBody = ({ id, rig, map, len, r, seed, ends, fr = [null, null] }) => {
   const P = profBar({ c: r, n: 48 });
-  const geo = loftGeo({ prof: P, len, jag: jagOf(seed, P.pts.length, ends) });
+  const geo = loftGeo({ prof: P, len, jag: jagOf(P, fr) });
   const pt = loftPaint(id, rig, map, geo, ROCK_MAT(toneOf(seed)));
   return jsxs("g", { children: [
     jsx(StripDefs, { strips: pt.strips }),
     jsx(StripPaths, { strips: pt.strips }),
     jsx(GrainTex, { clipId: `${id}gc`, strips: pt.strips, rig, map, len, r, op: 0.5 }),
-    pt.caps.map((c) => jsx(CoreCap, { rig, map, cap: c, y: c.which === "top" ? -len / 2 : len / 2, r, seed, kind: ends[c.which === "top" ? 0 : 1] }, c.which))
+    pt.caps.map((c) => jsx(CoreCap, { rig, map, cap: c, y: c.which === "top" ? -len / 2 : len / 2, r, seed, kind: ends[c.which === "top" ? 0 : 1], F: fr[c.which === "top" ? 0 : 1] }, c.which))
   ] });
 };
 // a cool rim of light along the top (a reveal)
@@ -604,7 +720,7 @@ export const trayCorners = (xf, rows, len = CORE_LEN) => {
   return out;
 };
 /** the core tray with its cores — see the API at the top of this file */
-export const BxTray = ({ id, rig, xf, rows = 4, len = CORE_LEN, cores = [], hero = -1, heroEl, cull, probe = "the core tray: galvanised steel, slotted rows, end blocks with hand slots, depth graduations" }) => {
+export const BxTray = ({ id, rig, xf, rows = 4, len = CORE_LEN, cores = [], hero = -1, heroEl, cull, stencil = L("claimStencil"), probe = "the core tray: galvanised steel, slotted rows, end blocks with hand slots, depth graduations" }) => {
   const map = (q) => xfApply(xf, q);
   const P = (pts, close = true) => `M${pts.map((q) => {
     const s = worldScr(rig, map(q));
@@ -629,7 +745,7 @@ export const BxTray = ({ id, rig, xf, rows = 4, len = CORE_LEN, cores = [], hero
     if (!c) return null;
     const z = trayRowZ(i, rows);
     const cxf = xfMul(xf, coreXf(0, trayCoreY, z));
-    return jsx(BxCore, { id: `${id}c${i}`, rig, xf: cxf, len, seed: c.seed ?? i + 3, pieces: c.pieces, glitter: c.glitter ?? 0, dust: c.dust, sparkle: c.sparkle ?? 0, cull, probe: null });
+    return jsx(BxCore, { id: `${id}c${i}`, rig, xf: cxf, len, seed: c.seed ?? i + 3, pieces: c.pieces, glitter: c.glitter ?? 0, dust: c.dust, sparkle: c.sparkle ?? 0, orient: c.orient ?? true, cull, probe: null });
   };
   // contact shadow under each row's core on the channel floor, and the run blocks between broken pieces
   const contact = (i) => {
@@ -691,6 +807,17 @@ export const BxTray = ({ id, rig, xf, rows = 4, len = CORE_LEN, cores = [], hero
     }
   });
   seq.push(jsx("path", { d: ticks.join(""), stroke: "#0A1A2B", strokeWidth: 1.6, opacity: 0.7, fill: "none" }, "ticks"));
+  // the box's stencilled ID, sprayed on its front face (the face is a plane: an affine from three projected points places it)
+  if (stencil) {
+    const zf = rows * TRAY.pitch / 2 + TRAY.wall + 0.4, yc = -(TRAY.base + TRAY.h) / 2, x0 = -len / 2 + 70;
+    const O = worldScr(rig, map([x0, yc, zf])), X = worldScr(rig, map([x0 + 100, yc, zf])), Y = worldScr(rig, map([x0, yc + 100, zf]));
+    const fz = worldView(rig, map([x0, yc, zf]));
+    const facing = dot3(normalM(map, rig, [0, 0, 1], [x0, yc, zf]), unit3([-fz[0], -fz[1], rig.persp - fz[2]])) > 0.05;
+    if (facing) {
+      const m = [(X[0] - O[0]) / 100, (X[1] - O[1]) / 100, (Y[0] - O[0]) / 100, (Y[1] - O[1]) / 100, O[0], O[1]].map((v) => v.toFixed(4)).join(" ");
+      seq.push(jsx("g", { transform: `matrix(${m})`, "data-probe-skip": true, children: [0, 1].map((k) => jsx("text", { x: k ? 0 : 1.2, y: k ? 0 : 1.4, fontFamily: SHOUT, fontSize: 34, letterSpacing: 9, dominantBaseline: "central", fill: k ? "#E6ECF1" : "#06121F", opacity: k ? 0.86 : 0.5, children: String(stencil) }, k)) }, "stencil"));
+    }
+  }
   seq.push(jsx("g", { children: endEl(ends.find((e) => e.s === near)) }, "endNear"));
   return jsx("g", { "data-probe-object": probe || void 0, children: [jsx(GrainDefs, {}, "gd"), ...seq] });
 };
