@@ -19,3 +19,5 @@ Bankers/Videos/Video 16 — Private Equity Backlog/
 Bankers/Videos/Video 35 — Lottery Tear/recovery/audiodata.gen.from-bundle.ts.txt
 Bankers/Videos/Video 35 — Lottery Tear/recovery/bundle-embedded/
 Bankers/Videos/Video 35 — Lottery Tear/recovery/decoded-from-bundle/
+# builders' private mirrors (deleted when each builder finishes)
+Bankers/Videos/.v*_*/
