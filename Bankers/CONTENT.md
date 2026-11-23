@@ -290,3 +290,5 @@ OPEN CONFLICTS (listed for Timur's ruling, 2026-11-22 — not resolved silently)
 See the chat report of 2026-11-22; record each ruling here when given.
 - RULED (Video 36 only, 2026-11-23): VO — Timur asked me to generate it ("generate the voiceover"). Open for later films.
 - RULED (2026-11-23): company names on objects are OK (FREEPORT-McMoRAN plate).
+- RULED (Video 36, 2026-11-23): the fact-check's script changes to the brief stand ("keep all the script changes"); "6¢" stays on
+  the collapse tag (not C$0.06).
