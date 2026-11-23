@@ -17,7 +17,7 @@ const fams = [...new Set(list.map((c) => c.s))].sort();
 const comp = fs.readFileSync("src/bnx/Composition.tsx", "utf8");
 const bed = comp.match(/const BED_FILE\s*=\s*"([^"]+)"/)[1];
 // V35 (recovered from the published bundle): the three brand SVGs are embedded too (the close and the watermark load them)
-// ★ V36: the voice goes in only once the take is wired (HAS_VO) — before that public/vo_trimmed.mp3 is Video 35's and nothing plays it
+// ★ V36: the voice goes in only once the take is wired (HAS_VO) — before that public/vo_trimmed.mp3 is the Video 35 take and nothing plays it
 const hasVo = /const HAS_VO = true;/.test(comp);
 const files = [...(hasVo ? ["vo_trimmed.mp3"] : []), bed, ...fams.map((f) => `sfx/${f}.wav`), "bill100.png", "brand/bankers-logo-black.svg", "brand/bankers-logo-blue.svg", "brand/bankers-logo-white.svg"];
 const mime = (f) => f.endsWith(".mp3") ? "audio/mpeg" : f.endsWith(".png") ? "image/png" : f.endsWith(".jpg") ? "image/jpeg" : f.endsWith(".svg") ? "image/svg+xml" : "audio/wav";
