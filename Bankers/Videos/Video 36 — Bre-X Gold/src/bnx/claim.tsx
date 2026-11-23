@@ -33,9 +33,9 @@ const N_CLOSED = 4;
 // ★ REV1: palm trees around the pad (Borneo) — behind the rig at its left, behind the pad's right, and one at the far right; each
 //   about the mast's height, never over the rig, the boxes or the labels, crowns under the caption headroom in every framing
 const PALMS_BACK = [
-  { base: [-250, TK_FLOOR_Y, 120], h: 780, lean: [-0.16, 0.05], seed: 11 },
-  { base: [-60, TK_FLOOR_Y, -760], h: 600, lean: [0.1, -0.06], seed: 23 },
-  { base: [1720, TK_FLOOR_Y, 380], h: 760, lean: [0.1, 0.06], seed: 37 }
+  { base: [40, TK_FLOOR_Y, -760], h: 480, lean: [-0.1, -0.02], seed: 11 },
+  { base: [470, TK_FLOOR_Y, -820], h: 530, lean: [0.04, -0.03], seed: 23 },
+  { base: [1540, TK_FLOOR_Y, 470], h: 500, lean: [0.12, 0.05], seed: 37 }
 ];
 const sm = (pose, q) => worldScr(R, xfApply(pose, [q[0] * RM, q[1] * RM, q[2] * RM]));
 const STACK_TOP = -(PALLET_H + (N_CLOSED + 1) * BOX_STEP);
@@ -75,7 +75,7 @@ const lay = (p) => ({ x: p[0], y: p[1] });
 //   under the caption headroom (450) in the rig and whole framings
 const PIV = 993, SAFE_TOP = 520;
 const MAST_TOP = lay(rigScr(R, RIG_POSE, [0.3, RIG.sheave.c[1] - RIG.sheave.r, 0]));
-const RIG_L = lay(rigScr(R, RIG_POSE, [-0.6, 0, 0.3])), RIG_R = lay(rigScr(R, RIG_POSE, [RIG.skid.x1, 0, 0.5]));
+const RIG_L = lay(rigScr(R, RIG_POSE, [-1.25, 0, -0.3])), RIG_R = lay(rigScr(R, RIG_POSE, [RIG.skid.x1, 0, 0.5]));
 const RIG_FOOT = lay(rigScr(R, RIG_POSE, [1.5, 0, 0.6]));
 const STACK_R = lay(sm(STACK_POSE, [0.85, 0, 0.3]));
 const aimFor = (z, cx, top, foot) => ({ x: cx, y: Math.max(top.y - (SAFE_TOP - PIV) / z, (top.y + foot.y) / 2) });
@@ -83,17 +83,23 @@ const RIG_Z = 1.14;
 const RIG_C = aimFor(RIG_Z, (RIG_L.x + RIG_R.x) / 2 + 40, MAST_TOP, RIG_FOOT);
 const STACK_C = lay(sm(STACK_POSE, [0, STACK_TOP * 0.5 - 0.3, 0]));
 // the whole pad takes in the palms either side (their trunks)
-const PALM_L = worldScr(R, PALMS_BACK[0].base)[0] - 70, PALM_R = worldScr(R, PALMS_BACK[2].base)[0] + 70;
-const W_L = Math.min(RIG_L.x, PALM_L), W_R = Math.max(STACK_R.x, PALM_R);
-const WHOLE_Z = Math.max(0.72, Math.min(0.92, 1000 / (W_R - W_L)));
+// the whole pad is framed on the rig and the stack (both wholly in, balanced); the palms stand in the back row behind them
+const W_L = RIG_L.x - 40, W_R = STACK_R.x + 40;
+const WHOLE_Z = Math.min(0.92, 1000 / (W_R - W_L));
 const WHOLE = aimFor(WHOLE_Z, (W_L + W_R) / 2, MAST_TOP, RIG_FOOT);
 const shots = (t) => [
   // the rig, drilling (1993 beside it)
   { a: -9999, z: RIG_Z, push: 0.02, at: still(RIG_C.x, RIG_C.y) },
   // the ride to the stack of boxes, closing in on it
-  { a: t.ride.a, dur: t.ride.dur, z: 1.75, push: 0.02, at: still(STACK_C.x, STACK_C.y) },
+  //   (it travels sideways first at the rig's zoom, so the rig and the palms behind it leave by the left edge before the push-in
+  //   lifts anything toward the caption band)
+  { a: t.ride.a, dur: 26, z: RIG_Z, push: 0, at: still(STACK_C.x, RIG_C.y) },
+  { a: t.ride.a + 14, dur: t.ride.dur - 4, z: 1.75, push: 0.02, at: still(STACK_C.x, STACK_C.y) },
   // back to the whole pad
-  { a: t.pull.a, dur: t.pull.dur, z: WHOLE_Z, push: 0.015, at: still(WHOLE.x, WHOLE.y) }
+  //   (it zooms out over the stack first, then pans left onto the whole pad, so the palms come in sideways, never down through
+  //   the caption band)
+  { a: t.pull.a, dur: 22, z: WHOLE_Z, push: 0, at: still(STACK_C.x - 60, WHOLE.y) },
+  { a: t.pull.a + 10, dur: t.pull.dur - 10, z: WHOLE_Z, push: 0.015, at: still(WHOLE.x, WHOLE.y) }
 ];
 export const claimCamWindows = (t) => actionCamWindows(shots(t));
 export const claimSfx = (t) => [
@@ -144,7 +150,8 @@ export const BxClaim = ({ at, end, w, stage }) => {
   const f = (0,esm.useCurrentFrame)();
   const t = claimTimes(w, end);
   const { brex, year } = plateParts();
-  const on = (q) => rOut(f, q.a, q.b);
+  // labels ease in on an in-out curve from 4 f before their window (an out-curve put ~20% of the label on its first frame: popscan)
+  const on = (q) => rInOut(f, q.a - 4, q.b);
   const smap = (q) => xfApply(STACK_POSE, q);
   // the drill: the head feeds down through the place, the chuck turns, the lamp settles from the flare's bloom to its own glow
   const head = RIG.head.top + 0.2 + 0.85 * rInOut(f, at - 30, end + 30);

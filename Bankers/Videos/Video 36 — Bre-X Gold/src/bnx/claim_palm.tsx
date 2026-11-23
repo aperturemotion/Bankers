@@ -3,7 +3,8 @@
 //   aesthetically placed … the proportions followed"). A real coconut/oil palm: a slender trunk that leans and curves, ringed by
 //   its old leaf scars, a crown of long pinnate fronds (a rachis that rises then droops, leaflets either side), a nut cluster under
 //   the crown. Built in the house look: solids and leaf paths shaded from the ONE key light (upper left), the palette's blue
-//   family (no green — the palm reads by its shape). The crown sways slowly (moving from the first frame).
+//   family (no green — the palm reads by its shape). The crown sways slowly (moving from the first frame). Trunks paint before
+//   crowns (layers): a depth sort between a trunk segment and a hanging frond flipped mid-move and blipped (popscan).
 import * as jsx_runtime from "react/jsx-runtime";
 import { rampAt } from "./solid_engine";
 import { mapScr, worldScr, worldView } from "./tk_rig";
@@ -25,10 +26,10 @@ export const palmParts = (id, base, h, lean, seed, f) => {
   const R0 = h * 0.03, R1 = h * 0.019;
   const ps = [];
   // the trunk: ringed segments, each a short cylinder a touch apart in tone (the leaf scars), a swollen root flare at its foot
-  ps.push(part(cylAB(add3(base, [0, 2, 0]), add3(base, [0, -h * 0.03, 0]), R0 * 1.35, 14), PALM_BARK, { key: `${id}foot`, spec: 0.1, bias: -1 }));
+  ps.push(part(cylAB(add3(base, [0, 2, 0]), add3(base, [0, -h * 0.03, 0]), R0 * 1.35, 14), PALM_BARK, { key: `${id}foot`, spec: 0.1, bias: -1, layer: 0 }));
   for (let i = 0; i < 16; i++) {
     const rr = R0 + (R1 - R0) * (i / 15);
-    ps.push(part(cylAB(spine[i], spine[i + 1], rr, 12), PALM_BARK, { key: `${id}t${i}`, spec: 0.15, lift: i % 2 ? 0.05 : -0.02, bias: -1 }));
+    ps.push(part(cylAB(spine[i], spine[i + 1], rr, 12), PALM_BARK, { key: `${id}t${i}`, spec: 0.15, lift: i % 2 ? 0.05 : -0.02, bias: -1, layer: 0 }));
   }
   // the crown: fronds radiating from the top, each rising then drooping; the crown sways
   const NF = 12, L = h * 0.5;
@@ -46,11 +47,12 @@ export const palmParts = (id, base, h, lean, seed, f) => {
       key: `${id}f${i}`,
       c: mid,
       bias: 2,
+      layer: 1,
       after: (map, rig) => frondPaths(map, rig, rach, dir, len, seed * 31 + i)
     });
   }
   // the nut cluster just under the crown
-  ps.push({ key: `${id}nuts`, c: add3(top, [0, h * 0.03, 0]), bias: 1, after: (map, rig) => /* @__PURE__ */ jsx("g", { children: [[-1, 0.4], [1, 0.5], [0.2, -0.9]].map(([a, b], k) => {
+  ps.push({ key: `${id}nuts`, c: add3(top, [0, h * 0.03, 0]), bias: 1, layer: 1, after: (map, rig) => /* @__PURE__ */ jsx("g", { children: [[-1, 0.4], [1, 0.5], [0.2, -0.9]].map(([a, b], k) => {
     const q = worldScr(rig, map(add3(top, [a * R1 * 1.5, h * 0.035, b * R1 * 1.5]))), rr = R1 * 0.85 * Math.abs(q[1] - worldScr(rig, map(add3(top, [0, h * 0.035 + R1, 0])))[1]) / R1 + 2;
     return /* @__PURE__ */ jsx("circle", { cx: f2(q[0]), cy: f2(q[1]), r: f2(Math.max(2, R1 * 0.7)), fill: rampAt(PALM_BARK, 0.35 + 0.1 * k) }, k);
   }) }) });
