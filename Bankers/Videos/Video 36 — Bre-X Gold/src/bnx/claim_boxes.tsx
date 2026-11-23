@@ -13,6 +13,8 @@ import { SHOUT } from "./fonts";
 import { boxAB, cylAB, f2, faces, part, path3, ring3, rnd } from "./claim_kit";
 import { BX_GRAIN, BX_GRAIN_LIT, BX_INSIDE, BX_NAIL, BX_STENCIL, BX_WOOD, BX_WOOD_END, CORE_FLECK_D, CORE_FLECK_L, CORE_ROCK, RG_FRAME } from "./claim_mat";
 import { RM } from "./claim_rig";
+import { BxCore, coreXf } from "./bx_core";
+import { xfMul } from "./tk_rig";
 
 const jsx = jsx_runtime.jsx, jsxs = jsx_runtime.jsxs;
 const m3 = (p) => [p[0] * RM, p[1] * RM, p[2] * RM];
@@ -135,6 +137,7 @@ export const coreBoxParts = (id, y0, o) => {
       }
       if (fill < 1 && (pc.x0 + BOX.L / 2) / BOX.L > fill) return;
       const r = BOX.coreR, yc = yIn - r - lift;
+      if (o.pose) return;
       const ramp = CORE_ROCK.map((c) => c);
       P(`core${j}_${k}`, cylAB(m3([pc.x0, yc, z]), m3([pc.x1, yc, z]), r * RM, 14), ramp, {
         sub: 4 + 2 * j,
@@ -144,6 +147,27 @@ export const coreBoxParts = (id, y0, o) => {
         after: (map, rig) => coreFlecks(map, rig, pc, yc, z, sc)
       });
     });
+    // ★ REV1: with the box's pose, the row's core is the FILM'S drill core (bx_core BxCore): its pieces end to end with natural
+    //   fractures that fit across each break, sawn ends at the run blocks, one HALF core (sawn, inside up) in the middle row
+    if (o.pose) {
+      const xs = -L / 2 + te + 0.01, Lin = L - 2 * te - 0.02, r = BOX.coreR, z = rowZ(j);
+      const items = pieces;
+      const bxp = items.map((pc, k) => {
+        if (pc.block) return null;
+        const prev = items[k - 1], next = items[k + 1];
+        const ea = !prev || prev.block ? "saw" : "break", eb = !next || next.block ? "saw" : "break";
+        const piece = [(pc.x0 - xs) / Lin, (pc.x1 - xs) / Lin, ea, eb];
+        if (j === 1 && k === 2) piece.push("half");
+        return piece;
+      }).filter(Boolean);
+      const xf = xfMul(o.pose, coreXf(0, (yIn - r) * RM, z * RM));
+      ps.push({
+        key: `${id}bx${j}`,
+        c: [0, (yIn - r) * RM, z * RM],
+        layer: base + 4 + 2 * j,
+        after: (map, rig) => /* @__PURE__ */ jsx(BxCore, { id: `${id}bc${j}`, rig, xf, len: Lin * RM, r: r * RM, seed: seed * 13 + j, pieces: bxp, probe: null })
+      });
+    }
   });
   return ps;
 };

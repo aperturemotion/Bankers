@@ -22,13 +22,21 @@ import { DrillRig, RIG, RM, rigCasters, rigScr } from "./claim_rig";
 import { BOX, BOX_STEP, PALLET_H, coreBoxParts, palletParts, stackCorners } from "./claim_boxes";
 import { PaintParts, PartPrints } from "./claim_kit";
 import { CanopyFloor } from "./claim_canopy";
+import { Palms, palmCasters } from "./claim_palm";
 
 const jsx = jsx_runtime.jsx, jsxs = jsx_runtime.jsxs;
 const R = tkRig({ eye: 1500, pitch: -14 });
 // the pad: the rig at the left (its mast at its left end), the stack of core boxes in front of it to the right
 const RIG_POSE = xfPose(130, TK_FLOOR_Y, -220, 1.12, 0);
-const STACK_POSE = xfPose(960, TK_FLOOR_Y, 340, 1.35, 0);
+const STACK_POSE = xfPose(1010, TK_FLOOR_Y, 340, 1.35, 0);
 const N_CLOSED = 4;
+// ★ REV1: palm trees around the pad (Borneo) — behind the rig at its left, behind the pad's right, and one at the far right; each
+//   about the mast's height, never over the rig, the boxes or the labels, crowns under the caption headroom in every framing
+const PALMS_BACK = [
+  { base: [-250, TK_FLOOR_Y, 120], h: 780, lean: [-0.16, 0.05], seed: 11 },
+  { base: [-60, TK_FLOOR_Y, -760], h: 600, lean: [0.1, -0.06], seed: 23 },
+  { base: [1720, TK_FLOOR_Y, 380], h: 760, lean: [0.1, 0.06], seed: 37 }
+];
 const sm = (pose, q) => worldScr(R, xfApply(pose, [q[0] * RM, q[1] * RM, q[2] * RM]));
 const STACK_TOP = -(PALLET_H + (N_CLOSED + 1) * BOX_STEP);
 // ★ labels: claimPlate "BRE-X · 1993" is one interpunct chain (STYLE §2.5.5) — this place shows BRE-X and 1993 as TWO labels,
@@ -74,8 +82,11 @@ const aimFor = (z, cx, top, foot) => ({ x: cx, y: Math.max(top.y - (SAFE_TOP - P
 const RIG_Z = 1.14;
 const RIG_C = aimFor(RIG_Z, (RIG_L.x + RIG_R.x) / 2 + 40, MAST_TOP, RIG_FOOT);
 const STACK_C = lay(sm(STACK_POSE, [0, STACK_TOP * 0.5 - 0.3, 0]));
-const WHOLE_Z = Math.min(0.92, 960 / (STACK_R.x - RIG_L.x));
-const WHOLE = aimFor(WHOLE_Z, (RIG_L.x + STACK_R.x) / 2, MAST_TOP, RIG_FOOT);
+// the whole pad takes in the palms either side (their trunks)
+const PALM_L = worldScr(R, PALMS_BACK[0].base)[0] - 70, PALM_R = worldScr(R, PALMS_BACK[2].base)[0] + 70;
+const W_L = Math.min(RIG_L.x, PALM_L), W_R = Math.max(STACK_R.x, PALM_R);
+const WHOLE_Z = Math.max(0.72, Math.min(0.92, 1000 / (W_R - W_L)));
+const WHOLE = aimFor(WHOLE_Z, (W_L + W_R) / 2, MAST_TOP, RIG_FOOT);
 const shots = (t) => [
   // the rig, drilling (1993 beside it)
   { a: -9999, z: RIG_Z, push: 0.02, at: still(RIG_C.x, RIG_C.y) },
@@ -120,6 +131,7 @@ const stackParts = (sc) => {
       seed: 11 + i * 7,
       sc,
       layer: i,
+      pose: open ? STACK_POSE : void 0,
       stencil: L("claimStencil"),
       boxNo: `BOX ${i + 1}`,
       // decorative box print (a generic diamond-drill-hole id and the box's depth range), not a figure of the story
@@ -142,9 +154,11 @@ export const BxClaim = ({ at, end, w, stage }) => {
   const top = sm(STACK_POSE, [0, STACK_TOP, 0]);
   const casters = [...rigCasters(RIG_POSE), { corners: stackCorners(STACK_POSE, N_CLOSED + 1), k: 0.9 }];
   const stack = stackParts(1.35);
+  casters.push(...palmCasters(PALMS_BACK));
   return /* @__PURE__ */ jsx(PlaceRoot, { children: /* @__PURE__ */ jsx(CamFn, { at: actionCam(shots(t)), children: /* @__PURE__ */ jsx("div", { "data-probe-leaving": travelling(f, claimCamWindows(t)), style: { position: "absolute", inset: 0 }, children: /* @__PURE__ */ jsxs(Turn, { at, end, from: -6, to: 4, amp: 0.9, children: [
     /* @__PURE__ */ jsx(TkFloor, { id: "clF", rig: R, at: { x: 640, z: 40 }, reach: 1350, casters, on: 1 - stage }),
     /* @__PURE__ */ jsx(CanopyFloor, { id: "clC", rig: R, f, at: { x: 640, z: 40 }, reach: 900, gust: rInOut(f, t.gust.a, t.gust.a + 14) * (1 - rInOut(f, t.gust.b - 14, t.gust.b)), on: 1 - stage, stage }),
+    /* @__PURE__ */ jsx(Palms, { id: "clP", rig: R, palms: PALMS_BACK, f }),
     /* @__PURE__ */ jsx(DrillRig, { id: "clR", rig: R, pose: RIG_POSE, head, spin, run: 1, plate: "", lamp, f, probe: "the Busang core-drill rig" }),
     /* @__PURE__ */ jsxs("div", { "data-probe-object": "the stack of BUSANG core boxes", style: { position: "absolute", inset: 0 }, children: [
       /* @__PURE__ */ jsx("svg", { width: 1080, height: 1920, style: { position: "absolute", left: 0, top: 0, overflow: "visible" }, children: /* @__PURE__ */ jsx(PaintParts, { parts: stack, map: smap, rig: R, id: "clS" }) }),

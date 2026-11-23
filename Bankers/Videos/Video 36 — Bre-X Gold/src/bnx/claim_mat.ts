@@ -40,3 +40,14 @@ export const MUD_SHEEN = "#A9BED6";
 export const LAMP_HOT = "#F4F8FD";
 export const LAMP_GLOW = "#B3CEEF";
 export { PL_STEEL, PL_RUBBER };
+// ★ REV1: the partner's rig is a DIFFERENT model and paint — a graphite frame and a pale blue-steel power pack and cab roof
+//   (Bre-X's: steel-blue frame, graphite pack), both from the plinth/school ramps
+export const RG_FRAME_B = mixR(PL_PLATE, ["#121519", "#1E2227", "#343B44", "#7A8592", "#D7DBE0"], 0.5);
+export const RG_PACK_B = mixR(HC_PANEL, ["#14304F", "#285383", "#5C88BA", "#ADC4DF", "#EEF3F9"], 0.5);
+// palm trees (REV1): ringed trunks and pinnate fronds in the house family — a cool grey-blue bark, a deep blue-green frond turned
+//   fully into the logo blue's family (no green): the palm reads by its shape, lit from the one key light
+export const PALM_BARK = ["#0F1B2B", "#1E3048", "#3A5677", "#7F9BBC", "#CBD8E6"];
+export const PALM_FROND = ["#0A1D35", "#14365E", "#25588F", "#5B8FCB", "#B5CFEC"];
+// a warning decal plate and the hazard stripes on the skid ends (pale on navy: no yellow)
+export const DECAL_PLATE = "#DCE6F1";
+export const DECAL_INK = "#0B1A30";

@@ -120,6 +120,16 @@
       "text": "CALGARY",
       "note": "label"
     },
+    "claimBrex": {
+      "place": "claim",
+      "text": "BRE-X",
+      "note": "the plate on the stack (split from claimPlate, builder B)"
+    },
+    "claimYear": {
+      "place": "claim",
+      "text": "1993",
+      "note": "beside the rig (split from claimPlate, builder B; FACTCHECK: May 6, 1993 purchase)"
+    },
     "claim2Readout": {
       "place": "claim2",
       "text": "70,950,000 OZ",
@@ -297,6 +307,8 @@
     "claimStencil": "BUSANG",
     "claimPlate": "BRE-X · 1993",
     "claimCity": "CALGARY",
+    "claimBrex": "BRE-X",
+    "claimYear": "1993",
     "claim2Readout": "70,950,000 OZ",
     "claim2Label": "71M OZ CLAIMED",
     "claim2Date": "FEB 1997",

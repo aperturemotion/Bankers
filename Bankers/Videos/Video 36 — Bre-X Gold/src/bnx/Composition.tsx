@@ -354,7 +354,7 @@ const SCN = [
 const FLARES = [
   // flare 1 (hook → claim): PROVISIONAL points — the gold bar's lit crown (hook builder) → a lit point on the BUSANG stack (claim builder)
   { peak: P.hook.end - 2, from: { x: 340, y: 543 },   // ★ REV 1: the bar's lit crown on the take (builder H, measured at f192)
-     to: { x: 288, y: 602 }, ghost: 2.2, grow: 24, hold: 2, recede: 16 },   // from: the bar's lit crown at f178 (builder H, hookFlarePoint) → to: the rig's work lamp at f199 (builder B)
+     to: { x: 295, y: 607 }, ghost: 2.2, grow: 24, hold: 2, recede: 16 },   // from: the bar's lit crown at f178 (builder H, hookFlarePoint) → to: the rig's work lamp at f199 (builder B)
   // flare 2 (rule → close): PROVISIONAL points — the steel seal's lit rim (rule builder) → the close's centre, where BANKER$ will stand
   //   recede 16 (as flare 1): the bloom is gone over the white stage before it drains (see LIGHT_WINDOWS)
   { peak: P.rule.end - 1, from: { x: 431, y: 647 },   // ★ REV 1: the vitrine bar's lit crown (builder C, measured at the peak)

@@ -88,6 +88,8 @@ LABELS = {
     "claimStencil":    ("claim", "BUSANG", "stencilled on the core boxes"),
     "claimPlate":      ("claim", "BRE-X · 1993", "the plate on the stack (object print)"),
     "claimCity":       ("claim", "CALGARY", "label"),
+    "claimBrex":       ("claim", "BRE-X", "the plate on the stack (split from claimPlate, builder B)"),
+    "claimYear":       ("claim", "1993", "beside the rig (split from claimPlate, builder B; FACTCHECK: May 6, 1993 purchase)"),
     # claim2 — a drum COUNTER rolling to 70,950,000 OZ
     "claim2Readout":   ("claim2", "70,950,000 OZ", "the counter's drums (Bre-X release, Feb 17, 1997)"),
     "claim2Label":     ("claim2", "71M OZ CLAIMED", "label"),

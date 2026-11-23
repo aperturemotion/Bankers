@@ -150,14 +150,14 @@ const partsOf = (g) => {
 // the core on the cap: one length of drill core in two steel V-blocks (claim_kit solids, in the plinth's own pose)
 const CORE = { len: 0.62, r: 46 };
 const coreParts = (g) => {
-  const L = Math.min(560, g.capW - 160), r = CORE.r, y = g.TOP, yc = y - 26 - r * 0.55;
+  const L = Math.min(560, g.capW - 160), r = CORE.r, y = g.TOP, yc = y - 26 - r * 0.97;
   const ps = [];
   for (const s of [-1, 1]) {
     const u = s * L * 0.3;
     ps.push(part(boxAB([u - 34, y - 26, -62], [u + 34, y, 62], 3), PL_STEEL, { key: `vb${s}`, spec: 0.8, layer: 0 }));
     ps.push(part(boxAB([u - 38, y - 4, -70], [u + 38, y, 70], 2), PL_PLATE, { key: `vbf${s}`, spec: 0.5, layer: -1 }));
   }
-  // the core itself is the FILM'S drill core (bx_core BxCore), broken once, lying across the two V-blocks
+  // ★ REV1: the core is ONE clean run of the film's drill core (bx_core BxCore), sawn at both ends, resting ON the two blocks
   return { ps, L, core: (pose) => xfMul(pose, coreXf(0, yc, 0)) };
 };
 /** the counter: samples = drum positions sampled over the frame's exposure (one array per sample, highest drum first) */
@@ -242,7 +242,7 @@ export const CounterBody = ({ id, rig, pose, slots, samples, lit, title, titleOn
         capScrews.map((c, k) => /* @__PURE__ */ jsx(Screw, { id: `${id}cs${k}`, map, rig, c, r: 6, plane: "top", slot: [20, -40, 60, 0][k] }, `cs${k}`)),
         /* @__PURE__ */ jsx("path", { d: sh, fill: "#000000", opacity: 0.35, style: { filter: "blur(6px)" } }),
         /* @__PURE__ */ jsx(PaintParts, { parts: core.ps, map, rig, id: `${id}k` }),
-        /* @__PURE__ */ jsx(BxCore, { id: `${id}core`, rig, xf: core.core(pose), len: core.L, r: CORE.r, seed: 1997, pieces: [[0, 0.57, "saw", "break"], [0.575, 1, "break", "saw"]], probe: null })
+        /* @__PURE__ */ jsx(BxCore, { id: `${id}core`, rig, xf: core.core(pose), len: core.L, r: CORE.r, seed: 1997, pieces: [[0, 1, "saw", "saw"]], probe: null })
       ] })
     ]
   });

@@ -13,7 +13,7 @@ import { Screw } from "./counter_plinth";
 import { label } from "./kit";
 import { SHOUT } from "./fonts";
 import { PaintParts, PartPrints, add3, bez3, boxAB, cylAB, extrudeZ, f2, faces, mul3, part, path3, ring3 } from "./claim_kit";
-import { LAMP_GLOW, LAMP_HOT, MUD, MUD_SHEEN, RG_BODY, RG_DECK, RG_FRAME, RG_PLATE, RG_RUBBER, RG_STEEL, RG_WALL } from "./claim_mat";
+import { DECAL_INK, DECAL_PLATE, LAMP_GLOW, LAMP_HOT, MUD, MUD_SHEEN, RG_BODY, RG_DECK, RG_FRAME as RG_FRAME_A, RG_FRAME_B, RG_PACK_B, RG_PLATE, RG_RUBBER, RG_STEEL, RG_WALL } from "./claim_mat";
 import { PL_GROOVE, PL_LIP } from "./counter_mat";
 
 const jsx = jsx_runtime.jsx, jsxs = jsx_runtime.jsxs;
@@ -34,10 +34,15 @@ export const RIG = {
   collar: [0, 0, 0],
   rodR: 0.035
 };
+// the water tank stands behind the mast, off the skid's far side (x, z in metres)
+const WT = [-0.85, -0.62];
 const RUNGS = Array.from({ length: 8 }, (_, k) => -0.62 - k * 0.42);
-let memo = null;
-const statics = () => {
-  if (memo) return memo;
+const memo = /* @__PURE__ */ new Map();
+// two models: "a" (Bre-X's: steel-blue frame, graphite pack) and "b" (the partner's: graphite frame, pale blue-steel pack and roof)
+const paint = (model) => model === "b" ? { frame: RG_FRAME_B, pack: RG_PACK_B, roof: RG_PACK_B } : { frame: RG_FRAME_A, pack: RG_BODY, roof: RG_FRAME_A };
+const statics = (model = "a") => {
+  if (memo.has(model)) return memo.get(model);
+  const { frame: RG_FRAME, pack: RG_PACK, roof: RG_ROOF } = paint(model);
   const runner = (z0, z1) => extrudeZ([[0.16, -0.2], [3.0, -0.2], [3.0, -0.08], [2.9, 0], [0.26, 0], [0.16, -0.08]].map(([x, y]) => [x * RM, y * RM]), z0 * RM, z1 * RM, 4);
   const { x0: mx0, x1: mx1, top: mt, zr } = RIG.mast;
   const P = (k, f, ramp, o) => ({ key: k, f, ramp, o });
@@ -67,7 +72,7 @@ const statics = () => {
     P("lampArm", B([0.35, -3.83, 0.1], [0.4, -3.8, 0.18], 0.004), RG_STEEL, { spec: 0.7 }),
     P("lamp", B([0.3, -3.98, 0.15], [0.45, -3.83, 0.26], 0.012), RG_BODY, { spec: 0.6 }),
     // the power pack, its exhaust stack and cap, fuel filler
-    P("pack", B([RIG.pack.x0, RIG.pack.y0, -RIG.pack.z], [RIG.pack.x1, RIG.deckTop, RIG.pack.z], 0.03), RG_BODY, { spec: 0.5, lift: 0.07 }),
+    P("pack", B([RIG.pack.x0, RIG.pack.y0, -RIG.pack.z], [RIG.pack.x1, RIG.deckTop, RIG.pack.z], 0.03), RG_PACK, { spec: 0.5, lift: model === "b" ? 0 : 0.07 }),
     P("plate", B([RIG.plate.x0, RIG.plate.y0, RIG.pack.z - 0.01], [RIG.plate.x1, RIG.plate.y1, RIG.plate.z], 0.006), RG_PLATE, { spec: 0.7, bias: 40 }),
     P("exh", C([2.62, RIG.pack.y0, -0.28], [2.62, -1.86, -0.28], 0.05, 14), RG_STEEL, { spec: 0.7 }),
     P("exhCap", B([2.55, -1.9, -0.35], [2.69, -1.86, -0.21], 0.006), RG_BODY, { spec: 0.6 }),
@@ -91,10 +96,42 @@ const statics = () => {
     // the foot clamp on its bracket, and the casing at the collar
     P("bracket", B([-0.2, -0.36, -0.2], [0.24, -0.3, 0.2], 0.008), RG_FRAME, { spec: 0.6, bias: 50 }),
     P("clamp", B([-0.15, -0.53, -0.15], [0.14, -0.36, 0.15], 0.014), RG_BODY, { spec: 0.55, bias: 60 }),
-    P("casing", C([0, -0.13, 0], [0, 0, 0], 0.068, 18), RG_STEEL, { spec: 0.6 })
+    P("casing", C([0, -0.13, 0], [0, 0, 0], 0.068, 18), RG_STEEL, { spec: 0.6 }),
+    // ★ REV1 detail — the rod rack on the far side (two trestles, a stack of spare rods with their thread pins)
+    ...[0.85, 2.55].flatMap((x, k) => [
+      P(`trestleL${k}`, B([x - 0.03, -0.66, -1.03], [x + 0.03, 0, -0.98], 0.005), RG_FRAME, { spec: 0.5 }),
+      P(`trestleR${k}`, B([x - 0.03, -0.66, -0.76], [x + 0.03, 0, -0.71], 0.005), RG_FRAME, { spec: 0.5 }),
+      P(`trestleT${k}`, B([x - 0.05, -0.7, -1.06], [x + 0.05, -0.64, -0.68], 0.006), RG_FRAME, { spec: 0.55 })
+    ]),
+    ...[[-1.0, -0.735], [-0.93, -0.735], [-0.86, -0.735], [-0.79, -0.735], [-0.965, -0.802], [-0.895, -0.802], [-0.825, -0.802]].flatMap(([z, y], k) => [
+      P(`rod${k}`, C([0.45, y, z], [2.95, y, z], 0.034, 12), RG_STEEL, { spec: 0.85, bias: -k }),
+      P(`pin${k}`, C([2.95, y, z], [3.03, y, z], 0.024, 10), RG_STEEL, { spec: 0.9, bias: -k })
+    ]),
+    // the water tank behind the mast (an upright tank with its bands, lid and outlet toward the skid)
+    P("wtank", C([WT[0], 0, WT[1]], [WT[0], -1.02, WT[1]], 0.3, 22), RG_PACK, { bias: -150, spec: 0.35, lift: model === "b" ? 0 : 0.12, after: (mp, rg) => tankBands(mp, rg) }),
+    P("wlid", C([WT[0], -1.02, WT[1]], [WT[0], -1.07, WT[1]], 0.12, 16), RG_STEEL, { spec: 0.7 }),
+    P("wout", C([WT[0] + 0.29, -0.12, WT[1] + 0.06], [WT[0] + 0.4, -0.12, WT[1] + 0.1], 0.03, 10), RG_STEEL, { spec: 0.8 }),
+    // the mast ladder (stiles and rungs) on standoffs in front of its right rail
+    P("ladL", C([0.66, -0.3, 0.27], [0.66, -3.6, 0.27], 0.014, 8), RG_STEEL, { spec: 0.8, bias: 40 }),
+    P("ladR", C([0.9, -0.3, 0.27], [0.9, -3.6, 0.27], 0.014, 8), RG_STEEL, { spec: 0.8, bias: 40 }),
+    ...Array.from({ length: 11 }, (_, k) => P(`lrung${k}`, C([0.66, -0.6 - k * 0.3, 0.27], [0.9, -0.6 - k * 0.3, 0.27], 0.01, 6), RG_STEEL, { spec: 0.8, bias: 41 })),
+    ...[-1.2, -2.4, -3.4].map((y, k) => P(`lstand${k}`, B([0.58, y - 0.02, 0.08], [0.68, y + 0.02, 0.27], 0.003), RG_FRAME, { spec: 0.5, bias: 39 })),
+    // the operator's station: a grated platform off the deck's front, a guard rail, posts and a sun roof over the control panel
+    P("oplat", B([0.36, -0.3, 0.56], [1.1, -0.26, 0.88], 0.004), RG_DECK, { spec: 0.4, after: (mp, rg) => grating(mp, rg) }),
+    ...[[0.4, 0.84], [1.06, 0.84], [0.4, 0.36], [1.06, 0.36]].map(([x, z], k) => P(`opost${k}`, C([x, -0.3, z], [x, -1.98, z], 0.018, 8), RG_FRAME, { spec: 0.6, bias: z > 0.5 ? 80 : 0 })),
+    P("oroof", B([0.33, -2.04, 0.3], [1.13, -1.98, 0.9], 0.008), RG_ROOF, { spec: 0.6, bias: 90 }),
+    P("orail", C([0.4, -1.05, 0.86], [1.06, -1.05, 0.86], 0.014, 8), RG_FRAME, { spec: 0.6, bias: 85 }),
+    P("orail2", C([0.4, -0.68, 0.86], [1.06, -0.68, 0.86], 0.012, 8), RG_FRAME, { spec: 0.6, bias: 85 }),
+    // guard rails along the deck's back edge and its right end
+    ...[0.75, 1.5, 2.25, 2.98].map((x, k) => P(`gpost${k}`, C([x, RIG.deckTop, -0.53], [x, -1.2, -0.53], 0.016, 8), RG_FRAME, { spec: 0.6 })),
+    P("grail", C([0.75, -1.2, -0.53], [2.98, -1.2, -0.53], 0.017, 8), RG_FRAME, { spec: 0.6 }),
+    P("grail2", C([0.75, -0.75, -0.53], [2.98, -0.75, -0.53], 0.013, 8), RG_FRAME, { spec: 0.6 }),
+    P("gpostE", C([2.98, RIG.deckTop, 0.53], [2.98, -1.2, 0.53], 0.016, 8), RG_FRAME, { spec: 0.6, bias: 60 }),
+    P("grailE", C([2.98, -1.2, -0.53], [2.98, -1.2, 0.53], 0.017, 8), RG_FRAME, { spec: 0.6, bias: 60 })
   ];
-  memo = list.map((p) => part(p.f, p.ramp, { key: p.key, ...p.o }));
-  return memo;
+  const out = list.map((p) => part(p.f, p.ramp, { key: p.key, ...p.o }));
+  memo.set(model, out);
+  return out;
 };
 // ── decals ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 const tread = (map, rig) => {
@@ -128,10 +165,11 @@ const louvres = (map, rig) => {
 };
 /** the rig in a scene: pose = xfPose(…); head = the head's top (m); spin = the chuck's turn (deg); run 0…1 = drilling (mud);
  *  plate = the engraved maker's text (or ""), plateOn = its paint; lamp 0…1; f = frame (ripples) */
-export const DrillRig = ({ id, rig, pose, head = RIG.head.top, spin = 0, run = 0, plate = "", plateOn = 0, lamp = 0.5, f = 0, probe, mudOn = 1 }) => {
+export const DrillRig = ({ id, rig, pose, head = RIG.head.top, spin = 0, run = 0, plate = "", plateOn = 0, lamp = 0.5, f = 0, probe, mudOn = 1, model = "a", helix = 0 }) => {
   const map = (q) => xfApply(pose, q);
   const hy = head;
-  const st = statics();
+  const st = statics(model);
+  const { frame: RG_FRAME } = paint(model);
   const sc = Math.hypot(pose.m[0], pose.m[3], pose.m[6]);
   // the moving parts: the head and what rides with it, the rod string, the hoses and the wireline
   const chuckB = hy + RIG.head.h + 0.14;
@@ -143,9 +181,9 @@ export const DrillRig = ({ id, rig, pose, head = RIG.head.top, spin = 0, run = 0
     part(C([0.12, hy - 0.26, -0.09], [0.12, hy - 0.22, -0.09], 0.05, 14), RG_BODY, { key: "motorCap", spec: 0.6, bias: 175 }),
     part(C([0, hy - 0.16, 0], [0, hy, 0], 0.048, 14), RG_STEEL, { key: "swivel", spec: 0.7, bias: 180 }),
     part(C([0, hy + RIG.head.h, 0], [0, chuckB, 0], 0.1, 18), RG_STEEL, { key: "chuck", spec: 0.7, bias: 140, after: (mp, rg) => chuckBolts(mp, rg, hy, spin) }),
-    chuckB < -0.6 && part(C([0, chuckB, 0], [0, -0.53, 0], RIG.rodR, 12), RG_STEEL, { key: "rodU", spec: 0.85, bias: 100, after: (mp, rg) => rodStripes(mp, rg, chuckB, -0.53, spin) }),
+    chuckB < -0.6 && part(C([0, chuckB, 0], [0, -0.53, 0], RIG.rodR, 12), RG_STEEL, { key: "rodU", spec: 0.85, bias: 100, after: (mp, rg) => helix > 0 ? rodHelix(mp, rg, chuckB, -0.53, spin, helix) : rodStripes(mp, rg, chuckB, -0.53, spin) }),
     joint < -0.6 && part(C([0, joint, 0], [0, joint + 0.07, 0], RIG.rodR + 0.008, 12), RG_STEEL, { key: "joint", spec: 0.8, bias: 110 }),
-    part(C([0, -0.3, 0], [0, -0.13, 0], RIG.rodR, 12), RG_STEEL, { key: "rodL", spec: 0.85, bias: -40, after: (mp, rg) => rodStripes(mp, rg, -0.3, -0.13, spin) })
+    part(C([0, -0.3, 0], [0, -0.13, 0], RIG.rodR, 12), RG_STEEL, { key: "rodL", spec: 0.85, bias: -40, after: (mp, rg) => helix > 0 ? rodHelix(mp, rg, -0.3, -0.13, spin, helix) : rodStripes(mp, rg, -0.3, -0.13, spin) })
   ];
   const hoses = {
     key: "hoses",
@@ -177,12 +215,14 @@ export const DrillRig = ({ id, rig, pose, head = RIG.head.top, spin = 0, run = 0
         return (mp, rg) => /* @__PURE__ */ jsx("path", { d: tread(mp, rg), stroke: rampAt(RG_DECK, 0.82), strokeWidth: 1.4 * sc, opacity: 0.32, strokeLinecap: "round", fill: "none" });
       case "runN":
         return (mp, rg) => /* @__PURE__ */ jsxs("g", { children: [
+          hazard(mp, rg, 2.62, 2.98, sc),
           /* @__PURE__ */ jsx("path", { d: path3(mp, rg, [m3([0.3, -0.16, 0.481]), m3([2.86, -0.16, 0.481])], false), stroke: "#000000", strokeOpacity: 0.35, strokeWidth: 1.2 * sc, fill: "none" }),
           [0.5, 1.2, 1.9, 2.6].map((x, i) => /* @__PURE__ */ jsx(Screw, { id: `${id}rb${i}`, map: mp, rig: rg, c: m3([x, -0.1, 0.481]), r: 0.022 * RM, plane: "front", slot: 20 + i * 30 }, i))
         ] });
       case "pack":
         return (mp, rg) => {
           const g = grilleOf(mp, rg), lv = louvres(mp, rg);
+          const bolts = [[1.38, -1.26], [2.82, -1.26], [1.38, -0.36], [2.82, -0.36]].map(([x, y], k) => /* @__PURE__ */ jsx(Screw, { id: `${id}pb${k}`, map: mp, rig: rg, c: m3([x, y, RIG.pack.z + 1e-3]), r: 0.016 * RM, plane: "front", slot: 30 * k }, `pb${k}`));
           const showG = faces(mp, rg, [-1, 0, 0], m3([RIG.pack.x0, -0.8, 0]));
           return /* @__PURE__ */ jsxs("g", { children: [
             showG && /* @__PURE__ */ jsx("path", { d: g.box, fill: "#05080B", opacity: 0.55 }),
@@ -190,7 +230,9 @@ export const DrillRig = ({ id, rig, pose, head = RIG.head.top, spin = 0, run = 0
             /* @__PURE__ */ jsx("path", { d: lv.dk, stroke: "#03060A", strokeWidth: 3.4 * sc, opacity: 0.7, fill: "none" }),
             /* @__PURE__ */ jsx("path", { d: lv.lt, stroke: rampAt(RG_BODY, 0.85), strokeWidth: 1 * sc, opacity: 0.5, fill: "none" }),
             /* @__PURE__ */ jsx("path", { d: path3(mp, rg, [m3([RIG.pack.x0 + 0.04, RIG.pack.y0 - 1e-3, -0.02]), m3([RIG.pack.x1 - 0.04, RIG.pack.y0 - 1e-3, -0.02])], false), stroke: "#000000", strokeOpacity: 0.5, strokeWidth: 1.6 * sc, fill: "none" }),
-            /* @__PURE__ */ jsx("path", { d: path3(mp, rg, [m3([RIG.pack.x0 + 0.04, RIG.pack.y0 - 1e-3, 0.0]), m3([RIG.pack.x1 - 0.04, RIG.pack.y0 - 1e-3, 0.0])], false), stroke: rampAt(RG_BODY, 0.9), strokeOpacity: 0.3, strokeWidth: 1 * sc, fill: "none" })
+            /* @__PURE__ */ jsx("path", { d: path3(mp, rg, [m3([RIG.pack.x0 + 0.04, RIG.pack.y0 - 1e-3, 0.0]), m3([RIG.pack.x1 - 0.04, RIG.pack.y0 - 1e-3, 0.0])], false), stroke: rampAt(RG_BODY, 0.9), strokeOpacity: 0.3, strokeWidth: 1 * sc, fill: "none" }),
+            bolts,
+            showG && warnPlate(mp, rg, [RIG.pack.x0 - 2e-3, -1.26, 0.3], 0.12, sc, [-1, 0, 0])
           ] });
         };
       case "plate":
@@ -201,6 +243,12 @@ export const DrillRig = ({ id, rig, pose, head = RIG.head.top, spin = 0, run = 0
         return (mp, rg) => drumWraps(mp, rg, sc);
       case "lamp":
         return (mp, rg) => lampDecal(mp, rg, id, lamp, sc);
+      case "mfoot":
+        return (mp, rg) => /* @__PURE__ */ jsxs("g", { children: [
+          [[0.22, -0.33], [0.62, -0.33]].map(([x, y], k) => /* @__PURE__ */ jsx(Screw, { id: `${id}mf${k}`, map: mp, rig: rg, c: m3([x, y, 0.201]), r: 0.018 * RM, plane: "front", slot: k * 50 }, k))
+        ] });
+      case "runF":
+        return void 0;
       case "tank":
         return (mp, rg) => /* @__PURE__ */ jsx("path", { d: path3(mp, rg, [[0.7, -0.78, -0.059], [0.74, -0.78, -0.059], [0.74, -0.46, -0.059], [0.7, -0.46, -0.059]].map(m3)), fill: rampAt(RG_STEEL, 0.7), opacity: 0.55 });
       case "clamp":
@@ -217,6 +265,57 @@ export const DrillRig = ({ id, rig, pose, head = RIG.head.top, spin = 0, run = 0
     ] }),
     /* @__PURE__ */ jsx(PartPrints, { parts, rig, pose, id: `${id}t` })
   ] });
+};
+// a warning decal: a pale square plate with a navy triangle and exclamation bar (no text), on the face with normal n
+const warnPlate = (map, rig, c, s, sc, n = [0, 0, 1]) => {
+  const u = n[0] ? [0, 0, -n[0]] : [1, 0, 0], v = [0, 1, 0];
+  const at = (a, b) => m3([c[0] + u[0] * a + v[0] * b, c[1] + u[1] * a + v[1] * b, c[2] + u[2] * a + v[2] * b]);
+  const h = s / 2;
+  return /* @__PURE__ */ jsxs("g", { children: [
+    /* @__PURE__ */ jsx("path", { d: path3(map, rig, [at(-h, -h), at(h, -h), at(h, h), at(-h, h)]), fill: DECAL_PLATE, opacity: 0.88 }),
+    /* @__PURE__ */ jsx("path", { d: path3(map, rig, [at(0, -h * 0.72), at(h * 0.72, h * 0.6), at(-h * 0.72, h * 0.6)]), fill: "none", stroke: DECAL_INK, strokeWidth: 1.6 * sc, strokeLinejoin: "round" }),
+    /* @__PURE__ */ jsx("path", { d: path3(map, rig, [at(0, -h * 0.3), at(0, h * 0.25)], false), stroke: DECAL_INK, strokeWidth: 1.6 * sc, fill: "none" })
+  ] });
+};
+// hazard stripes on the near runner's end (pale and navy diagonals)
+const hazard = (map, rig, x0, x1, sc) => {
+  const z = 0.4801, out = [];
+  for (let x = x0, k = 0; x < x1; x += 0.07, k++) {
+    if (k % 2) continue;
+    out.push(path3(map, rig, [[x, -0.19, z], [x + 0.05, -0.19, z], [x + 0.05 - 0.06, -0.03, z], [x - 0.06, -0.03, z]].map(m3)));
+  }
+  return /* @__PURE__ */ jsx("path", { d: out.join(""), fill: DECAL_PLATE, opacity: 0.55 });
+};
+const grating = (map, rig) => {
+  let d = "";
+  for (let x = 0.4; x < 1.08; x += 0.045) d += path3(map, rig, [m3([x, -0.301, 0.58]), m3([x, -0.301, 0.86])], false);
+  return /* @__PURE__ */ jsx("path", { d, stroke: "#000000", strokeOpacity: 0.35, strokeWidth: 1, fill: "none" });
+};
+const tankBands = (map, rig) => /* @__PURE__ */ jsx("g", { children: [-0.25, -0.55, -0.85].map((y, k) => {
+  const pts = [];
+  for (let a = -40; a <= 130; a += 10) {
+    const t = a * Math.PI / 180;
+    pts.push(m3([WT[0] - 0.302 * Math.cos(t), y, WT[1] + 0.302 * Math.sin(t)]));
+  }
+  return /* @__PURE__ */ jsx("path", { d: path3(map, rig, pts, false), stroke: "#000000", strokeOpacity: 0.35, strokeWidth: 2.2, fill: "none" }, k);
+}) });
+// the partner's string spinning DOWN: painted helical bands on the rods that travel down as the string turns
+const rodHelix = (map, rig, y0, y1, spin, amt) => {
+  const pitch = 0.16, out = [];
+  for (let b = 0; b < 2; b++) {
+    const pts = [];
+    for (let y = y0; y <= y1 + 1e-6; y += 0.008) {
+      const a = (spin + b * 180) * Math.PI / 180 + (y - y0) / pitch * 2 * Math.PI;
+      const n = [Math.cos(a), 0, Math.sin(a)];
+      if (faces(map, rig, n, m3([RIG.rodR * n[0], y, RIG.rodR * n[2]]))) pts.push(m3([RIG.rodR * 1.03 * n[0], y, RIG.rodR * 1.03 * n[2]]));
+      else if (pts.length) {
+        out.push(path3(map, rig, pts, false));
+        pts.length = 0;
+      }
+    }
+    if (pts.length > 1) out.push(path3(map, rig, pts, false));
+  }
+  return /* @__PURE__ */ jsx("path", { d: out.join(""), stroke: "#0B1A30", strokeOpacity: 0.55 * amt, strokeWidth: 2.2, fill: "none", strokeLinecap: "round" });
 };
 const hose = (map, rig, pts, r) => {
   const d = path3(map, rig, pts.map(m3), false);
@@ -344,6 +443,7 @@ export const rigCasters = (pose) => {
   };
   return [
     { corners: box([RIG.skid.x0, RIG.deckTop, -RIG.skid.z], [RIG.skid.x1, 0, RIG.skid.z]), k: 0.9 },
+    { corners: box([WT[0] - 0.3, -1.05, WT[1] - 0.3], [WT[0] + 0.3, 0, WT[1] + 0.3]), k: 0.7 },
     { corners: box([RIG.pack.x0, RIG.pack.y0, -RIG.pack.z], [RIG.pack.x1, 0, RIG.pack.z]), k: 0.8 },
     { corners: box([RIG.mast.x0, RIG.mast.top, -RIG.mast.zr], [RIG.mast.x1, 0, RIG.mast.zr]), k: 0.4 }
   ];

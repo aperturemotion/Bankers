@@ -21,17 +21,31 @@ import { TkFloor } from "./tk_floor";
 import { DrillRig, RIG, RM, rigCasters, rigScr } from "./claim_rig";
 import { BxCore, BxTray, CORE_LEN, coreXf, trayCoreY, trayCorners, trayRowZ, trayWidth } from "./bx_core";
 import { CanopyFloor } from "./claim_canopy";
+import { Palms, palmCasters } from "./claim_palm";
+import { PaintParts, boxAB, part, path3 } from "./claim_kit";
+import { RG_DECK } from "./claim_mat";
 
 const jsx = jsx_runtime.jsx, jsxs = jsx_runtime.jsxs;
-const R = tkRig({ eye: 1500, pitch: -14 });
-const K = 0.86, YAW = 28;
+// ★ REV1 "they are pretty similar" to claim: a different camera (higher, from the pad's OTHER side, looking down onto the concrete
+//   pad between the rigs), a different rig model/paint for the partner (graphite frame, pale blue-steel pack and roof), the
+//   partner's string painted with helical bands that travel down as it spins, palms around the pad
+const R = tkRig({ eye: 2000, pitch: -22, yaw: -20 });
+const K = 0.86, YAW = -26;
 // Bre-X's rig at the left, set back; the partner's at the right, a step forward; the partner's core tray in front of its collar
-const BREX_POSE = xfPose(40, TK_FLOOR_Y, -320, K, YAW);
-const PART_POSE = xfPose(520, TK_FLOOR_Y, -20, K, YAW);
+const BREX_POSE = xfPose(-170, TK_FLOOR_Y, -260, K, YAW);
+const PART_POSE = xfPose(600, TK_FLOOR_Y, 60, K, YAW);
 // the partner's core tray: the FILM'S tray (bx_core BxTray, galvanised steel — the same tray the hook's and the crack's cores lie
 //   in), its units ≈ 1 px per mm, posed at this pad's scale (RM px per metre)
+// the concrete drill pad both rigs stand on, its expansion joints, and the palms around it
+const PAD = { x0: -520, x1: 1180, z0: -700, z1: 640, h: 5 };
+const PALMS = [
+  { base: [-390, TK_FLOOR_Y, 430], h: 720, lean: [-0.14, 0.08], seed: 51 },
+  { base: [980, TK_FLOOR_Y, -720], h: 560, lean: [0.1, -0.06], seed: 63 },
+  { base: [1360, TK_FLOOR_Y, 520], h: 620, lean: [0.16, 0.06], seed: 77 }
+];
+const padParts = () => [part(boxAB([PAD.x0, TK_FLOOR_Y - PAD.h, PAD.z0], [PAD.x1, TK_FLOOR_Y, PAD.z1], 2), ["#0A1626", "#10233A", "#173352", "#2E5684", "#6F93BD"], { key: "pad", spec: 0.1, after: (map, rig) => /* @__PURE__ */ jsx("path", { d: [0.25, 0.5, 0.75].map((u) => path3(map, rig, [[PAD.x0 + u * (PAD.x1 - PAD.x0), TK_FLOOR_Y - PAD.h - 0.3, PAD.z0], [PAD.x0 + u * (PAD.x1 - PAD.x0), TK_FLOOR_Y - PAD.h - 0.3, PAD.z1]], false) + path3(map, rig, [[PAD.x0, TK_FLOOR_Y - PAD.h - 0.3, PAD.z0 + u * (PAD.z1 - PAD.z0)], [PAD.x1, TK_FLOOR_Y - PAD.h - 0.3, PAD.z0 + u * (PAD.z1 - PAD.z0)]], false)).join(""), stroke: "#0A1522", strokeOpacity: 0.45, strokeWidth: 1.4, fill: "none" }) })];
 const TRAY_ROWS = 3, TRAY_K = K * 1.75 * RM / 1000;
-const TRAY_POSE = xfPose(570, TK_FLOOR_Y, 270, TRAY_K, 14);
+const TRAY_POSE = xfPose(640, TK_FLOOR_Y, 430, TRAY_K, -18);
 export const partnerTimes = (w, end) => {
   for (const k of ["s0", "march", "partner", "drilled", "test", "holes", "beside", "brexs"]) if (!Number.isFinite(w[k])) throw new Error(`partner: the take has no word frame "${k}"`);
   const t = {
@@ -61,23 +75,24 @@ const PIV = 993, TOPMIN = 520, BOTMAX = 1620;
 // the crown never rises into the caption headroom (that bound wins); the foot is kept in frame where it still fits
 const fitY = (z, top, foot, want) => Math.min(top + (PIV - TOPMIN) / z, Math.max(foot - (BOTMAX - PIV) / z, want));
 const MAST_B = lay(rigScr(R, BREX_POSE, [0.3, RIG.sheave.c[1] - RIG.sheave.r, 0])), MAST_P = lay(rigScr(R, PART_POSE, [0.3, RIG.sheave.c[1] - RIG.sheave.r, 0]));
-const LEFT = lay(rigScr(R, BREX_POSE, [-0.75, 0, 0.6])), RIGHT = lay(rigScr(R, PART_POSE, [RIG.skid.x1, 0, 0.5]));
+const EXT = [...rigCasters(BREX_POSE), ...rigCasters(PART_POSE)].flatMap((c) => c.corners).map((q) => worldScr(R, q));
+const LEFT = { x: Math.min(...EXT.map((p) => p[0])), y: Math.max(...EXT.map((p) => p[1])) }, RIGHT = { x: Math.max(...EXT.map((p) => p[0])), y: Math.max(...EXT.map((p) => p[1])) };
 const TRAY_F = lay(worldScr(R, xfApply(TRAY_POSE, [0, 0, trayWidth(TRAY_ROWS) / 2 + 40])));
-const TOP = Math.min(MAST_B.y, MAST_P.y), FOOT = Math.max(TRAY_F.y, LEFT.y, RIGHT.y);
+const TOP = Math.min(MAST_B.y, MAST_P.y, ...EXT.map((p) => p[1])), FOOT = Math.max(TRAY_F.y, LEFT.y, RIGHT.y);
 const ZB = Math.min(0.98, 920 / (RIGHT.x - LEFT.x));
 const BOTH = { x: (LEFT.x + RIGHT.x) / 2, y: fitY(ZB, TOP, FOOT, (TOP + FOOT) / 2) };
 const P_HEAD = lay(rigScr(R, PART_POSE, [0.6, -2.2, 0])), P_COLLAR = lay(rigScr(R, PART_POSE, [0.5, -0.4, 0.3])), TRAY_C = lay(worldScr(R, xfApply(TRAY_POSE, [0, -40, 0])));
-const ZP = 1.34;
+const ZP = 1.22;
 // MARCH 1997 sits right of the partner's mast, over its power pack and clear above its exhaust stack
 const EXH = lay(rigScr(R, PART_POSE, [2.62, -1.9, -0.28]));
-const DATE_AT = { x: Math.max(MAST_P.x + 230, EXH.x + 20), y: Math.min(EXH.y - 40, MAST_P.y + 230) };
+const DATE_AT = { x: MAST_P.x + 215, y: MAST_P.y + 150 };
 const shots = (t) => [
   // both rigs on the pad
   { a: -9999, z: ZB, push: 0.02, at: still(BOTH.x, BOTH.y) },
   // in to the partner's rig, its spinning string, its collar and its tray (its plate fills on "partner"), easing on down the string
   { a: t.push.a, dur: t.push.dur, z: ZP, push: 0.03, ride: { a: t.ride.a, b: t.ride.b }, at: (g) => {
     const e = rInOut(g, t.ride.a, t.ride.b);
-    return { x: mix(P_HEAD.x + 60, P_COLLAR.x + 60, e), y: fitY(ZP, MAST_P.y, TRAY_F.y, mix(P_HEAD.y, (P_COLLAR.y + TRAY_C.y) / 2, e)) };
+    return { x: mix(P_HEAD.x + 60, P_COLLAR.x + 60, e), y: fitY(ZP, TOP, TRAY_F.y, mix(P_HEAD.y, (P_COLLAR.y + TRAY_C.y) / 2, e)) };
   } },
   // back to both: the partner's holes beside Bre-X's
   { a: t.pull.a, dur: t.pull.dur, z: ZB, push: 0.015, at: still(BOTH.x, BOTH.y) }
@@ -100,7 +115,7 @@ export const partnerSfx = (t) => [
 const NEAR = TRAY_ROWS - 1;
 const RUNS = [
   [[0, 0.22, "saw", "break"], [0.225, 0.47, "break", "break"], [0.475, 0.61, "break", "block"], [0.64, 1, "saw", "saw"]],
-  [[0, 0.34, "saw", "break"], [0.345, 0.52, "break", "break"], [0.525, 0.79, "break", "break"], [0.795, 1, "break", "saw"]]
+  [[0, 0.34, "saw", "break"], [0.345, 0.52, "break", "break", "half"], [0.525, 0.79, "break", "break"], [0.795, 1, "break", "saw"]]
 ];
 const NEAR_PIECES = [[0, 0.17], [0.175, 0.38], [0.385, 0.52], [0.525, 0.74], [0.745, 0.88], [0.885, 1]];
 const NEAR_N = NEAR_PIECES.length;
@@ -137,12 +152,14 @@ export const BxPartner = ({ at, end, w, stage }) => {
   const head = RIG.head.top + 0.55 + 0.25 * clamp01((f - at + 30) / 160) + 0.75 * rInOut(f, t.bite.a, end + 10);
   const spin = (f - at) * 9 + 14 * Math.max(0, f - t.bite.a) * bite;
   const dateAt = DATE_AT;
-  const casters = [...rigCasters(BREX_POSE), ...rigCasters(PART_POSE), { corners: trayCorners(TRAY_POSE, TRAY_ROWS), k: 0.7 }];
+  const casters = [...rigCasters(BREX_POSE), ...rigCasters(PART_POSE), ...palmCasters(PALMS), { corners: trayCorners(TRAY_POSE, TRAY_ROWS), k: 0.7 }];
   return /* @__PURE__ */ jsx(PlaceRoot, { children: /* @__PURE__ */ jsx(CamFn, { at: actionCam(shots(t)), children: /* @__PURE__ */ jsx("div", { "data-probe-leaving": travelling(f, partnerCamWindows(t)), style: { position: "absolute", inset: 0 }, children: /* @__PURE__ */ jsxs(Turn, { at, end, from: -6, to: 4, amp: 0.9, children: [
     /* @__PURE__ */ jsx(TkFloor, { id: "ptF", rig: R, at: { x: 520, z: 0 }, reach: 1350, casters, on: 1 - stage }),
-    /* @__PURE__ */ jsx(CanopyFloor, { id: "ptC", rig: R, f, at: { x: 520, z: 0 }, reach: 900, on: 1 - stage, stage }),
-    /* @__PURE__ */ jsx(DrillRig, { id: "ptB", rig: R, pose: BREX_POSE, head: RIG.head.top, spin: 0, run: 0, plate: L("partnerBrex"), plateOn: on(t.plateB), lamp: 0.18, f, probe: "Bre-X's rig, idle" }),
-    /* @__PURE__ */ jsx(DrillRig, { id: "ptP", rig: R, pose: PART_POSE, head, spin, run: 0.5 + 0.5 * bite, plate: L("partnerPlate"), plateOn: on(t.plateP), lamp: 0.5, f, probe: "the partner's rig, drilling" }),
+    /* @__PURE__ */ jsx("div", { "data-probe": "bg", style: { position: "absolute", inset: 0 }, children: /* @__PURE__ */ jsx("svg", { width: 1080, height: 1920, style: { position: "absolute", left: 0, top: 0, overflow: "visible" }, children: /* @__PURE__ */ jsx(PaintParts, { parts: padParts(), map: (q) => q, rig: R, id: "ptPad" }) }) }),
+    /* @__PURE__ */ jsx(CanopyFloor, { id: "ptC", rig: R, f, at: { x: 460, z: -80 }, reach: 900, on: 1 - stage, stage }),
+    /* @__PURE__ */ jsx(Palms, { id: "ptPl", rig: R, palms: PALMS, f }),
+    /* @__PURE__ */ jsx(DrillRig, { id: "ptB", rig: R, pose: BREX_POSE, model: "a", head: RIG.head.top, spin: 0, run: 0, plate: L("partnerBrex"), plateOn: on(t.plateB), lamp: 0.18, f, probe: "Bre-X's rig, idle" }),
+    /* @__PURE__ */ jsx(DrillRig, { id: "ptP", rig: R, pose: PART_POSE, model: "b", helix: 1, head, spin, run: 0.5 + 0.5 * bite, plate: L("partnerPlate"), plateOn: on(t.plateP), lamp: 0.5, f, probe: "the partner's rig, drilling" }),
     /* @__PURE__ */ jsx("div", { "data-probe-object": "the partner's core tray (the film's galvanised tray) and its own core", style: { position: "absolute", inset: 0 }, children: /* @__PURE__ */ jsx("svg", { width: 1080, height: 1920, style: { position: "absolute", left: 0, top: 0, overflow: "visible" }, children: /* @__PURE__ */ jsx(BxTray, { id: "ptT", rig: R, xf: TRAY_POSE, rows: TRAY_ROWS, cores: [{ seed: 31, pieces: RUNS[0] }, { seed: 37, pieces: RUNS[1] }], hero: NEAR, heroEl: () => /* @__PURE__ */ jsx(NearRow, { t, f }), probe: null }) }) }),
     /* @__PURE__ */ jsx(DateLabel, { x: dateAt.x, y: dateAt.y, on: on(t.date), text: L("partnerDate") })
   ] }) }) }) });
