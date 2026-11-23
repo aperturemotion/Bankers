@@ -97,6 +97,7 @@ LABELS = {
     # hype — a one-cent coin grows into the hook's gold bar; three engraved pension plaques
     "hypeFrom":        ("hype", "PENNIES", "the coin's plinth"),
     "hypeTo":          ("hype", "C$6B", "the bar"),
+    "hypePension":     ("hype", "PENSION FUNDS", "Timur 2026-11-23: one readable label for 'Pension funds piled in' (replaces the three plaques)"),
     "hypePlaqueOtpp":  ("hype", "ONTARIO TEACHERS'", "engraved plaque (name only, no logo)"),
     "hypePlaqueOmers": ("hype", "OMERS", "engraved plaque"),
     "hypePlaqueCaisse": ("hype", "CAISSE", "engraved plaque (Caisse de dépôt et placement du Québec)"),

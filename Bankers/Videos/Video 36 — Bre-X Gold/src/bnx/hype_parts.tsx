@@ -46,10 +46,10 @@ export const pedestalCorners = (pose) => {
   return out;
 };
 /** the pedestal: word = L("hypeFrom"), wordOn 0…1 fills its engraving with paint (on "pennies") */
-export const HypePedestal = ({ id, rig, pose, word, wordOn = 0, sheen = 0 }) => {
+export const HypePedestal = ({ id, rig, pose, word, wordOn = 0, sheen = 0, rails = true }) => {
   const map = (q) => xfApply(pose, q);
   const P = (pts, close = true) => mapPath(map, rig, pts, close);
-  const { feet, foot, body, cap, head, rails } = parts();
+  const { feet, foot, body, cap, head, rails: railFaces } = parts();
   const W = HP.body.W, b0 = VB0, b1 = VB0 + HP.body.H;
   // the brushed face: horizontal brush lines and a soft sheen band
   const brush = [];
@@ -74,9 +74,9 @@ export const HypePedestal = ({ id, rig, pose, word, wordOn = 0, sheen = 0 }) => 
       jsx("path", { d: band(0, 120), fill: "#ffffff", opacity: 0.03 }),
       jsx("path", { d: band(150, 26), fill: "#ffffff", opacity: 0.022 }),
       jsx("path", { d: P([[-W / 2, b0, ZF + 0.1], [W / 2, b0, ZF + 0.1], [W / 2, b0 + 7, ZF + 0.1], [-W / 2, b0 + 7, ZF + 0.1]]), fill: "#000000", opacity: 0.3 }),
-      [0, 1, 2].map((i) => jsx("path", { d: chan(i), fill: rampAt(PL_BODY, 0.2), opacity: 1 }, `ch${i}`)),
-      [0, 1, 2].map((i) => jsx("path", { d: P([[-PLQ.w / 2 - 10, slotV(i) - PLQ.h / 2 + 2, ZF + 0.3], [PLQ.w / 2 + 10, slotV(i) - PLQ.h / 2 + 2, ZF + 0.3]], false), stroke: "#000000", strokeWidth: 4, opacity: 0.35, fill: "none" }, `cs${i}`)),
-      [0, 1, 2].map((i) => jsx(Faces, { faces: rails[i], map, rig, ramp: () => PL_STEEL, spec: 0.7 }, `rl${i}`)),
+      rails && [0, 1, 2].map((i) => jsx("path", { d: chan(i), fill: rampAt(PL_BODY, 0.2), opacity: 1 }, `ch${i}`)),
+      rails && [0, 1, 2].map((i) => jsx("path", { d: P([[-PLQ.w / 2 - 10, slotV(i) - PLQ.h / 2 + 2, ZF + 0.3], [PLQ.w / 2 + 10, slotV(i) - PLQ.h / 2 + 2, ZF + 0.3]], false), stroke: "#000000", strokeWidth: 4, opacity: 0.35, fill: "none" }, `cs${i}`)),
+      rails && [0, 1, 2].map((i) => jsx(Faces, { faces: railFaces[i], map, rig, ramp: () => PL_STEEL, spec: 0.7 }, `rl${i}`)),
       screws.map((c, k) => jsx(Screw, { id: `${id}s${k}`, map, rig, c, r: 7, plane: "front", slot: [25, -30, 50, -10][k] }, `s${k}`)),
       // the header plate (proud of the face), its screws
       jsx("path", { d: P(rrectPts(HEAD.w + 6, HEAD.h + 6, 7, 3, 3, HEAD.v + 4).map(([u, v]) => [u, v, ZF + 0.2])), fill: "#000000", opacity: 0.25 }),

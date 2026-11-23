@@ -35,7 +35,9 @@ const N_CLOSED = 4;
 const PALMS_BACK = [
   { base: [40, TK_FLOOR_Y, -760], h: 480, lean: [-0.1, -0.02], seed: 11 },
   { base: [470, TK_FLOOR_Y, -820], h: 530, lean: [0.04, -0.03], seed: 23 },
-  { base: [1540, TK_FLOOR_Y, 470], h: 500, lean: [0.12, 0.05], seed: 37 }
+  // ★ (Timur, 2026-11-23: "the really right one is just too far off … make it more closer to the Bre-X visual"): just behind the
+  //   stack's right end, leaning away from BRE-X, so trunk and crown read in the whole-pad framing
+  { base: [1820, TK_FLOOR_Y, 160], h: 440, lean: [0.04, 0.02], seed: 37 }
 ];
 const sm = (pose, q) => worldScr(R, xfApply(pose, [q[0] * RM, q[1] * RM, q[2] * RM]));
 const STACK_TOP = -(PALLET_H + (N_CLOSED + 1) * BOX_STEP);
@@ -84,7 +86,10 @@ const RIG_C = aimFor(RIG_Z, (RIG_L.x + RIG_R.x) / 2 + 40, MAST_TOP, RIG_FOOT);
 const STACK_C = lay(sm(STACK_POSE, [0, STACK_TOP * 0.5 - 0.3, 0]));
 // the whole pad takes in the palms either side (their trunks)
 // the whole pad is framed on the rig and the stack (both wholly in, balanced); the palms stand in the back row behind them
-const W_L = RIG_L.x - 40, W_R = STACK_R.x + 40;
+// ★ (Timur, 2026-11-23) the whole pad also takes in the right palm beside the stack (its trunk and crown), so it reads near BRE-X;
+//   it stands right of the stack's close-up, so it never looms over the CALGARY / BRE-X framing
+const PALM_R = lay(worldScr(R, [PALMS_BACK[2].base[0] + 170, PALMS_BACK[2].base[1], PALMS_BACK[2].base[2]]));
+const W_L = RIG_L.x - 40, W_R = Math.max(STACK_R.x, PALM_R.x) + 40;
 const WHOLE_Z = Math.min(0.92, 1000 / (W_R - W_L));
 const WHOLE = aimFor(WHOLE_Z, (W_L + W_R) / 2, MAST_TOP, RIG_FOOT);
 const shots = (t) => [

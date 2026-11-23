@@ -3,9 +3,9 @@
 //   A Canadian one-cent coin lies on a machined graphite pedestal whose engraved plate reads PENNIES (hypeFrom; its engraving fills
 //   on "pennies"); the camera is close on the coin as it turns slowly. On "six billion" the cent SWELLS — copper turning to gold —
 //   into the hook's own gold bar standing on the pedestal (the callback), stamped C$6B (hypeTo, read from "billion"), as the camera
-//   pulls back to hold the bar and the pedestal. On "Pension funds piled in" three engraved steel plaques slide into the rails down
-//   the pedestal's front, one on each word: ONTARIO TEACHERS' · OMERS · CAISSE (hypePlaque*: names only, no logos).
-//   Objects: the pedestal, the cent → bar, the plaques.
+//   pulls back to hold the bar and the pedestal. ★ rev 1b (Timur: the plaques were too fast to read): on "Pension funds piled in"
+//   coins pour onto six stacks round the pedestal's foot — money piling in to the stock — and PENSION FUNDS (hypePension) lands
+//   on "Pension". Objects: the pedestal, the cent → bar, the coins.
 import * as esm from "remotion";
 import * as jsx_runtime from "react/jsx-runtime";
 import { clamp01, rInOut, rOut } from "./anim";
@@ -18,7 +18,9 @@ import { worldScr, xfMul, xfScale, xfTrans } from "./tk_rig";
 import { TkFloor } from "./tk_floor";
 import { BX_FLOOR_Y, bxRig } from "./bx_core";
 import { BarBody, BarStamp, barCorners, barDims } from "./bx_bar";
-import { CentFace, HP_TOP, HypePedestal, HypePlaque, pedestalCorners } from "./hype_parts";
+import { CentFace, HP_TOP, HypePedestal, pedestalCorners } from "./hype_parts";
+import { HypeCoins, coinPlan, coinsDone } from "./hype_coins";
+import { label } from "./kit";
 
 const jsx = (t, p, k) => (0,jsx_runtime.jsx)(t, p, k);
 const jsxs = (t, p, k) => (0,jsx_runtime.jsxs)(t, p, k);
@@ -44,17 +46,15 @@ export const hypeTimes = (w, end) => {
     fig: { a: w.billion - 10, b: w.billion + 8 },
     // the camera pulls back to hold the bar on its pedestal
     pull: { a: w.k6 - 12, dur: 38 },
-    // and eases in a little toward the rails as the plaques come
+    // and eases in a little as the money comes
     down: { a: w.pension - 16, dur: 32 },
-    // the three plaques, one on each word of "Pension funds piled"
-    plq: [
-      { a: w.pension - 10, b: w.pension + 6 },
-      { a: w.funds - 8, b: w.funds + 6 },
-      { a: w.piled - 6, b: w.piled + 8 }
-    ]
+    // ★ (Timur, rev 1b: the plaques read too fast) "Pension funds piled in": coins pour onto six stacks round the pedestal's foot —
+    //   the first lands on "Pension", the last as "piled in" ends; PENSION FUNDS lands on "Pension"
+    pour: { a: w.pension - 2, b: Math.min(w.piled + 12, end - 26) },
+    pension: { a: w.pension - 12, b: w.pension }
   };
-  if (t.plq[2].b > end - 18) throw new Error(`hype: the last plaque must seat before the crane out (${t.plq[2].b} vs ${end - 18})`);
-  if (t.grow.b > t.plq[0].a) throw new Error("hype: the bar must stand before the plaques come");
+  if (t.pension.b + 30 > end - 20) throw new Error(`hype: PENSION FUNDS must read ≥ 30 f before the slide out (${t.pension.b} vs ${end - 20})`);
+  if (t.grow.b > t.pour.a) throw new Error("hype: the bar must stand before the money pours in");
   if (t.penny.a < 480) throw new Error("hype: PENNIES must fill after the place has risen in");
   return t;
 };
@@ -98,40 +98,38 @@ export const hypeSfx = (t) => [
   { job: "coin", a: t.grow.a + 2, vol: 0.5 },
   // C$6B
   { job: "label", a: t.fig.a, b: t.fig.b + 6, vol: 0.45 },
-  // each plaque slides along its rail and seats with a click
-  ...t.plq.flatMap((p, i) => [
-    { job: "obj", a: p.a, b: p.b, k: "out", vol: 0.42 },
-    { job: "click", a: p.b, vol: 0.9 }
-  ])
+  // PENSION FUNDS
+  { job: "label", a: t.pension.a, b: t.pension.b + 6, vol: 0.42 },
+  // the coins landing on the stacks: a run of the house's Falling Coins over the pour
+  ...Array.from({ length: Math.max(1, Math.round((t.pour.b - t.pour.a) / 9)) + 1 }, (_, i) => ({ job: "coin", a: Math.round(t.pour.a + i * 9), vol: 0.5 - 0.02 * i }))
 ];
 // the bar stands on the pedestal's cap: its foot at y = FY + HP_TOP, growing out of the cent
 const barXfAt = (m) => {
   const d = barDims(m, SRC);
   return xfMul(xfTrans([X, FY + HP_TOP - K * d.len / 2, Z]), xfScale(K));
 };
-const plaqueX = (p, g) => {
-  const e = rInOut(g, p.a, p.b);
-  // it slides in from beyond the right edge of the frame and seats (a 1.5-unit settle after the stop)
-  return 1250 * (1 - e) - 1.5 * Math.sin(Math.PI * clamp01((g - p.b) / 5)) * (g > p.b ? 1 : 0);
-};
+
 export const BxHype = ({ at, end, w, stage }) => {
   const f = (0,esm.useCurrentFrame)();
   const t = hypeTimes(w, end);
   const m = rInOut(f, t.grow.a, t.grow.b);
   const xf = barXfAt(m);
-  const names = [L("hypePlaqueOtpp"), L("hypePlaqueOmers"), L("hypePlaqueCaisse")];
+  const plan = coinPlan(t.pour.a, t.pour.b);
+  const lab = rOut(f, t.pension.a, t.pension.b);
+  const lp = worldScr(RIG, [X, FY + 22, Z + 250]);
   const spin = 14 + 0.55 * (f - at);
   const casters = [{ corners: pedestalCorners(POSE) }, { corners: barCorners(xf, m, SRC), k: rOut(f, t.grow.a, t.grow.b) }];
   const gold = rInOut(f, t.grow.a - 2, t.grow.a + 12);
   return jsx(PlaceRoot, { children: jsx(CamFn, { at: camOf(t), children: jsx("div", { "data-probe-leaving": travelling(f, hypeCamWindows(t)), style: { position: "absolute", inset: 0 }, children: jsxs(Turn, { at, end, from: -5, to: 4, amp: 0.8, children: [
     jsx("svg", { width: 1, height: 1, style: { position: "absolute", left: 0, top: 0, overflow: "visible" }, children: jsx(TkFloor, { id: "hyF", rig: RIG, at: { x: X, z: Z + 60 }, reach: 1300, casters, stage }) }),
-    jsxs("div", { "data-probe-object": "the machined pedestal with its engraved PENNIES plate and three rails, the engraved pension plaques sliding in", style: { position: "absolute", inset: 0 }, children: [
-      jsx(HypePedestal, { id: "hyP", rig: RIG, pose: POSE, word: L("hypeFrom"), wordOn: rInOut(f, t.penny.a, t.penny.b), sheen: 40 * Math.sin((f - at) / 70) }),
-      t.plq.map((p, i) => f >= p.a - 1 && jsx(HypePlaque, { id: `hyQ${i}`, rig: RIG, pose: POSE, i, x: plaqueX(p, f), text: names[i] }, i))
+    jsxs("div", { "data-probe-object": "the machined pedestal with its engraved PENNIES plate; coins pouring onto stacks round its foot", style: { position: "absolute", inset: 0 }, children: [
+      jsx(HypePedestal, { id: "hyP", rig: RIG, pose: POSE, word: L("hypeFrom"), wordOn: rInOut(f, t.penny.a, t.penny.b), sheen: 40 * Math.sin((f - at) / 70), rails: false }),
+      f >= t.pour.a - 12 && jsx("svg", { width: 1, height: 1, style: { position: "absolute", left: 0, top: 0, overflow: "visible" }, children: jsx(HypeCoins, { rig: RIG, pose: POSE, g: f, plan }) })
     ] }),
     jsxs("div", { "data-probe-object": "the one-cent coin swelling into the stamped gold bar", style: { position: "absolute", inset: 0 }, children: [
       jsx("svg", { width: 1, height: 1, style: { position: "absolute", left: 0, top: 0, overflow: "visible" }, children: jsx(BarBody, { id: "hyB", rig: RIG, xf, m, gold, src: SRC, seed: 7, sheen: -0.8 + 1.4 * rInOut(f, t.grow.b - 4, end), capArt: (p) => jsx(CentFace, { ...p, spin }) }) }),
       jsx(BarStamp, { rig: RIG, xf, m, src: SRC, fig: { text: L("hypeTo"), on: rInOut(f, t.fig.a, t.fig.b) } })
-    ] })
+    ] }),
+    lab > 3e-3 && jsx("div", { "data-probe-label": "PENSION FUNDS", style: { position: "absolute", left: lp[0] - 300, top: lp[1], width: 600, height: 50, opacity: clamp01(lab), transform: `translateY(${((1 - lab) * 24).toFixed(2)}px)` }, children: jsx("div", { style: { position: "absolute", left: 0, top: 0, width: 600, textAlign: "center", ...label(30, "#DCE7F4"), opacity: 0.92, transform: "scale(1.7)" }, children: L("hypePension") }) })
   ] }) }) }) });
 };

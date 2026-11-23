@@ -155,6 +155,11 @@
       "text": "C$6B",
       "note": "the bar"
     },
+    "hypePension": {
+      "place": "hype",
+      "text": "PENSION FUNDS",
+      "note": "Timur 2026-11-23: one readable label for 'Pension funds piled in' (replaces the three plaques)"
+    },
     "hypePlaqueOtpp": {
       "place": "hype",
       "text": "ONTARIO TEACHERS'",
@@ -314,6 +319,7 @@
     "claim2Date": "FEB 1997",
     "hypeFrom": "PENNIES",
     "hypeTo": "C$6B",
+    "hypePension": "PENSION FUNDS",
     "hypePlaqueOtpp": "ONTARIO TEACHERS'",
     "hypePlaqueOmers": "OMERS",
     "hypePlaqueCaisse": "CAISSE",
