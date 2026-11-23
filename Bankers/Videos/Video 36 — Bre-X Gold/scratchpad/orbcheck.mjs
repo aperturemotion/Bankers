@@ -22,7 +22,7 @@ const serveUrl = await bundle({ entryPoint: path.resolve("src/index.ts") });
 // ★ V46: delete this run's webpack bundle on exit (every run left ~69 MB in /tmp and filled the disk)
 process.on("exit", () => { try { __fs46.rmSync(serveUrl, { recursive: true, force: true }); } catch {} });
 const inputProps = { orbcheck: true };
-const composition = await selectComposition({ serveUrl, id: "LotteryTear", port: PORT, inputProps });
+const composition = await selectComposition({ serveUrl, id: "BreXGold", port: PORT, inputProps });
 const from = Number(a ?? 0), to = Math.min(Number(b ?? composition.durationInFrames - 1), composition.durationInFrames - 1);
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "orb-"));
 const logs = new Map();

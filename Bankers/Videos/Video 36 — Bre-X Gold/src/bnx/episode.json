@@ -1,136 +1,323 @@
 {
   "_doc": [
-    "RECOVERED 2026-11-22 from the published Studio bundle. Webpack kept only the keys the film reads at runtime (WD). `script` is REBUILT from the caption SENTENCES (vo = take = the caption text, which is what the take says); the original _doc, figures, labels and any other keys did not survive."
+    "Video 36 \"Bre-X Gold\". WRITTEN by scratchpad/synth_captions.py — edit the generator (SCENE_PLAN, NUMERALS, LABELS), not this file.",
+    "script: one entry per VO line, in order — scene (place id), vo (VO_SCRIPT.txt, spelled out), take (the caption form: numerals per house style; the real-take generator scratchpad/captions_vo.js aligns the take's words to these tokens), hero.",
+    "labels: every on-screen label from PLAN.md (Anton, ≤ 4 words), with its place and where it sits. WD is the flat map the film reads at runtime (src/bnx/data.ts L(key)).",
+    "PROVISIONAL: the take does not exist yet; captions.ts is synthetic until it lands."
   ],
   "script": [
     {
       "scene": "hook",
-      "vo": "Americans spent $104.7 billion on lottery tickets in one year.",
-      "take": "Americans spent $104.7 billion on lottery tickets in one year."
+      "vo": "Gold dust, sprinkled into rock samples.",
+      "take": "Gold dust, sprinkled into rock samples."
     },
     {
       "scene": "hook",
-      "vo": "About a third never came back as prizes.",
-      "take": "About a third never came back as prizes."
+      "vo": "That's all it took to build a six billion dollar company.",
+      "take": "That's all it took to build a $6 billion company."
     },
     {
-      "scene": "sales",
-      "vo": "Census Bureau data for fiscal 2024",
-      "take": "Census Bureau data for fiscal 2024"
+      "scene": "claim",
+      "vo": "In nineteen ninety-three, a tiny Calgary miner called Bre-X bought a jungle gold project in Borneo, Indonesia.",
+      "take": "In 1993, a tiny Calgary miner called Bre-X bought a jungle gold project in Borneo, Indonesia."
     },
     {
-      "scene": "sales2",
-      "vo": "show ticket sales nearly doubled from $52.8 billion in fiscal 2008.",
-      "take": "show ticket sales nearly doubled from $52.8 billion in fiscal 2008."
+      "scene": "claim2",
+      "vo": "By nineteen ninety-seven, it claimed seventy-one million ounces.",
+      "take": "By 1997, it claimed 71 million ounces."
     },
     {
-      "scene": "prizes",
-      "vo": "Prizes paid back $70.2 billion.",
-      "take": "Prizes paid back $70.2 billion."
+      "scene": "hype",
+      "vo": "The stock went from pennies to a six billion dollar company.",
+      "take": "The stock went from pennies to a $6 billion company."
     },
     {
-      "scene": "lotteries",
-      "vo": "The other $34.5 billion stayed with the lotteries.",
-      "take": "The other $34.5 billion stayed with the lotteries."
+      "scene": "hype",
+      "vo": "Pension funds piled in.",
+      "take": "Pension funds piled in."
     },
     {
-      "scene": "nobody",
-      "vo": "Here's what almost nobody understands.",
-      "take": "Here's what almost nobody understands.",
+      "scene": "partner",
+      "vo": "That March, a partner drilled its own test holes beside Bre-X's.",
+      "take": "That March, a partner drilled its own test holes beside Bre-X's."
+    },
+    {
+      "scene": "mystery",
+      "vo": "On March nineteenth, chief geologist Michael de Guzman fell from a helicopter.",
+      "take": "On March 19th, chief geologist Michael de Guzman fell from a helicopter."
+    },
+    {
+      "scene": "crack",
+      "vo": "A week later, the partner reported insignificant amounts of gold.",
+      "take": "A week later, the partner reported insignificant amounts of gold."
+    },
+    {
+      "scene": "truth",
+      "vo": "On May fourth, independent auditors confirmed it: the core samples had been salted with outside gold.",
+      "take": "On May 4th, independent auditors confirmed it: the core samples had been salted with outside gold."
+    },
+    {
+      "scene": "collapse",
+      "vo": "Two days later, the shares sank to six cents.",
+      "take": "Two days later, the shares sank to 6 cents."
+    },
+    {
+      "scene": "collapse",
+      "vo": "About forty thousand shareholders were nearly wiped out.",
+      "take": "About 40,000 shareholders were nearly wiped out."
+    },
+    {
+      "scene": "pension",
+      "vo": "The Ontario Teachers' Pension Plan alone lost a hundred million dollars.",
+      "take": "The Ontario Teachers' Pension Plan alone lost $100 million."
+    },
+    {
+      "scene": "fair",
+      "vo": "To be fair, no one was ever convicted.",
+      "take": "To be fair, no one was ever convicted.",
       "hero": true
     },
     {
-      "scene": "ev",
-      "vo": "That split has a name: expected value.",
-      "take": "That split has a name: expected value."
+      "scene": "felderhof",
+      "vo": "Exploration chief John Felderhof sold eighty-four million dollars of stock in nineteen ninety-six, and was found not guilty of insider trading.",
+      "take": "Exploration chief John Felderhof sold $84 million of stock in 1996, and was found not guilty of insider trading."
     },
     {
-      "scene": "pie",
-      "vo": "On average, every dollar spent on tickets paid back about 67 cents.",
-      "take": "On average, every dollar spent on tickets paid back about 67 cents."
-    },
-    {
-      "scene": "counter",
-      "vo": "So a ticket is worth less than it costs before a single number is drawn.",
-      "take": "So a ticket is worth less than it costs before a single number is drawn."
-    },
-    {
-      "scene": "virginia",
-      "vo": "It varies by state.",
-      "take": "It varies by state."
-    },
-    {
-      "scene": "virginia",
-      "vo": "Virginia paid back 80 cents of every dollar, the most in the country.",
-      "take": "Virginia paid back 80 cents of every dollar, the most in the country."
-    },
-    {
-      "scene": "jackpot",
-      "vo": "And jackpots grow only when nobody wins them.",
-      "take": "And jackpots grow only when nobody wins them."
-    },
-    {
-      "scene": "powerball",
-      "vo": "The $847 million Powerball won on November 4",
-      "take": "The $847 million Powerball won on November 4"
-    },
-    {
-      "scene": "powerball2",
-      "vo": "grew draw after draw, paid for by tickets that missed.",
-      "take": "grew draw after draw, paid for by tickets that missed."
-    },
-    {
-      "scene": "honest",
-      "vo": "Now, the honest part.",
-      "take": "Now, the honest part.",
+      "scene": "lesson",
+      "vo": "The lesson: a company's own results aren't proof.",
+      "take": "The lesson: a company's own results aren't proof.",
       "hero": true
     },
     {
-      "scene": "honest",
-      "vo": "Many states put their share toward schools, and a ticket buys a little fun.",
-      "take": "Many states put their share toward schools, and a ticket buys a little fun."
-    },
-    {
-      "scene": "favors",
-      "vo": "But on average, the math favors the lottery.",
-      "take": "But on average, the math favors the lottery."
-    },
-    {
-      "scene": "close",
-      "vo": "So be honest.",
-      "take": "So be honest.",
-      "hero": true
-    },
-    {
-      "scene": "close",
-      "vo": "Do you buy a ticket when the jackpot gets big?",
-      "take": "Do you buy a ticket when the jackpot gets big?"
-    },
-    {
-      "scene": "close",
-      "vo": "Tell us below.",
-      "take": "Tell us below."
+      "scene": "rule",
+      "vo": "Since two thousand one, Canadian miners need a qualified expert's sign-off, and often an independent one.",
+      "take": "Since 2001, Canadian miners need a qualified expert's sign-off, and often an independent one."
     }
   ],
+  "labels": {
+    "hookFigure": {
+      "place": "hook",
+      "text": "C$6 BILLION",
+      "note": "stamped on the gold bar, large, early in its rise (FACTCHECK: Maclean's / Reuters)"
+    },
+    "hookLabel": {
+      "place": "hook",
+      "text": "PEAK VALUE",
+      "note": "the hook's one label (FACTCHECK: peak market value, 1996)"
+    },
+    "claimStencil": {
+      "place": "claim",
+      "text": "BUSANG",
+      "note": "stencilled on the core boxes"
+    },
+    "claimPlate": {
+      "place": "claim",
+      "text": "BRE-X · 1993",
+      "note": "the plate on the stack (object print)"
+    },
+    "claimCity": {
+      "place": "claim",
+      "text": "CALGARY",
+      "note": "label"
+    },
+    "claim2Readout": {
+      "place": "claim2",
+      "text": "70,950,000 OZ",
+      "note": "the counter's drums (Bre-X release, Feb 17, 1997)"
+    },
+    "claim2Label": {
+      "place": "claim2",
+      "text": "71M OZ CLAIMED",
+      "note": "label"
+    },
+    "claim2Date": {
+      "place": "claim2",
+      "text": "FEB 1997",
+      "note": "label"
+    },
+    "hypeFrom": {
+      "place": "hype",
+      "text": "PENNIES",
+      "note": "the coin's plinth"
+    },
+    "hypeTo": {
+      "place": "hype",
+      "text": "C$6B",
+      "note": "the bar"
+    },
+    "hypePlaqueOtpp": {
+      "place": "hype",
+      "text": "ONTARIO TEACHERS'",
+      "note": "engraved plaque (name only, no logo)"
+    },
+    "hypePlaqueOmers": {
+      "place": "hype",
+      "text": "OMERS",
+      "note": "engraved plaque"
+    },
+    "hypePlaqueCaisse": {
+      "place": "hype",
+      "text": "CAISSE",
+      "note": "engraved plaque (Caisse de dépôt et placement du Québec)"
+    },
+    "partnerBrex": {
+      "place": "partner",
+      "text": "BRE-X",
+      "note": "plate on Bre-X's rig"
+    },
+    "partnerPlate": {
+      "place": "partner",
+      "text": "FREEPORT-McMoRAN",
+      "note": "plate on the partner's rig"
+    },
+    "partnerDate": {
+      "place": "partner",
+      "text": "MARCH 1997",
+      "note": "label"
+    },
+    "mysteryDate": {
+      "place": "mystery",
+      "text": "MARCH 19, 1997",
+      "note": "label"
+    },
+    "mysteryName": {
+      "place": "mystery",
+      "text": "MICHAEL DE GUZMAN",
+      "note": "name label"
+    },
+    "mysteryRole": {
+      "place": "mystery",
+      "text": "CHIEF GEOLOGIST",
+      "note": "under the name"
+    },
+    "crackLabel": {
+      "place": "crack",
+      "text": "INSIGNIFICANT GOLD",
+      "note": "label (Freeport 8-K)"
+    },
+    "crackDate": {
+      "place": "crack",
+      "text": "MARCH 26, 1997",
+      "note": "label"
+    },
+    "truthLabel": {
+      "place": "truth",
+      "text": "SALTED",
+      "note": "label"
+    },
+    "truthDate": {
+      "place": "truth",
+      "text": "MAY 4, 1997",
+      "note": "label"
+    },
+    "collapseFrom": {
+      "place": "collapse",
+      "text": "C$6 BILLION",
+      "note": "the price tag before the flip"
+    },
+    "collapseTo": {
+      "place": "collapse",
+      "text": "6¢",
+      "note": "the price tag after the flip (C$0.06)"
+    },
+    "collapseDate": {
+      "place": "collapse",
+      "text": "MAY 6, 1997",
+      "note": "label"
+    },
+    "collapseHolders": {
+      "place": "collapse",
+      "text": "~40,000 SHAREHOLDERS",
+      "note": "the certificate grid (Globe and Mail, 2013 estimate)"
+    },
+    "pensionDrawer": {
+      "place": "pension",
+      "text": "ONTARIO TEACHERS'",
+      "note": "engraved on the drawer"
+    },
+    "pensionLoss": {
+      "place": "pension",
+      "text": "C$100M LOST",
+      "note": "label"
+    },
+    "felderhofFigure": {
+      "place": "felderhof",
+      "text": "C$84M",
+      "note": "the cash stack's figure (C$83.96M, OSC)"
+    },
+    "felderhofLabel": {
+      "place": "felderhof",
+      "text": "STOCK SOLD",
+      "note": "label"
+    },
+    "felderhofYear": {
+      "place": "felderhof",
+      "text": "1996",
+      "note": "label"
+    },
+    "felderhofVerdict": {
+      "place": "felderhof",
+      "text": "NOT GUILTY",
+      "note": "lands with the gavel"
+    },
+    "felderhofDate": {
+      "place": "felderhof",
+      "text": "JULY 31, 2007",
+      "note": "label (OSC release)"
+    },
+    "ruleSeal": {
+      "place": "rule",
+      "text": "QUALIFIED PERSON",
+      "note": "embossed on the seal"
+    },
+    "ruleCode": {
+      "place": "rule",
+      "text": "NI 43-101",
+      "note": "on the seal"
+    },
+    "ruleYear": {
+      "place": "rule",
+      "text": "2001",
+      "note": "on the seal"
+    }
+  },
   "WD": {
-    "neverPaidOut": "NEVER PAID OUT",
-    "ticketSales": "TICKET SALES",
-    "nearlyDoubled": "NEARLY DOUBLED",
-    "fiscal": "FY",
-    "prizes": "PRIZES",
-    "lotteries": "LOTTERIES",
-    "expectedValue": "EXPECTED VALUE",
-    "perDollar": "PER $1",
-    "paidBack": "PAID BACK",
-    "us": "U.S.",
-    "virginia": "VIRGINIA",
-    "mostInUs": "MOST IN U.S.",
-    "jackpot": "JACKPOT",
-    "schools": "SCHOOLS",
-    "aLittleFun": "A LITTLE FUN",
-    "onAverage": "ON AVERAGE",
-    "jackpotPowerball": "POWERBALL",
-    "counterWorth": "WORTH",
-    "counterCosts": "COSTS"
+    "hookFigure": "C$6 BILLION",
+    "hookLabel": "PEAK VALUE",
+    "claimStencil": "BUSANG",
+    "claimPlate": "BRE-X · 1993",
+    "claimCity": "CALGARY",
+    "claim2Readout": "70,950,000 OZ",
+    "claim2Label": "71M OZ CLAIMED",
+    "claim2Date": "FEB 1997",
+    "hypeFrom": "PENNIES",
+    "hypeTo": "C$6B",
+    "hypePlaqueOtpp": "ONTARIO TEACHERS'",
+    "hypePlaqueOmers": "OMERS",
+    "hypePlaqueCaisse": "CAISSE",
+    "partnerBrex": "BRE-X",
+    "partnerPlate": "FREEPORT-McMoRAN",
+    "partnerDate": "MARCH 1997",
+    "mysteryDate": "MARCH 19, 1997",
+    "mysteryName": "MICHAEL DE GUZMAN",
+    "mysteryRole": "CHIEF GEOLOGIST",
+    "crackLabel": "INSIGNIFICANT GOLD",
+    "crackDate": "MARCH 26, 1997",
+    "truthLabel": "SALTED",
+    "truthDate": "MAY 4, 1997",
+    "collapseFrom": "C$6 BILLION",
+    "collapseTo": "6¢",
+    "collapseDate": "MAY 6, 1997",
+    "collapseHolders": "~40,000 SHAREHOLDERS",
+    "pensionDrawer": "ONTARIO TEACHERS'",
+    "pensionLoss": "C$100M LOST",
+    "felderhofFigure": "C$84M",
+    "felderhofLabel": "STOCK SOLD",
+    "felderhofYear": "1996",
+    "felderhofVerdict": "NOT GUILTY",
+    "felderhofDate": "JULY 31, 2007",
+    "ruleSeal": "QUALIFIED PERSON",
+    "ruleCode": "NI 43-101",
+    "ruleYear": "2001"
   }
 }

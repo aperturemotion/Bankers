@@ -47,7 +47,7 @@ node node_modules/@remotion/cli/remotion-cli.js bundle src/index.ts --out-dir "$
 restore
 # drop audio and source files the page no longer loads from public/ (they are inside the bundle now)
 rm -f "$OUT"/public/*.wav "$OUT"/public/*.mp3 "$OUT"/public/*.png "$OUT"/public/*.jpg; rm -rf "$OUT/public/sfx"; rm -f "$OUT"/*.map
-sed -i 's#<title>[^<]*</title>#<title>Lottery Tear Studio</title>#' "$OUT/index.html"
+sed -i 's#<title>[^<]*</title>#<title>Bre-X Gold Studio</title>#' "$OUT/index.html"
 # ★ V46: the artifact host refuses files holding a literal U+FFFD; Remotion's media-tag code has 13 inside string literals — write them
 #   as the equivalent \uFFFD escape
 python3 -c "

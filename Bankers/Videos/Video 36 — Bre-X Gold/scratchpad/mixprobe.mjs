@@ -30,7 +30,7 @@ const serveUrl = await bundle({ entryPoint: path.resolve("src/index.ts") });
 process.on("exit", () => { try { __fs46.rmSync(serveUrl, { recursive: true, force: true }); } catch {} });
 for (const stem of stems) {
   const inputProps = stem === "full" ? {} : { solo: stem };
-  const comp = await selectComposition({ serveUrl, id: "LotteryTear", port: PORT, inputProps });
+  const comp = await selectComposition({ serveUrl, id: "BreXGold", port: PORT, inputProps });
   const out = `out/mix_${stem}.mp3`;
   // ★ V46: concurrency from CONC (default 4). (The 'Page crashed!' at 2+ tabs was the FULL DISK — Chrome's compositor traps when it cannot write; free space first.)
   await renderMedia({ serveUrl, composition: comp, codec: "mp3", outputLocation: out, port: PORT, inputProps, concurrency: Number(process.env.CONC ?? 4) });

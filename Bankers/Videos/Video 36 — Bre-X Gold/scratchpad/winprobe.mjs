@@ -8,7 +8,7 @@ const [a, b, out] = process.argv.slice(2);
 const serveUrl = await bundle({ entryPoint: path.resolve("src/index.ts") });
 // ★ V46: delete this run's webpack bundle on exit (every run left ~69 MB in /tmp and filled the disk)
 process.on("exit", () => { try { __fs46.rmSync(serveUrl, { recursive: true, force: true }); } catch {} });
-const comp = await selectComposition({ serveUrl, id: "LotteryTear", port: 3863 });
+const comp = await selectComposition({ serveUrl, id: "BreXGold", port: 3863 });
 await renderMedia({
   serveUrl, composition: comp, codec: "mp3", port: 3863,
   frameRange: [Number(a), Number(b)],

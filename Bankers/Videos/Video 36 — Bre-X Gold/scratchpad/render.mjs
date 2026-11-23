@@ -1,5 +1,5 @@
 import * as __fs46 from "node:fs";
-// Renders "It Took Intel 26 Years to Beat Its Record" (STYLE 3 · Video 46) → out/lottery_tear.mp4.
+// Renders Bankers Video 36 "Bre-X Gold" → out/bre_x_gold.mp4.
 //   node scratchpad/render.mjs [concurrency]
 //
 // ⚠⚠ CONCURRENCY IS CAPPED, AND THE OUTPUT IS VERIFIED HERE.
@@ -32,6 +32,17 @@ import { runGuard, loadTranscript, report } from "./guard.mjs";
   }
 }
 
+// ★ V36: NO MASTER ON THE PROVISIONAL TAKE. While src/bnx/captions.ts is synthetic (scratchpad/synth_captions.py writes
+//   `export const PROVISIONAL = true`) or the voice is off (HAS_VO = false in Composition.tsx), nothing is bundled.
+{
+  const cap = fs.readFileSync("src/bnx/captions.ts", "utf8");
+  const comp = fs.readFileSync("src/bnx/Composition.tsx", "utf8");
+  if (/export const PROVISIONAL = true/.test(cap) || /^const HAS_VO = false;/m.test(comp)) {
+    console.error("✗ REFUSED: the captions are PROVISIONAL (synthetic timing) or HAS_VO is false — no master before the real take is wired.");
+    process.exit(1);
+  }
+}
+
 {
   const g = runGuard(loadTranscript());
   console.log(report(g));
@@ -44,7 +55,7 @@ import { runGuard, loadTranscript, report } from "./guard.mjs";
 
 const CONCURRENCY = Number(process.argv.find((a) => /^\d+$/.test(a)) ?? 2);
 const FFPROBE = (process.env.FFPROBE ?? "C:/Users/Timur/AppData/Local/Microsoft/WinGet/Packages/Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe/ffmpeg-8.1.2-full_build/bin/ffprobe.exe");
-const outputLocation = "out/lottery_tear.mp4";
+const outputLocation = "out/bre_x_gold.mp4";
 
 const serveUrl = await bundle({ entryPoint: path.resolve("src/index.ts") });
 
@@ -52,7 +63,7 @@ const serveUrl = await bundle({ entryPoint: path.resolve("src/index.ts") });
 
 process.on("exit", () => { try { __fs46.rmSync(serveUrl, { recursive: true, force: true }); } catch {} });
 const PORT = Number(process.env.PORT ?? 3866);   // V35 recovery: PORT=… overrides (cloud runs use 5791+)   // ⚠ pinned: an auto-picked port can land on a running Studio (Vision Media holds 3000–3009)
-const composition = await selectComposition({ serveUrl, id: "LotteryTear", port: PORT });
+const composition = await selectComposition({ serveUrl, id: "BreXGold", port: PORT });
 const expected = composition.durationInFrames / composition.fps;
 console.log(`rendering ${composition.durationInFrames}f (${expected.toFixed(1)}s) at concurrency ${CONCURRENCY}`);
 

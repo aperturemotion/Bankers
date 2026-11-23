@@ -44,7 +44,7 @@ const serveUrl = await bundle({ entryPoint: path.resolve("src/index.ts") });
 // ★ V46: delete this run's webpack bundle on exit (every run left ~69 MB in /tmp and filled the disk)
 process.on("exit", () => { try { __fs46.rmSync(serveUrl, { recursive: true, force: true }); } catch {} });
 const inputProps = { probe: true };
-const composition = await selectComposition({ serveUrl, id: "LotteryTear", port: PORT, inputProps });
+const composition = await selectComposition({ serveUrl, id: "BreXGold", port: PORT, inputProps });
 if (composition.durationInFrames !== TOTAL_F) throw new Error("geom_sweep: composition length disagrees with captions.ts");
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "geom-"));
 await renderFrames({

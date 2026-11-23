@@ -1,5 +1,8 @@
 // @ts-nocheck
-// Recovered from the published Studio bundle (webpack-concatenated output; TS types were stripped by the build).
+// Video 36 "Bre-X Gold" — cloned from Video 35 "Lottery Tear" (recovered from its published Studio bundle; transpiled JS).
+// ★★ SKELETON (integrator, 2026-11-23): every place is a STUB (src/bnx/<id>.tsx → bx_stub.tsx) on PROVISIONAL synthetic word timing
+//   (scratchpad/synth_captions.py). Builders replace the stubs; the wiring below re-times itself from captions.ts when the take lands.
+//   The contract a place follows: scratchpad/SKELETON.md. Video 35's place files stay in src/bnx for study (nothing imports them).
 import * as esm from "remotion";
 import * as jsx_runtime from "react/jsx-runtime";
 import { aud } from "./aud";
@@ -10,20 +13,18 @@ import { PlaceLight, placeLights } from "./world";
 import { Plx } from "./backdrops";
 import { LightBreak } from "./s3";
 import { BANNER_END, HEROES, LAST_WORD_END, SCENES, SENTENCES, TICKER, TOTAL_FRAMES, VO_LEAD, WORDS, heroAt } from "./captions";
-import { LtHook, hookCamWindows, hookSfx, hookTimes } from "./hook";
-import { LtSales, salesCamWindows, salesSfx, salesTimes } from "./sales";
-import { LtSales2, sales2CamWindows, sales2Sfx, sales2Times } from "./sales2";
-import { LtPrizes, prizesCamWindows, prizesSfx, prizesTimes } from "./prizes";
-import { LtLotteries, lotteriesCamWindows, lotteriesSfx, lotteriesTimes } from "./lotteries";
-import { LtEv, evCamWindows, evSfx, evTimes } from "./ev";
-import { LtPie, pieCamWindows, pieSfx, pieTimes } from "./pie";
-import { LtCounter, counterCamWindows, counterSfx, counterTimes } from "./counter";
-import { LtVirginia, virginiaCamWindows, virginiaSfx, virginiaTimes } from "./virginia";
-import { LtJackpot, jackpotCamWindows, jackpotSfx, jackpotTimes } from "./jackpot";
-import { LtPowerball, powerballCamWindows, powerballSfx, powerballTimes } from "./powerball";
-import { LtPowerball2, powerball2CamWindows, powerball2Sfx, powerball2Times } from "./powerball2";
-import { LtHonest, honestCamWindows, honestSfx, honestTimes } from "./honest";
-import { LtFavors, favorsCamWindows, favorsSfx, favorsTimes } from "./favors";
+import { BxHook, hookCamWindows, hookSfx, hookTimes } from "./hook";
+import { BxClaim, claimCamWindows, claimSfx, claimTimes } from "./claim";
+import { BxClaim2, claim2CamWindows, claim2Sfx, claim2Times } from "./claim2";
+import { BxHype, hypeCamWindows, hypeSfx, hypeTimes } from "./hype";
+import { BxPartner, partnerCamWindows, partnerSfx, partnerTimes } from "./partner";
+import { BxMystery, mysteryCamWindows, mysterySfx, mysteryTimes } from "./mystery";
+import { BxCrack, crackCamWindows, crackSfx, crackTimes } from "./crack";
+import { BxTruth, truthCamWindows, truthSfx, truthTimes } from "./truth";
+import { BxCollapse, collapseCamWindows, collapseSfx, collapseTimes } from "./collapse";
+import { BxPension, pensionCamWindows, pensionSfx, pensionTimes } from "./pension";
+import { BxFelderhof, felderhofCamWindows, felderhofSfx, felderhofTimes } from "./felderhof";
+import { BxRule, ruleCamWindows, ruleSfx, ruleTimes } from "./rule";
 import { FLARE_T, LensFlare, flareLevel } from "./flare";
 import { BrandClose, QuestionStage, Watermark } from "./close";
 import { TrackText } from "./track";
@@ -37,22 +38,36 @@ import { HeroSentence, WordCaption } from "./text";
 export const WIDTH = 1080;
 export const HEIGHT = 1920;
 
-const HAS_VO = true;
+// ★ TODO (V36, take pending): there is NO voice file yet — the ElevenLabs take waits on Timur. public/vo_trimmed.mp3 is still
+//   VIDEO 35's voice (cloned), so the voice stays OFF: the Studio plays the bed + SFX on the provisional timing. When the take
+//   lands: trim it to public/vo_trimmed.mp3, regenerate captions.ts with scratchpad/captions_vo.js, then set HAS_VO = true.
+const HAS_VO = false;
 const HAS_MUSIC = true;
 const HAS_SFX = true;
 const MUSIC_VOL = 1;
+// ★ V36: still Video 35's bed (the song rule: the previous film's song unless Timur names one). The file is baked for V35's
+//   take and is 72.78 s (BED_FRAMES) with its own fade at its end; it is NOT re-cut to this film yet. Until it is, the bed is faded
+//   out by volume over the last BED_FADE frames of min(TOTAL_FRAMES, BED_FRAMES) so it never stops dead on the brand.
 const BED_FILE = "bed_radiohead.mp3";
+const BED_FRAMES = 2183;
+const BED_FADE = 45;
+// ★ V36: no spoken question — the close is the house close alone (flare 2 → the white stage → BANKER$). question.ts makes it optional.
+const HAS_QUESTION = Q !== null;
+// ★ V36: the close's frames after the lesson's last word — ONE copy (scratchpad/synth_captions.py reads it to size TOTAL_FRAMES):
+//   ruleHold: the last word → flare 2's peak (+1); close: the flare receding onto the white stage as it drains; brand: BANKER$.
+const CLOSE_PLAN = { ruleHold: 10, close: 24, brand: 84 };
 const HERO_ACCENT = [
-  { scene: "nobody", word: "understands.", tone: "white" },
-  { scene: "honest", word: "honest", tone: "white" },
-  { scene: "close", word: "honest.", tone: "white" }
+  { scene: "fair", word: "fair,", tone: "white" },
+  { scene: "lesson", word: "proof.", tone: "white" }
 ];
-const isPunch = (h) => h.scene === "nobody";
+// ★ V36: the lesson is the film's teach (V35's "Here's what almost nobody understands." slot): the PUNCH card. "To be fair" is
+//   the other side's opener (V35's "Now, the honest part." slot): the regular hero.
+const isPunch = (h) => h.scene === "lesson";
 const accentOf = (h) => {
   const a = HERO_ACCENT.find((x) => x.scene === h.scene && h.words.some((w2) => w2.word === x.word));
   return a ? { i: h.words.findIndex((w2) => w2.word === a.word), tone: a.tone } : void 0;
 };
-const BREAKS = [SENTENCES.find((s) => s.scene === "nobody").at - 2, SENTENCES.find((s) => s.scene === "honest").at - 2];
+const BREAKS = [SENTENCES.find((s) => s.scene === "partner").at - 2, SENTENCES.find((s) => s.scene === "fair").at - 2];
 const sen = (scene, n) => SENTENCES.filter((s) => s.scene === scene)[n];
 const LEAD = 0;
 const cut = (scene, n) => sen(scene, n).at - LEAD;
@@ -72,185 +87,195 @@ const inSen = (scene, n, ...ws) => {
   if (!w2) throw new Error(`inSen: none of ${ws.join(" / ")} in ${scene} #${n} ("${s.text}")`);
   return w2.at;
 };
-const cue = (scene, word, occ = 1) => wordFrame(scene, word, occ);
+const RULE_END = LAST_WORD_END.rule + CLOSE_PLAN.ruleHold;
 const P = {
-  hook: { at: 0, end: cut("sales", 0) },
-  sales: { at: cut("sales", 0), end: cut("sales2", 0) },
-  sales2: { at: cut("sales2", 0), end: cut("prizes", 0) },
-  prizes: { at: cut("prizes", 0), end: cut("lotteries", 0) },
-  lotteries: { at: cut("lotteries", 0), end: heroPaint("nobody") },
-  // nobody: the PUNCH hero card alone; ev rises from below under its end
-  ev: { at: cut("ev", 0), end: cut("pie", 0) },
-  pie: { at: cut("pie", 0), end: cut("counter", 0) },
-  counter: { at: cut("counter", 0), end: cut("virginia", 0) },
-  virginia: { at: cut("virginia", 0), end: cut("jackpot", 0) },
-  jackpot: { at: cut("jackpot", 0), end: cut("powerball", 0) },
-  powerball: { at: cut("powerball", 0), end: cut("powerball2", 0) },
-  powerball2: { at: cut("powerball2", 0), end: heroPaint("honest") },
-  // honest: s0 is the hero ("Now, the honest part."); the place is the schools/fun line under it
-  honest: { at: cut("honest", 1), end: cut("favors", 0) },
-  favors: { at: cut("favors", 0), end: heroPaint("close") },
-  close: { at: cut("close", 1), end: LAST_WORD_END.close + 4 },
-  brand: { at: LAST_WORD_END.close + 4, end: TOTAL_FRAMES }
+  hook: { at: 0, end: cut("claim", 0) },
+  // hook → claim: the hook pushes into flare 1; claim approaches out of it
+  claim: { at: cut("claim", 0), end: cut("claim2", 0) },
+  claim2: { at: cut("claim2", 0), end: cut("hype", 0) },
+  hype: { at: cut("hype", 0), end: cut("partner", 0) },
+  // partner: LightBreak 1 flashes on "That March" (the turn)
+  partner: { at: cut("partner", 0), end: cut("mystery", 0) },
+  mystery: { at: cut("mystery", 0), end: cut("crack", 0) },
+  crack: { at: cut("crack", 0), end: cut("truth", 0) },
+  // truth: the ONE light window (the white stage)
+  truth: { at: cut("truth", 0), end: cut("collapse", 0) },
+  collapse: { at: cut("collapse", 0), end: cut("pension", 0) },
+  pension: { at: cut("pension", 0), end: heroPaint("fair") },
+  // fair: the HERO card alone (+ LightBreak 2 on "To be fair"); felderhof rises from below under its end
+  felderhof: { at: cut("felderhof", 0), end: heroPaint("lesson") },
+  // lesson: the PUNCH hero card alone; rule rises from below under its end
+  rule: { at: cut("rule", 0), end: RULE_END },
+  // the rule pushes into flare 2; the close is the house close (no question): the flare recedes onto the white stage as it drains
+  close: { at: RULE_END, end: RULE_END + CLOSE_PLAN.close },
+  brand: { at: RULE_END + CLOSE_PLAN.close, end: TOTAL_FRAMES }
 };
+if (TOTAL_FRAMES - P.brand.at !== CLOSE_PLAN.brand)
+  throw new Error(`CLOSE_PLAN: captions.ts was generated for a ${TOTAL_FRAMES - P.brand.at}-f brand, the composition plans ${CLOSE_PLAN.brand} — re-run the captions generator`);
+// ── the word frames each place keys to (W_): every one is found in the take by inSen, so the film re-times itself ─────────────
 const W_ = {
   hook: {
     s0: sen("hook", 0).at,
-    americans: inSen("hook", 0, "Americans"),
-    spent: inSen("hook", 0, "spent"),
-    k1047: inSen("hook", 0, "$104.7"),
-    billion: inSen("hook", 0, "billion"),
-    lottery: inSen("hook", 0, "lottery"),
-    tickets: inSen("hook", 0, "tickets"),
-    year: inSen("hook", 0, "year"),
+    gold: inSen("hook", 0, "Gold"),
+    dust: inSen("hook", 0, "dust"),
+    sprinkled: inSen("hook", 0, "sprinkled"),
+    rock: inSen("hook", 0, "rock"),
+    samples: inSen("hook", 0, "samples"),
     s1: sen("hook", 1).at,
-    about: inSen("hook", 1, "About"),
-    third: inSen("hook", 1, "third"),
-    never: inSen("hook", 1, "never"),
-    prizes: inSen("hook", 1, "prizes")
+    took: inSen("hook", 1, "took"),
+    build: inSen("hook", 1, "build"),
+    k6: inSen("hook", 1, "$6"),
+    billion: inSen("hook", 1, "billion"),
+    company: inSen("hook", 1, "company")
   },
-  sales: {
-    s0: sen("sales", 0).at,
-    census: inSen("sales", 0, "Census"),
-    data: inSen("sales", 0, "data"),
-    fiscal: inSen("sales", 0, "fiscal"),
-    k2024: inSen("sales", 0, "2024")
+  claim: {
+    s0: sen("claim", 0).at,
+    k1993: inSen("claim", 0, "1993"),
+    tiny: inSen("claim", 0, "tiny"),
+    calgary: inSen("claim", 0, "Calgary"),
+    brex: inSen("claim", 0, "Bre-X"),
+    bought: inSen("claim", 0, "bought"),
+    jungle: inSen("claim", 0, "jungle"),
+    gold: inSen("claim", 0, "gold"),
+    borneo: inSen("claim", 0, "Borneo"),
+    indonesia: inSen("claim", 0, "Indonesia")
   },
-  sales2: {
-    s0: sen("sales2", 0).at,
-    sales: inSen("sales2", 0, "sales"),
-    nearly: inSen("sales2", 0, "nearly"),
-    doubled: inSen("sales2", 0, "doubled"),
-    k528: inSen("sales2", 0, "$52.8"),
-    billion: inSen("sales2", 0, "billion"),
-    k2008: inSen("sales2", 0, "2008")
+  claim2: {
+    s0: sen("claim2", 0).at,
+    k1997: inSen("claim2", 0, "1997"),
+    claimed: inSen("claim2", 0, "claimed"),
+    k71: inSen("claim2", 0, "71"),
+    million: inSen("claim2", 0, "million"),
+    ounces: inSen("claim2", 0, "ounces")
   },
-  prizes: {
-    s0: sen("prizes", 0).at,
-    prizes: inSen("prizes", 0, "Prizes"),
-    paid: inSen("prizes", 0, "paid"),
-    back: inSen("prizes", 0, "back"),
-    k702: inSen("prizes", 0, "$70.2"),
-    billion: inSen("prizes", 0, "billion")
+  hype: {
+    s0: sen("hype", 0).at,
+    stock: inSen("hype", 0, "stock"),
+    pennies: inSen("hype", 0, "pennies"),
+    k6: inSen("hype", 0, "$6"),
+    billion: inSen("hype", 0, "billion"),
+    company: inSen("hype", 0, "company"),
+    s1: sen("hype", 1).at,
+    pension: inSen("hype", 1, "Pension"),
+    funds: inSen("hype", 1, "funds"),
+    piled: inSen("hype", 1, "piled")
   },
-  lotteries: {
-    s0: sen("lotteries", 0).at,
-    other: inSen("lotteries", 0, "other"),
-    k345: inSen("lotteries", 0, "$34.5"),
-    billion: inSen("lotteries", 0, "billion"),
-    stayed: inSen("lotteries", 0, "stayed"),
-    lotteries: inSen("lotteries", 0, "lotteries")
+  partner: {
+    s0: sen("partner", 0).at,
+    march: inSen("partner", 0, "March"),
+    partner: inSen("partner", 0, "partner"),
+    drilled: inSen("partner", 0, "drilled"),
+    test: inSen("partner", 0, "test"),
+    holes: inSen("partner", 0, "holes"),
+    beside: inSen("partner", 0, "beside"),
+    brexs: inSen("partner", 0, "Bre-X's")
   },
-  ev: { s0: sen("ev", 0).at, split: inSen("ev", 0, "split"), name: inSen("ev", 0, "name"), expected: inSen("ev", 0, "expected"), value: inSen("ev", 0, "value") },
-  pie: {
-    s0: sen("pie", 0).at,
-    average: inSen("pie", 0, "average"),
-    every: inSen("pie", 0, "every"),
-    dollar: inSen("pie", 0, "dollar"),
-    tickets: inSen("pie", 0, "tickets"),
-    paid: inSen("pie", 0, "paid"),
-    about: inSen("pie", 0, "about"),
-    k67: inSen("pie", 0, "67"),
-    cents: inSen("pie", 0, "cents")
+  mystery: {
+    s0: sen("mystery", 0).at,
+    march: inSen("mystery", 0, "March"),
+    k19: inSen("mystery", 0, "19th"),
+    chief: inSen("mystery", 0, "chief"),
+    geologist: inSen("mystery", 0, "geologist"),
+    michael: inSen("mystery", 0, "Michael"),
+    guzman: inSen("mystery", 0, "Guzman"),
+    fell: inSen("mystery", 0, "fell"),
+    helicopter: inSen("mystery", 0, "helicopter")
   },
-  counter: {
-    s0: sen("counter", 0).at,
-    ticket: inSen("counter", 0, "ticket"),
-    worth: inSen("counter", 0, "worth"),
-    less: inSen("counter", 0, "less"),
-    costs: inSen("counter", 0, "costs"),
-    before: inSen("counter", 0, "before"),
-    single: inSen("counter", 0, "single"),
-    number: inSen("counter", 0, "number"),
-    drawn: inSen("counter", 0, "drawn")
+  crack: {
+    s0: sen("crack", 0).at,
+    week: inSen("crack", 0, "week"),
+    later: inSen("crack", 0, "later"),
+    partner: inSen("crack", 0, "partner"),
+    reported: inSen("crack", 0, "reported"),
+    insignificant: inSen("crack", 0, "insignificant"),
+    gold: inSen("crack", 0, "gold")
   },
-  virginia: {
-    s0: sen("virginia", 0).at,
-    varies: inSen("virginia", 0, "varies"),
-    state: inSen("virginia", 0, "state"),
-    s1: sen("virginia", 1).at,
-    virginia: inSen("virginia", 1, "Virginia"),
-    paid: inSen("virginia", 1, "paid"),
-    k80: inSen("virginia", 1, "80"),
-    cents: inSen("virginia", 1, "cents"),
-    most: inSen("virginia", 1, "most"),
-    country: inSen("virginia", 1, "country")
+  truth: {
+    s0: sen("truth", 0).at,
+    may: inSen("truth", 0, "May"),
+    k4: inSen("truth", 0, "4th"),
+    independent: inSen("truth", 0, "independent"),
+    auditors: inSen("truth", 0, "auditors"),
+    confirmed: inSen("truth", 0, "confirmed"),
+    core: inSen("truth", 0, "core"),
+    samples: inSen("truth", 0, "samples"),
+    salted: inSen("truth", 0, "salted"),
+    outside: inSen("truth", 0, "outside"),
+    gold: inSen("truth", 0, "gold")
   },
-  jackpot: {
-    s0: sen("jackpot", 0).at,
-    jackpots: inSen("jackpot", 0, "jackpots"),
-    grow: inSen("jackpot", 0, "grow"),
-    only: inSen("jackpot", 0, "only"),
-    nobody: inSen("jackpot", 0, "nobody"),
-    wins: inSen("jackpot", 0, "wins")
+  collapse: {
+    s0: sen("collapse", 0).at,
+    days: inSen("collapse", 0, "days"),
+    shares: inSen("collapse", 0, "shares"),
+    sank: inSen("collapse", 0, "sank"),
+    k6: inSen("collapse", 0, "6"),
+    cents: inSen("collapse", 0, "cents"),
+    s1: sen("collapse", 1).at,
+    about: inSen("collapse", 1, "About"),
+    k40000: inSen("collapse", 1, "40,000"),
+    shareholders: inSen("collapse", 1, "shareholders"),
+    nearly: inSen("collapse", 1, "nearly"),
+    wiped: inSen("collapse", 1, "wiped")
   },
-  powerball: {
-    s0: sen("powerball", 0).at,
-    k847: inSen("powerball", 0, "$847"),
-    million: inSen("powerball", 0, "million"),
-    powerball: inSen("powerball", 0, "Powerball"),
-    won: inSen("powerball", 0, "won"),
-    november: inSen("powerball", 0, "November"),
-    k4: inSen("powerball", 0, "4")
+  pension: {
+    s0: sen("pension", 0).at,
+    ontario: inSen("pension", 0, "Ontario"),
+    teachers: inSen("pension", 0, "Teachers'"),
+    plan: inSen("pension", 0, "Plan"),
+    alone: inSen("pension", 0, "alone"),
+    lost: inSen("pension", 0, "lost"),
+    k100: inSen("pension", 0, "$100"),
+    million: inSen("pension", 0, "million")
   },
-  powerball2: {
-    s0: sen("powerball2", 0).at,
-    draw: inSen("powerball2", 0, "draw"),
-    after: inSen("powerball2", 0, "after"),
-    paid: inSen("powerball2", 0, "paid"),
-    tickets: inSen("powerball2", 0, "tickets"),
-    missed: inSen("powerball2", 0, "missed")
+  felderhof: {
+    s0: sen("felderhof", 0).at,
+    exploration: inSen("felderhof", 0, "Exploration"),
+    john: inSen("felderhof", 0, "John"),
+    felderhof: inSen("felderhof", 0, "Felderhof"),
+    sold: inSen("felderhof", 0, "sold"),
+    k84: inSen("felderhof", 0, "$84"),
+    million: inSen("felderhof", 0, "million"),
+    stock: inSen("felderhof", 0, "stock"),
+    k1996: inSen("felderhof", 0, "1996"),
+    found: inSen("felderhof", 0, "found"),
+    not: inSen("felderhof", 0, "not"),
+    guilty: inSen("felderhof", 0, "guilty"),
+    insider: inSen("felderhof", 0, "insider"),
+    trading: inSen("felderhof", 0, "trading")
   },
-  honest: {
-    now: sen("honest", 0).at,
-    s0: sen("honest", 1).at,
-    many: inSen("honest", 1, "Many"),
-    states: inSen("honest", 1, "states"),
-    share: inSen("honest", 1, "share"),
-    schools: inSen("honest", 1, "schools"),
-    ticket: inSen("honest", 1, "ticket"),
-    buys: inSen("honest", 1, "buys"),
-    little: inSen("honest", 1, "little"),
-    fun: inSen("honest", 1, "fun")
-  },
-  favors: {
-    s0: sen("favors", 0).at,
-    but: inSen("favors", 0, "But"),
-    average: inSen("favors", 0, "average"),
-    math: inSen("favors", 0, "math"),
-    favors: inSen("favors", 0, "favors"),
-    lottery: inSen("favors", 0, "lottery")
-  },
-  close: {
-    q0: sen("close", 1).at,
-    do: inSen("close", 1, "Do"),
-    buy: inSen("close", 1, "buy"),
-    ticket: inSen("close", 1, "ticket"),
-    jackpot: inSen("close", 1, "jackpot"),
-    big: inSen("close", 1, "big"),
-    tell: sen("close", 2).at
+  rule: {
+    s0: sen("rule", 0).at,
+    k2001: inSen("rule", 0, "2001"),
+    canadian: inSen("rule", 0, "Canadian"),
+    miners: inSen("rule", 0, "miners"),
+    need: inSen("rule", 0, "need"),
+    qualified: inSen("rule", 0, "qualified"),
+    experts: inSen("rule", 0, "expert's"),
+    signoff: inSen("rule", 0, "sign-off"),
+    often: inSen("rule", 0, "often"),
+    independent: inSen("rule", 0, "independent"),
+    one: inSen("rule", 0, "one")
   }
 };
-const CAPTION_WORDS = TICKER.filter((t) => t.at >= BANNER_END - 2).filter((t) => t.at < Q.at - 3);
+const CAPTION_WORDS = TICKER.filter((t) => t.at >= BANNER_END - 2).filter((t) => !HAS_QUESTION || t.at < Q.at - 3);
+// one serif accent per place's chips (PROVISIONAL picks — the exact caption token, punctuation included)
 const CAPTION_ACCENT = [
-  { scene: "sales", word: "Census" },
-  { scene: "sales2", word: "doubled" },
-  { scene: "prizes", word: "Prizes" },
-  { scene: "lotteries", word: "stayed" },
-  { scene: "ev", word: "expected" },
-  { scene: "pie", word: "average," },
-  { scene: "counter", word: "worth" },
-  { scene: "virginia", word: "Virginia" },
-  { scene: "jackpot", word: "nobody" },
-  { scene: "powerball", word: "Powerball" },
-  { scene: "powerball2", word: "missed." },
-  { scene: "honest", word: "schools," },
-  { scene: "favors", word: "math" }
+  { scene: "claim", word: "Bre-X" },
+  { scene: "claim2", word: "claimed" },
+  { scene: "hype", word: "pennies" },
+  { scene: "partner", word: "partner" },
+  { scene: "mystery", word: "geologist" },
+  { scene: "crack", word: "insignificant" },
+  { scene: "truth", word: "salted" },
+  { scene: "collapse", word: "sank" },
+  { scene: "pension", word: "alone" },
+  { scene: "felderhof", word: "sold" },
+  { scene: "rule", word: "qualified" }
 ];
 const CAPTION_ACCENT_AT = new Set(CAPTION_ACCENT.map(({ scene, word, occ = 1 }) => {
   const sc = SCENES.find((s) => s.id === scene);
   const hits = CAPTION_WORDS.flatMap((t) => t.parts ?? []).filter((p) => p.at >= sc.startFrame && p.at < sc.endFrame && p.word === word);
-  if (hits.length < occ) throw new Error(`CAPTION_ACCENT: "${word}" (#${occ}) is not in the ${scene} captions \u2014 the take changed it`);
+  if (hits.length < occ) throw new Error(`CAPTION_ACCENT: "${word}" (#${occ}) is not in the ${scene} captions — the take changed it`);
   return hits[occ - 1].at;
 }));
 const HO = (() => {
@@ -258,78 +283,75 @@ const HO = (() => {
   const before = (E, dur) => ({ at: E + 2 - dur, dur });
   const own = { k: "own" };
   return {
+    // hook → claim: the hook pushes into flare 1 (pushLight); claim approaches out of the bloom
     hook: { enter: own, exit: { k: "pushLight", ...before(P.hook.end, 20) } },
-    // sales → sales2: ONE bar construction (own); prizes → lotteries: the two torn pieces, ONE construction (own)
-    sales: { enter: { k: "approach", at: P.sales.at + 2, dur: 36 }, exit: own },
-    sales2: { enter: own, exit: { k: "craneDown", ...crane(P.sales2.end) } },
-    prizes: { enter: { k: "fromBelow", ...crane(P.prizes.at) }, exit: own },
-    lotteries: { enter: own, exit: { k: "pushLight", ...before(P.lotteries.end, 22) } },
-    ev: { enter: { k: "fromBelow", at: heroEnd("nobody") - 17, dur: 44 }, exit: { k: "craneDown", ...crane(P.ev.end) } },
-    // ★ (integrator, rev 2 popscan VANISH f1057) pie → counter cranes over 52 f, not 40: the counter's bright paper ticket rose ~55
-    //   half-size px a frame at the crane's peak — past popscan's 24-px search, its header "vanished" from its tile. 0.77× the speed.
-    pie: { enter: { k: "fromBelow", ...crane(P.pie.at) }, exit: { k: "craneDown", at: P.pie.end - 26, dur: 52 } },
-    counter: { enter: { k: "fromBelow", at: P.counter.at - 26, dur: 52 }, exit: { k: "craneDown", ...crane(P.counter.end) } },
-    virginia: { enter: { k: "fromBelow", ...crane(P.virginia.at) }, exit: { k: "craneDown", ...crane(P.virginia.end) } },
-    // jackpot → powerball → powerball2: ONE construction (the column of losing tickets) under ONE camera
-    jackpot: { enter: { k: "fromBelow", ...crane(P.jackpot.at) }, exit: own },
-    powerball: { enter: own, exit: own },
-    powerball2: { enter: own, exit: { k: "pushLight", ...before(P.powerball2.end, 22) } },
-    honest: { enter: { k: "fromBelow", at: heroEnd("honest") - 17, dur: 44 }, exit: { k: "craneDown", ...crane(P.honest.end) } },
-    favors: { enter: { k: "fromBelow", ...crane(P.favors.at) }, exit: { k: "pushLight", ...before(P.favors.end, 22) } },
+    claim: { enter: { k: "approach", at: P.claim.at + 2, dur: 36 }, exit: { k: "craneDown", ...crane(P.claim.end) } },
+    // claim → claim2 → … → pension: one crane per hand-over (the outgoing sinks out through the bottom, the next rises from below)
+    claim2: { enter: { k: "fromBelow", ...crane(P.claim2.at) }, exit: { k: "craneDown", ...crane(P.claim2.end) } },
+    hype: { enter: { k: "fromBelow", ...crane(P.hype.at) }, exit: { k: "craneDown", ...crane(P.hype.end) } },
+    // hype → partner: the crane runs under LightBreak 1 (peak at P.partner.at − 2, on "That March")
+    partner: { enter: { k: "fromBelow", ...crane(P.partner.at) }, exit: { k: "craneDown", ...crane(P.partner.end) } },
+    mystery: { enter: { k: "fromBelow", ...crane(P.mystery.at) }, exit: { k: "craneDown", ...crane(P.mystery.end) } },
+    crack: { enter: { k: "fromBelow", ...crane(P.crack.at) }, exit: { k: "craneDown", ...crane(P.crack.end) } },
+    truth: { enter: { k: "fromBelow", ...crane(P.truth.at) }, exit: { k: "craneDown", ...crane(P.truth.end) } },
+    collapse: { enter: { k: "fromBelow", ...crane(P.collapse.at) }, exit: { k: "craneDown", ...crane(P.collapse.end) } },
+    // pension → the fair HERO: the pension cranes out, done by the card's paint, under LightBreak 2's rise
+    pension: { enter: { k: "fromBelow", ...crane(P.pension.at) }, exit: { k: "craneDown", ...before(P.pension.end, 36) } },
+    // the fair hero → felderhof rising from below under the card's end (V35's ev after its punch card); out before the lesson card
+    felderhof: { enter: { k: "fromBelow", at: heroEnd("fair") - 17, dur: 44 }, exit: { k: "craneDown", ...before(P.felderhof.end, 36) } },
+    // the lesson hero → rule rising from below under it; rule pushes into flare 2
+    rule: { enter: { k: "fromBelow", at: heroEnd("lesson") - 17, dur: 44 }, exit: { k: "pushLight", ...before(P.rule.end, 22) } },
     close: { enter: { k: "approach", at: P.close.at + 2, dur: 36 }, exit: own }
   };
 })();
-const PLACE_IDS = ["hook", "sales", "sales2", "prizes", "lotteries", "ev", "pie", "counter", "virginia", "jackpot", "powerball", "powerball2", "honest", "favors", "close"];
+const PLACE_IDS = ["hook", "claim", "claim2", "hype", "partner", "mystery", "crack", "truth", "collapse", "pension", "felderhof", "rule", "close"];
 const PLACES = [
   ...PLACE_IDS.map((id) => ({ id, ...P[id], ...HO[id] })),
   { id: "brand", ...P.brand, enter: { k: "own" }, exit: { k: "own" } }
 ];
 const DROP = 110;
 const LIGHT_WINDOWS = [
-  // ★ V35: the ONE light frame — Virginia vs the U.S. (the fill) — plus the house close
-  // ★ (integrator, popscan VANISH f1360) out by P.virginia.end, not + 12 (V34's): the jackpot column rises from below through the
-  //   watermark at ~1360 — on a still-white stage the watermark is the black file, and dark ink over the dark column vanished in one
-  //   frame. Ending the white by 1364 (its half-way at 1353, inside the 1351–1364 caption gap) puts the white file back first.
-  { a: P.virginia.at - 10, b: P.virginia.end, inF: 20, outF: 22 },
-  { a: P.close.at - 40, b: P.brand.at + 10, inF: 20, outF: 26 }
+  // ★ V36: the ONE light frame — the salted core under the loupe (truth) — plus the house close. Out by P.truth.end (V35's rule:
+  //   the white is gone before the next place's dark construction rises through the watermark).
+  { a: P.truth.at - 10, b: P.truth.end, inF: 20, outF: 22 },
+  // the close: flare 2 recedes onto the white stage (gone by P.close.at + 17), which then drains to navy, done as BANKER$ starts
+  //   (brand.at + 22). (Draining while the flare still receded left its bloom as a white blob on the navy, f 2150 of the skeleton.)
+  { a: P.close.at - 2, b: P.brand.at + 22, inF: 20, outF: 26 }
 ];
 const T_ = {
   hook: hookTimes(W_.hook, P.hook.end),
-  sales: salesTimes(W_.sales, P.sales.end),
-  sales2: sales2Times(W_.sales2, P.sales2.end),
-  prizes: prizesTimes(W_.prizes, P.prizes.end),
-  lotteries: lotteriesTimes(W_.lotteries, P.lotteries.end),
-  ev: evTimes(W_.ev, P.ev.end),
-  pie: pieTimes(W_.pie, P.pie.end),
-  counter: counterTimes(W_.counter, P.counter.end),
-  virginia: virginiaTimes(W_.virginia, P.virginia.end),
-  jackpot: jackpotTimes(W_.jackpot, P.jackpot.end),
-  powerball: powerballTimes(W_.powerball, P.powerball.end),
-  powerball2: powerball2Times(W_.powerball2, P.powerball2.end),
-  honest: honestTimes(W_.honest, P.honest.end),
-  favors: favorsTimes(W_.favors, P.favors.end)
+  claim: claimTimes(W_.claim, P.claim.end),
+  claim2: claim2Times(W_.claim2, P.claim2.end),
+  hype: hypeTimes(W_.hype, P.hype.end),
+  partner: partnerTimes(W_.partner, P.partner.end),
+  mystery: mysteryTimes(W_.mystery, P.mystery.end),
+  crack: crackTimes(W_.crack, P.crack.end),
+  truth: truthTimes(W_.truth, P.truth.end),
+  collapse: collapseTimes(W_.collapse, P.collapse.end),
+  pension: pensionTimes(W_.pension, P.pension.end),
+  felderhof: felderhofTimes(W_.felderhof, P.felderhof.end),
+  rule: ruleTimes(W_.rule, P.rule.end)
 };
 const SCN = [
   { id: "hook", cams: hookCamWindows(T_.hook), ev: hookSfx(T_.hook) },
-  { id: "sales", cams: salesCamWindows(T_.sales), ev: salesSfx(T_.sales) },
-  { id: "sales2", cams: sales2CamWindows(T_.sales2), ev: sales2Sfx(T_.sales2) },
-  { id: "prizes", cams: prizesCamWindows(T_.prizes), ev: prizesSfx(T_.prizes) },
-  { id: "lotteries", cams: lotteriesCamWindows(T_.lotteries), ev: lotteriesSfx(T_.lotteries) },
-  { id: "ev", cams: evCamWindows(T_.ev), ev: evSfx(T_.ev) },
-  { id: "pie", cams: pieCamWindows(T_.pie), ev: pieSfx(T_.pie) },
-  { id: "counter", cams: counterCamWindows(T_.counter), ev: counterSfx(T_.counter) },
-  { id: "virginia", cams: virginiaCamWindows(T_.virginia), ev: virginiaSfx(T_.virginia) },
-  { id: "jackpot", cams: jackpotCamWindows(T_.jackpot), ev: jackpotSfx(T_.jackpot) },
-  { id: "powerball", cams: powerballCamWindows(T_.powerball), ev: powerballSfx(T_.powerball) },
-  { id: "powerball2", cams: powerball2CamWindows(T_.powerball2), ev: powerball2Sfx(T_.powerball2) },
-  { id: "honest", cams: honestCamWindows(T_.honest), ev: honestSfx(T_.honest) },
-  { id: "favors", cams: favorsCamWindows(T_.favors), ev: favorsSfx(T_.favors) }
+  { id: "claim", cams: claimCamWindows(T_.claim), ev: claimSfx(T_.claim) },
+  { id: "claim2", cams: claim2CamWindows(T_.claim2), ev: claim2Sfx(T_.claim2) },
+  { id: "hype", cams: hypeCamWindows(T_.hype), ev: hypeSfx(T_.hype) },
+  { id: "partner", cams: partnerCamWindows(T_.partner), ev: partnerSfx(T_.partner) },
+  { id: "mystery", cams: mysteryCamWindows(T_.mystery), ev: mysterySfx(T_.mystery) },
+  { id: "crack", cams: crackCamWindows(T_.crack), ev: crackSfx(T_.crack) },
+  { id: "truth", cams: truthCamWindows(T_.truth), ev: truthSfx(T_.truth) },
+  { id: "collapse", cams: collapseCamWindows(T_.collapse), ev: collapseSfx(T_.collapse) },
+  { id: "pension", cams: pensionCamWindows(T_.pension), ev: pensionSfx(T_.pension) },
+  { id: "felderhof", cams: felderhofCamWindows(T_.felderhof), ev: felderhofSfx(T_.felderhof) },
+  { id: "rule", cams: ruleCamWindows(T_.rule), ev: ruleSfx(T_.rule) }
 ];
 const FLARES = [
-  { peak: P.hook.end - 2, from: { x: 532, y: 624 }, to: { x: 300, y: 790 }, ghost: 2.2, grow: 24, hold: 2, recede: 16 },
-  // the two-thirds' lit perforation top (builder A: hookBloom) → the FY2008 column's lit top (builder B)
-  { peak: P.favors.end - 1, from: { x: 348, y: 770 }, to: { x: 480, y: 960 }, grow: 26 }
-  // the coin's lit rim (builder C)
+  // flare 1 (hook → claim): PROVISIONAL points — the gold bar's lit crown (hook builder) → a lit point on the BUSANG stack (claim builder)
+  { peak: P.hook.end - 2, from: { x: 540, y: 640 }, to: { x: 540, y: 900 }, ghost: 2.2, grow: 24, hold: 2, recede: 16 },
+  // flare 2 (rule → close): PROVISIONAL points — the steel seal's lit rim (rule builder) → the close's centre, where BANKER$ will stand
+  //   recede 16 (as flare 1): the bloom is gone over the white stage before it drains (see LIGHT_WINDOWS)
+  { peak: P.rule.end - 1, from: { x: 540, y: 760 }, to: { x: 540, y: 960 }, grow: 26, hold: 2, recede: 16 }
 ];
 const ft = (fl) => ({ grow: fl.grow ?? FLARE_T.grow, hold: fl.hold ?? FLARE_T.hold, recede: fl.recede ?? FLARE_T.recede });
 const flash = (f0) => ({ at: f0 - 30, end: f0 + 21 });
@@ -395,7 +417,6 @@ const clockRun = (from, peakAt, to, vol) => {
   return { s: "clock", at, dur: Math.min(87 - skip, to - at), skip, fadeIn: skip > 0 ? 3 : 0, fade: 10, vol };
 };
 const boomAt = (f0, vol) => within({ at: f0 - 10, end: f0 + 60 })("boom", f0, void 0, vol);
-const PUNCH_WORD = HEROES.find((h) => h.scene === "nobody").words.find((x) => norm(x.word) === "nobody").at;
 const evCues = (beat, evs, human = false) => evs.flatMap((e) => {
   const v = e.vol ?? 1;
   if (human && e.job === "obj") {
@@ -419,8 +440,7 @@ const evCues = (beat, evs, human = false) => evs.flatMap((e) => {
     // a mechanism longer than chainshort's 1 s is held on the long chain (sfxends: never a sound that runs out mid-motion)
     case "mech":
       return e.b - e.a > 30 ? hold(beat)("chain", e.a, e.b, 0.5 * v) : [within(beat)("chainshort", e.a, e.b, 0.75 * v)];
-    // ★ a LINE DRAWING is "a thing computing": V36 (Bob)'s data tick, held for the whole draw (user, 2026-10-26: "use 100bps sound
-    //   effects … in the line chart … in the Bob video, on the chart there is a specific sound effect. Please add that")
+    // ★ a LINE DRAWING is "a thing computing": the data tick, held for the whole draw
     case "data":
       return hold(beat)("data", startOf(e.a, e.b, e.k ?? "io"), e.b, 0.6 * v);
     // (the EarnEdits small whoosh is denser than the house swoosh: at 0.85 the score sat +3.2 dB (p90) over V43's, so 0.5)
@@ -455,13 +475,10 @@ const evCues = (beat, evs, human = false) => evs.flatMap((e) => {
 });
 const BRKS = BREAKS.map(flash);
 const CUES_RAW = [
-  // ── the hook: the long woosh under the slam from frame 0 (its lead-in trimmed before frame 0)
-  //    (V32's level, 0.35 — the integrator re-judges it against the hook's own first cues)
+  // ── the hook: the long woosh under the opening push from frame 0 (its lead-in trimmed before frame 0)
   cueAt("whooshlong", 0, 40, 0.35),
   // ── every place: its own motion events (family per job), its camera moves, then the hand-over out of it (the travel's whoosh, the
-  //    riser on pans and cranes). ★ Each place's LITERAL sounds (the EarnEdits pack, style §9: a vault's bolts, a clock's ticks, notes
-  //    counted…) are added here by its builder, each on its own visual, one job per family for the film (see V46's own literal cues, read-only: 100bps-reference/Style 3 videos/Video 46/src/ic/Composition.tsx CUES_RAW
-  //    — never imported).
+  //    riser on pans and cranes). ★ Each place's LITERAL sounds are added here by its builder, each on its own visual.
   ...SCN.flatMap((x) => {
     const pl = P[x.id], ho = HO[x.id];
     return [
@@ -472,34 +489,32 @@ const CUES_RAW = [
       ...riserCue(ho.exit, 0.31)
     ];
   }),
-  // ── the arrivals that are their own moves: out of the flare (wallet), up from under the punch card (boxes), out of the break (split)
-  ...moveCue(HO.sales.enter, 0.38),
-  ...moveCue(HO.ev.enter, 0.4),
-  ...riserCue(HO.ev.enter, 0.31),
-  ...moveCue(HO.honest.enter, 0.4),
-  ...riserCue(HO.honest.enter, 0.31),
-  // ── ★ (integrator, 2026-11-07) the first LightBreak (V29: gtav dived into the light on "Here's") had no sound under it (sfxgaps: 1138–1169
-  //    uncovered — no arrival whoosh follows it, the punch card does): V46's own line, EarnEdits' low whoosh rising with the flash
+  // ── the arrivals that are their own moves: out of flare 1 (claim), up from under the two hero cards (felderhof, rule)
+  ...moveCue(HO.claim.enter, 0.38),
+  ...moveCue(HO.felderhof.enter, 0.4),
+  ...riserCue(HO.felderhof.enter, 0.31),
+  ...moveCue(HO.rule.enter, 0.4),
+  ...riserCue(HO.rule.enter, 0.31),
+  // ── the two LightBreaks (on "That March" and "To be fair"): EarnEdits' low whoosh rising with each flash (V34/V35's line)
   within(BRKS[0])(EE.flash, BREAKS[0] - 11, BRKS[0].end, 0.6),
-  // ── ★ V34 (integrator, sfxgaps): the second LightBreak (on "Now", into the honest hero) bloomed in silence (1639–1679) — the same line
   within(BRKS[1])(EE.flash, BREAKS[1] - 11, BRKS[1].end, 0.6),
-  // ── ★ V34 (integrator, sfxgaps 1086–1105): the punch card clearing (its rack focus releasing) as the light frame's pair rises under it
-  span("whooshsoft", heroEnd("nobody") - 26, heroEnd("nobody") - 6, 0.35),
-  // ── ★ V33 (integrator, 2026-11-12) flare 2 bloomed in silence (sfxgaps: 2076–2096 uncovered — commit's last cue ends at 2072 and the
-  //    "So be honest." hero carries no arrival): V46's own flare line (100bps-reference V46 CUES_RAW), the low whoosh swelling with the
-  //    bloom. Flare 1 keeps none: reveal's approach whoosh already rises under it (a second would stack on the hand-over)
-  // ★ V34 rev 1 (integrator, sfxgaps 198–208): flare 1 now blooms from the "?" with no arrival under it — both flares get the line
+  // ── the two hero cards clearing (their rack focus releasing) as the next place rises under them (V35's line after its punch card)
+  span("whooshsoft", heroEnd("fair") - 26, heroEnd("fair") - 6, 0.35),
+  span("whooshsoft", heroEnd("lesson") - 26, heroEnd("lesson") - 6, 0.35),
+  // ── both flares: V46's own flare line, the low whoosh swelling with the bloom
   ...FLARES.map((fl) => {
     const T = ft(fl);
     return within({ at: fl.peak - T.grow, end: fl.peak + T.hold + T.recede })(EE.flash, fl.peak - Math.round(0.55 * T.grow), fl.peak + T.hold + T.recede, 0.6);
   }),
-  // ── the close: the question's lines fly in from depth, each with a soft whoosh as its first word arrives
-  ...QUESTION.map((ln) => {
-    const at = Q_WORDS[ln.idx[0]].at;
-    return whoosh(P.close, "whooshsoft", at - 8, at + 20, ln.accent ? 0.5 : 0.35);
-  }),
-  span("whooshlong", P.close.end - 12, P.brand.at + 18, 0.5)
-  // ★ V34 (integrator): the lift to the logo scored to its fast part (the rInOut lift is ~90% done by brand + 18; sfxends: whooshsoft to brand + 44 ran out 47 f early)
+  // ── the close's question (only when the film has one): its lines fly in from depth, each with a soft whoosh, then the lift to the logo.
+  //    ★ V36 has none: the close arrives on the music alone (STYLE 2026-10-23: no whoosh under the fly into the closing logo).
+  ...(HAS_QUESTION ? [
+    ...QUESTION.map((ln) => {
+      const at = Q_WORDS[ln.idx[0]].at;
+      return whoosh(P.close, "whooshsoft", at - 8, at + 20, ln.accent ? 0.5 : 0.35);
+    }),
+    span("whooshlong", P.close.end - 12, P.brand.at + 18, 0.5)
+  ] : [])
 ];
 const VOICE_CLEAR = [];
 const FLAM = 3;
@@ -508,7 +523,9 @@ const CUES = DEDUPED.map((c) => {
   const peak = c.vis ?? c.at;
   return VOICE_CLEAR.some((v) => peak >= v.a && peak <= v.b) ? { ...c, vol: (c.vol ?? 1) * 0.4 } : c;
 });
-export const LotteryTear = ({ solo, probe, dumpCues, orbcheck }) => {
+const BED_END = Math.min(TOTAL_FRAMES, BED_FRAMES);
+const bedVolume = (f) => MUSIC_VOL * (1 - rInOut(f, BED_END - BED_FADE, BED_END));
+export const BreXGold = ({ solo, probe, dumpCues, orbcheck }) => {
   const f = (0,esm.useCurrentFrame)();
   setOrbCheck(orbcheck === true);
   if (dumpCues && f === 0) console.log("CUES" + JSON.stringify(CUES));
@@ -572,7 +589,7 @@ export const LotteryTear = ({ solo, probe, dumpCues, orbcheck }) => {
   return /* @__PURE__ */ (0,jsx_runtime.jsxs)(esm.AbsoluteFill, { id: "bnx-root", style: { backgroundColor: "#000000", overflow: "hidden" }, children: [
     HAS_VO && play("vo") && /* @__PURE__ */ (0,jsx_runtime.jsx)(esm.Sequence, { from: VO_LEAD, children: /* @__PURE__ */ (0,jsx_runtime.jsx)(esm.Audio, { src: aud("vo_trimmed.mp3"), volume: 1 }) }),
     HAS_SFX && play("sfx") && /* @__PURE__ */ (0,jsx_runtime.jsx)(SfxLayer, { cues: CUES, total: TOTAL_FRAMES }),
-    HAS_MUSIC && play("music") && /* @__PURE__ */ (0,jsx_runtime.jsx)(esm.Audio, { src: aud(BED_FILE), volume: MUSIC_VOL }),
+    HAS_MUSIC && play("music") && /* @__PURE__ */ (0,jsx_runtime.jsx)(esm.Audio, { src: aud(BED_FILE), volume: bedVolume }),
     /* @__PURE__ */ (0,jsx_runtime.jsxs)("div", { "data-probe": "bg", style: { position: "absolute", inset: 0 }, children: [
       /* @__PURE__ */ (0,jsx_runtime.jsx)("div", { style: { position: "absolute", inset: 0, background: theme.bg } }),
       lights.map((l) => /* @__PURE__ */ (0,jsx_runtime.jsx)(PlaceLight, { layer: "dark", ...l, white: fieldLight }, `d${l.i}`)),
@@ -581,21 +598,19 @@ export const LotteryTear = ({ solo, probe, dumpCues, orbcheck }) => {
     ] }),
     /* @__PURE__ */ (0,jsx_runtime.jsx)(Plx, { z, dx, dy, depth: 1, children: /* @__PURE__ */ (0,jsx_runtime.jsxs)("div", { style: { position: "absolute", inset: 0, filter: stageFilter }, children: [
       /* @__PURE__ */ (0,jsx_runtime.jsxs)("div", { style: { position: "absolute", inset: 0, transform: `translateY(${DROP}px)` }, children: [
-        shot(P.hook, HO.hook, /* @__PURE__ */ (0,jsx_runtime.jsx)(LtHook, { ...P.hook, w: W_.hook, stage: fieldLight })),
-        shot(P.sales, HO.sales, /* @__PURE__ */ (0,jsx_runtime.jsx)(LtSales, { ...P.sales, w: W_.sales, stage: fieldLight })),
-        shot(P.sales2, HO.sales2, /* @__PURE__ */ (0,jsx_runtime.jsx)(LtSales2, { ...P.sales2, w: W_.sales2, stage: fieldLight })),
-        shot(P.prizes, HO.prizes, /* @__PURE__ */ (0,jsx_runtime.jsx)(LtPrizes, { ...P.prizes, w: W_.prizes, stage: fieldLight })),
-        shot(P.lotteries, HO.lotteries, /* @__PURE__ */ (0,jsx_runtime.jsx)(LtLotteries, { ...P.lotteries, w: W_.lotteries, stage: fieldLight })),
-        shot(P.ev, HO.ev, /* @__PURE__ */ (0,jsx_runtime.jsx)(LtEv, { ...P.ev, w: W_.ev, stage: fieldLight })),
-        shot(P.pie, HO.pie, /* @__PURE__ */ (0,jsx_runtime.jsx)(LtPie, { ...P.pie, w: W_.pie, stage: fieldLight })),
-        shot(P.counter, HO.counter, /* @__PURE__ */ (0,jsx_runtime.jsx)(LtCounter, { ...P.counter, w: W_.counter, stage: fieldLight })),
-        shot(P.virginia, HO.virginia, /* @__PURE__ */ (0,jsx_runtime.jsx)(LtVirginia, { ...P.virginia, w: W_.virginia, stage: fieldLight })),
-        shot(P.jackpot, HO.jackpot, /* @__PURE__ */ (0,jsx_runtime.jsx)(LtJackpot, { ...P.jackpot, w: W_.jackpot, stage: fieldLight })),
-        shot(P.powerball, HO.powerball, /* @__PURE__ */ (0,jsx_runtime.jsx)(LtPowerball, { ...P.powerball, w: W_.powerball, stage: fieldLight })),
-        shot(P.powerball2, HO.powerball2, /* @__PURE__ */ (0,jsx_runtime.jsx)(LtPowerball2, { ...P.powerball2, w: W_.powerball2, stage: fieldLight })),
-        shot(P.honest, HO.honest, /* @__PURE__ */ (0,jsx_runtime.jsx)(LtHonest, { ...P.honest, w: W_.honest, stage: fieldLight })),
-        shot(P.favors, HO.favors, /* @__PURE__ */ (0,jsx_runtime.jsx)(LtFavors, { ...P.favors, w: W_.favors, stage: fieldLight })),
-        shot(P.close, HO.close, /* @__PURE__ */ (0,jsx_runtime.jsx)(QuestionStage, { ...P.close, w: W_.close }))
+        shot(P.hook, HO.hook, /* @__PURE__ */ (0,jsx_runtime.jsx)(BxHook, { ...P.hook, w: W_.hook, stage: fieldLight })),
+        shot(P.claim, HO.claim, /* @__PURE__ */ (0,jsx_runtime.jsx)(BxClaim, { ...P.claim, w: W_.claim, stage: fieldLight })),
+        shot(P.claim2, HO.claim2, /* @__PURE__ */ (0,jsx_runtime.jsx)(BxClaim2, { ...P.claim2, w: W_.claim2, stage: fieldLight })),
+        shot(P.hype, HO.hype, /* @__PURE__ */ (0,jsx_runtime.jsx)(BxHype, { ...P.hype, w: W_.hype, stage: fieldLight })),
+        shot(P.partner, HO.partner, /* @__PURE__ */ (0,jsx_runtime.jsx)(BxPartner, { ...P.partner, w: W_.partner, stage: fieldLight })),
+        shot(P.mystery, HO.mystery, /* @__PURE__ */ (0,jsx_runtime.jsx)(BxMystery, { ...P.mystery, w: W_.mystery, stage: fieldLight })),
+        shot(P.crack, HO.crack, /* @__PURE__ */ (0,jsx_runtime.jsx)(BxCrack, { ...P.crack, w: W_.crack, stage: fieldLight })),
+        shot(P.truth, HO.truth, /* @__PURE__ */ (0,jsx_runtime.jsx)(BxTruth, { ...P.truth, w: W_.truth, stage: fieldLight })),
+        shot(P.collapse, HO.collapse, /* @__PURE__ */ (0,jsx_runtime.jsx)(BxCollapse, { ...P.collapse, w: W_.collapse, stage: fieldLight })),
+        shot(P.pension, HO.pension, /* @__PURE__ */ (0,jsx_runtime.jsx)(BxPension, { ...P.pension, w: W_.pension, stage: fieldLight })),
+        shot(P.felderhof, HO.felderhof, /* @__PURE__ */ (0,jsx_runtime.jsx)(BxFelderhof, { ...P.felderhof, w: W_.felderhof, stage: fieldLight })),
+        shot(P.rule, HO.rule, /* @__PURE__ */ (0,jsx_runtime.jsx)(BxRule, { ...P.rule, w: W_.rule, stage: fieldLight })),
+        shot(P.close, HO.close, /* @__PURE__ */ (0,jsx_runtime.jsx)(QuestionStage, { ...P.close }))
       ] }),
       on(P.brand) && /* @__PURE__ */ (0,jsx_runtime.jsx)(BrandClose, { at: P.brand.at + 22, y: 960 })
     ] }) }),
@@ -603,13 +618,12 @@ export const LotteryTear = ({ solo, probe, dumpCues, orbcheck }) => {
     BREAKS.map((b, i) => /* @__PURE__ */ (0,jsx_runtime.jsx)(LightBreak, { at: b, hold: 5 }, i)),
     !hero && /* @__PURE__ */ (0,jsx_runtime.jsx)(WordCaption, { words: CAPTION_WORDS, onLight: capLight, accentAt: CAPTION_ACCENT_AT }),
     HEROES.map((h, i) => (
-      // ★ (integrator, 2026-11-07) "So be honest." is gone (its 9-f fade done) by Q.at − 2: the question's "Did" arrives from depth at the
-      //   block's centre from Q.at − 2 and sat on "be" for two frames (V28's 1-f "be"×"If")
+      // (a film with a question: the close's "So be honest." is gone by Q.at − 2, before the question's first word arrives from depth)
       /* @__PURE__ */ (0,jsx_runtime.jsx)(
         HeroSentence,
         {
           words: h.words,
-          end: h.scene === "close" ? Math.min(h.end, Q.at - 2) : h.end,
+          end: HAS_QUESTION && h.scene === "close" ? Math.min(h.end, Q.at - 2) : h.end,
           paint: h.paint,
           y: 880,
           size: isPunch(h) ? 74 : h.words.length > 7 ? 54 : 64,
@@ -621,7 +635,7 @@ export const LotteryTear = ({ solo, probe, dumpCues, orbcheck }) => {
         i
       )
     )),
-    f >= Q.at - 6 && f < P.brand.at + 40 && /* @__PURE__ */ (0,jsx_runtime.jsx)("div", { "data-probe-group": "hero", style: { position: "absolute", inset: 0 }, children: /* @__PURE__ */ (0,jsx_runtime.jsx)(
+    HAS_QUESTION && f >= Q.at - 6 && f < P.brand.at + 40 && /* @__PURE__ */ (0,jsx_runtime.jsx)("div", { "data-probe-group": "hero", style: { position: "absolute", inset: 0 }, children: /* @__PURE__ */ (0,jsx_runtime.jsx)(
       TrackText,
       {
         words: Q_WORDS,

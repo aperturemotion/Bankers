@@ -11,7 +11,7 @@ const serveUrl = await bundle({ entryPoint: path.resolve("src/index.ts") });
 // ★ V46: delete this run's webpack bundle on exit (every run left ~69 MB in /tmp and filled the disk)
 process.on("exit", () => { try { __fs46.rmSync(serveUrl, { recursive: true, force: true }); } catch {} });
 const inputProps = { dumpCues: true };
-const composition = await selectComposition({ serveUrl, id: "LotteryTear", port: PORT, inputProps });
+const composition = await selectComposition({ serveUrl, id: "BreXGold", port: PORT, inputProps });
 let cues = null, canary = null, moves = null;
 await renderStill({ serveUrl, composition, port: PORT, frame: 0, inputProps, output: path.join(os.tmpdir(), "cuedump.png"),
   onBrowserLog: (l) => { const t = l.text ?? ""; if (t.startsWith("CUES")) cues = JSON.parse(t.slice(4)); if (t.startsWith("CANARY")) canary = JSON.parse(t.slice(6)); if (t.startsWith("MOVES")) moves = JSON.parse(t.slice(5)); } });

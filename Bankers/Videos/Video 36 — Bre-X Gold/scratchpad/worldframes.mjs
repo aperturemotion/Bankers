@@ -26,7 +26,7 @@ fs.mkdirSync(out, { recursive: true });
 const serveUrl = await bundle({ entryPoint: path.resolve("src/index.ts") });
 // ★ V46: delete this run's webpack bundle on exit (every run left ~69 MB in /tmp and filled the disk)
 process.on("exit", () => { try { __fs46.rmSync(serveUrl, { recursive: true, force: true }); } catch {} });
-const composition = await selectComposition({ serveUrl, id: "LotteryTear", port: PORT });
+const composition = await selectComposition({ serveUrl, id: "BreXGold", port: PORT });
 let n = 0;
 for (const [a, b0] of merged) {
   const b = Math.min(b0, composition.durationInFrames - 1);

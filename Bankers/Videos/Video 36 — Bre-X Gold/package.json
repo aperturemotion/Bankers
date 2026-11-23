@@ -1,9 +1,9 @@
 {
-  "name": "bankers-video-35",
+  "name": "bankers-video-36",
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "start": "remotion studio --port 3435"
+    "start": "remotion studio --port 3436"
   },
   "dependencies": {
     "@remotion/bundler": "4.0.315",

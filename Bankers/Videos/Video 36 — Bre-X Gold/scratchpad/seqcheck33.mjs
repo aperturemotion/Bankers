@@ -20,7 +20,7 @@ process.on("exit", () => { try { __fs46.rmSync(serveUrl, { recursive: true, forc
 const PORT = Number(process.env.PORT_SEQ ?? 3862);
 // one browser for speed; renderStill opens a NEW TAB for every still, so no still has rendered any frame before it
 const puppeteerInstance = await openBrowser("chrome");
-const composition = await selectComposition({ serveUrl, id: "LotteryTear", port: PORT, puppeteerInstance });
+const composition = await selectComposition({ serveUrl, id: "BreXGold", port: PORT, puppeteerInstance });
 for (const frame of frames) {
   const out = path.resolve(`out/seq/element-${String(frame).padStart(4, "0")}.jpeg`);
   if (fs.existsSync(out)) continue;   // resumable

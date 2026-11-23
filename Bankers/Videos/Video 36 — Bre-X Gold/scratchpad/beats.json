@@ -1,89 +1,79 @@
 {
- "words": "scratchpad/fw_words.json",
+ "words": "scratchpad/syn_words.json",
  "beats": [
   {
    "id": "hook",
    "enter": 0,
-   "gone": 276
+   "gone": 182
   },
   {
-   "id": "sales",
-   "enter": 276,
-   "gone": 367
+   "id": "claim",
+   "enter": 182,
+   "gone": 391
   },
   {
-   "id": "sales2",
-   "enter": 367,
-   "gone": 536
+   "id": "claim2",
+   "enter": 391,
+   "gone": 498
   },
   {
-   "id": "prizes",
-   "enter": 536,
-   "gone": 632
+   "id": "hype",
+   "enter": 498,
+   "gone": 655
   },
   {
-   "id": "lotteries",
-   "enter": 632,
-   "gone": 737
+   "id": "partner",
+   "enter": 655,
+   "gone": 770
   },
   {
-   "id": "ev",
-   "enter": 806,
-   "gone": 906
+   "id": "mystery",
+   "enter": 770,
+   "gone": 914
   },
   {
-   "id": "pie",
-   "enter": 906,
-   "gone": 1060
+   "id": "crack",
+   "enter": 914,
+   "gone": 1037
   },
   {
-   "id": "counter",
-   "enter": 1060,
-   "gone": 1208
+   "id": "truth",
+   "enter": 1037,
+   "gone": 1212
   },
   {
-   "id": "virginia",
-   "enter": 1208,
-   "gone": 1364
+   "id": "collapse",
+   "enter": 1212,
+   "gone": 1389
   },
   {
-   "id": "jackpot",
-   "enter": 1364,
-   "gone": 1462
+   "id": "pension",
+   "enter": 1389,
+   "gone": 1512
   },
   {
-   "id": "powerball",
-   "enter": 1462,
-   "gone": 1587
+   "id": "felderhof",
+   "enter": 1606,
+   "gone": 1837
   },
   {
-   "id": "powerball2",
-   "enter": 1587,
-   "gone": 1703
-  },
-  {
-   "id": "honest",
-   "enter": 1746,
-   "gone": 1880
-  },
-  {
-   "id": "favors",
-   "enter": 1880,
-   "gone": 1966
+   "id": "rule",
+   "enter": 1934,
+   "gone": 2119
   },
   {
    "id": "close",
-   "enter": 2004,
-   "gone": 2096
+   "enter": 2119,
+   "gone": 2143
   },
   {
    "id": "brand",
-   "enter": 2096,
-   "gone": 2182
+   "enter": 2143,
+   "gone": 2227
   }
  ],
  "breaks": [
-  742,
-  1708
+  655,
+  1517
  ]
 }

@@ -96,8 +96,11 @@ const BEATS = [...planSrc.matchAll(/^  (\w+): \{ at: (.+?), end: (.+?) \},?$/gm)
   // ★ V33: the plan may cut on a WORD inside a sentence (cue / cueAny, the composition's own helpers)
   const cueAny = (sc, ...ws) => { for (const x of ws) { try { return cue(sc, x); } catch { /* the next spelling */ } } throw new Error(`cueAny: none of ${ws.join(" / ")} in ${sc}`); };
   // V35: the plan's close/brand bounds read LAST_WORD_END (the generated captions' own table)
-  const ev = (src) => Function("cut", "mid", "w", "cue", "cueAny", "heroPaint", "heroEnd", "LEAD", "BANNER_END", "TOTAL_FRAMES", "LAST_WORD_END", "return " + src)(
-    cut, mid, cue, cue, cueAny, heroPaint, heroEnd, LEAD, BANNER_END, TOTAL, LAST_END);
+  // V36: the close is planned by the composition's CLOSE_PLAN (ruleHold/close/brand) and RULE_END — READ from it, never retyped
+  const CP = JSON.parse((comp.match(/^const CLOSE_PLAN = (\{[^}]*\});$/m) ?? [, "null"])[1].replace(/(\w+):/g, '"$1":'));
+  const RULE_END = CP && LAST_END.rule !== undefined ? LAST_END.rule + CP.ruleHold : undefined;
+  const ev = (src) => Function("cut", "mid", "w", "cue", "cueAny", "heroPaint", "heroEnd", "LEAD", "BANNER_END", "TOTAL_FRAMES", "LAST_WORD_END", "CLOSE_PLAN", "RULE_END", "return " + src)(
+    cut, mid, cue, cue, cueAny, heroPaint, heroEnd, LEAD, BANNER_END, TOTAL, LAST_END, CP, RULE_END);
   return { id: m[1], enter: ev(m[2]), gone: ev(m[3]) };
 });
 // ⚠ the plan block's own entry count is the proof the parser saw all of it (a plan line it cannot
@@ -191,6 +194,7 @@ scenes — ${BEATS.length} visual scenes over ${SCENES.length} spoken scenes`);
     // ★ a scene can close on a RUN of heroes (V27's nuance: "So history is a guide." then the punch
     // "It is not a guarantee.") — the construction hands over to the FIRST hero of that run
     const scSen = SEN.filter((s) => s.scene === b.scene);
+    if (!scSen.length) continue;   // V36: the close has no spoken line (the house close alone)
     let r = scSen.length - 1;
     while (r > 0 && scSen[r - 1].hero) r--;
     const lastSen = scSen[scSen.length - 1].hero ? scSen[r] : scSen[scSen.length - 1];

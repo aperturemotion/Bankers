@@ -26,7 +26,7 @@ const OUTD = process.env.STILL_OUT ?? "out/v";
 fs.mkdirSync(OUTD, { recursive: true });
 const serveUrl = await bundle({ entryPoint: path.resolve("src/index.ts") });
 const PORT = Number(process.env.PORT_STILL ?? 3860);   // ⚠ pinned: the renderer's auto-picked port collides with a running Studio
-const composition = await selectComposition({ serveUrl, id: "LotteryTear", port: PORT });
+const composition = await selectComposition({ serveUrl, id: "BreXGold", port: PORT });
 for (const [name, frame] of list) {
   await renderStill({ serveUrl, composition, frame, scale, port: PORT,
     output: path.resolve(`${OUTD}/${name}.png`) });

@@ -14,7 +14,7 @@ const serveUrl = await bundle({ entryPoint: path.resolve("src/index.ts") });
 // ★ V46: delete this run's webpack bundle on exit (every run left ~69 MB in /tmp and filled the disk)
 process.on("exit", () => { try { __fs46.rmSync(serveUrl, { recursive: true, force: true }); } catch {} });
 const inputProps = probe ? { probe: true } : {};
-const composition = await selectComposition({ serveUrl, id: "LotteryTear", port: PORT, inputProps });
+const composition = await selectComposition({ serveUrl, id: "BreXGold", port: PORT, inputProps });
 for (const frame of frames) {
   const seen = new Map();
   await renderStill({ serveUrl, composition, port: PORT, frame, inputProps, output: path.join(os.tmpdir(), "logprobe.png"),

@@ -11,7 +11,7 @@ import path from "path";
 
 const PORT = Number(process.argv[2] ?? 4158);
 // V33's render target (written by scratchpad/render.mjs; verified there before serving)
-const FILE = path.resolve("out/lottery_tear.mp4");
+const FILE = path.resolve("out/bre_x_gold.mp4");
 const NAME = path.basename(FILE);
 
 const page = (size) => `<!doctype html><meta charset="utf-8">
