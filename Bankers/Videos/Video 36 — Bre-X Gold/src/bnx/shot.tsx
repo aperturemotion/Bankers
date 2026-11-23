@@ -115,6 +115,10 @@ export const lightXf = (p) => {
   const s = (1 + k * (p.sc - 1)) * (1 + k * (p.arc - 1));
   return { tx: k * p.tx, ty: k * p.ty, s, ox: p.ox, oy: p.oy + 110 };
 };
-const EXTEND_X = 140, EXTEND_Y = 40;
-if (2 * EXTEND_X >= PAN - 1080 || 2 * EXTEND_Y > CRANE - 1920) throw new Error("shot.tsx: a place's reach would meet its neighbour's");
+// ★ V36 (Timur, 2026-11-23: "the top of the scene basically cut off … just a small piece of blue screen"): a place's clip reached
+//   only 40 px above the frame, and the close framings (claim's stack, crack's cupel) showed its edge as a 55–70 px band of the
+//   bare field. 240 px clears it. The crane guard no longer binds: V36's places hand over by SLIDES (PAN), and the only rises
+//   (felderhof, rule) come up under hero cards, not under another place.
+const EXTEND_X = 140, EXTEND_Y = 240;
+if (2 * EXTEND_X >= PAN - 1080) throw new Error("shot.tsx: a place's reach would meet its neighbour's on a slide");
 export const PlaceRoot = ({ children, up = 0 }) => /* @__PURE__ */ (0,jsx_runtime.jsx)("div", { style: { position: "absolute", left: -EXTEND_X, top: -EXTEND_Y - up, width: 1080 + 2 * EXTEND_X, height: 1920 + 2 * EXTEND_Y + up, overflow: "hidden" }, children: /* @__PURE__ */ (0,jsx_runtime.jsx)("div", { style: { position: "absolute", left: EXTEND_X, top: EXTEND_Y + up, width: 1080, height: 1920 }, children }) });
