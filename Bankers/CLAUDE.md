@@ -77,7 +77,7 @@ the other accounts (100bps, offcamcelebs and more).
   V28 https://claude.ai/artifact/4SaBVnRUuG5AaMYfa4LXnK · V29 https://claude.ai/artifact/MT4AF5rsjS2JQkDYadT79Z ·
   V30 https://claude.ai/artifact/2BpnwhEcS3Qd3mm3PSyxTU · V32 https://claude.ai/artifact/Hp4vdxoM2GojKkBCEr92Rz ·
   V33 https://claude.ai/artifact/CVgsqdzcu6h5sBdu6EweSS · V34 https://claude.ai/artifact/S5jow7Rp4xhhUKHECBKzLC ·
-  V35 https://claude.ai/artifact/LAo7r5cN97oHuiMqsPDu8A · V36 Bre-X Gold https://claude.ai/artifact/YDB51b6K1wcmNPX6VxHfd2 (rev 1 on the generated take, v2). (There is no Video 31.) Each Studio's bundle holds that film's compiled code
+  V35 https://claude.ai/artifact/LAo7r5cN97oHuiMqsPDu8A · V36 Bre-X Gold https://claude.ai/artifact/YDB51b6K1wcmNPX6VxHfd2 (rev 2 on the generated take, v3). (There is no Video 31.) Each Studio's bundle holds that film's compiled code
   — the way to recover a lost film.
 - **The Worker app numbers Bankers per contract:** "Video 2 of 15" = Video 35 (the lottery reel); "Video 3 of 15" (Bre-X, due Nov 24)
   is the next. The daily 06:00 Moscow routine (CONTENT.md changelog) checks it.
