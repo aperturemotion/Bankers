@@ -297,8 +297,10 @@ const HO = (() => {
     // hype → partner: the slide runs under LightBreak 1 (peak at P.partner.at − 2, on "That March")
     partner: { enter: { k: "panFromR", ...crane(P.partner.at) }, exit: { k: "panR", ...crane(P.partner.end) } },
     mystery: { enter: { k: "panFromL", ...crane(P.mystery.at) }, exit: { k: "panL", ...crane(P.mystery.end) } },
-    crack: { enter: { k: "panFromR", ...crane(P.crack.at) }, exit: { k: "panR", ...crane(P.crack.end) } },
-    truth: { enter: { k: "panFromL", ...crane(P.truth.at) }, exit: { k: "panL", ...crane(P.truth.end) } },
+    // ★ (integrator, popscan VANISH 1115) crack → truth slides over 52 f, not 40: the cupel's steel plate left at ~56 px/f under the
+    //   white flood, past the scan's tile match; 0.77× the speed (Video 35's counter-crane precedent)
+    crack: { enter: { k: "panFromR", ...crane(P.crack.at) }, exit: { k: "panR", at: P.crack.end - 26, dur: 52 } },
+    truth: { enter: { k: "panFromL", at: P.truth.at - 26, dur: 52 }, exit: { k: "panL", ...crane(P.truth.end) } },
     collapse: { enter: { k: "panFromR", ...crane(P.collapse.at) }, exit: { k: "panR", ...crane(P.collapse.end) } },
     // pension → the fair HERO: the pension cranes out, done by the card's paint, under LightBreak 2's rise
     pension: { enter: { k: "panFromL", ...crane(P.pension.at) }, exit: { k: "pushLight", ...before(P.pension.end, 22) } },
@@ -512,6 +514,11 @@ const CUES_RAW = [
   //   (moveCue gives push-lights none), so it carries its own whoosh, peaking at the push's end (rIn: fastest at its end)
   //   and decays past it into the card (cut at the push's end it stopped at its peak: sfxends)
   span("whooshlong", whooshOn("whooshlong", HO.felderhof.exit.at, HO.felderhof.exit.at + HO.felderhof.exit.dur, "in"), HO.felderhof.exit.at + HO.felderhof.exit.dur + 16, 0.45),
+  // ★ (integrator, sfxgaps 1092–1102) the 52-f crack → truth slide starts before its travel whoosh swells: a soft lead-in
+  whoosh(null, "whooshsoft", HO.crack.exit.at, HO.crack.exit.at + 22, 0.3),
+  // ★ (integrator, sfxgaps 1142–1156) truth's camera starts following the glass ~12 f before its window (smoothFollow), under the
+  //   airwoosh's slow swell: a soft whoosh leads it in
+  whoosh(P.truth, "whooshsoft", T_.truth.ride.a - 12, T_.truth.ride.a + 8, 0.22),
   // ★ (integrator, sfxgaps 1734–1745) the travel to the bench starts ~12 f before its window (smoothFollow is a centred ±12-f
   //   Gaussian), under the airwoosh's slow swell: a soft whoosh leads it in
   whoosh(P.felderhof, "whooshsoft", T_.felderhof.travel.a - 12, T_.felderhof.travel.a + 8, 0.25),
