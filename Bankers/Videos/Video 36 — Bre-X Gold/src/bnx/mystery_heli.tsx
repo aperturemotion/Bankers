@@ -5,7 +5,10 @@
 //   swept vertical fin with a ventral fin and a tail-skid guard, a two-blade tail rotor on the left side) in the house's blue-steel
 //   body with graphite running gear, lit by the ONE key light (solid_engine lightOf + tk_rig reflectStudio, the bx_gold metal recipe
 //   on the blue-steel ramp). The fuselage is ONE smooth loft (bx_core loftPaint) through a station table, its glazing and seams laid
-//   on the same surface. No markings, no registration, no maker's mark (no brand on a generic object).
+//   on the same surface, with its small anatomy (rev 1: "more detailed, more realistic"): drooping blades over the blur disc, panel
+//   seams and rivet rows on the boom and cabin, an intake grille on the fairing, pitot tube, roof and belly antennas, a skid step,
+//   the landing light and the position lights (red on the left stabilizer tip, white at the tail). No markings, no registration, no
+//   maker's mark (no brand on a generic object).
 //
 //   LOCAL FRAME: x forward (the nose at +x), y DOWN, z = the helicopter's LEFT side; the origin is on the ground between the skids,
 //   under the mast. <MyHeli id rig xf rot tail glint /> draws it (an SVG <g>), xf its pose (tk_rig xf*); rot / tail = the main / tail
@@ -267,7 +270,10 @@ const Glass = ({ id, rig, map }) => jsx(jsx_runtime.Fragment, { children: GLASS.
       jsx("clipPath", { id: `${gid}C`, clipPathUnits: "userSpaceOnUse", children: jsx("path", { d: sp.d }) })
     ] }),
     jsx("path", { d: sp.d, fill: `url(#${gid}G)` }),
-    jsx("g", { clipPath: `url(#${gid}C)`, "data-probe-skip": true, children: jsx("path", { d: `M${f2(x0 + bw * 1.2)},${f2(y0 - 4)}L${f2(x0 + bw * 2.1)},${f2(y0 - 4)}L${f2(x0 + bw * 1.1)},${f2(y1 + 4)}L${f2(x0 + bw * 0.2)},${f2(y1 + 4)}Z`, fill: "#BFD4EC", opacity: 0.14 + 0.22 * clamp01(l) }) }),
+    jsxs("g", { clipPath: `url(#${gid}C)`, "data-probe-skip": true, children: [
+      jsx("path", { d: `M${f2(x0 + bw * 1.2)},${f2(y0 - 4)}L${f2(x0 + bw * 2.1)},${f2(y0 - 4)}L${f2(x0 + bw * 1.1)},${f2(y1 + 4)}L${f2(x0 + bw * 0.2)},${f2(y1 + 4)}Z`, fill: "#BFD4EC", opacity: 0.14 + 0.22 * clamp01(l) }),
+      jsx("path", { d: `M${f2(x0 + bw * 2.5)},${f2(y0 - 4)}L${f2(x0 + bw * 2.8)},${f2(y0 - 4)}L${f2(x0 + bw * 1.8)},${f2(y1 + 4)}L${f2(x0 + bw * 1.5)},${f2(y1 + 4)}Z`, fill: "#DCE8F6", opacity: 0.1 + 0.16 * clamp01(l) })
+    ] }),
     jsx("path", { d: sp.d, fill: "none", stroke: "#08121E", strokeWidth: 2.4, strokeLinejoin: "round" }),
     jsx("path", { d: sp.d, fill: "none", stroke: "#8FB0D6", strokeWidth: 0.8, opacity: 0.28, transform: "translate(0.6 0.9)" })
   ] }, g.id);
@@ -302,9 +308,9 @@ const Stripe = ({ id, rig, map }) => {
   ] });
 };
 // a spinning rotor: the disc it sweeps (faint) and the blades' motion blur (sectors trailing each blade), never a strobed blade
-const RotorBlur = ({ rig, map, c, r, axis, rot, blades = 2, ink = "#9FB4CC", op = 1, hubR = 16 }) => {
-  // axis "y": the disc in the x/z plane (main rotor); "z": in the x/y plane (tail rotor)
-  const P = (a, rr) => axis === "y" ? [c[0] + rr * Math.cos(a), c[1], c[2] + rr * Math.sin(a)] : [c[0] + rr * Math.cos(a), c[1] + rr * Math.sin(a), c[2]];
+const RotorBlur = ({ rig, map, c, r, axis, rot, blades = 2, ink = "#9FB4CC", op = 1, hubR = 16, droop = 0, blade = 0 }) => {
+  // axis "y": the disc in the x/z plane (main rotor; droop = the tips' sag, the disc a shallow cone); "z": in the x/y plane (tail)
+  const P = (a, rr) => axis === "y" ? [c[0] + rr * Math.cos(a), c[1] + droop * (rr / r) * (rr / r), c[2] + rr * Math.sin(a)] : [c[0] + rr * Math.cos(a), c[1] + rr * Math.sin(a), c[2]];
   const S = (a, rr) => worldScr(rig, map(P(a, rr)));
   const ring = (rr) => Array.from({ length: 72 }, (_, i) => S(i / 72 * 2 * Math.PI, rr));
   const rim = ring(r), d = `M${rim.map((p) => `${f2(p[0])},${f2(p[1])}`).join("L")}Z`;
@@ -320,14 +326,67 @@ const RotorBlur = ({ rig, map, c, r, axis, rot, blades = 2, ink = "#9FB4CC", op 
       sect.push({ d: `M${pts.map((p) => `${f2(p[0])},${f2(p[1])}`).join("L")}Z`, o: 0.19 * Math.pow(1 - k / K, 1.6) });
     }
   }
+  // the blades themselves, blurred: a slim graphite chord along each blade's leading position (sagging to the tip)
+  const bl = blade > 0 ? Array.from({ length: blades }, (_, b) => {
+    const a0 = rot + b * 2 * Math.PI / blades;
+    const pts = [];
+    for (let q = 0; q <= 8; q++) pts.push(S(a0, hubR + (r * 0.99 - hubR) * q / 8));
+    return `M${pts.map((p) => `${f2(p[0])},${f2(p[1])}`).join("L")}`;
+  }) : [];
   return jsxs("g", { opacity: op, children: [
     jsx("path", { d, fill: ink, opacity: 0.05 }),
     sect.map((s, k) => jsx("path", { d: s.d, fill: ink, opacity: s.o }, k)),
+    bl.length > 0 && jsx("path", { d: bl.join(""), fill: "none", stroke: "#1E2630", strokeWidth: blade, strokeLinecap: "round", opacity: 0.3 }),
+    bl.length > 0 && jsx("path", { d: bl.join(""), fill: "none", stroke: "#C9D6E4", strokeWidth: blade * 0.3, strokeLinecap: "round", opacity: 0.22, transform: "translate(0 -1)" }),
     jsx("path", { d, fill: "none", stroke: ink, strokeWidth: 1.4, opacity: 0.2 })
   ] });
 };
 /** the helicopter — see the API at the top of this file */
-export const MyHeli = ({ id, rig, xf, rot = 0, tail = 0, glint = 0 }) => {
+// small anatomy: a glowing light (lens + halo), and dark panel/rivet lines laid on the skin
+const Lamp = ({ p, col, halo, r = 3, a = 1 }) => jsxs("g", { children: [
+  jsx("circle", { cx: f2(p[0]), cy: f2(p[1]), r: f2(r * 3.2), fill: halo, opacity: 0.35 * a, style: { filter: "blur(3px)" }, "data-probe-skip": true }),
+  jsx("circle", { cx: f2(p[0]), cy: f2(p[1]), r: f2(r), fill: col, opacity: 0.95 })
+] });
+const BOOM_SEAMS = [[[-250, -70], [-250, 70]], [[-400, -70], [-400, 70]], [[-128, -80], [-128, 80]]];
+const Details = ({ id, rig, map, zSide, gm, pulse }) => {
+  const P = (q) => worldScr(rig, map(q));
+  // rivet rows along the boom's flank and along the cabin's lower edge
+  const riv = [];
+  for (let x = -150; x > -540; x -= 14) if (facing(map, rig, x, 0).f > 0.05) riv.push(worldScr(rig, map(skinPt(x, -0.25 * zSide, 0.6))));
+  for (let x = -40; x < 300; x += 16) if (facing(map, rig, x, 1.25 * zSide).f > 0.05) riv.push(worldScr(rig, map(skinPt(x, 1.25 * zSide, 0.6))));
+  const seams = BOOM_SEAMS.map((sg) => sg.map(([x, ph]) => [x, ph * zSide])).filter((sg) => facing(map, rig, sg[0][0], 0).f > 0.05).map((sg) => surfPath(map, rig, sg, 0.4, false).d);
+  // the engine intake grille on the fairing's flank (five slots)
+  const slots = [];
+  for (let k = 0; k < 5; k++) {
+    const x0 = -46 + k * 13, z = zSide * 35.2;
+    slots.push(`M${[[x0, -228, z], [x0 + 8, -228, z], [x0 + 8, -205, z], [x0, -205, z]].map((q) => {
+      const s = P(q);
+      return `${f2(s[0])},${f2(s[1])}`;
+    }).join("L")}Z`);
+  }
+  const pitot = tubeGeo([[300, -144, zSide * 22], [326, -144, zSide * 24], [352, -146, zSide * 25]], 2.2, 8);
+  const ant = tubeGeo([[150, -197, 0], [146, -228, 0], [142, -246, 0]], 1.6, 8);
+  const blade = tubeGeo([[-160, -124, 0], [-168, -104, 0]], 3, 8);
+  const step = tubeGeo([[150, -24, zSide * 70], [150, -24, zSide * 92]], 3.2, 8);
+  const land = P(skinPt(336, 50 * Math.PI / 180, 1.5)), port = P([STAB.x - 10, -164, zSide * (STAB.span + 3)]), tl = P([-602, -150, 0]);
+  return jsxs("g", { children: [
+    jsxs("g", { "data-probe-skip": true, children: [
+      jsx("path", { d: seams.join(""), fill: "none", stroke: "#06111D", strokeWidth: 1.3, opacity: 0.8 }),
+      riv.map((q, k) => jsx("circle", { cx: f2(q[0]), cy: f2(q[1]), r: 0.9, fill: "#0A1828", opacity: 0.7 }, k)),
+      jsx("path", { d: slots.join(""), fill: "#050C16", opacity: 0.85 }),
+      jsx("path", { d: slots.join(""), fill: "none", stroke: "#8FB0D6", strokeWidth: 0.6, opacity: 0.3, transform: "translate(0.6 0.8)" })
+    ] }),
+    jsx(LoftG, { id: `${id}pt`, rig, map, geo: pitot, mat: gm }),
+    jsx(LoftG, { id: `${id}an`, rig, map, geo: ant, mat: gm }),
+    jsx(LoftG, { id: `${id}bl`, rig, map, geo: blade, mat: gm }),
+    jsx(LoftG, { id: `${id}sp`, rig, map, geo: step, mat: gm }),
+    // the landing light in the chin, the position lights: red on the left (port) stabilizer tip, white at the tail
+    jsx(Lamp, { p: land, col: "#F4F9FF", halo: "#BFD8F4", r: 3.4 }),
+    zSide > 0 && jsx(Lamp, { p: port, col: "#FF5A66", halo: "#EF2B3D", r: 2.6, a: 0.8 + 0.2 * pulse }),
+    jsx(Lamp, { p: tl, col: "#F4F9FF", halo: "#CFE3FA", r: 2.4, a: 0.7 })
+  ] });
+};
+export const MyHeli = ({ id, rig, xf, rot = 0, tail = 0, glint = 0, droop = 10 }) => {
   const map = (q) => xfApply(xf, q);
   const near = (s) => s > 0 ? "n" : "f";
   // which side of the body faces the lens (z+ = the left side)
@@ -366,6 +425,7 @@ export const MyHeli = ({ id, rig, xf, rot = 0, tail = 0, glint = 0 }) => {
     jsx(Stripe, { id, rig, map }),
     jsx(Glass, { id, rig, map }),
     jsx(Seams, { rig, map }),
+    jsx(Details, { id, rig, map, zSide, gm, pulse: glint }),
     jsx(LoftG, { id: `${id}fa`, rig, map, geo: FAIR, mat: bodyMat(rig, 0.03) }),
     jsx(LoftG, { id: `${id}ex`, rig, map, geo: exhaust, mat: gm }),
     jsx(LoftG, { id: `${id}ma`, rig, map, geo: mastGeo, mat: gm }),
@@ -385,7 +445,7 @@ export const MyHeli = ({ id, rig, xf, rot = 0, tail = 0, glint = 0 }) => {
     // the anti-collision beacon on the fin's tip: a soft pulse (white, never a red signal)
     jsx("circle", { cx: f2(beacon[0]), cy: f2(beacon[1]), r: 3.2, fill: "#EAF4FF", opacity: 0.55 + 0.45 * glint }),
     glint > 0.02 && jsx("circle", { cx: f2(beacon[0]), cy: f2(beacon[1]), r: 6 + 10 * glint, fill: "#CFE3FA", opacity: 0.35 * glint, style: { filter: "blur(3px)" }, "data-probe-skip": true }),
-    jsx(RotorBlur, { rig, map, c: HUB, r: ROTOR_R, axis: "y", rot, hubR: 62 })
+    jsx(RotorBlur, { rig, map, c: HUB, r: ROTOR_R, axis: "y", rot, hubR: 62, droop, blade: 5 })
   ] });
 };
 export const heliCorners = (xf) => {

@@ -77,14 +77,18 @@ const Loft = ({ id, rig, geo, mat }) => {
   ] });
 };
 /** the stand's geometry — see the top of this file */
-export const loupeGeo = ({ C, V, R, B, H }) => {
+export const loupeGeo = ({ C, V, R, B, H, tilt = 0 }) => {
   const up = [0, -1, 0];
-  // the glass's in-plane axes: e1 horizontal, e2 "up" within the glass
-  const e1 = unit3(cross(up, V)), e2 = unit3(cross(V, e1));
+  // the glass's in-plane axes: e1 horizontal, e2 "up" within the glass; `tilt` (degrees) turns the head about its vertical so the
+  //   barrel's side (and its knurled ring) shows
+  const a1 = unit3(cross(up, V));
+  const tr = tilt * Math.PI / 180;
+  const N = unit3(add(mul(V, Math.cos(tr)), mul(a1, Math.sin(tr))));
+  const e1 = unit3(cross(up, N)), e2 = unit3(cross(N, e1));
   const top = add(C, mul(e2, R + 15));
   const K = add(top, mul(e2, 34));
   const postTop = [B[0], B[1] - H, B[2]];
-  return { C, V, R, B, H, e1, e2, top, K, postTop, bezel: 15, depth: 16 };
+  return { C, V: N, R, B, H, e1, e2, top, K, postTop, bezel: 15, depth: 34 };
 };
 export const lensScr = (rig, g) => {
   const c = worldScr(rig, g.C);
@@ -171,25 +175,93 @@ export const LoupeView = ({ id, rig, g, M, stage, glint = 0, children }) => {
     ] })
   ] });
 };
-/** the bezel ring holding the glass: its back edge (depth) and its lit front face */
+// polished chrome: a high-contrast ramp read through banded gradients (the studio's reflection)
+const CHROME = ["#121820", "#3B4654", "#8A96A5", "#DDE4EB", "#FFFFFF"];
+const lensPt = (g, rr, a, off = 0) => add(add(g.C, mul(g.V, off)), add(mul(g.e1, rr * Math.cos(a)), mul(g.e2, rr * Math.sin(a))));
+/** the jeweller's loupe head (rev 1: "a real jeweller's loupe, more detailed"): its folding chrome cover swung open on a rivet
+ *  behind the lens (draw <LoupeCover> BEFORE the view), and the chrome barrel — the front ring, the barrel's side with its knurled
+ *  grip ring, the thick lens's refracting edge and its reflections (draw <LoupeRim> AFTER the view) */
+export const LoupeCover = ({ id, rig, g, open = 1 }) => {
+  // the hinge: a rivet on the barrel's upper left (128°); the cover (a shallow dish of R + 17) swings back about the hinge's tangent
+  const ah = 128 * Math.PI / 180, Rc = g.R + 17;
+  const H = lensPt(g, g.R + 14, ah, -g.depth * 0.5);
+  const T = unit3(add(mul(g.e1, -Math.sin(ah)), mul(g.e2, Math.cos(ah))));
+  const phi = -(112 + 6 * open) * Math.PI / 180;
+  // a point of the closed cover (in the lens plane, in front of the lens) rotated about the hinge line (Rodrigues)
+  const rot = (p) => {
+    const v = sub(p, H), c = Math.cos(phi), sn = Math.sin(phi);
+    const kv = cross(T, v), kd = T[0] * v[0] + T[1] * v[1] + T[2] * v[2];
+    return add(H, add(add(mul(v, c), mul(kv, sn)), mul(T, kd * (1 - c))));
+  };
+  const cc = lensPt(g, 0, 0, 6);
+  const rim = (off, rr) => Array.from({ length: 56 }, (_, i) => worldScr(rig, rot(lensPt(g, rr, i / 56 * 2 * Math.PI, off))));
+  const outer = rim(10, Rc), lip = rim(4, Rc), inner = rim(9, Rc - 10);
+  const P = (q) => worldScr(rig, q);
+  const a = P(rot(lensPt(g, Rc, 2.4, 10))), b = P(rot(lensPt(g, Rc, -0.7, 10)));
+  const hv = P(H);
+  const kz = rig.persp / Math.max(1, rig.persp - worldView(rig, H)[2]);
+  return jsxs("g", { children: [
+    jsx("defs", { "data-probe-skip": true, children: jsxs("linearGradient", { id: `${id}Cv`, gradientUnits: "userSpaceOnUse", x1: f2(a[0]), y1: f2(a[1]), x2: f2(b[0]), y2: f2(b[1]), children: [
+      jsx("stop", { offset: "0", stopColor: rampAt(CHROME, 0.92) }),
+      jsx("stop", { offset: "0.18", stopColor: rampAt(CHROME, 0.55) }),
+      jsx("stop", { offset: "0.4", stopColor: rampAt(CHROME, 0.28) }),
+      jsx("stop", { offset: "0.62", stopColor: rampAt(CHROME, 0.74) }),
+      jsx("stop", { offset: "1", stopColor: rampAt(CHROME, 0.3) })
+    ] }) }),
+    jsx("path", { d: pathOf(lip), fill: rampAt(CHROME, 0.2) }),
+    jsx("path", { d: pathOf(outer), fill: `url(#${id}Cv)` }),
+    jsx("path", { d: pathOf(inner), fill: "none", stroke: "#FFFFFF", strokeWidth: 0.9, opacity: 0.35, "data-probe-skip": true }),
+    jsx("path", { d: pathOf(outer), fill: "none", stroke: rampAt(CHROME, 0.1), strokeWidth: 1, opacity: 0.6, "data-probe-skip": true }),
+    // the rivet the cover swings on
+    jsx("circle", { cx: f2(hv[0]), cy: f2(hv[1]), r: f2(7 * kz), fill: rampAt(CHROME, 0.25) }),
+    jsx("circle", { cx: f2(hv[0] - 1.5 * kz), cy: f2(hv[1] - 1.8 * kz), r: f2(4 * kz), fill: rampAt(CHROME, 0.9) })
+  ] });
+};
 export const LoupeRim = ({ id, rig, g }) => {
   const r0 = g.R, r1 = g.R + g.bezel;
-  const front = ringPts(rig, g, r1, 0), inner = ringPts(rig, g, r0, 0), back = ringPts(rig, g, r1, -g.depth);
+  const ring = (rr, off, n = 72) => Array.from({ length: n }, (_, i) => worldScr(rig, lensPt(g, rr, i / n * 2 * Math.PI, off)));
+  const front = ring(r1, 0), inner = ring(r0, 0), back = ring(r1, -g.depth), lipIn = ring(r0 + 4, 0.5);
   const face = pathOf(front) + pathOf([...inner].reverse());
+  // the barrel's side: the band between the front and the back rings (evenodd of their union's two outlines)
   const side = pathOf(back) + pathOf([...front].reverse());
-  // the face's light: brightest toward the key (upper left), darkest lower right
-  const a = worldScr(rig, add(g.C, add(mul(g.e1, -r1), mul(g.e2, r1)))), b = worldScr(rig, add(g.C, add(mul(g.e1, r1), mul(g.e2, -r1))));
-  const l = lightOf(g.V.map((v) => v), 0.5);
+  // knurling: short crossed strokes on the grip ring (offsets −10 … −26), only on the side that faces the lens
+  const kn = [];
+  for (let i = 0; i < 96; i++) {
+    const a = i / 96 * 2 * Math.PI;
+    const n = add(mul(g.e1, Math.cos(a)), mul(g.e2, Math.sin(a)));
+    const p = worldView(rig, lensPt(g, r1, a, -18)), wn = sub(worldView(rig, add(lensPt(g, r1, a, -18), n)), p);
+    if (wn[0] * -p[0] + wn[1] * -p[1] + wn[2] * (rig.persp - p[2]) <= 0) continue;
+    const a2 = a + 0.035;
+    const p0 = worldScr(rig, lensPt(g, r1 + 0.3, a, -10)), p1 = worldScr(rig, lensPt(g, r1 + 0.3, a2, -26));
+    const q0 = worldScr(rig, lensPt(g, r1 + 0.3, a2, -10)), q1 = worldScr(rig, lensPt(g, r1 + 0.3, a, -26));
+    kn.push(`M${f2(p0[0])},${f2(p0[1])}L${f2(p1[0])},${f2(p1[1])}M${f2(q0[0])},${f2(q0[1])}L${f2(q1[0])},${f2(q1[1])}`);
+  }
+  const grip = [ring(r1 + 0.4, -10), ring(r1 + 0.4, -26)];
+  const a = worldScr(rig, lensPt(g, r1, 2.36)), b = worldScr(rig, lensPt(g, r1, -0.78));
+  // a soft window reflection on the glass (upper left) and the lens's thick refracting edge inside the ring
+  const win = [[-0.62, 0.62], [-0.18, 0.74], [-0.3, 0.38], [-0.72, 0.3]].map(([u, v]) => worldScr(rig, add(add(g.C, mul(g.V, 1)), add(mul(g.e1, u * r0), mul(g.e2, v * r0)))));
   return jsxs("g", { children: [
     jsx("defs", { "data-probe-skip": true, children: jsxs("linearGradient", { id: `${id}Bz`, gradientUnits: "userSpaceOnUse", x1: f2(a[0]), y1: f2(a[1]), x2: f2(b[0]), y2: f2(b[1]), children: [
-      jsx("stop", { offset: "0", stopColor: rampAt(NAVY, 0.86) }),
-      jsx("stop", { offset: "0.22", stopColor: rampAt(NAVY, 0.58) }),
-      jsx("stop", { offset: "0.6", stopColor: rampAt(NAVY, 0.3) }),
-      jsx("stop", { offset: "1", stopColor: rampAt(NAVY, 0.16 + 0.1 * l) })
+      jsx("stop", { offset: "0", stopColor: rampAt(CHROME, 0.97) }),
+      jsx("stop", { offset: "0.14", stopColor: rampAt(CHROME, 0.62) }),
+      jsx("stop", { offset: "0.34", stopColor: rampAt(CHROME, 0.22) }),
+      jsx("stop", { offset: "0.55", stopColor: rampAt(CHROME, 0.82) }),
+      jsx("stop", { offset: "0.78", stopColor: rampAt(CHROME, 0.35) }),
+      jsx("stop", { offset: "1", stopColor: rampAt(CHROME, 0.14) })
     ] }) }),
-    jsx("path", { d: side, fill: rampAt(NAVY, 0.12), fillRule: "evenodd" }),
+    jsx("path", { d: side, fill: rampAt(CHROME, 0.32), fillRule: "evenodd" }),
+    jsxs("g", { "data-probe-skip": true, children: [
+      jsx("path", { d: pathOf(grip[0], true) + pathOf([...grip[1]].reverse()), fill: rampAt(CHROME, 0.18), fillRule: "evenodd", opacity: 0.7 }),
+      jsx("path", { d: kn.join(""), stroke: rampAt(CHROME, 0.78), strokeWidth: 0.8, opacity: 0.75, fill: "none" })
+    ] }),
     jsx("path", { d: face, fill: `url(#${id}Bz)`, fillRule: "evenodd" }),
-    jsx("path", { d: pathOf(inner), fill: "none", stroke: "#000000", strokeWidth: 1.4, opacity: 0.45 }),
-    jsx("path", { d: pathOf(front), fill: "none", stroke: rampAt(NAVY, 0.9), strokeWidth: 0.9, opacity: 0.55, "data-probe-skip": true })
+    jsxs("g", { "data-probe-skip": true, children: [
+      // the lens's thickness: a dark band then a bright refracting rim just inside the ring
+      jsx("path", { d: pathOf(inner), fill: "none", stroke: "#0B1B2D", strokeWidth: 7, opacity: 0.3 }),
+      jsx("path", { d: pathOf(lipIn), fill: "none", stroke: "#FFFFFF", strokeWidth: 1.4, opacity: 0.55 }),
+      jsx("path", { d: pathOf(inner), fill: "none", stroke: "#000000", strokeWidth: 1.2, opacity: 0.5 }),
+      jsx("path", { d: pathOf(win), fill: "#FFFFFF", opacity: 0.16, style: { filter: "blur(2px)" } }),
+      jsx("path", { d: pathOf(front), fill: "none", stroke: "#FFFFFF", strokeWidth: 0.9, opacity: 0.5 })
+    ] })
   ] });
 };

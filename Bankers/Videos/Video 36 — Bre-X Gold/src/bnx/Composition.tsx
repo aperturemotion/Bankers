@@ -287,18 +287,21 @@ const HO = (() => {
   return {
     // hook → claim: the hook pushes into flare 1 (pushLight); claim approaches out of the bloom
     hook: { enter: own, exit: { k: "pushLight", ...before(P.hook.end, 20) } },
-    claim: { enter: { k: "approach", at: P.claim.at + 2, dur: 36 }, exit: { k: "craneDown", ...crane(P.claim.end) } },
-    // claim → claim2 → … → pension: one crane per hand-over (the outgoing sinks out through the bottom, the next rises from below)
-    claim2: { enter: { k: "fromBelow", ...crane(P.claim2.at) }, exit: { k: "craneDown", ...crane(P.claim2.end) } },
-    hype: { enter: { k: "fromBelow", ...crane(P.hype.at) }, exit: { k: "craneDown", ...crane(P.hype.end) } },
-    // hype → partner: the crane runs under LightBreak 1 (peak at P.partner.at − 2, on "That March")
-    partner: { enter: { k: "fromBelow", ...crane(P.partner.at) }, exit: { k: "craneDown", ...crane(P.partner.end) } },
-    mystery: { enter: { k: "fromBelow", ...crane(P.mystery.at) }, exit: { k: "craneDown", ...crane(P.mystery.end) } },
-    crack: { enter: { k: "fromBelow", ...crane(P.crack.at) }, exit: { k: "craneDown", ...crane(P.crack.end) } },
-    truth: { enter: { k: "fromBelow", ...crane(P.truth.at) }, exit: { k: "craneDown", ...crane(P.truth.end) } },
-    collapse: { enter: { k: "fromBelow", ...crane(P.collapse.at) }, exit: { k: "craneDown", ...crane(P.collapse.end) } },
+    // ★ REV 1 (integrator, 2026-11-23): claim → … → pension hand over by SLIDES, not cranes. On the real take the scene changes
+    //   leave 12–14 f between sentences; a 40-f crane lifts the outgoing place 2000 px through the caption band, so it crossed the
+    //   live chips at every change (geom_sweep: 50 spans; builders' reports). STYLE: "Prefer pushes and slides. Crane only across
+    //   a pause with no chip on screen." A slide (1500 px sideways, same 40-f window) never crosses the band. Directions alternate.
+    claim: { enter: { k: "approach", at: P.claim.at + 2, dur: 36 }, exit: { k: "panL", ...crane(P.claim.end) } },
+    claim2: { enter: { k: "panFromR", ...crane(P.claim2.at) }, exit: { k: "panR", ...crane(P.claim2.end) } },
+    hype: { enter: { k: "panFromL", ...crane(P.hype.at) }, exit: { k: "panL", ...crane(P.hype.end) } },
+    // hype → partner: the slide runs under LightBreak 1 (peak at P.partner.at − 2, on "That March")
+    partner: { enter: { k: "panFromR", ...crane(P.partner.at) }, exit: { k: "panR", ...crane(P.partner.end) } },
+    mystery: { enter: { k: "panFromL", ...crane(P.mystery.at) }, exit: { k: "panL", ...crane(P.mystery.end) } },
+    crack: { enter: { k: "panFromR", ...crane(P.crack.at) }, exit: { k: "panR", ...crane(P.crack.end) } },
+    truth: { enter: { k: "panFromL", ...crane(P.truth.at) }, exit: { k: "panL", ...crane(P.truth.end) } },
+    collapse: { enter: { k: "panFromR", ...crane(P.collapse.at) }, exit: { k: "panR", ...crane(P.collapse.end) } },
     // pension → the fair HERO: the pension cranes out, done by the card's paint, under LightBreak 2's rise
-    pension: { enter: { k: "fromBelow", ...crane(P.pension.at) }, exit: { k: "pushLight", ...before(P.pension.end, 22) } },
+    pension: { enter: { k: "panFromL", ...crane(P.pension.at) }, exit: { k: "pushLight", ...before(P.pension.end, 22) } },
     // the fair hero → felderhof rising from below under the card's end (V35's ev after its punch card); out before the lesson card
     felderhof: { enter: { k: "fromBelow", at: heroEnd("fair") - 17, dur: 44 }, exit: { k: "pushLight", ...before(P.felderhof.end, 22) } },
     // the lesson hero → rule rising from below under it; rule pushes into flare 2

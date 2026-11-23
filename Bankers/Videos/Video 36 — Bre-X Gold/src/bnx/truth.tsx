@@ -23,7 +23,7 @@ import { TkFloor } from "./tk_floor";
 import { theme } from "./theme";
 import { BX_FLOOR_Y, BxCore, CORE_R, bxRig, coreCorners } from "./bx_core";
 import { VG_ACCENT, VG_ACCENT_D, VG_FIG, VG_FIG_D, VG_NAME, VG_NAME_D } from "./counter_ink";
-import { LoupeRim, LoupeView, StandArm, StandBack, lensScr, loupeGeo } from "./truth_loupe";
+import { LoupeCover, LoupeRim, LoupeView, StandArm, StandBack, lensScr, loupeGeo } from "./truth_loupe";
 import { SaltGrains } from "./truth_grains";
 
 const jsx = (t, p, k) => (0,jsx_runtime.jsx)(t, p, k);
@@ -56,7 +56,7 @@ const EYE = (() => {
   return [p[0] + RIG.cx, p[1] + RIG.cy, p[2]];
 })();
 const V = unit3([EYE[0] - axisAt(0.6)[0], EYE[1] - axisAt(0.6)[1], EYE[2] - axisAt(0.6)[2]]);
-const LENS = { R: 100, gap: 178, M: 2.4 };
+const LENS = { R: 100, gap: 178, M: 2.4, tilt: 24 };
 const geoAt = (u) => {
   const P = axisAt(u);
   const C = [P[0] + V[0] * LENS.gap, P[1] + V[1] * LENS.gap, P[2] + V[2] * LENS.gap];
@@ -182,6 +182,7 @@ export const BxTruth = ({ at, end, w, stage }) => {
     ] }) }),
     jsx("div", { "data-probe-object": "the magnifier's arm and lens head; through the glass the core magnified: grains only on its skin, the broken end grey", style: { position: "absolute", inset: 0 }, children: jsxs("svg", { width: 1, height: 1, style: { position: "absolute", left: 0, top: 0, overflow: "visible" }, children: [
       jsx(StandArm, { id: "trA", rig: RIG, g }),
+      jsx(LoupeCover, { id: "trK", rig: RIG, g }),
       jsx(LoupeView, { id: "trV", rig: RIG, g, M: LENS.M, stage: s, glint, children: jsx("g", { "data-probe-skip": true, children: core("trM", cull, gx < 0 ? -1 : Ls.x + (gx - Ls.x) / LENS.M) }) }),
       jsx(LoupeRim, { id: "trR", rig: RIG, g })
     ] }) }),
