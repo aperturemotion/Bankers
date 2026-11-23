@@ -1,0 +1,67 @@
+[
+ {
+  "frames": [
+   1308,
+   1318
+  ],
+  "kinds": [
+   "POP",
+   "BLIP"
+  ],
+  "box": [
+   100,
+   600,
+   800,
+   1320
+  ],
+  "why": "teachD2's travel along the two counters while the 400+ drums roll (bell.tsx rollB 1297–1333): the counters glide left at the travel's speed and the drum digits roll through their windows — frames 1310–1315 stripped 2026-10-23 (out/closeups/pops2.png): every part moves frame to frame, nothing appears from nothing; designed motion. Since 2026-10-23 the pedestals carry fluted columns: the column glides evenly through 1310–1313 too (out/closeups/pops3.png)."
+ },
+ {
+  "frames": [
+   2040,
+   2046
+  ],
+  "kinds": [
+   "BLIP"
+  ],
+  "box": [
+   780,
+   960,
+   1000,
+   1120
+  ],
+  "why": "the dial slid out by the question's slide (STYLE §9.8): its regular tick marks pass a tile at the slide's peak speed (a strobe of a regular pattern, Bankers CLAUDE.md Video 13) — stripped 2026-10-23 (pops2.png, 2041–2044); the dial moves evenly, nothing pops."
+ },
+ {
+  "frames": [
+   2055,
+   2080
+  ],
+  "kinds": [
+   "BLIP"
+  ],
+  "box": [
+   300,
+   650,
+   1000,
+   1150
+  ],
+  "why": "the question's words flying in from depth on their spoken frames (track.tsx), each sharpening and moving smoothly frame to frame — designed motion (Video 14's and 15's reviewed class); stripped 2026-10-23 (pops2.png, 2056–2059: \"Is\", \"this\")."
+ },
+ {
+  "frames": [
+   2195,
+   2210
+  ],
+  "kinds": [
+   "BLIP"
+  ],
+  "box": [
+   200,
+   380,
+   900,
+   950
+  ],
+  "why": "the closing question LIFTING OUT through the top on the fly-through (track.tsx exit): \"of new\", \"waiting to\" move up smoothly frame to frame — stripped 2026-10-23 (pops2.png, 2200–2203); designed motion. The lift carries the upper lines too (\"wave\", \"or a\": 2208, x 288–704, y 416–608)."
+ }
+]
