@@ -23,6 +23,7 @@ import { TkFloor } from "./tk_floor";
 import { BX_FLOOR_Y, BxTray, CORE_LEN, CORE_R, bxRig, coreXf, trayCoreY, trayCorners, trayRowZ, trayWidth } from "./bx_core";
 import { BAR, BarBody, BarStamp, barCorners, barDims, barPoint } from "./bx_bar";
 import { DustRidge, HookDust, dustFront, fallFrames } from "./hook_dust";
+import { HookVial, VIAL } from "./hook_vial";
 
 const jsx = (t, p, k) => (0,jsx_runtime.jsx)(t, p, k);
 const jsxs = (t, p, k) => (0,jsx_runtime.jsxs)(t, p, k);
@@ -36,15 +37,19 @@ const Y0 = trayCoreY;
 const ZB = TZ + trayWidth(ROWS) / 2 + BAR.T / 2 + 50;
 const YB = -BAR.H / 2;
 const LIFT = 700;
-const DROP_H = 2000;
+// the dust falls from the vial's mouth, 300 units above the core's top (under the caption band at the ride's framing)
+const DROP_H = 300;
 const KEYS = ["s0", "gold", "dust", "sprinkled", "rock", "samples", "s1", "took", "build", "k6", "billion", "company"];
 export const hookTimes = (w, end) => {
   for (const k of KEYS) if (!Number.isFinite(w[k])) throw new Error(`hook: the take has no word frame "${k}"`);
   // ★ (integrator, popscan): the swing is SPREAD so no visible part of the bar moves faster than the pop scan can follow
   //   (≤ ~45 px/f at full size; measured with hookMotionProbe): a sine-eased rise on "to build", the turn upright over 36 f
   //   centred on "billion", the drop onto its foot after "company"'s onset. The rise peaks before the turn does.
-  const lift = { a: w.build - 10, b: w.build + 14 };
-  const rot = { a: w.k6 - 10, b: w.k6 + 30 };
+  // (rev 1, the take): the turn ends as early as needed for the figure to read ≥ 30 f before flare 1's peak (end − 2); the rise
+  //   starts 16 f before the turn, as measured for the ≤ 45 px/f pop-scan limit (same durations, same overlap)
+  const rotB = Math.min(w.k6 + 30, end - 34);
+  const rot = { a: rotB - 36, b: rotB };
+  const lift = { a: rot.a - 16, b: rot.a + 8 };
   const apex = rot.b - 4, land = rot.b + 5;
   const t = {
     w,
@@ -54,7 +59,7 @@ export const hookTimes = (w, end) => {
     run: { a: 0.07, b: 0.9 },
     push: { a: 0, dur: 34 },
     // ease back to the whole glittering run on "That's all it took", the skin brightening to full
-    back: { a: w.took - 12, dur: 26 },
+    back: { a: w.took - 16, dur: 32 },
     glow: { a: w.s1 - 6, b: w.build - 4 },
     lift,
     rot,
@@ -65,7 +70,9 @@ export const hookTimes = (w, end) => {
     // then in onto the standing bar as it drops onto its foot
     settle: { a: rot.b - 12, dur: 30 },
     // C$6 BILLION eases in as the face forms through the turn, fully read as the bar stands (≥ 30 f before flare 1's peak)
-    fig: { a: w.billion + 1, b: rot.b },
+    fig: { a: rot.b - 22, b: rot.b },
+    // the vial: pouring while the dust is emitted, then turning its mouth up and sliding away along the run, out of frame
+    vial: { up: { a: w.samples + 8, b: w.samples + 30 }, away: w.samples + 23 },
     label: { a: w.company - 14, b: w.company }
   };
   if (t.fig.b + 30 > end - 2) throw new Error(`hook: C$6 BILLION must read ≥ 1 s before flare 1 (${t.fig.b} vs peak ${end - 2})`);
@@ -160,6 +167,8 @@ export const hookSfx = (t) => [
   // the dust still landing and the skin starting to glitter: two quieter passes of the same stand-in
   { job: "coin", a: t.push.a + t.push.dur - 4, vol: 0.24 },
   { job: "coin", a: Math.round((t.push.a + t.push.dur + t.back.a) / 2) + 2, vol: 0.2 },
+  // the vial turns its mouth up and slides away along the run
+  { job: "obj", a: t.vial.away, b: t.vial.away + 22, k: "in", vol: 0.32 },
   // the core rises straight out of its row
   { job: "obj", a: t.lift.a, b: t.lift.b, k: "out", vol: 0.75 },
   // it turns upright and swells into the bar
@@ -192,6 +201,9 @@ export const hookMotionProbe = (w, end, g) => {
   const W2 = d.qb + d.c, T2 = d.qh + d.c, pts = [];
   for (const fy of [-0.5, -0.375, -0.25, -0.125, 0, 0.125, 0.25, 0.375, 0.5]) for (const [x, z] of [[-W2, -T2], [W2, -T2], [-W2, T2], [W2, T2]]) pts.push(xfApply(h.xf, [x, fy * d.len, z]));
   pts.push(...trayCorners(TRAY_XF, ROWS));
+  // the vial's mouth and bottom
+  const v = vialAt(t, g);
+  pts.push(v.mouth, [v.mouth[0] + v.axis[0] * VIAL.L, v.mouth[1] + v.axis[1] * VIAL.L, v.mouth[2] + v.axis[2] * VIAL.L]);
   return pts.map((q) => {
     const p = worldScr(rig, q);
     return [540 + c.z * (p[0] + c.x - 540), 883.2 + c.z * (p[1] + c.y - 883.2)];
@@ -209,6 +221,25 @@ export const hookClearance = (w, end, g) => {
   }
   const overTray = back < TZ + trayWidth(ROWS) / 2 + 4;
   return (overTray ? FY - 60 : FY) - low + (h.lift < 70 ? 1e4 : 0);
+};
+// the vial's pose: its mouth above the stream's source, tilted mouth-down and tapped while it pours; then mouth up, then away
+const vialAt = (t, g) => {
+  const u = srcU(t)(Math.min(g, t.emit.b));
+  const restXf = xfMul(TRAY_XF, coreXf(0, trayCoreY, trayRowZ(HERO, ROWS)));
+  let mouth = xfApply(restXf, [CORE_R + DROP_H, -CORE_LEN / 2 + u * CORE_LEN, 0]);
+  const tap = Math.sin(g * 0.9) * 2.5 * (1 - rInOut(g, t.vial.up.a - 4, t.vial.up.a));
+  const up = rInOut(g, t.vial.up.a, t.vial.up.b);
+  // the tilt (degrees from straight down): 62° pouring → 150° mouth up
+  const tilt = (62 + tap + 58 * up) * Math.PI / 180;
+  const axis = [Math.sin(tilt) * 0.97, -Math.cos(tilt), 0.24 * Math.sin(tilt)];
+  const al = Math.hypot(...axis);
+  // the slide away along the run (+x): a soft start to ≈ 20 units/f (≤ 45 px/f on screen at the ride's zoom), then — once out of
+  //   the frame — on and away fast so the wider framings never see it again
+  const e = g - t.vial.away;
+  const dx = e <= 0 ? 0 : e < 8 ? 20 * e * e / 16 : 80 + 20 * (e - 8) + (e > 14 ? 9 * (e - 14) ** 2 : 0);
+  mouth = [mouth[0] + dx, mouth[1] - 0.25 * dx, mouth[2]];
+  const fill = 0.62 - 0.32 * clamp01((g - t.emit.a) / (t.emit.b - t.emit.a));
+  return { mouth, axis: axis.map((v) => v / al), fill };
 };
 export const BxHook = ({ at, end, w, stage }) => {
   const f = (0,esm.useCurrentFrame)();
@@ -240,7 +271,8 @@ export const BxHook = ({ at, end, w, stage }) => {
       jsx(BxTray, { id: "hkT", rig, xf: TRAY_XF, rows: ROWS, cores, hero: HERO, probe: null, heroEl: inTray ? () => heroBody("in") : null }),
       ridgeOp > 1e-3 && jsx(DustRidge, { rig, map: (q) => xfApply(restXf, q), len: CORE_LEN, r: CORE_R, span: front, op: ridgeOp, seed: 2 }),
       !inTray && heroBody("out"),
-      jsx(HookDust, { rig, map: (q) => xfApply(restXf, q), len: CORE_LEN, r: CORE_R, src: u, emit: t.emit, height: DROP_H, seed: 4, g: f })
+      jsx(HookDust, { rig, map: (q) => xfApply(restXf, q), len: CORE_LEN, r: CORE_R, src: u, emit: t.emit, height: DROP_H, seed: 4, g: f }),
+      f < t.vial.away + 60 && jsx(HookVial, { rig, ...vialAt(t, f), g: f })
     ] }),
     jsx(BarStamp, { rig, xf: h.xf, m: h.m, src: SRC, fig: { text: L("hookFigure"), on: rInOut(f, t.fig.a, t.fig.b) } })
     ] }),
