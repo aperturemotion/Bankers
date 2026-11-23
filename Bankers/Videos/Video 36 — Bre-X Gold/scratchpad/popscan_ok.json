@@ -14,53 +14,5 @@
    740
   ],
   "why": "truth -> collapse slide (panFromR): the gold bar's leading edge enters through the right edge at the slide's peak speed (continuous; looked at 1301-1305, builder C)"
- },
- {
-  "kinds": [
-   "POP"
-  ],
-  "frames": [
-   2075,
-   2079
-  ],
-  "box": [
-   700,
-   1700,
-   860,
-   1790
-  ],
-  "why": "lesson -> rule rise (fromBelow): the vitrine's header rises in through the bottom edge under the card's rack focus (continuous; looked at 2075-2078, builder C)"
- },
- {
-  "kinds": [
-   "BLIP"
-  ],
-  "frames": [
-   2239,
-   2243
-  ],
-  "box": [
-   460,
-   780,
-   660,
-   1270
-  ],
-  "why": "rule: the vitrine's glass door swings open, its steel stile and handle sweeping across the lit bar at the swing's peak speed (continuous; looked at 2239-2243, builder C)"
- },
- {
-  "kinds": [
-   "BLIP"
-  ],
-  "frames": [
-   2240,
-   2245
-  ],
-  "box": [
-   240,
-   1360,
-   530,
-   1520
-  ],
-  "why": "rule: the vitrine's glass door swings open, its lower rail sweeping across the plinth's ledge and the QUALIFIED PERSON plate at the swing's peak speed (continuous; looked at 2241-2244, integrator)"
  }
 ]
