@@ -262,8 +262,10 @@ const Cap = ({ pr, open, id, stage, lit }) => {
     // the inside of the cap (seen when it hangs open, mouth toward the eye): a dark well with its inner ring
     jsx("path", { d: skirt.d, fill: `url(#${id}Cs)` }),
     // the inside of the cap, seen through its open end: a dark moulded well with its inner liner ring
-    seeIn && jsx("path", { d: poly(ring(pr, fr, 0, R - 1.6)), fill: rampAt(CAP_RAMP, 0.16) }),
-    seeIn && jsx("path", { d: poly(ring(pr, fr, 0, R - 6.5)), fill: rampAt(CAP_RAMP, 0.08), opacity: 0.9 }),
+    seeIn && jsx("path", { d: poly(ring(pr, fr, 0, R - 1.6)), fill: rampAt(CAP_RAMP, 0.42) }),
+    seeIn && jsx("path", { d: poly(ring(pr, fr, L - 3, R - 6.5)), fill: rampAt(CAP_RAMP, 0.3) }),
+    seeIn && jsx("path", { d: poly(ring(pr, fr, L - 3, R - 13)), fill: rampAt(CAP_RAMP, 0.36) }),
+    seeIn && jsx("path", { d: poly(frontArc(pr, fr, 0.4, R - 1.8, 72, Math.PI / 2), false), stroke: rampAt(CAP_RAMP, 0.15), strokeWidth: sw * 2.2, opacity: 0.7, fill: "none" }),
     seeIn && jsx("path", { d: poly(frontArc(pr, fr, 0.2, R - 6.5, 72, Math.PI / 2)), stroke: rampAt(CAP_RAMP, 0.5), strokeWidth: sw * 0.8, opacity: 0.6, fill: "none" }),
     ribs.map((r, i) => jsx("path", { d: r.d, stroke: r.dk ? "#061328" : r.c, strokeWidth: sw * (r.dk ? 0.9 : 0.7), opacity: r.dk ? 0.55 : 0.6, fill: "none" }, i)),
     jsx("path", { d: shoulder.d, fill: `url(#${id}Ch)` }),

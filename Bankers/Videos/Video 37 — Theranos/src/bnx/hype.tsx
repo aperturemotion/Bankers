@@ -38,7 +38,7 @@ export const hypeTimes = (w, end) => {
     back: { a: w.worth - 16, b: w.billion + 12 },
     // "paper": a breath of air bends it back, and ON PAPER lands under the base
     gust: { a: w.paper - 12, b: w.paper + 30 },
-    lab: { a: w.paper - 14, b: w.paper }
+    lab: { a: w.paper - 16, b: w.paper - 2 }
   };
   if (t.year.a < w.s0 - 22) throw new Error("hype: 2014 must ease in after the place has slid in far enough to read");
   if (t.lab.b > end - 4) throw new Error(`hype: ON PAPER must land before the slide out (${t.lab.b} vs ${end})`);

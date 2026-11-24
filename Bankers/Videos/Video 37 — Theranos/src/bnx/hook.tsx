@@ -19,7 +19,7 @@ import { travelling } from "./common";
 import { L } from "./data";
 import { Turn } from "./kit";
 import { HW_FLOOR_Y, HwFloor, hwCam, hwPath } from "./hook_world";
-import { HookPlinth, PL, PL_TOP_Y, plinthCorners, plinthGlint } from "./hook_plinth";
+import { HookPlinth, PL, PL_TOP_Y, plinthCorners, plinthGlint, plinthTopPoly } from "./hook_plinth";
 import { HookLancet } from "./hook_lancet";
 import { TH_TUBE, ThTube, thLevelS } from "./th_tube";
 
@@ -51,12 +51,12 @@ export const hookTimes = (w, end) => {
     grow: [null, { a: det[1] - 14, b: det[1] }, { a: det[2] - 14, b: det[2] }],
     // the lancet withdraws up out of frame after the third drop; the cap snaps shut on "promise"
     ret: null,
-    cap: { a: w.promise - 12, b: w.promise + 12 },
+    cap: { a: w.promise - 14, b: w.promise + 8 },
     // THE PAYOFF: the hard pull back, fastest on "$9 billion"; the figure eases on as it slows, fully read on "company"
-    pull: { a: w.k9 - 22, b: w.company + 2 },
-    fig: { a: w.billion + 4, b: w.company },
+    pull: { a: w.k9 - 26, b: w.billion + 14 },
+    fig: { a: w.billion - 10, b: w.billion + 6 },
     // then the light turns across the polished letters and catches the inlaid rule: the glint flare 1 blooms from
-    sheen: { a: w.company + 4, b: end - 10 },
+    sheen: { a: w.billion + 14, b: end - 10 },
     glint: { a: end - 18, b: end - 2 }
   };
   t.touch = det.map((d, i) => {
@@ -68,12 +68,19 @@ export const hookTimes = (w, end) => {
   if (t.cap.b > t.pull.a + 8) throw new Error(`hook: the cap must be shut early in the pull back (${t.cap.b} vs ${t.pull.a})`);
   if (t.fig.b + 30 > end - 2) throw new Error(`hook: $9 BILLION must read ≥ 1 s before flare 1 (${t.fig.b} vs peak ${end - 2})`);
   if (t.pull.b > end - 20) throw new Error("hook: the pull back must settle before the push into the flare");
+  // ★ REV1 (Timur: the stand's top "has two layers … the top layer shifts to the front"): the eye must stay ABOVE the top plate
+  //   at every frame — from below, the cornice would hide the top plate's foot and the tube's, and the stacked solids (painted
+  //   bottom-up) would overlay wrongly. Measured: the eye stays ≥ 200 units over the plate.
+  for (let g = 0; g <= end; g += 2) {
+    const c = camRaw(t, g), eye = c.ty + c.D * Math.sin(c.pitch * Math.PI / 180);
+    if (eye > PL.top.y0 - 150) throw new Error(`hook: at frame ${g} the eye (y ${eye.toFixed(0)}) is not above the plinth's top plate`);
+  }
   return t;
 };
 // ── the camera: a real dolly. Far → close on the tube (push, OUT), a slow creep, then the hard pull back to the plinth ──────────
-const CLOSE = { D: 520, pitch: -16, yaw: 12, ty: FOOT_Y - 77 };
+const CLOSE = { D: 600, pitch: -16, yaw: 12, ty: FOOT_Y - 95 };
 const FAR = { D: 1400, pitch: -40, yaw: 4, ty: FOOT_Y - 52 };
-const FINAL = { D: 3350, pitch: -8, yaw: 16, ty: 660 };
+const FINAL = { D: 3350, pitch: -15, yaw: 16, ty: 640 };
 const lerp = (a, b, e) => a + (b - a) * e;
 const plateau = (g, a, b, q = 0.3) => {
   const x = clamp01((g - a) / (b - a)), v = 1 / (1 - q);
@@ -87,7 +94,7 @@ const camRaw = (t, g) => {
   const Dc = CLOSE.D * (1 - 0.07 * ec);
   let D = Math.exp(lerp(Math.log(FAR.D), Math.log(Dc), e0));
   D = Math.exp(lerp(Math.log(D), Math.log(FINAL.D), ep)) * (1 - 0.045 * ea);
-  const pitch = lerp(lerp(FAR.pitch, CLOSE.pitch, e0), FINAL.pitch, ep);
+  const pitch = lerp(lerp(FAR.pitch, CLOSE.pitch, e0), FINAL.pitch, ep) - 9 * Math.sin(Math.PI * ep);
   const yaw = lerp(lerp(FAR.yaw, CLOSE.yaw, e0) - 4 * ec, FINAL.yaw, ep) + 2 * ea;
   const tyC = lerp(FAR.ty, CLOSE.ty, e0);
   if (ep <= 0) return hwCam({ tx: TX, ty: tyC, D, F, pitch, yaw });
@@ -105,6 +112,12 @@ const camRaw = (t, g) => {
     else hi = m;
   }
   return hwCam({ tx: TX, ty: (lo + hi) / 2, D, F, pitch, yaw });
+};
+/** the eye's world height at frame g (y down): it must stay above the plinth's top plate, or its ledges and the tube's foot
+ *  would be seen from below (the paint order of the stacked solids assumes a view from above) */
+export const hookEye = (w, end, g) => {
+  const t = hookTimes(w, end), c = camRaw(t, g);
+  return c.ty + c.D * Math.sin(c.pitch * Math.PI / 180);
 };
 export const hookCamWindows = (t) => [{ a: t.push.a, b: t.push.b }, { a: t.pull.a, b: t.pull.b }];
 export const hookSfx = (t) => [
@@ -170,6 +183,7 @@ export const BxHook = ({ at, end, w, stage }) => {
   const figOn = rInOut(f, t.fig.a, t.fig.b);
   // the key light's pool on the polished top, the tube's soft contact shadow (leaning away from the light)
   const ringAt = (r, dx = 0, dz = 0, y = PL.top.y0 - 0.2) => Array.from({ length: 48 }, (_, i) => [TX + dx + r * Math.cos(i / 48 * 2 * Math.PI), y, dz + r * Math.sin(i / 48 * 2 * Math.PI)]);
+  const topD = "M" + plinthTopPoly(cam).map((p) => `${f2(p[0])},${f2(p[1])}`).join("L") + "Z";
   const poolC = cam.P([TX, PL.top.y0, 0]), poolR = 210 * cam.K([TX, PL.top.y0, 0]);
   return jsx(PlaceRoot, { children: jsx(CamFn, { at: () => ({ x: 0, y: 0, z: 1 }), children: jsx("div", { "data-probe-leaving": travelling(f, hookCamWindows(t)), style: { position: "absolute", inset: 0 }, children: jsxs(Turn, { at, end, from: -2.5, to: 2, amp: 0.5, children: [
     jsx(HwFloor, { id: "hkF", cam, at: { x: TX, z: 60 }, reach: 1500, casters: [{ corners: plinthCorners() }], stage, on: rv }),
@@ -177,14 +191,16 @@ export const BxHook = ({ at, end, w, stage }) => {
     //   caption-free until BANNER_END (no chip shows while it plays), so the lancet and the tube may stand above the band.
     jsxs("div", { "data-probe-object": "the nanotainer standing on the towering machined plinth ($9 BILLION panel), the lancet and the drops", "data-probe-headroom-ok": "the hook is caption-free (BANNER_END): no chip shows while the lancet and the tube stand above the band", style: { position: "absolute", inset: 0 }, children: [
       jsxs("svg", { width: 1, height: 1, style: { position: "absolute", left: 0, top: 0, overflow: "visible" }, children: [
-        jsx(HookPlinth, { id: "hkP", cam, fall, fig: L("hookFigure"), figOn, stage, sheen: -1 + 2 * rInOut(f, t.sheen.a, t.sheen.b), glint: rInOut(f, t.glint.a, t.glint.b) }),
+        jsx(HookPlinth, { id: "hkP", cam, fall, fig: L("hookFigure"), figOn, stage, sheen: -1 + 2 * rInOut(f, t.sheen.a, t.sheen.b), glint: rInOut(f, t.glint.a, t.glint.b), g: f }),
         jsxs("defs", { children: [jsxs("radialGradient", { id: "hkPool", gradientUnits: "userSpaceOnUse", cx: f2(poolC[0]), cy: f2(poolC[1]), r: f2(poolR), gradientTransform: `translate(${f2(poolC[0])} ${f2(poolC[1])}) scale(1 ${Math.max(0.05, Math.abs(Math.sin(cam.pitch * Math.PI / 180))).toFixed(4)}) translate(${f2(-poolC[0])} ${f2(-poolC[1])})`, children: [
           jsx("stop", { offset: "0", stopColor: "#CFE0F5", stopOpacity: 0.34 }),
           jsx("stop", { offset: "0.5", stopColor: "#9FC0E6", stopOpacity: 0.12 }),
           jsx("stop", { offset: "1", stopColor: "#9FC0E6", stopOpacity: 0 })
         ] })] }),
-        jsx("path", { d: hwPath(cam, ringAt(200)), fill: "url(#hkPool)" }),
-        [30, 26, 23].map((r, i) => jsx("path", { d: hwPath(cam, ringAt(r, 9, -11, PL.seat.y0 - 0.1)), fill: "#020812", opacity: 0.1 + 0.06 * i }, i))
+        // (the pool, the tube's contact shadow and its reflection lie ON the top plate: clipped to its top face)
+        jsx("clipPath", { id: "hkTopC", clipPathUnits: "userSpaceOnUse", children: jsx("path", { d: topD }) }),
+        jsx("path", { d: hwPath(cam, ringAt(200)), fill: "url(#hkPool)", clipPath: "url(#hkTopC)" }),
+        jsx("g", { clipPath: "url(#hkTopC)", children: [30, 26, 23].map((r, i) => jsx("path", { d: hwPath(cam, ringAt(r, 9, -11, PL.seat.y0 - 0.1)), fill: "#020812", opacity: 0.1 + 0.06 * i }, i)) })
       ] }),
       jsxs("svg", { width: 1, height: 1, style: { position: "absolute", left: 0, top: 0, overflow: "visible" }, children: [
       // its reflection in the polished top: the tube seen from the mirrored eye, flipped about its foot, fading away from it
@@ -192,9 +208,10 @@ export const BxHook = ({ at, end, w, stage }) => {
         jsx("stop", { offset: "0", stopColor: "#FFFFFF", stopOpacity: 0.32 }),
         jsx("stop", { offset: "1", stopColor: "#FFFFFF", stopOpacity: 0 })
       ] }), jsx("mask", { id: "hkRm", maskUnits: "userSpaceOnUse", x: -2000, y: -2000, width: 6000, height: 6000, children: jsx("rect", { x: -2000, y: f2(foot[1]), width: 6000, height: 4000, fill: "url(#hkRf)" }) })] }),
-      jsx("g", { mask: "url(#hkRm)", children: jsx("g", { transform: `translate(0 ${f2(2 * foot[1])}) scale(1 -1)`, children: jsx(ThTube, { id: "hkTr", x: foot[0], y: foot[1], scale: kf, pitch: -cam.pitch, yaw: cam.yaw, persp: Math.max(50, cam.D - vz), fill, open, label: L("hookTube") }) }) }),
+      jsx("clipPath", { id: "hkTopC2", clipPathUnits: "userSpaceOnUse", children: jsx("path", { d: topD }) }),
+      jsx("g", { mask: "url(#hkRm)", clipPath: "url(#hkTopC2)", children: jsx("g", { transform: `translate(0 ${f2(2 * foot[1])}) scale(1 -1)`, children: jsx(ThTube, { id: "hkTr", x: foot[0], y: foot[1], scale: kf, pitch: -cam.pitch, yaw: cam.yaw, persp: Math.max(50, cam.D - vz), fill, open, label: L("hookTube") }) }) }),
       jsx(ThTube, { id: "hkT", x: foot[0], y: foot[1], scale: kf, pitch: cam.pitch, yaw: cam.yaw, persp: Math.max(50, cam.D - vz), fill, open, label: L("hookTube"), drops: dropsAt(t, f), ripple: rippleAt(t, f), stage }),
-      f < t.ret.b + 2 && jsx(HookLancet, { cam, tip })
+      f < t.ret.b + 2 && jsx(HookLancet, { cam, tip, g: f, printOn: 1 - rInOut(f, t.ret.a - 4, t.ret.a + 6) })
     ] })
     ] })
   ] }) }) }) });
