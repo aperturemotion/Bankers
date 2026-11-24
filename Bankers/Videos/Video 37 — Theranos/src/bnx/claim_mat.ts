@@ -13,6 +13,10 @@ export const TH_ALU = mixR(PL_STEEL, HC_POLE, 0.28);
 // the facade's cladding panels: the school wall's blue-steel, a step lighter so the facade reads against the navy field
 export const TH_CLAD = mixR(HS_WALL, ["#132A47", "#1C3D63", "#2A5689", "#86A6CB", "#DCE6F1"], 0.55);
 export const TH_CLAD_SEAM = "#08121F";
+// the building's granite base course: the plinth plate's graphite toward the school's stone (a cool dark stone, never a brown)
+export const TH_BASE = ["#12161B", "#1F252D", "#353E49", "#7A8693", "#CBD3DB"];
+// the roof's membrane deck: a flat dark graphite
+export const TH_ROOF = ["#0E1217", "#171C23", "#262E38", "#4F5A67", "#9AA4AF"];
 // the skirting / threshold / hood: the plinth graphite
 export const TH_GRAPH = PL_BODY;
 export const TH_PLATE = PL_PLATE;

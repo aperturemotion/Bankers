@@ -24,9 +24,9 @@ import { DOOR, LabDoor, doorAt, doorCorners } from "./th_door";
 
 const jsx = jsx_runtime.jsx, jsxs = jsx_runtime.jsxs;
 // the rig: a little above eye height, looking slightly down, the facade turned a few degrees so its depth reads
-export const CLAIM_RIG = { cx: 540, cy: TK_FLOOR_Y - 640, persp: 3200, yaw: -9, pitch: -7 };
+export const CLAIM_RIG = { cx: 540, cy: TK_FLOOR_Y - 1000, persp: 3200, yaw: -4, pitch: -10 };
 const R = CLAIM_RIG;
-export const CLAIM_POSE = xfPose(540, TK_FLOOR_Y, 0);
+export const CLAIM_POSE = xfPose(470, TK_FLOOR_Y, 0, 1, -28);
 const POSE = CLAIM_POSE;
 const lay = (p) => ({ x: p[0], y: p[1] });
 const S = (q) => lay(doorAt(R, POSE, q));
@@ -58,29 +58,35 @@ export const claimTimes = (w, end) => {
 };
 // the framings, DERIVED from the construction: the door and the plate together (the left panel cropped by the frame), then the
 //   plate and the door's latch side. Everything stays under the caption headroom (450) in both.
-const DOOR_L = S([-DOOR.ow / 2 - 30, 0, 0]), PLATE_R = S([DOOR.plate.cx + DOOR.plate.w / 2 + 30, 0, 0]);
-const TOP = S([0, -DOOR.H - 16, 0]), FOOT = S([0, 0, 40]);
-const WIDE_Z = Math.min(1.08, 1000 / (PLATE_R.x - DOOR_L.x));
+const DOOR_L = S([-DOOR.canopy.w / 2 + 40, 0, 0]), PLATE_R = S([DOOR.plate.cx + DOOR.plate.w / 2 + 30, 0, 0]);
+const DROP = 110, TOP_AT = 480;
+const TOP = [[DOOR.W0, -DOOR.H, 0], [DOOR.W1, -DOOR.H, 0], [DOOR.W0, -DOOR.H, -DOOR.SIDE], [DOOR.W1, -DOOR.H, -DOOR.SIDE], [-470, DOOR.P0 - 150, -1060]].map(S).reduce((a, b) => (b.y < a.y ? b : a)), FOOT = [S([0, 0, 40]), S([DOOR.W1 + DOOR.BZ, 0, DOOR.BZ])].reduce((a, b) => (b.y > a.y ? b : a));
+// (and the door's threshold stays above ~1650 on screen: the roof is kept under the headroom, so a closer zoom would drop the
+//   door's foot off the frame)
+const WIDE_Z = Math.min(1.08, 1000 / (PLATE_R.x - DOOR_L.x), (1640 - TOP_AT) / (FOOT.y - TOP.y));
 const PIV = 883;
-const aimY = (z, top, foot) => Math.min(top.y - (500 - PIV) / z, (top.y + foot.y) / 2 + 30);
+// (+ DROP: the composition draws every place 110 px lower — the roof's coping is kept at ≥ 480 on screen)
+const aimY = (z, top, foot) => Math.min(top.y - (TOP_AT - DROP - PIV) / z, (top.y + foot.y) / 2 + 30 - DROP / z);
 const WIDE = { x: (DOOR_L.x + PLATE_R.x) / 2, y: aimY(WIDE_Z, TOP, FOOT) };
-// both framings keep the door's gold name AND the plate wholly in frame: a lean toward the door as the name writes, then toward
-//   the plate as its lines fill (a travel of ~110 px, the zoom creeping 6–9 %)
+// three framings: the WHOLE building (its front, its right side wall going back, the parapet — it reads as a building, not a
+//   wall) out of the flare; in on the door and the plate as the name writes; a lean toward the plate as its lines fill. Each
+//   keeps the gold name and the plate wholly in frame, the coping under the caption headroom.
+const B_L = S([DOOR.W0 - 30, 0, 0]), B_R = S([DOOR.W1 + 30, 0, -DOOR.SIDE]);
+const WHOLE_Z = Math.min(0.86, 1000 / (B_R.x - B_L.x));
+const WHOLE = { x: (B_L.x + B_R.x) / 2, y: aimY(WHOLE_Z, TOP, FOOT) };
 const shots = (t) => [
-  { a: -9999, z: WIDE_Z, push: 0.02, at: still(WIDE.x, WIDE.y) },
-  { a: t.lean.a, dur: t.lean.dur, z: WIDE_Z * 1.06, push: 0, at: still(WIDE.x - 50, WIDE.y - 10) },
-  { a: t.ride.a, dur: t.ride.dur, z: WIDE_Z * 1.09, push: 0.02, at: still(WIDE.x + 60, WIDE.y - 10) }
+  { a: -9999, z: WHOLE_Z, push: 0.02, at: still(WHOLE.x, WHOLE.y) },
+  { a: t.lean.a, dur: t.lean.dur + 6, z: WIDE_Z, push: 0, at: still(WIDE.x - 20, aimY(WIDE_Z, TOP, FOOT)) },
+  { a: t.ride.a, dur: t.ride.dur, z: WIDE_Z, push: 0.02, at: still(WIDE.x + 50, aimY(WIDE_Z, TOP, FOOT)) }
 ];
-// ★ flare 1's lit point: the corridor's far light seen through the door's glass (the bloom recedes into it), in SCREEN
-//   coordinates at the place's rest framing (the action camera's first focus: screen = pivot + z · (p − aim); pivot = the CamFn
-//   origin, 50 % / 46 % of the 1080 × 1920 frame)
-const FAR = [0, -200, DOOR.lab.far];
+// ★ flare 1's lit point: the lit glass of the door, the corridor's light just behind it (the bloom recedes into it), in SCREEN
+//   coordinates at the place's rest framing (the whole building; the action camera's first focus: screen = pivot + z · (p − aim);
+//   pivot = the CamFn origin, 50 % / 46 % of the 1080 × 1920 frame) + the composition's stage drop (Composition.tsx DROP = 110)
+const FAR = [0, -330, DOOR.glassZ - 40];
 export const claimFlarePoint = (() => {
   const p = worldScr(R, xfApply(POSE, FAR)), O = { x: 540, y: 0.46 * 1920 };
-  const z = WIDE_Z * 1.02;   // the rest focus with its settled creep (push 0.02)
-  // + the composition's stage drop (Composition.tsx DROP = 110: every place is drawn 110 px lower) — measured on a still with a
-  //   marker at this point: (454, 1054) at frame 205, within the caption camera's drift
-  return { x: Math.round(O.x + z * (p[0] - WIDE.x)), y: Math.round(O.y + z * (p[1] - WIDE.y) + 110) };
+  const z = WHOLE_Z * 1.02;   // the rest focus with its settled creep (push 0.02)
+  return { x: Math.round(O.x + z * (p[0] - WHOLE.x)), y: Math.round(O.y + z * (p[1] - WHOLE.y) + DROP) };
 })();
 export const claimCamWindows = (t) => actionCamWindows(shots(t));
 export const claimSfx = (t) => [
@@ -100,9 +106,9 @@ export const BxClaim = ({ at, end, w, stage }) => {
   const on = (q) => rInOut(f, q.a, q.b);
   const glow = 1 + 0.7 * (1 - rInOut(f, t.glow.a, t.glow.b));
   const lines = [
-    { text: L("claimYear"), size: 84, on: on(t.year) },
-    { text: L("claimFounder"), size: 28, on: on(t.founder) },
-    { text: L("claimSchool"), size: 28, on: on(t.school) }
+    { text: L("claimYear"), size: 80, on: on(t.year) },
+    { text: L("claimFounder"), size: 32, on: on(t.founder) },
+    { text: L("claimSchool"), size: 32, on: on(t.school) }
   ];
   const casters = [{ corners: doorCorners(POSE), k: 0.75 }];
   return jsx(PlaceRoot, { children: jsx(CamFn, { at: actionCam(shots(t)), children: jsx("div", { "data-probe-leaving": travelling(f, claimCamWindows(t)), style: { position: "absolute", inset: 0 }, children: jsxs(Turn, { at, end, from: -5, to: 4, amp: 0.8, children: [
