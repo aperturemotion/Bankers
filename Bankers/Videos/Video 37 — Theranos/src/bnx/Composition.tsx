@@ -339,9 +339,9 @@ const SCN = [
 const FLARES = [
   // flare 1 (hook → claim): PROVISIONAL points — the hook's lit point (hook builder: hookFlarePoint) → claim's lit point (claim builder)
   { peak: P.hook.end - 2, from: { x: 540, y: 700 }, to: { x: 540, y: 900 }, ghost: 2.2, grow: 24, hold: 2, recede: 16 },
-  // flare 2 (rule → close): PROVISIONAL from — the rule builder's lit point (ruleFlarePoint); to = where BANKER$ will stand
+  // flare 2 (rule → close): from = the journal slot's lit back (builder F, ruleFlarePoint, measured on screen at f1975/f2020); to = BANKER$
   //   recede 16 (as flare 1): the bloom is gone over the white stage before it drains (see LIGHT_WINDOWS)
-  { peak: P.rule.end - 1, from: { x: 540, y: 760 }, to: { x: 540, y: 960 }, grow: 26, hold: 2, recede: 16 }
+  { peak: P.rule.end - 1, from: { x: 540, y: 996 }, to: { x: 540, y: 960 }, grow: 26, hold: 2, recede: 16 }
 ];
 const ft = (fl) => ({ grow: fl.grow ?? FLARE_T.grow, hold: fl.hold ?? FLARE_T.hold, recede: fl.recede ?? FLARE_T.recede });
 const flash = (f0) => ({ at: f0 - 30, end: f0 + 21 });
