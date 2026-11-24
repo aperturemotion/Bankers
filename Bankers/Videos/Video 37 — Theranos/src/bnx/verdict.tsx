@@ -1,16 +1,17 @@
 // @ts-nocheck
-// ★ V37 "Theranos" — place VERDICT (builder F). "In January two thousand twenty-two, Holmes was found guilty of defrauding
+// ★ V37 "Theranos" — place VERDICT (builder F, REV 1). "In January two thousand twenty-two, Holmes was found guilty of defrauding
 //   investors. Her sentence: eleven years and three months, later cut by one year."  (FACTCHECK #13, #14; figures in verdict_data.ts)
-//   Neutral: the verdict and the sentence as the jury and the courts ruled them, no person, no gavel (Video 36 had one).
-//   1. THE VERDICT BLOCK (verdict_block.tsx): a machined steel block with steel letters set into a slot in its top. JAN 3, 2022
-//      paints into its left plate on "2022"; on "guilty" the six letters are driven up out of the block and stop hard on their
-//      seats — GUILTY, with weight (a clunk, a low hit, a short rebound); 4 COUNTS paints into the right plate on "defrauding".
-//   2. ★ The place runs 8.9 s, so on "Her sentence" the ACTION CAMERA TRAVELS right to framing 2, THE HOURGLASS (verdict_glass.tsx):
-//      its sand runs through the neck as a thin thread and the lower bulb fills to 135 MONTHS, the figure easing in over it on
-//      "months"; on "later cut by one year" the run reverses for a moment — one year of sand (12/135 of the heap's volume) runs
-//      back up through the neck, the heap's level drops by exactly that volume, and the figure rolls over to 123 MONTHS.
+//   Neutral: the verdict and the sentence as the jury and the courts ruled them; no person.
+//   1. THE JUDGE'S BENCH (verdict_gavel.tsx; REV 1, Timur: "a table with the hammer, as in the court … another point of view … change
+//      the design"): dark walnut and brass, seen high from its right-front three-quarter. JAN 3, 2022 paints into its brass nameplate
+//      on "2022"; the gavel lying on the leather pad rises as the camera leans in, and STRIKES its sound block ON "guilty" — GUILTY
+//      lands over the block with the blow; 4 COUNTS settles under it on "defrauding".
+//   2. ★ The place runs 9.6 s, so on "Her sentence" the ACTION CAMERA TRAVELS right to framing 2, THE HOURGLASS (verdict_glass.tsx;
+//      REV 1: "keep the time watch, but make it more detailed"): its sand runs through the neck as a thin thread and the lower bulb
+//      fills to 135 MONTHS on "months"; on "later cut by one year" one year of sand (12/135 of the heap's volume) runs back up through
+//      the neck, the heap's level drops by exactly that volume, and the figure turns to 123 MONTHS.
 //   Exits by the composition's pushLight into the fair hero card (LightBreak 2).
-//   Objects: framing 1 the block; framing 2 the hourglass (≤ 3 per scene).
+//   Objects: framing 1 the bench, its block, its gavel; framing 2 the hourglass (≤ 3 per scene).
 import * as esm from "remotion";
 import * as jsx_runtime from "react/jsx-runtime";
 import { clamp01, rIn, rInOut, rOut } from "./anim";
@@ -20,20 +21,43 @@ import { travelling } from "./common";
 import { L } from "./data";
 import { Turn, figure, label } from "./kit";
 import { actionCam, actionCamWindows } from "./actioncam";
-import { worldScr, xfPose } from "./tk_rig";
+import { worldScr, xfApply, xfPose } from "./tk_rig";
 import { INK } from "./tk_mat";
 import { TK_FLOOR_Y } from "./tk_slab";
 import { TkFloor } from "./tk_floor";
 import { CUT_SHARE } from "./verdict_data";
-import { BLOCK_TOP_V, LETTER_CAP, VerdictBlock, verdictBlockCorners } from "./verdict_block";
+import { BENCH, BENCH_TOP_V, BLOCK, Bench, GV, Gavel, GavelShadow, PAD, SoundBlock, benchCorners } from "./verdict_gavel";
 import { Hourglass, hourglassCorners, hourglassPt } from "./verdict_glass";
 
 const jsx = (t, p, k) => (0,jsx_runtime.jsx)(t, p, k);
 const jsxs = (t, p, k) => (0,jsx_runtime.jsxs)(t, p, k);
 const FY = TK_FLOOR_Y;
-const RIG = { cx: 540, cy: FY - 1300, persp: 3600, yaw: 14, pitch: -6 };
-const BLOCK = xfPose(540, FY, 0);
-const HGAT = [1760, FY, -180];
+const RIG = { cx: 540, cy: FY - 1650, persp: 3600, yaw: 8, pitch: -9 };
+// the bench turned −30° about its foot: its right end swings toward the lens (a right-front three-quarter, high)
+const BYAW = -30;
+const BPOSE = xfPose(540, FY, 0, 1, BYAW);
+const HGAT = [1800, FY, -260];
+// the block and the gavel, in bench-local coordinates (u right, v down, w front), then into the world through BPOSE
+const BLK_L = [PAD.u + 40, BENCH_TOP_V, PAD.w - 30];
+const BLK = xfApply(BPOSE, BLK_L);
+const BLOCK_TOP = BLK[1] - BLOCK.h;
+const yawVec = (psi) => [Math.cos(psi * Math.PI / 180), 0, -Math.sin(psi * Math.PI / 180)];
+const toWorld = (p) => ({ ...p, psi: p.psi + BYAW, P: xfApply(BPOSE, p.P) });
+// lying on the pad in front of the block (its side on the pad, the knob's end touching it), and struck (its face on the block)
+const REST = (() => {
+  const psi = 14, head = [BLK_L[0] - 70, BENCH_TOP_V - GV.headR, BLK_L[2] + 178];
+  const theta = -Math.asin((GV.headR - GV.knobR) / GV.butt) * 180 / Math.PI;
+  const v = yawVec(psi), c = Math.cos(theta * Math.PI / 180);
+  return { psi, theta, rho: 90, P: [head[0] - GV.butt * c * v[0], BENCH_TOP_V - GV.knobR, head[2] - GV.butt * c * v[2]] };
+})();
+if (REST.P[0] - GV.knobR < -BENCH.W / 2 + 30) throw new Error("verdict: the gavel must lie wholly on the bench top");
+const STRUCK = (() => {
+  const psi = 34, head = [BLK_L[0], BENCH_TOP_V - BLOCK.h - GV.headL / 2, BLK_L[2]];
+  const v = yawVec(psi);
+  return { psi, theta: 0, rho: 0, P: [head[0] - GV.butt * v[0], head[1], head[2] - GV.butt * v[2]] };
+})();
+const RAISE = -40;
+const mixV = (a2, b2, e) => a2.map((x, i) => x + (b2[i] - x) * e);
 const KEYS = ["s0", "january", "k2022", "holmes", "guilty", "defrauding", "investors", "s1", "sentence", "k11", "years", "k3", "months", "cut", "year"];
 // ── times: every window keyed to a spoken word ────────────────────────────────────────────────────────────────────────
 export const verdictTimes = (w, end) => {
@@ -41,10 +65,12 @@ export const verdictTimes = (w, end) => {
   const t = {
     w,
     end,
-    date: { a: w.k2022 - 12, b: w.k2022 + 6 },            // JAN 3, 2022 paints in on "2022"
-    rise: { a: w.guilty - 13, b: w.guilty },               // the letters driven up, seated ON "guilty"
-    push: { a: w.guilty - 22, dur: 34 },                   // the camera leans in to the letters as they rise
-    counts: { a: w.defrauding - 12, b: w.defrauding + 6 }, // 4 COUNTS on "defrauding"
+    date: { a: w.k2022 - 12, b: w.k2022 + 6 },            // JAN 3, 2022 paints into the nameplate on "2022"
+    push: { a: w.guilty - 34, dur: 32 },                   // the camera leans in to the block as the gavel rises
+    lift: { a: w.guilty - 28, b: w.guilty - 9 },           // the gavel rises off the pad …
+    strike: { a: w.guilty - 8, b: w.guilty },              // … and strikes the block ON "guilty" (an 8-f swing down)
+    verdict: { a: w.guilty, b: w.guilty + 8 },             // GUILTY lands with the blow (from the contact on: the head never passes through it)
+    counts: { a: w.defrauding - 6, b: w.defrauding + 8 },  // 4 COUNTS settles on "defrauding"
     travel: { a: w.sentence - 14, dur: 38 },               // ★ the travel to the hourglass on "Her sentence"
     pour: { a: w.s1 - 2, b: w.months },                    // the lower bulb fills to the whole sentence by "months"
     fig: { a: w.months - 14, b: w.months + 3 },            // 135 MONTHS on "months"
@@ -52,7 +78,8 @@ export const verdictTimes = (w, end) => {
     roll: { a: Math.min(w.cut + 19, end - 22) - 20, b: Math.min(w.cut + 19, end - 22) },   // the figure rolls to 123 MONTHS (20 f, soft-edged window), landed before the push-out
     out: end + 2 - 22                                      // the composition's pushLight (HO.verdict)
   };
-  if (t.date.b > t.rise.a + 4) throw new Error("verdict: JAN 3, 2022 must be read before the letters rise");
+  if (t.date.b > t.lift.a + 4) throw new Error("verdict: JAN 3, 2022 must be read before the gavel rises");
+  if (t.counts.a < t.verdict.b - 2) throw new Error("verdict: 4 COUNTS comes after GUILTY");
   if (t.counts.b > t.travel.a) throw new Error("verdict: 4 COUNTS must be in before the travel to the hourglass");
   if (t.travel.a + t.travel.dur > t.fig.a) throw new Error("verdict: the camera must be at the hourglass before 135 MONTHS");
   if (t.pour.b - t.pour.a < 30) throw new Error("verdict: the sand needs ≥ 1 s to run");
@@ -62,15 +89,17 @@ export const verdictTimes = (w, end) => {
   return t;
 };
 // ── the motion ─────────────────────────────────────────────────────────────────────────────────────────────────────────
-/** the letters' rise: driven up (accelerating), stopped hard on the seats, a short damped rebound */
-const riseAt = (t, g) => {
-  if (g <= t.rise.a) return 0;
-  if (g < t.rise.b) {
-    const u = (g - t.rise.a) / (t.rise.b - t.rise.a);
-    return 0.5 * (u * u) + 0.5 * (u * u * u * (u * (6 * u - 15) + 10));
-  }
-  const u = g - t.rise.b;
-  return 1 - 0.035 * Math.exp(-u / 2.6) * Math.abs(Math.sin(Math.PI * u / 3.6));
+/** the gavel at frame g: lying → rising (yaw, roll and lift together) → swung up → struck → a small rebound on the block */
+const gavelAt = (t, g) => {
+  const e = rInOut(g, t.lift.a, t.lift.b), er = rInOut(g, t.lift.a, t.lift.b - 4);
+  const P = mixV(REST.P, STRUCK.P, e);
+  const psi = REST.psi + (STRUCK.psi - REST.psi) * e;
+  const rho = REST.rho * (1 - er);
+  let theta = REST.theta + (RAISE - REST.theta) * e;
+  if (g >= t.strike.a) theta = RAISE * (1 - rIn(g, t.strike.a, t.strike.b));
+  const u = g - t.strike.b;
+  if (u > 0) theta = -5 * Math.exp(-u / 2.2) * Math.abs(Math.sin(Math.PI * u / 3.6));
+  return toWorld({ P, psi, rho, theta });
 };
 /** the sand: the lower share, the upper share, the flow (+ down, − back up) */
 const sandAt = (t, g) => {
@@ -86,25 +115,25 @@ const scr = (p) => {
   const q = worldScr(RIG, p);
   return { x: q[0], y: q[1] };
 };
-const BLOCK_C = [540, FY + BLOCK_TOP_V * 0.62, 0];
-const LETTERS_C = [540, FY + BLOCK_TOP_V * 0.72, 0];
+const BENCH_C = xfApply(BPOSE, [0, BENCH_TOP_V * 0.62, 40]);
+const BLOCK_C = [BLK[0] - 20, BLOCK_TOP + 30, BLK[2]];
 // framing 2: the hourglass with its figure over it, the whole of it centred (the aim sits 300 under the finial's top)
 const HG_C = [HGAT[0], hourglassPt(HGAT, "top")[1] + 300, HGAT[2]];
 const shots = (t) => [
-  { a: -9999, z: 1.04, push: 0.03, at: () => scr(BLOCK_C) },
-  { a: t.push.a, dur: t.push.dur, z: 1.1, push: 0.02, at: () => scr(LETTERS_C) },
+  { a: -9999, z: 0.9, push: 0.03, at: () => scr(BENCH_C) },
+  { a: t.push.a, dur: t.push.dur, z: 1.18, push: 0.02, at: () => scr(BLOCK_C) },
   { a: t.travel.a, dur: t.travel.dur, z: 1.16, push: 0.03, at: () => scr(HG_C) }
 ];
 export const verdictCamWindows = (t) => actionCamWindows(shots(t));
 export const verdictSfx = (t) => [
-  // JAN 3, 2022 paints into the left plate
+  // JAN 3, 2022 paints into the brass nameplate
   { job: "label", a: t.date.a, b: t.date.b, vol: 0.4 },
-  // the six letters driven up out of the block …
-  { job: "mech", a: t.rise.a, b: t.rise.b, vol: 0.6 },
-  // … and stopped hard on their seats: the clunk, and the low hit under GUILTY
-  { job: "thud", a: t.rise.b, b: t.rise.b + 1, vol: 0.9 },
-  { job: "verdict", a: t.rise.b - 4, b: t.rise.b + 2, vol: 0.6 },
-  // 4 COUNTS paints into the right plate
+  // the gavel rises off the pad
+  { job: "obj", a: t.lift.a, b: t.lift.b, vol: 0.45 },
+  // the gavel strikes the block, and the low hit as GUILTY lands with it
+  { job: "thud", a: t.strike.b, b: t.strike.b + 1, vol: 0.9 },
+  { job: "verdict", a: t.strike.b - 4, b: t.strike.b + 2, vol: 0.6 },
+  // 4 COUNTS settles under GUILTY
   { job: "label", a: t.counts.a, b: t.counts.b, vol: 0.35 },
   // the sand running: time going by, exactly the run
   { job: "clock", a: t.pour.a, b: t.pour.b, vol: 0.55 },
@@ -134,19 +163,37 @@ const RollFigure = ({ x, y, on, roll, from, to }) => {
     run(to, 0.42 * SIZE * (1 - eIn), eIn)
   ] });
 };
+/** a figure with its one small label over it (Video 36's TopLabel order), easing up into place over the struck gavel */
+const VerdictLabel = ({ x, y, on, fig, sub, subOn = 0 }) => {
+  if (on <= 3e-3 && subOn <= 3e-3) return null;
+  const Wd = 640, size = 104;
+  return jsxs(jsx_runtime.Fragment, { children: [
+    on > 3e-3 && jsx("div", { "data-probe-label": "the verdict", style: { position: "absolute", left: 0, top: 0, width: Wd, textAlign: "center", transformOrigin: "50% 100%",
+      transform: `translate(${(x - Wd / 2).toFixed(2)}px, ${(y - size + 16 * (1 - on)).toFixed(2)}px) scale(${(0.92 + 0.08 * on).toFixed(4)})`,
+      opacity: clamp01(on * 1.4), ...figure(size) }, children: fig }),
+    sub && subOn > 3e-3 && jsx("div", { "data-probe-label": "the verdict's counts", style: { position: "absolute", left: 0, top: 0, width: Wd, textAlign: "center",
+      transform: `translate(${(x - Wd / 2).toFixed(2)}px, ${(y - size - 50 + 10 * (1 - subOn)).toFixed(2)}px)`, opacity: clamp01(subOn * 1.4), ...label(36, "#B9D2F0") }, children: sub })
+  ] });
+};
 export const BxVerdict = ({ at, end, w, stage }) => {
   const f = (0,esm.useCurrentFrame)();
   const t = verdictTimes(w, end);
-  const rise = riseAt(t, f);
+  const g = gavelAt(t, f);
   const sand = sandAt(t, f);
   const top = worldScr(RIG, hourglassPt(HGAT, "top"));
-  const casters = [{ corners: verdictBlockCorners(BLOCK) }];
+  const over = worldScr(RIG, [BLK[0], BLOCK_TOP - GV.headL - 46, BLK[2]]);
+  const casters = [{ corners: benchCorners(BPOSE) }];
   return jsx(PlaceRoot, { children: jsx(CamFn, { at: actionCam(shots(t)), children: jsx("div", { "data-probe-leaving": travelling(f, verdictCamWindows(t)), style: { position: "absolute", inset: 0 }, children: jsxs(Turn, { at, end, from: -5, to: 3, amp: 0.8, children: [
-    jsx(TkFloor, { id: "vdF", rig: RIG, at: { x: 1100, z: -80 }, reach: 1700, casters, stage, on: 1 - stage }),
-    // each framing's object is mounted only while it can be on screen: the hourglass stands off to the right (outside the frame
-    //   and the place's clip) until the travel starts, the block is wholly off the left edge once the travel has landed
-    f <= t.travel.a + t.travel.dur + 1 && jsx(VerdictBlock, { id: "vdB", rig: RIG, pose: BLOCK, rise, glint: rInOut(f, t.rise.b - 2, t.rise.b + 22), sheen: rInOut(f, at - 30, t.travel.a + 20),
-      date: { text: L("verdictDate"), on: rInOut(f, t.date.a, t.date.b) }, counts: { text: L("verdictCounts"), on: rInOut(f, t.counts.a, t.counts.b) } }),
+    jsx(TkFloor, { id: "vdF", rig: RIG, at: { x: 1100, z: -80 }, reach: 1800, casters, stage, on: 1 - stage }),
+    // the hourglass stands off to the right (outside the frame and the place's clip) until the travel starts, so it is mounted
+    //   from then on (it never meets the outgoing collapse place on the slide in); the bench stays (its shadow stays on the floor)
+    jsxs("div", { "data-probe-object": "the judge's bench with its sound block and gavel", style: { position: "absolute", inset: 0 }, children: [
+      jsx(Bench, { id: "vdB", rig: RIG, pose: BPOSE, sheen: rInOut(f, at - 30, t.travel.a + 20), plate: { text: L("verdictDate"), on: rInOut(f, t.date.a, t.date.b) } }),
+      jsx(GavelShadow, { rig: RIG, pose: g, shadowY: BLK[1] }),
+      jsx(SoundBlock, { id: "vdK", rig: RIG, c: BLK, lit: rOut(f, t.strike.b, t.strike.b + 3) * (1 - rInOut(f, t.strike.b + 3, t.strike.b + 22)) }),
+      jsx(Gavel, { id: "vdG", rig: RIG, pose: g, blockC: BLK })
+    ] }),
+    jsx(VerdictLabel, { x: over[0], y: over[1], on: rOut(f, t.verdict.a, t.verdict.b), fig: L("verdictGuilty"), sub: L("verdictCounts"), subOn: rInOut(f, t.counts.a, t.counts.b) }),
     f >= t.travel.a - 1 && jsx(Hourglass, { id: "vdH", rig: RIG, at: HGAT, sand, glow: rOut(f, t.back.a, t.back.b) * (1 - rInOut(f, t.back.b, t.back.b + 20)) }),
     jsx(RollFigure, { x: top[0], y: top[1] - 34, on: rOut(f, t.fig.a, t.fig.b), roll: rInOut(f, t.roll.a, t.roll.b), from: L("verdictMonths"), to: L("verdictCut") })
   ] }) }) }) });

@@ -14,7 +14,7 @@ import * as jsx_runtime from "react/jsx-runtime";
 import { clamp01, mixHex } from "./anim";
 import { rampAt } from "./solid_engine";
 import { worldScr, worldView, xfTrans } from "./tk_rig";
-import { PL_BODY, PL_STEEL } from "./counter_mat";
+import { BRASS, WALNUT, WALNUT_D } from "./verdict_gavel";
 import { Turned } from "./verdict_turned";
 
 const jsx = (t, p, k) => (0,jsx_runtime.jsx)(t, p, k);
@@ -91,6 +91,10 @@ const POST = (() => {
   return [q(0, 0), q(0, 17), q(10, 17), q(13, 14), q(20, 14), q(24, 19), q(32, 19), q(36, 13), q(60, 11), q(L * 0.32, 9), q(L * 0.46, 12), q(L * 0.5, 15), q(L * 0.54, 12), q(L * 0.68, 9), q(L - 60, 11), q(L - 36, 13), q(L - 32, 19), q(L - 24, 19), q(L - 20, 14), q(L - 13, 14), q(L - 10, 17), q(L, 17), q(L, 0)];
 })();
 const POST_ANG = [30, 150, 270];
+// REV 1 ("make it more detailed"): brass fittings on the walnut frame — rings at the posts' beads and waists, a band round each
+//   end plate's edge, a brass finial, brass screws, a brass plaque on the base
+const POST_RINGS = [[{ y: 24.5, r: 19.8 }, { y: 31.5, r: 19.8 }], [{ y: POST_L - 31.5, r: 19.8 }, { y: POST_L - 24.5, r: 19.8 }], [{ y: POST_L * 0.48, r: 15.8 }, { y: POST_L * 0.52, r: 15.8 }]];
+const PLATE_BAND = (y0) => [{ y: y0 - 4, r: 185.4 }, { y: y0 + 4, r: 185.4 }];
 export const HOURGLASS_TOP = TOP_PLATE - PLATE_T - 62;
 // ── the sand's look (a pale fine steel-white sand: the house's warm-neutral face ramp) ─────────────────────────────────────
 const SAND = ["#4E4B46", "#7E7A72", "#B4AFA5", "#DDD8CE", "#F6F3EC"];
@@ -189,12 +193,47 @@ export const Hourglass = ({ id, rig, at, sand, glow = 0 }) => {
     return { x, z, xf: xfTrans(W([x, TOP_PLATE, z])), depth: worldView(rig, W([x, Y_NECK, z]))[2] };
   });
   const cDepth = worldView(rig, W([0, Y_NECK, 0]))[2];
-  const Post = (p, k) => jsx(Turned, { id: `${id}p${k}`, rig, xf: p.xf, profile: POST, ramp: PL_STEEL, spec: 0.85, n: 28 }, `p${k}`);
+  const Post = (p, k) => jsxs("g", { children: [
+    jsx(Turned, { id: `${id}p${k}`, rig, xf: p.xf, profile: POST, ramp: WALNUT, spec: 0.85, n: 28 }),
+    // the shaft's flutes: three fine grooves on the side toward the lens, above and below the waist ring
+    [-0.45, 0, 0.45].flatMap((da, j) => [[64, POST_L * 0.44], [POST_L * 0.56, POST_L - 64]].map(([y0, y1], h) => {
+      const a = Math.PI / 2 + da, rr = (y) => (y < POST_L * 0.5 ? 9 + 2 * Math.abs(y - POST_L * 0.32) / (POST_L * 0.2) : 9 + 2 * Math.abs(y - POST_L * 0.68) / (POST_L * 0.2));
+      const pts = [0, 0.25, 0.5, 0.75, 1].map((u) => {
+        const y = y0 + (y1 - y0) * u, r = Math.min(12, rr(y)) + 0.3;
+        return S([p.x + r * Math.cos(a), TOP_PLATE + y, p.z + r * Math.sin(a)]);
+      });
+      return jsx("path", { d: D(pts, false), stroke: "#000000", strokeOpacity: 0.3, strokeWidth: 1.1, fill: "none" }, `fl${j}${h}`);
+    })),
+    POST_RINGS.map((pr, j) => jsx(Turned, { id: `${id}p${k}r${j}`, rig, xf: p.xf, profile: pr, ramp: BRASS, spec: 0.95, n: 28 }, `r${j}`))
+  ] }, `p${k}`);
   const back = posts.filter((p) => p.depth < cDepth), front = posts.filter((p) => p.depth >= cDepth);
   // the shadow of the base on the floor (the key throws it right and back)
   const shadow = D(Array.from({ length: 36 }, (_, i) => S([22 + 236 * Math.cos(i / 36 * 2 * Math.PI), -0.5, -30 + 236 * Math.sin(i / 36 * 2 * Math.PI)])));
-  const glassId = `${id}G`, sandId = `${id}S`;
-  return jsxs("svg", { "data-probe-object": "the hourglass: steel base, turned end plates and posts, the glass, its sand", width: 1, height: 1, style: { position: "absolute", left: 0, top: 0, overflow: "visible" }, children: [
+  const glassId = `${id}G`, sandId = `${id}S`, grainId = `${id}N`;
+  // the base's brass plaque: a curved plate on the base's band, facing the lens, with an engraved double border and a diamond
+  const arcPts = (r, y, a0, a1, n = 12) => Array.from({ length: n + 1 }, (_, i) => S([r * Math.cos(a0 + (a1 - a0) * i / n), y, r * Math.sin(a0 + (a1 - a0) * i / n)]));
+  const PA = Math.PI / 2 - 0.1, PW = 0.44;
+  const plq = (inset, rr) => [...arcPts(rr, BASE_TOP + 23 + inset, PA - PW + inset / 215, PA + PW - inset / 215), ...arcPts(rr, -18 - inset, PA + PW - inset / 215, PA - PW + inset / 215)];
+  const plaque = jsxs("g", { children: [
+    jsx("path", { d: D(plq(0, 216.2)), fill: rampAt(BRASS, 0.62), stroke: "#000000", strokeOpacity: 0.45, strokeWidth: 1 }),
+    jsx("path", { d: D(plq(3, 216.4)), fill: "none", stroke: rampAt(BRASS, 0.95), strokeOpacity: 0.7, strokeWidth: 1 }),
+    jsx("path", { d: D(plq(5.5, 216.4)), fill: "none", stroke: "#2A1E0B", strokeOpacity: 0.55, strokeWidth: 0.9 }),
+    jsx("path", { d: D([S([216.5 * Math.cos(PA - 0.03), (BASE_TOP + 23 - 18) / 2, 216.5 * Math.sin(PA - 0.03)]), S([216.5 * Math.cos(PA), BASE_TOP + 27, 216.5 * Math.sin(PA)]), S([216.5 * Math.cos(PA + 0.03), (BASE_TOP + 23 - 18) / 2, 216.5 * Math.sin(PA + 0.03)]), S([216.5 * Math.cos(PA), -22, 216.5 * Math.sin(PA)])]), fill: "#2A1E0B", opacity: 0.6 })
+  ] });
+  // the glass's reflections: a broad soft window band on each bulb's lit side
+  const band = (y0, y1) => {
+    const a0 = TH_KEY - 0.22, a1 = TH_KEY + 0.12;
+    const side = (a, rev) => {
+      const pts = [];
+      for (let k = 0; k <= 16; k++) {
+        const y = y0 + (y1 - y0) * k / 16, rr = rAt(Math.abs(y - Y_NECK)) * 1.003;
+        pts.push(S([rr * Math.cos(a), y, rr * Math.sin(a)]));
+      }
+      return rev ? pts.reverse() : pts;
+    };
+    return D([...side(a0, false), ...side(a1, true)]);
+  };
+  return jsxs("svg", { "data-probe-object": "the hourglass: walnut base, end plates and posts with brass fittings, the glass, its sand", width: 1, height: 1, style: { position: "absolute", left: 0, top: 0, overflow: "visible" }, children: [
     jsxs("defs", { children: [
       jsxs("linearGradient", { id: glassId, gradientUnits: "userSpaceOnUse", x1: f2(gL.L[0]), y1: f2(gL.L[1]), x2: f2(gL.R[0]), y2: f2(gL.R[1]), children: [
         jsx("stop", { offset: "0", stopColor: "#E6F0FB", stopOpacity: 0.42 }),
@@ -203,19 +242,28 @@ export const Hourglass = ({ id, rig, at, sand, glow = 0 }) => {
         jsx("stop", { offset: "0.88", stopColor: "#6F93BE", stopOpacity: 0.16 }),
         jsx("stop", { offset: "1", stopColor: "#C9DCF1", stopOpacity: 0.36 })
       ] }),
-      sandGrad(sandId)
+      sandGrad(sandId),
+      // the sand's grain: fine light and dark specks, fixed in the picture (the level moves through them, as through real sand)
+      jsxs("pattern", { id: grainId, patternUnits: "userSpaceOnUse", width: 9, height: 9, children: [
+        jsx("circle", { cx: 1.5, cy: 2, r: 0.8, fill: "#6E6A62", opacity: 0.55 }),
+        jsx("circle", { cx: 6.2, cy: 4.4, r: 0.7, fill: "#FFFFFF", opacity: 0.55 }),
+        jsx("circle", { cx: 3.6, cy: 7.3, r: 0.75, fill: "#8C877D", opacity: 0.5 }),
+        jsx("circle", { cx: 7.8, cy: 8.2, r: 0.6, fill: "#FFFFFF", opacity: 0.4 })
+      ] })
     ] }),
     jsx("path", { d: shadow, fill: "#000000", opacity: 0.32, stroke: "#000000", strokeOpacity: 0.14, strokeWidth: 18, strokeLinejoin: "round" }),
-    jsx(Turned, { id: `${id}b`, rig, xf, profile: BASE, ramp: PL_BODY, spec: 0.8, n: 72 }),
+    jsx(Turned, { id: `${id}b`, rig, xf, profile: BASE, ramp: WALNUT_D, spec: 0.8, n: 72 }),
+    plaque,
     // the base's top: a turned groove, and six screws holding the bottom plate down
     jsx("path", { d: D(ringS(BASE_TOP - 0.4, 194, 64)), fill: "none", stroke: "#000000", strokeOpacity: 0.45, strokeWidth: 1.6 }),
     jsx("path", { d: D(ringS(BASE_TOP - 0.4, 196.5, 64)), fill: "none", stroke: "#FFFFFF", strokeOpacity: 0.16, strokeWidth: 1 }),
     [0, 1, 2, 3, 4, 5].map((k) => {
       const a = (k + 0.5) / 6 * 2 * Math.PI, cx = 192 * Math.cos(a) * 0 + 0, q = [194 * Math.cos(a) * 0.98, BASE_TOP - 0.6, 194 * Math.sin(a) * 0.98];
       const hd = Array.from({ length: 14 }, (_, i) => S([q[0] + 5.5 * Math.cos(i / 14 * 2 * Math.PI) * 0 + (q[0] - q[0]) + q[0] * 0 + q[0], q[1], q[2]].map((v, j) => j === 0 ? q[0] + 5.5 * Math.cos(i / 14 * 2 * Math.PI) : j === 2 ? q[2] + 5.5 * Math.sin(i / 14 * 2 * Math.PI) : v)));
-      return jsx("path", { d: D(hd), fill: rampAt(PL_STEEL, 0.7), stroke: "#000000", strokeOpacity: 0.5, strokeWidth: 1 }, `bs${k}`);
+      return jsx("path", { d: D(hd), fill: rampAt(BRASS, 0.75), stroke: "#000000", strokeOpacity: 0.5, strokeWidth: 1 }, `bs${k}`);
     }),
-    jsx(Turned, { id: `${id}pb`, rig, xf, profile: BOT_PLATE, ramp: PL_STEEL, spec: 0.85, n: 72 }),
+    jsx(Turned, { id: `${id}pb`, rig, xf, profile: BOT_PLATE, ramp: WALNUT, spec: 0.85, n: 72 }),
+    jsx(Turned, { id: `${id}pbb`, rig, xf, profile: PLATE_BAND(BASE_TOP - PLATE_T / 2), ramp: BRASS, spec: 0.95, n: 72 }),
     back.map(Post),
     jsx("path", { d: D(ringS(Y_GB - 0.3, 70, 48)), fill: "#000000", opacity: 0.35, stroke: "#000000", strokeOpacity: 0.15, strokeWidth: 6 }),
     // the glass's far wall, seen through it (a faint inner edge)
@@ -227,13 +275,17 @@ export const Hourglass = ({ id, rig, at, sand, glow = 0 }) => {
     dishDeep && jsx("path", { d: dishDeep, fill: rampAt(SAND, 0.34), opacity: 0.9 }),
     thread && jsx("path", { d: D(thread, false), stroke: rampAt(SAND, 0.7), strokeWidth: 2.6, opacity: clamp01(Math.abs(fl) * 3), fill: "none", strokeLinecap: "round" }),
     thread && jsx("path", { d: D(thread, false), stroke: rampAt(SAND, 0.95), strokeWidth: 1.6, strokeDasharray: "5 7", strokeDashoffset: f2(-(sand.g ?? 0) * 9 * Math.sign(fl)), opacity: clamp01(Math.abs(fl) * 3), fill: "none" }),
+    upBody && jsx("path", { d: upBody, fill: `url(#${grainId})` }),
     lowBody && jsx("path", { d: lowBody, fill: `url(#${sandId})` }),
     lowCone && jsx("path", { d: lowCone, fill: rampAt(SAND, 0.8) }),
+    lowBody && jsx("path", { d: lowBody, fill: `url(#${grainId})` }),
     lowCone && jsx("path", { d: D([apex, S([-rInY(yl) * 0.7, yl, rInY(yl) * 0.5])], false), stroke: "#FFFFFF", strokeOpacity: 0.25, strokeWidth: 2, fill: "none" }),
     // the glass: body, walls, highlights
     jsx("path", { d: glassD, fill: `url(#${glassId})`, stroke: "#C5D8EE", strokeOpacity: 0.7, strokeWidth: 1.6 }),
     jsx("path", { d: innerL, stroke: "#C5D8EE", strokeOpacity: 0.28, strokeWidth: 1, fill: "none" }),
     jsx("path", { d: innerR, stroke: "#C5D8EE", strokeOpacity: 0.28, strokeWidth: 1, fill: "none" }),
+    jsx("path", { d: band(Y_GT + 50, Y_NECK - 90), fill: "#FFFFFF", opacity: 0.1 }),
+    jsx("path", { d: band(Y_NECK + 90, Y_GB - 50), fill: "#FFFFFF", opacity: 0.09 }),
     jsx("path", { d: streak(TH_KEY, Y_GT + 30, Y_NECK - 40), stroke: "#FFFFFF", strokeWidth: 5, opacity: 0.5, fill: "none", strokeLinecap: "round" }),
     jsx("path", { d: streak(TH_KEY, Y_NECK + 40, Y_GB - 26), stroke: "#FFFFFF", strokeWidth: 5, opacity: 0.45, fill: "none", strokeLinecap: "round" }),
     jsx("path", { d: D(ringS(Y_GB - 1, 64, 48)), fill: "none", stroke: "#DDE9F6", strokeOpacity: 0.55, strokeWidth: 2 }),
@@ -243,11 +295,12 @@ export const Hourglass = ({ id, rig, at, sand, glow = 0 }) => {
     jsx("path", { d: D(ringS(Y_NECK, 12, 20)), fill: "none", stroke: "#DDE9F6", strokeOpacity: 0.45, strokeWidth: 1.2 }),
     glow > 0.003 && jsx("path", { d: glassD, fill: "#EAF2FB", opacity: 0.12 * clamp01(glow) }),
     front.map(Post),
-    jsx(Turned, { id: `${id}pt`, rig, xf, profile: TOP_PLATE_P, ramp: PL_STEEL, spec: 0.85, n: 72 }),
+    jsx(Turned, { id: `${id}pt`, rig, xf, profile: TOP_PLATE_P, ramp: WALNUT, spec: 0.85, n: 72 }),
+    jsx(Turned, { id: `${id}ptb`, rig, xf, profile: PLATE_BAND(TOP_PLATE - PLATE_T / 2), ramp: BRASS, spec: 0.95, n: 72 }),
     // the top plate's face: two turned grooves
     [150, 112].map((r, k) => jsx("path", { d: D(ringS(TOP_PLATE - PLATE_T - 0.4, r, 64)), fill: "none", stroke: "#000000", strokeOpacity: 0.4, strokeWidth: 1.5 }, `tg${k}`)),
     [152, 114].map((r, k) => jsx("path", { d: D(ringS(TOP_PLATE - PLATE_T - 0.4, r, 64)), fill: "none", stroke: "#FFFFFF", strokeOpacity: 0.14, strokeWidth: 1 }, `th${k}`)),
-    jsx(Turned, { id: `${id}f`, rig, xf, profile: FINIAL, ramp: PL_BODY, spec: 0.9, n: 40 })
+    jsx(Turned, { id: `${id}f`, rig, xf, profile: FINIAL, ramp: BRASS, spec: 0.95, n: 40 })
   ] });
 };
 export const hourglassCorners = (at) => {
