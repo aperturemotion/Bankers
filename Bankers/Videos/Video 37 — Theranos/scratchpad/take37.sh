@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# V36 THE TAKE, end to end (re-runnable): trim (holds) → shift Scribe's raw words through the cut map → ×1.04 atempo fit (pitch kept;
+# V37 THE TAKE (cloned from V36's take36.sh), end to end (re-runnable): trim (holds) → shift Scribe's raw words through the cut map → ×1.04 atempo fit (pitch kept;
 # the 80-s cap) and the words scaled with it → public/vo_trimmed.mp3 → captions.ts / episode.json from the take → the bed against it.
-#   bash scratchpad/take36.sh
+#   bash scratchpad/take37.sh
 set -e
 cd "$(dirname "$0")/.."
 export PATH=/home/user/ffbin:$PATH FFMPEG_BIN=/home/user/ffbin FFPROBE=/home/user/ffbin/ffprobe
@@ -16,9 +16,9 @@ import json
 K = 1.04
 d = json.load(open("out/fw_words_unstretched.json"))
 for w in d["words"]: w["a"] = round(w["a"] / K, 3); w["b"] = round(w["b"] / K, 3)
-d["_doc"] = ("V36 take B: ElevenLabs Scribe words on the RAW take, shifted through scratchpad/vo/trimmap.json (vo/shiftwords.py), then "
+d["_doc"] = ("V37 take A: ElevenLabs Scribe words on the RAW take, shifted through scratchpad/vo/trimmap.json (vo/shiftwords.py), then "
              "scaled by 1/1.04 for the atempo fit (public/vo_trimmed.wav is the trim stretched x1.04, pitch kept; the unstretched trim "
-             "is out/vo_trimmed_unstretched.wav). Written by scratchpad/take36.sh.")
+             "is out/vo_trimmed_unstretched.wav). Written by scratchpad/take37.sh.")
 json.dump(d, open("scratchpad/fw_words.json", "w"))
 PY
 ffmpeg -v error -y -i public/vo_trimmed.wav -c:a libmp3lame -b:a 192k public/vo_trimmed.mp3

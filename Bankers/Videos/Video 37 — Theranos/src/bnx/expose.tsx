@@ -44,7 +44,8 @@ export const exposeTimes = (w, end) => {
     // the bundle falls from rest as the place pans in and lands (the thud) just before "October"
     drop: { a: w.s0 - 16, b: w.october - 2 },
     // OCT 15, 2015 prints in — fully read on "2015"
-    date: { a: w.k2015 - 18, b: w.k2015 },
+    // (integrator, take 37A: "October 2015" is read in 8 f — the date prints from the landing, readable on "2015" or 12 f after)
+    date: { a: Math.max(w.k2015 - 18, w.october - 2), b: Math.max(w.k2015, w.october + 10) },
     // the twine snaps in the pause after "2015"
     snap: w.k2015 + 12,
     // the top copy slides forward; the camera pushes in with it
@@ -52,7 +53,7 @@ export const exposeTimes = (w, end) => {
     // THE WALL STREET JOURNAL prints in — fully read on "Journal"
     mast: { a: w.wall - 6, b: w.journal + 2 },
     // a light crosses the page on "exposed"
-    glint: { a: w.exposed - 6, b: w.exposed + 14 }
+    glint: { a: w.exposed - 6, b: Math.min(w.exposed + 14, end - 16) }   // (integrator: capped before the slide on take 37A)
   };
   if (t.drop.b - t.drop.a < 12) throw new Error("expose: the drop needs ≥ 12 f");
   if (t.date.a < t.drop.b) throw new Error("expose: the date prints once the bundle has landed");

@@ -49,7 +49,7 @@ export const claim2Times = (w, end) => {
     pitchL: { a: w.finger - 4, b: w.prick + 1 },
     // EDISON fills on its word; the tiles fill with their results across "its Edison machine"
     badge: { a: w.edison - 12, b: w.edison + 1 },
-    fill: { a: w.edison - 12, b: w.machine + 4 },
+    fill: { a: w.edison - 12, b: Math.min(w.machine + 4, end - 16) },   // (integrator, take 37A: "machine." lands 13 f before the slide)
     // camera: in toward the drawer as it closes, back over the screen for the results
     inA: { a: w.finger - 16, dur: 28 },
     outA: { a: w.edison - 18, dur: 30 }

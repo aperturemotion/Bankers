@@ -1,22 +1,22 @@
 {
-  "source": "ElevenLabs_2026-11-23_Jon - Calm Presence_v4_take36B_raw.mp3",
-  "_doc": "V36 take B (2026-11-23): the three section moments keep 0.50 s of their pause — flare 1 after the hook ('...company.' -> 'In'), LightBreak 1 before 'That March', LightBreak 2 before 'To be fair'. Raw-take gap starts (silencedetect -33 dB, d 0.45). ★ The hook's hold keeps 0.70 s of its 0.84-s pause (holdPads): on the real read 'company' starts at 173 f, and C$6 BILLION (read as the bar stands, k6 + 30) needs ≥ 30 f before flare 1's peak (hookTimes). ★ truth → collapse ('…outside gold.' → 'Two days later') keeps 0.40 s of its 0.74-s pause: at 0.30 truth's glint on 'outside gold' (to gold + 8) ran 1 f into the hand-over (truthTimes). ★ Every scene change without a hold keeps 0.45 s of its pause (holdPads; each raw pause is 0.58–0.78 s): at 0.30 the gaps between scenes were 8–9 f and the cranes carried things through the caption band under live chips (geom_sweep, 50 spans); Video 35's real gaps were 14–16 f. Paid for by the ×1.04 fit (was ×1.03).",
+  "source": "ElevenLabs_2026-11-24_Jon - Calm Presence_v4_take37A_raw.mp3",
+  "_doc": "V37 take A (2026-11-24, Timur: 'generate the voiceover'): the three section moments are declared holds (rawGapStarts): flare 1 after the hook ('\u2026company.' -> 'In', kept 0.70 s as V36's hook hold), LightBreak 1 before 'But', LightBreak 2 before 'To be fair'. Every other SCENE change keeps 0.45 s of its pause (holdPads; V36's lesson: at 0.30 the slides carried things through the caption band under live chips). Pauses inside a place keep 0.30 s (vo_trim PAD). Raw-take gap starts from silencedetect -33 dB, d 0.45. \u2605 claim \u2192 claim2 ('\u2026Stanford.' \u2192 'The pitch') keeps 0.80 s: on this read 'dropped' lands 22 f before the 0.45-s hand-over, and STANFORD DROPOUT (on 'dropped', +10) must be read before the slide out (claimTimes). \u2605 crack \u2192 whistle ('\u2026not the Edison.' \u2192 'One whistleblower') keeps 0.75 s: EDISON: ~12 TESTS lands ON 'Edison', the line's last word, and must be read before the slide out (crackTimes).",
   "rawGapStarts": [
-    6.57499,
-    25.6078,
-    59.4503
+    5.6119,
+    31.4369,
+    63.7776
   ],
   "holdPads": {
-    "6.57499": 0.7,
-    "47.0546": 0.45,
-    "14.5846": 0.45,
-    "19.2905": 0.45,
-    "30.3178": 0.45,
-    "35.6032": 0.45,
-    "39.9874": 0.45,
-    "54.509": 0.45,
-    "62.4767": 0.45,
-    "71.0651": 0.45,
-    "75.1875": 0.45
+    "5.6119": 0.7,
+    "12.9012": 0.8,
+    "18.8991": 0.45,
+    "24.2772": 0.45,
+    "35.8229": 0.75,
+    "40.339": 0.45,
+    "44.6656": 0.45,
+    "53.003": 0.45,
+    "67.8162": 0.45,
+    "70.7475": 0.45,
+    "74.6275": 0.45
   }
 }

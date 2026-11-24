@@ -3,7 +3,7 @@
     "Video 37 \"Theranos\". WRITTEN by scratchpad/synth_captions.py — edit the generator (SCENE_PLAN, NUMERALS, LABELS), not this file.",
     "script: one entry per VO line, in order — scene (place id), vo (VO_SCRIPT.txt, spelled out), take (the caption form: numerals per house style; the real-take generator scratchpad/captions_vo.js aligns the take's words to these tokens), hero.",
     "labels: every on-screen label from PLAN.md (Anton, ≤ 4 words), with its place and where it sits. WD is the flat map the film reads at runtime (src/bnx/data.ts L(key)).",
-    "PROVISIONAL: the take does not exist yet; captions.ts is synthetic until it lands."
+    "THE TAKE: take B (2026-11-23), generated in ElevenLabs; captions.ts is timed from it (--take)."
   ],
   "script": [
     {

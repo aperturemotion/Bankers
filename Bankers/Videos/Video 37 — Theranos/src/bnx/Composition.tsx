@@ -38,9 +38,10 @@ import { HeroSentence, WordCaption } from "./text";
 export const WIDTH = 1080;
 export const HEIGHT = 1920;
 
-// ★ V37: NO TAKE YET — captions.ts is PROVISIONAL (synthetic). The voice is OFF until the take lands (public/vo_trimmed.* is still
-//   Video 36's voice). render.mjs refuses while captions are PROVISIONAL or HAS_VO is false.
-const HAS_VO = false;
+// ★ V37 THE TAKE (Timur, 2026-11-24: "generate the voiceover"): take A, ElevenLabs "Jon - Calm Presence", eleven_v4, read word for
+//   word (Scribe 186/186); trimmed with holds (scratchpad/vo_hold.json: flare 1 0.70 s, both breaks 0.50 s, scene changes 0.45 s),
+//   fitted ×1.04 (pitch kept) to the 80-s cap → 73.3 s, public/vo_trimmed.mp3; captions.ts from `bash scratchpad/take37.sh`.
+const HAS_VO = true;
 const HAS_MUSIC = true;
 const HAS_SFX = true;
 const MUSIC_VOL = 1;
@@ -52,7 +53,7 @@ const MUSIC_VOL = 1;
 //   against the voice and sets its level AS HEARD to the Radiohead bed it replaces (−28.8 LUFS both; 6.2 dB RMS under the speech-gated
 //   voice), the gain interpolated between window centres, a 0.3-s fade-in, the last 3 s faded. Static volume (the V16 rule).
 const BED_FILE = "bed_devil.mp3";
-const BED_FRAMES = 2375;
+const BED_FRAMES = 2336;
 if (BED_FRAMES < TOTAL_FRAMES) throw new Error("Composition: the bed is shorter than the film — re-cut public/bed_radiohead.mp3");
 // ★ V36/V37: no spoken question — the close is the house close alone (flare 2 → the white stage → BANKER$). question.ts makes it optional.
 const HAS_QUESTION = Q !== null;
