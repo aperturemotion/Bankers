@@ -337,8 +337,8 @@ const SCN = [
   { id: "rule", cams: ruleCamWindows(T_.rule), ev: ruleSfx(T_.rule) }
 ];
 const FLARES = [
-  // flare 1 (hook → claim): PROVISIONAL points — the hook's lit point (hook builder: hookFlarePoint) → claim's lit point (claim builder)
-  { peak: P.hook.end - 2, from: { x: 540, y: 700 }, to: { x: 540, y: 900 }, ghost: 2.2, grow: 24, hold: 2, recede: 16 },
+  // flare 1 (hook → claim): from = the glint on the rule under "$9" (builder H, hookFlarePoint, screen at f159) → to: claim builder
+  { peak: P.hook.end - 2, from: { x: 522, y: 1133 }, to: { x: 540, y: 900 }, ghost: 2.2, grow: 24, hold: 2, recede: 16 },
   // flare 2 (rule → close): from = the journal slot's lit back (builder F, ruleFlarePoint, measured on screen at f1975/f2020); to = BANKER$
   //   recede 16 (as flare 1): the bloom is gone over the white stage before it drains (see LIGHT_WINDOWS)
   { peak: P.rule.end - 1, from: { x: 540, y: 996 }, to: { x: 540, y: 960 }, grow: 26, hold: 2, recede: 16 }
