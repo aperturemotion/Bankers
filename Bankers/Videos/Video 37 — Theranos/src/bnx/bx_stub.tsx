@@ -1,5 +1,5 @@
 // @ts-nocheck
-// ★ V36 "Bre-X Gold" SKELETON helper (integrator, 2026-11-23): the labelled placeholder every STUB place draws until its builder
+// ★ V37 "Theranos" SKELETON helper (integrator, 2026-11-24; from V36): the labelled placeholder every STUB place draws until its builder
 //   replaces the place file. It honours the place contract (PlaceRoot › CamFn › Turn, the stage prop, data-probe-leaving) so the
 //   film plays end to end with its real hand-overs, light windows, flares, breaks, captions and heroes. It shows the place id, its
 //   frames, its line(s) from the take, its PLAN labels (episode.json) and its key words, each lighting on its (provisional) frame.
@@ -55,7 +55,7 @@ export const BxStub = ({ id, at, end, t, stage }) => {
       color: ink,
       overflow: "hidden"
     }, children: [
-      /* @__PURE__ */ (0,jsx_runtime.jsx)("div", { style: { fontFamily: VOICE, fontWeight: 700, fontSize: 24, letterSpacing: 6, color: dim }, children: "PLACEHOLDER · V36 SKELETON" }),
+      /* @__PURE__ */ (0,jsx_runtime.jsx)("div", { style: { fontFamily: VOICE, fontWeight: 700, fontSize: 24, letterSpacing: 6, color: dim }, children: "PLACEHOLDER · V37 SKELETON" }),
       /* @__PURE__ */ (0,jsx_runtime.jsx)("div", { style: { fontFamily: SHOUT, fontSize: 132, lineHeight: 1.05, marginTop: 6 }, children: id.toUpperCase() }),
       /* @__PURE__ */ (0,jsx_runtime.jsx)("div", { style: { fontFamily: VOICE, fontSize: 28, color: dim, marginTop: 2 }, children: `frames ${at}–${end} · ${((end - at) / 30).toFixed(2)} s` }),
       /* @__PURE__ */ (0,jsx_runtime.jsx)("div", { style: { fontFamily: VOICE, fontSize: 36, lineHeight: 1.3, marginTop: 26 }, children: lines.map((l) => l.text).join(" ") }),

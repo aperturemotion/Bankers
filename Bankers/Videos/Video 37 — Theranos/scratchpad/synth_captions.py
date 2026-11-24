@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# ★★ PROVISIONAL — SYNTHETIC WORD TIMING. Video 36 "Bre-X Gold" has NO TAKE YET (the ElevenLabs generation waits on Timur).
+# ★★ PROVISIONAL — SYNTHETIC WORD TIMING. Video 37 "Theranos" has NO TAKE YET (the ElevenLabs generation waits on Timur).
 # This writes src/bnx/episode.json (script, labels, WD) and src/bnx/captions.ts (Video 35's exact export shape) from
 # VO_SCRIPT.txt on a MODELLED read, so the whole film can be built and re-timed: every place keys to WORDS (W_ in
 # Composition.tsx), never to a typed frame. When the real take lands, scratchpad/captions_vo.js (the real-take generator,
@@ -39,106 +39,105 @@ P_HOOK = 0.65          # after the hook
 SYL_PER_UNIT = 1.5
 
 # ── the film: scene ids in order, sentences per scene (the "/" split points of PLAN.md's SCRIPT), hero flags ─────────────
-# (the close has NO line: it is the house close — flare 2, the white stage, BANKER$ — after the lesson's last word)
+# (the close has NO line: it is the house close — flare 2, the white stage, BANKER$ — after the rule's last word)
 SCENE_PLAN = [
     ("hook", 2, False),
     ("claim", 1, False),
     ("claim2", 1, False),
-    ("hype", 2, False),
-    ("partner", 1, False),     # THE TURN — LightBreak 1 on "That March"
-    ("mystery", 1, False),
-    ("crack", 1, False),
-    ("truth", 1, False),       # the ONE light window (the white stage)
-    ("collapse", 2, False),
-    ("pension", 1, False),
-    ("fair", 1, True),         # HERO card + LightBreak 2: "To be fair, no one was ever convicted."
-    ("felderhof", 1, False),
-    ("lesson", 1, True),       # HERO card: "The lesson: a company's own results aren't proof."
+    ("hype", 1, False),
+    ("backers", 2, False),     # the boardroom table → (camera travel) → the Walgreens fronts
+    ("crack", 1, False),       # THE TURN — LightBreak 1 on "But"
+    ("whistle", 1, False),
+    ("expose", 1, False),      # the ONE light window (the white stage)
+    ("collapse", 3, False),
+    ("verdict", 2, False),
+    ("fair", 1, True),         # HERO card + LightBreak 2: "To be fair, she testified that she believed in the technology."
+    ("cleared", 1, False),
+    ("lesson", 1, True),       # PUNCH hero card: "The lesson: famous names are not proof."
     ("rule", 1, False),
 ]
 CLOSE_ID = "close"
 
 # ── spoken → caption: numbers on screen as numerals (house style). (spoken tokens, caption tokens, which spoken tokens each
 #    caption token covers — its timing span). Matched on lower-case, punctuation-free spoken tokens; the group's trailing
-#    punctuation stays on its last caption token.
+#    punctuation stays on its last caption token. (Longer patterns first: "two thousand twenty-two" before "two thousand …")
 NUMERALS = [
-    (["six", "billion", "dollar"], ["$6", "billion"], [[0], [1, 2]]),
-    (["nineteen", "ninety-three"], ["1993"], [[0, 1]]),
-    (["nineteen", "ninety-seven"], ["1997"], [[0, 1]]),
-    (["nineteen", "ninety-six"], ["1996"], [[0, 1]]),
-    (["seventy-one", "million"], ["71", "million"], [[0], [1]]),
-    (["six", "cents"], ["6", "cents"], [[0], [1]]),
-    (["forty", "thousand"], ["40,000"], [[0, 1]]),
-    (["a", "hundred", "million", "dollars"], ["$100", "million"], [[0, 1], [2, 3]]),
-    (["eighty-four", "million", "dollars"], ["$84", "million"], [[0], [1, 2]]),
-    (["two", "thousand", "one"], ["2001"], [[0, 1, 2]]),
-    (["march", "nineteenth"], ["March", "19th"], [[0], [1]]),
-    (["may", "fourth"], ["May", "4th"], [[0], [1]]),
+    (["nine", "billion", "dollar"], ["$9", "billion"], [[0], [1, 2]]),
+    (["nine", "billion", "dollars"], ["$9", "billion"], [[0], [1, 2]]),
+    (["two", "thousand", "twenty-two"], ["2022"], [[0, 1, 2]]),
+    (["two", "thousand", "three"], ["2003"], [[0, 1, 2]]),
+    (["two", "thousand", "fourteen"], ["2014"], [[0, 1, 2]]),
+    (["two", "thousand", "fifteen"], ["2015"], [[0, 1, 2]]),
+    (["two", "thousand", "eighteen"], ["2018"], [[0, 1, 2]]),
+    (["at", "nineteen"], ["at", "19"], [[0], [1]]),
+    (["about", "forty"], ["about", "40"], [[0], [1]]),
+    (["eleven", "years", "and", "three", "months"], ["11", "years", "and", "3", "months"], [[0], [1], [2], [3], [4]]),
 ]
-# spelled-out number words that must NOT survive into a caption ("Two days later", "no one", "an independent one" stay words)
-NUMBER_WORDS = {"six", "nineteen", "ninety-three", "ninety-seven", "ninety-six", "seventy-one", "forty", "thousand", "hundred",
-                "eighty-four", "nineteenth", "fourth", "dollar", "dollars"}
+# spelled-out number words that must NOT survive into a caption ("A few drops", "one finger prick", "Two former", "two years",
+# "one year" stay words)
+NUMBER_WORDS = {"nine", "nineteen", "thousand", "three", "fourteen", "fifteen", "eighteen", "twenty-two", "forty", "eleven",
+                "dollar", "dollars"}
 
 # ── every on-screen label from PLAN.md (Anton, ≤ 4 words). WD is what the film reads at runtime (data.ts L(key)). ─────────
 LABELS = {
-    # hook — the drill core glitters, swells into a towering gold bar stamped C$6 BILLION
-    "hookFigure":      ("hook", "C$6 BILLION", "stamped on the gold bar, large, early in its rise (FACTCHECK: Maclean's / Reuters)"),
-    "hookLabel":       ("hook", "PEAK VALUE", "the hook's one label (FACTCHECK: peak market value, 1996)"),
-    # claim — wooden core boxes stencilled BUSANG on a drill pad
-    "claimStencil":    ("claim", "BUSANG", "stencilled on the core boxes"),
-    "claimPlate":      ("claim", "BRE-X · 1993", "the plate on the stack (object print)"),
-    "claimCity":       ("claim", "CALGARY", "label"),
-    "claimBrex":       ("claim", "BRE-X", "the plate on the stack (split from claimPlate, builder B)"),
-    "claimYear":       ("claim", "1993", "beside the rig (split from claimPlate, builder B; FACTCHECK: May 6, 1993 purchase)"),
-    # claim2 — a drum COUNTER rolling to 70,950,000 OZ
-    "claim2Readout":   ("claim2", "70,950,000 OZ", "the counter's drums (Bre-X release, Feb 17, 1997)"),
-    "claim2Label":     ("claim2", "71M OZ CLAIMED", "label"),
-    "claim2Date":      ("claim2", "FEB 1997", "label"),
-    # hype — a one-cent coin grows into the hook's gold bar; three engraved pension plaques
-    "hypeFrom":        ("hype", "PENNIES", "the coin's plinth"),
-    "hypeTo":          ("hype", "C$6B", "the bar"),
-    "hypePension":     ("hype", "PENSION FUNDS", "Timur 2026-11-23: one readable label for 'Pension funds piled in' (replaces the three plaques)"),
-    "hypePlaqueOtpp":  ("hype", "ONTARIO TEACHERS'", "engraved plaque (name only, no logo)"),
-    "hypePlaqueOmers": ("hype", "OMERS", "engraved plaque"),
-    "hypePlaqueCaisse": ("hype", "CAISSE", "engraved plaque (Caisse de dépôt et placement du Québec)"),
-    # partner — two drill rigs side by side
-    "partnerBrex":     ("partner", "BRE-X", "plate on Bre-X's rig"),
-    "partnerPlate":    ("partner", "FREEPORT-McMoRAN", "plate on the partner's rig"),
-    "partnerDate":     ("partner", "MARCH 1997", "label"),
-    # mystery — plain and respectful: a helicopter on its pad at dusk lifting away out of frame. No fall shown.
-    "mysteryDate":     ("mystery", "MARCH 19, 1997", "label"),
-    "mysteryName":     ("mystery", "MICHAEL DE GUZMAN", "name label"),
-    "mysteryRole":     ("mystery", "CHIEF GEOLOGIST", "under the name"),
-    # crack — the partner's own core split lengthwise: grey through and through
-    "crackLabel":      ("crack", "INSIGNIFICANT GOLD", "label (Freeport 8-K)"),
-    "crackDate":       ("crack", "MARCH 26, 1997", "label"),
-    # truth — the hero core under a jeweller's loupe (the white stage)
-    "truthLabel":      ("truth", "SALTED", "label"),
-    "truthDate":       ("truth", "MAY 4, 1997", "label"),
-    # collapse — the hook's bar crumbles to rock dust; a price tag flips; a grid of certificates goes dark
-    "collapseFrom":    ("collapse", "C$6 BILLION", "the price tag before the flip"),
-    "collapseTo":      ("collapse", "6¢", "the price tag after the flip (C$0.06)"),
-    "collapseDate":    ("collapse", "MAY 6, 1997", "label"),
-    "collapseHolders": ("collapse", "~40,000 SHAREHOLDERS", "the certificate grid (Globe and Mail, 2013 estimate)"),
-    # pension — a vault drawer marked ONTARIO TEACHERS' slides out and empties
-    "pensionDrawer":   ("pension", "ONTARIO TEACHERS'", "engraved on the drawer"),
-    "pensionLoss":     ("pension", "C$100M LOST", "label"),
-    "pensionNfld":     ("pension", "NEWFOUNDLAND", "the chart's fourth bar: Newfoundland Public Sector Pension Plan, C$5M (Maclean's, May 19, 1997)"),
-    # felderhof — banded cash bundles stacking to C$84M (the film's ONE bar scene); a gavel: NOT GUILTY
-    "felderhofFigure": ("felderhof", "C$84M", "the cash stack's figure (C$83.96M, OSC)"),
-    "felderhofLabel":  ("felderhof", "STOCK SOLD", "label"),
-    "felderhofYear":   ("felderhof", "1996", "label"),
-    "felderhofVerdict": ("felderhof", "NOT GUILTY", "lands with the gavel"),
-    "felderhofDate":   ("felderhof", "JULY 31, 2007", "label (OSC release)"),
-    # rule — the hero core tray under an embossed steel seal
-    "ruleSeal":        ("rule", "QUALIFIED PERSON", "embossed on the seal"),
-    "ruleCode":        ("rule", "NI 43-101", "on the seal"),
-    "ruleYear":        ("rule", "2001", "on the seal"),
-    "ruleIndependent": ("rule", "INDEPENDENT", "the second, smaller seal (builder C)"),
+    # hook — the nanotainer on its $9B plinth
+    "hookFigure":      ("hook", "$9 BILLION", "stamped on the plinth, large, early in the pull-back (Fortune, June 12, 2014: 'more than $9 billion')"),
+    "hookTube":        ("hook", "THERANOS", "printed on the nanotainer's label (company name: Timur 2026-11-23 rule)"),
+    # claim — the first lab door
+    "claimName":       ("claim", "THERANOS", "gold lettering on the glass door"),
+    "claimYear":       ("claim", "2003", "SEC complaint ¶13: 'established by Holmes in 2003'"),
+    "claimFounder":    ("claim", "ELIZABETH HOLMES, 19", "nameplate (born Feb 1984: Fortune, June 12, 2014)"),
+    "claimSchool":     ("claim", "STANFORD DROPOUT", "under the name (SEC ¶15; Stanford Daily, Sept 1, 2021)"),
+    # claim2 — the Edison
+    "claim2Device":    ("claim2", "EDISON", "on the machine's face (DOJ: 'the TSPU, Edison, or minilab')"),
+    "claim2Pitch":     ("claim2", "ONE FINGER PRICK", "label (SEC ¶54: 'runs comprehensive blood tests from a finger-stick')"),
+    # hype — on paper
+    "hypeFigure":      ("hype", "$9B", "printed on the paper (Fortune, June 12, 2014)"),
+    "hypeLabel":       ("hype", "ON PAPER", "label"),
+    "hypeYear":        ("hype", "2014", "label"),
+    # backers — the boardroom table, then (a camera travel) the Walgreens fronts
+    "boardShultz":     ("backers", "SHULTZ", "brass nameplate (Fortune, June 12, 2014 board list)"),
+    "boardKissinger":  ("backers", "KISSINGER", "brass nameplate"),
+    "boardLabel":      ("backers", "FORMER SECRETARIES OF STATE", "label"),
+    "storesBrand":     ("backers", "WALGREENS", "on the fronts (Walgreens release, June 12, 2016: 'all 40 Theranos Wellness Centers')"),
+    "storesCount":     ("backers", "~40 STORES", "label (Fortune, Oct 24, 2015: 41)"),
+    "storesState":     ("backers", "ARIZONA", "label"),
+    # crack — the split
+    "crackEdison":     ("crack", "EDISON: ~12 TESTS", "the lit sliver (SEC complaint ¶5: 'approximately 12 tests of the over 200')"),
+    "crackOthers":     ("crack", "OTHER MACHINES", "the rest"),
+    "crackTotal":      ("crack", "200+ TESTS OFFERED", "the whole disc (SEC ¶5)"),
+    # whistle — the badge
+    "whistleName":     ("whistle", "TYLER SHULTZ", "on the employee badge (employee 2013–14)"),
+    "whistleRole":     ("whistle", "EMPLOYEE", "on the badge"),
+    "whistleLink":     ("whistle", "GRANDSON", "the link to the SHULTZ nameplate (George Shultz, board 2011–15: KQED, Nov 17, 2016)"),
+    # expose — the newspaper (white stage)
+    "exposeMast":      ("expose", "THE WALL STREET JOURNAL", "masthead in Anton (no logo)"),
+    "exposeDate":      ("expose", "OCT 15, 2015", "dateline (WSJ online Oct 15, 2015)"),
+    # collapse — the lab shuts
+    "collapseVoid":    ("collapse", "VOIDED", "across the results (WSJ, May 18, 2016)"),
+    "collapseYears":   ("collapse", "2014–2015", "the voided years"),
+    "collapseWalgreens": ("collapse", "WALGREENS", "the partner plaque that falls away (June 12, 2016)"),
+    "collapseShut":    ("collapse", "SEPT 2018", "on the shutter (dissolution announced Sept 4, 2018)"),
+    # verdict — the hourglass
+    "verdictGuilty":   ("verdict", "GUILTY", "lands (Jan 3, 2022)"),
+    "verdictCounts":   ("verdict", "4 COUNTS", "under it (9th Cir. opinion, Dec 22, 2025, p.16)"),
+    "verdictDate":     ("verdict", "JAN 3, 2022", "label"),
+    "verdictMonths":   ("verdict", "135 MONTHS", "the hourglass (sentenced Nov 18, 2022)"),
+    "verdictCut":      ("verdict", "123 MONTHS", "after the cut (Mar 26, 2026: Bloomberg)"),
+    # cleared — the scales
+    "clearedPatients": ("cleared", "PATIENTS: NOT GUILTY", "the rising pan (4 patient counts acquitted)"),
+    "clearedInvestors": ("cleared", "INVESTORS: GUILTY", "the other pan"),
+    # rule — the journal shelf
+    "ruleGap":         ("rule", "THERANOS", "the empty slot's spine label"),
+    "ruleLabel":       ("rule", "NO PEER-REVIEWED DATA", "label (Ioannidis, JAMA, Feb 17, 2015)"),
+    "ruleJournal":     ("rule", "JAMA", "on the volumes' spines"),
+    "ruleDate":        ("rule", "FEB 2015", "label"),
 }
 
+
 # ── syllables: a heuristic, with this script's exceptions spelled out (checked by eye: --syl prints every word) ─────────────
-SYL_FIX = {"sprinkled": 2, "that's": 1, "calgary": 3, "bre-x": 2, "bre-x's": 3, "borneo": 3, "indonesia": 5, "ninety-three": 3,
+SYL_FIX = {"theranos": 3, "elizabeth": 4, "holmes": 1, "stanford": 2, "pitch": 1, "finger": 2, "prick": 1, "edison": 3, "machine": 2, "fourteen": 2, "paper": 2, "former": 2, "secretaries": 4, "walgreens": 2, "offered": 2, "companies": 3, "companies'": 3, "machines": 2, "whistleblower": 4, "tyler": 2, "shultz": 1, "member's": 2, "grandson": 2, "october": 3, "fifteen": 2, "journal": 2, "exposed": 2, "voided": 2, "walked": 1, "eighteen": 2, "january": 4, "twenty-two": 3, "defrauding": 3, "investors": 3, "sentence": 2, "eleven": 3, "months": 1, "testified": 3, "believed": 2, "technology": 4, "cleared": 1, "patients": 2, "famous": 2, "names": 1, "peer-reviewed": 3, "published": 2, "scientists": 3, "check": 1, "promise": 2, "drops": 1, "blood": 1, "founded": 2, "dropped": 1, "peak": 1, "board": 1, "stores": 1, "story": 2, "found": 1, "shut": 1, "later": 2,
+           "sprinkled": 2, "that's": 1, "calgary": 3, "bre-x": 2, "bre-x's": 3, "borneo": 3, "indonesia": 5, "ninety-three": 3,
            "ninety-seven": 3, "ninety-six": 3, "seventy-one": 4, "ounces": 2, "pennies": 2, "piled": 1, "drilled": 1,
            "geologist": 4, "michael": 2, "de": 1, "guzman": 2, "helicopter": 4, "insignificant": 4, "independent": 4,
            "auditors": 3, "confirmed": 2, "salted": 2, "outside": 2, "shareholders": 3, "wiped": 1, "ontario": 4,
@@ -469,13 +468,13 @@ def main():
     J = lambda o: json.dumps(o, ensure_ascii=False, separators=(", ", ": "))
 
     head = (f"""// @ts-nocheck
-// THE TAKE — Video 36 "Bre-X Gold", take B (2026-11-23): ElevenLabs "Jon - Calm Presence", eleven_v4, generated from VO_SCRIPT.txt
+// THE TAKE — Video 37 "Theranos" (from V36's take pipeline): ElevenLabs "Jon - Calm Presence", eleven_v4, generated from VO_SCRIPT.txt
 // (read word for word: Scribe 187 of 187). 82.3 s raw → trimmed (0.30-s pauses inside a scene, 0.45 s at scene changes, longer holds at flare 1 and both breaks:
 // scratchpad/vo_hold.json) → ×1.04 atempo fit, pitch kept (the 80-s cap) = {take_dur:.2f} s, public/vo_trimmed.wav/.mp3. GENERATED by
 // `python3 scratchpad/synth_captions.py --take` from scratchpad/fw_words.json — DO NOT EDIT. Places key to WORDS through W_.
 export const PROVISIONAL = false;
 """ if TAKE else f"""// @ts-nocheck
-// ★★ PROVISIONAL (synthetic timing) — Video 36 "Bre-X Gold" has NO TAKE YET. GENERATED by scratchpad/synth_captions.py from
+// ★★ PROVISIONAL (synthetic timing) — Video 37 "Theranos" has NO TAKE YET. GENERATED by scratchpad/synth_captions.py from
 // VO_SCRIPT.txt on a modelled read (Jon – Calm Presence's pace, calibrated on Video 35's take: RATE {RATE} syllable-weighted
 // words/s, 0.30-s sentence pauses, a 0.50-s hold at every place change, 0.65 s after the hook). DO NOT EDIT — re-run the
 // generator; when the real take lands, `--take` regenerates this file from it (same export shape).
@@ -525,7 +524,7 @@ export const heroAt = (f) => HEROES.find((h) => f >= h.paint && f < h.end);
 
     episode = {
         "_doc": [
-            "Video 36 \"Bre-X Gold\". WRITTEN by scratchpad/synth_captions.py — edit the generator (SCENE_PLAN, NUMERALS, LABELS), not this file.",
+            "Video 37 \"Theranos\". WRITTEN by scratchpad/synth_captions.py — edit the generator (SCENE_PLAN, NUMERALS, LABELS), not this file.",
             "script: one entry per VO line, in order — scene (place id), vo (VO_SCRIPT.txt, spelled out), take (the caption form: numerals per house style; the real-take generator scratchpad/captions_vo.js aligns the take's words to these tokens), hero.",
             "labels: every on-screen label from PLAN.md (Anton, ≤ 4 words), with its place and where it sits. WD is the flat map the film reads at runtime (src/bnx/data.ts L(key)).",
             ("THE TAKE: take B (2026-11-23), generated in ElevenLabs; captions.ts is timed from it (--take)." if TAKE else "PROVISIONAL: the take does not exist yet; captions.ts is synthetic until it lands."),
