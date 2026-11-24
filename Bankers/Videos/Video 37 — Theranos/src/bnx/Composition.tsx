@@ -618,7 +618,7 @@ export const TheranosBloodTest = ({ solo, probe, dumpCues, orbcheck }) => {
           end: HAS_QUESTION && h.scene === "close" ? Math.min(h.end, Q.at - 2) : h.end,
           paint: h.paint,
           y: 880,
-          size: isPunch(h) ? 74 : h.words.length > 7 ? 54 : 64,
+          size: isPunch(h) ? 74 : h.words.length > 9 ? 48 : h.words.length > 7 ? 54 : 64,   // V37: the 11-word fair card at 54 reached the frame edge on its fly-in (geom_sweep 1698)
           onLight: capLight,
           display: isPunch(h),
           emph: [],

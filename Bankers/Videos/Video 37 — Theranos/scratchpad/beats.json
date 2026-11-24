@@ -1,79 +1,79 @@
 {
- "words": "scratchpad/syn_words.json",
+ "words": "scratchpad/fw_words.json",
  "beats": [
   {
    "id": "hook",
    "enter": 0,
-   "gone": 182
+   "gone": 161
   },
   {
    "id": "claim",
-   "enter": 182,
-   "gone": 391
+   "enter": 161,
+   "gone": 328
   },
   {
    "id": "claim2",
-   "enter": 391,
-   "gone": 498
+   "enter": 328,
+   "gone": 486
   },
   {
    "id": "hype",
-   "enter": 498,
-   "gone": 655
+   "enter": 486,
+   "gone": 609
   },
   {
-   "id": "partner",
-   "enter": 655,
-   "gone": 770
-  },
-  {
-   "id": "mystery",
-   "enter": 770,
-   "gone": 914
+   "id": "backers",
+   "enter": 609,
+   "gone": 788
   },
   {
    "id": "crack",
-   "enter": 914,
-   "gone": 1037
+   "enter": 788,
+   "gone": 911
   },
   {
-   "id": "truth",
-   "enter": 1037,
-   "gone": 1212
+   "id": "whistle",
+   "enter": 911,
+   "gone": 1019
+  },
+  {
+   "id": "expose",
+   "enter": 1019,
+   "gone": 1139
   },
   {
    "id": "collapse",
-   "enter": 1212,
-   "gone": 1389
+   "enter": 1139,
+   "gone": 1336
   },
   {
-   "id": "pension",
-   "enter": 1389,
-   "gone": 1512
+   "id": "verdict",
+   "enter": 1336,
+   "gone": 1603
   },
   {
-   "id": "felderhof",
-   "enter": 1606,
-   "gone": 1837
+   "id": "cleared",
+   "enter": 1734,
+   "gone": 1807
   },
   {
    "id": "rule",
-   "enter": 1934,
-   "gone": 2119
+   "enter": 1889,
+   "gone": 2041
   },
   {
    "id": "close",
-   "enter": 2119,
-   "gone": 2143
+   "enter": 2041,
+   "gone": 2065
   },
   {
    "id": "brand",
-   "enter": 2143,
-   "gone": 2227
+   "enter": 2065,
+   "gone": 2149
   }
  ],
  "breaks": [
-  655,
-  1517
+  788,
+  1608
  ]
 }
