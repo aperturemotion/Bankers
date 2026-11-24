@@ -1,1 +1,66 @@
-[]
+[
+ {
+  "kinds": [
+   "VANISH"
+  ],
+  "frames": [
+   679,
+   682
+  ],
+  "box": [
+   0,
+   540,
+   80,
+   740
+  ],
+  "why": "hype -> backers slide (panL): the paper sheet's edge leaves through the left edge at the slide's peak speed (continuous; looked at by builder M + integrator, rev 1)"
+ },
+ {
+  "kinds": [
+   "BLIP"
+  ],
+  "frames": [
+   1545,
+   1548
+  ],
+  "box": [
+   300,
+   680,
+   540,
+   820
+  ],
+  "why": "verdict: the gavel's swing at its fastest just before it strikes the block (continuous; looked at 1545-1548, builder F + integrator)"
+ },
+ {
+  "kinds": [
+   "VANISH"
+  ],
+  "frames": [
+   1869,
+   1875
+  ],
+  "box": [
+   160,
+   1360,
+   760,
+   1840
+  ],
+  "why": "the fair card -> cleared fromBelow rise: the exhibit table comes up through the bottom edge at the hand-over's peak speed (continuous; looked at 1870-1873, integrator)"
+ },
+ {
+  "kinds": [
+   "BLIP"
+  ],
+  "frames": [
+   2056,
+   2060
+  ],
+  "box": [
+   440,
+   1700,
+   700,
+   1880
+  ],
+  "why": "the lesson card -> rule fromBelow rise: the journal shelf and its THERANOS card pass up behind the watermark at the hand-over's peak speed (continuous; looked at, builder F + integrator)"
+ }
+]

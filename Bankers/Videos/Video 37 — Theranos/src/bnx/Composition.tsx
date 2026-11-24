@@ -495,6 +495,8 @@ const CUES_RAW = [
   // ★ (V36 lesson, sfxgaps) cleared → the lesson card is the film's one push-light with no break or flare under it (moveCue gives
   //   push-lights none), so it carries its own whoosh, peaking at the push's end (rIn: fastest at its end), decaying into the card
   span("whooshlong", whooshOn("whooshlong", HO.cleared.exit.at, HO.cleared.exit.at + HO.cleared.exit.dur, "in"), HO.cleared.exit.at + HO.cleared.exit.dur + 16, 0.45),
+  // ★ (integrator, rev 1, sfxgaps 1927–1938) the push starts before the long whoosh swells: a soft lead-in (V36's crack → truth line)
+  whoosh(null, "whooshsoft", HO.cleared.exit.at, HO.cleared.exit.at + 22, 0.3),
   // ── both flares: V46's own flare line, the low whoosh swelling with the bloom
   ...FLARES.map((fl) => {
     const T = ft(fl);
