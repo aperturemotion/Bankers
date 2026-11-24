@@ -1,0 +1,8 @@
+# Agent A (2026-11-24): hook / claim / hype — raw findings
+Failed hosts (not retried): businesswire.com 403, forbes.com 403, web.archive.org refused. Main: SEC complaint (3/14/2018), DOJ case page.
+1. "One drop" — NEEDS FIX. Slogan "One tiny drop changes everything" (Fortune, Parloff, Dec 17, 2015). The claim: Walgreens Sept 2013 release (SEC ¶37) "with as little as a few drops of blood"; SEC ¶4 "a comprehensive set of blood tests from a few drops of blood from a finger"; Fortune June 12, 2014 "just a few drops of blood". → "A few drops of blood."
+2. Founding order — NEEDS FIX. SEC ¶13 "established by Holmes in 2003"; ¶15 "after leaving college during her second year" vs Fortune 2014: started Real-Time Cures, dropped out "a semester later"; Stanford Daily 9/1/2021 enrolled 2002, left sophomore year (secondary: March 2004). Born Feb 1984 (Fortune 2014) → 19 in 2003. → founded as a 19-year-old Stanford student, then dropped out.
+3. Pitch — CORRECT. SEC ¶54 deck "runs comprehensive blood tests from a finger-stick"; DOJ: "the TSPU, Edison, or minilab"; SEC ¶5 TSPU ran ~12 of 200+ tests.
+4. $9B 2014 — CORRECT. Fortune June 12, 2014 "more than $9 billion"; SEC ¶2/¶47 raised "more than $700 million from late 2013 to 2015". Forbes cut Holmes $4.5B → 0 on June 1, 2016 (Fortune 6/2/2016).
+5. Two former secretaries of state — CORRECT. Fortune June 12, 2014 board list: Shultz (joined July 2011), Kissinger. Moved to "board of counselors" Oct 2015 (Fortune 10/29/2015).
+6. Walgreens 40+ — "about forty" safer. Fortune Oct 24, 2015: 41 centers, mostly Phoenix; Walgreens June 12, 2016: closing "all 40 … in Arizona" (Palo Alto stopped Jan 2016).
