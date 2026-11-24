@@ -84,8 +84,15 @@ const ST_BOX = (() => {
   return { x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys) };
 })();
 const STORES_AIM = { x: (ST_BOX.x0 + ST_BOX.x1) / 2, y: (ST_BOX.y0 + ST_BOX.y1) / 2 + 50 };
+// REV1 (integrator: the names must read at once): the boardroom framing is TIGHT on the two lit places — the two nameplates in the
+//   lower third, their chairs above them, FORMER SECRETARIES OF STATE over the chairs (each name's cap height ≥ 40 px)
+const PAIR_Z = 1.55;
+const PAIR_AIM = (() => {
+  const a = worldScr(RIG, xfMul(platePose(SHULTZ_I), xfTrans([0, -40, 0])).t), b = worldScr(RIG, xfMul(platePose(KISS_I), xfTrans([0, -40, 0])).t);
+  return { x: (a[0] + b[0]) / 2, y: (a[1] + b[1]) / 2 - 300 / PAIR_Z + 75 };
+})();
 const shots = (t) => [
-  { a: -9999, z: 1.12, push: 0.05, at: () => ROOM_AIM },
+  { a: -9999, z: PAIR_Z, push: 0.04, at: () => PAIR_AIM },
   // ★ the travel across the floor to the terrace of stores
   { a: t.travel.a, dur: t.travel.dur, z: 0.94, push: 0.03, at: () => STORES_AIM }
 ];
@@ -158,7 +165,9 @@ export const BxBackers = ({ at: at0, end, w, stage }) => {
   ];
   // label anchors (place coordinates, live: they ride with the dolly's projection)
   const topS = worldScr(rig, chairTop(chairPose(SHULTZ_I))), topK = worldScr(rig, chairTop(chairPose(KISS_I)));
-  const boardAt = [(topS[0] + topK[0]) / 2, Math.min(topS[1], topK[1]) - 98];
+  // (centred over the two NAMEPLATES — the chair tops lean left in the lens — so the line sits square in the tight framing)
+  const pS = worldScr(rig, platePose(SHULTZ_I).t), pK = worldScr(rig, platePose(KISS_I).t);
+  const boardAt = [(pS[0] + pK[0]) / 2, Math.min(topS[1], topK[1]) - 70];
   const box = (() => {
     const ps = terraceCorners(STORES).map((q) => worldScr(rig, q));
     const xs = ps.map((p) => p[0]), ys = ps.map((p) => p[1]);
@@ -177,7 +186,7 @@ export const BxBackers = ({ at: at0, end, w, stage }) => {
       jsx(NamePlate, { id: "bkPS", rig, pose: platePose(SHULTZ_I), text: L("boardShultz"), on: rOut(f, t.shultz.a, t.shultz.b), lit: litS, probe: "the SHULTZ nameplate" }),
       jsx(NamePlate, { id: "bkPK", rig, pose: platePose(KISS_I), text: L("boardKissinger"), on: rOut(f, t.kiss.a, t.kiss.b), lit: litK, probe: "the KISSINGER nameplate" })
     ] }),
-    room && jsx(Tag, { x: boardAt[0], y: boardAt[1], on: rOut(f, t.board.a, t.board.b), text: L("boardLabel"), size: 56, probe: "FORMER SECRETARIES OF STATE" }),
+    room && jsx(Tag, { x: boardAt[0], y: boardAt[1], on: rOut(f, t.board.a, t.board.b), text: L("boardLabel"), size: 46, probe: "FORMER SECRETARIES OF STATE" }),
     stores && jsx("div", { "data-probe-object": "forty pharmacy storefronts on a stepped terrace", style: { position: "absolute", inset: 0 }, children: jsx(Terrace, { id: "bkS", rig, pose: STORES, litAt }) }),
     stores && jsx(Tag, { x: box.x, y: box.y0 - 86, on: rOut(f, t.brand.a, t.brand.b), text: L("storesBrand"), size: 92, probe: "WALGREENS" }),
     stores && jsx(Tag, { x: box.x, y: box.y1 + 76, on: rOut(f, t.count.a, t.count.b), text: L("storesCount"), size: 96, probe: "~40 STORES" }),

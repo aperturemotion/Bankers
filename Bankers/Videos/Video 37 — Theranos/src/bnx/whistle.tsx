@@ -38,7 +38,7 @@ const TOP_Y = FY + TB_TOP * K;
 // a closer stretch of the same table (its ends just past the frame's edges at every camera of the place)
 const TABLE_L = 1040;
 // the badge's rest beside the nameplate (right of it, a little nearer the lens), and where its slide starts (off the right)
-const REST = { x: 360 + 330, z: 70, yaw: -7 };
+const REST = { x: 360 + 372, z: 70, yaw: -7 };
 const START = { x: REST.x + 1100, z: REST.z - 160, yaw: 38 };
 const KEYS = ["s0", "whistleblower", "tyler", "shultz", "board", "grandson"];
 export const whistleTimes = (w, end) => {

@@ -14,7 +14,7 @@ import { BR_BRASS, BR_BRASS_GROOVE, BR_BRASS_LIP, BR_PED, BR_STEEL, Painted, box
 const jsx = (t, p, k) => (0,jsx_runtime.jsx)(t, p, k);
 const jsxs = (t, p, k) => (0,jsx_runtime.jsxs)(t, p, k);
 const f2 = (v) => v.toFixed(2);
-export const NP = { L: 250, H: 22, D: 50, cap: 12, pw: 232, ph: 62, pt: 5, sink: 12, tilt: 16 };
+export const NP = { L: 256, H: 24, D: 54, cap: 12, pw: 240, ph: 76, pt: 5, sink: 12, tilt: 12 };
 // the plate's own frame (its front face at z = pt/2, its foot sunk `sink` into the slot), leaning back about the slot
 export const NP_PLATE_XF = xfMul(xfTrans([0, -NP.H + NP.sink, -4]), xfRotX(NP.tilt));
 const PV = -NP.ph / 2;                      // the plate's centre (plate-local y)
@@ -43,7 +43,7 @@ export const plateCorners = (pose) => {
   return out;
 };
 /** the nameplate. pose: world xf of its foot; text; on = the engraving's paint 0…1; lit = the light on it 0…1; key = a memo key */
-export const NamePlate = ({ id, rig, pose, text, on = 1, lit = 1, size = 34, probe }) => {
+export const NamePlate = ({ id, rig, pose, text, on = 1, lit = 1, size = 46, probe }) => {
   const map = (q) => xfApply(pose, q);
   const pxf = xfMul(pose, NP_PLATE_XF);
   const pmap = (q) => xfApply(pxf, q);
@@ -53,7 +53,7 @@ export const NamePlate = ({ id, rig, pose, text, on = 1, lit = 1, size = 34, pro
   const ZF = NP.pt / 2 + 0.2;
   const P = (pts, close = true) => mapPath(pmap, rig, pts.map(([a, b]) => [a, b, ZF]), close);
   // the brushed grain, the engraved border, the screws
-  const grain = Array.from({ length: 14 }, (_, k) => P([[-NP.pw / 2 + 6, -NP.ph + 5 + k * 3.8], [NP.pw / 2 - 6, -NP.ph + 5.3 + k * 3.8]], false));
+  const grain = Array.from({ length: 18 }, (_, k) => P([[-NP.pw / 2 + 6, -NP.ph + 5 + k * 3.8], [NP.pw / 2 - 6, -NP.ph + 5.3 + k * 3.8]], false));
   const border = rrectPts(NP.pw - 18, NP.ph - 16, 4, 3, 0, PV);
   const screws = [-1, 1].map((s) => [s * (NP.pw / 2 - 16), PV]);
   // the light crossing the brass as it is lit: a soft diagonal band clipped to the face
@@ -62,7 +62,7 @@ export const NamePlate = ({ id, rig, pose, text, on = 1, lit = 1, size = 34, pro
   const g0 = mapScr(pmap, rig, [0, -NP.ph, ZF]), g1 = mapScr(pmap, rig, [0, 0, ZF]);
   const face = P(rrectPts(NP.pw - 4, NP.ph - 4, 4, 3, 0, PV));
   const W = NP.pw - 30, Hh = size + 8;
-  const run = (col, op, dy) => jsx("div", { style: { position: "absolute", left: 0, top: dy, width: W, height: Hh, display: "flex", alignItems: "center", justifyContent: "center", opacity: op }, children: jsx("div", { style: { ...label(size, col), letterSpacing: 3, lineHeight: 1 }, children: text }) });
+  const run = (col, op, dy) => jsx("div", { style: { position: "absolute", left: 0, top: dy, width: W, height: Hh, display: "flex", alignItems: "center", justifyContent: "center", opacity: op }, children: jsx("div", { style: { ...label(size, col), letterSpacing: 2, lineHeight: 1 }, children: text }) });
   const sheenOp = 0.5 * Math.sin(Math.PI * clamp01(lit));
   return jsxs("div", { style: { position: "absolute", inset: 0 }, children: [
     jsxs("svg", { width: 1, height: 1, style: { position: "absolute", left: 0, top: 0, overflow: "visible" }, children: [
