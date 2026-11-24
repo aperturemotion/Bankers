@@ -18,7 +18,7 @@ import { clamp01 } from "./anim";
 import { seeded } from "./common";
 import { box3, lightOf, rampAt } from "./solid_engine";
 import { XPlane, paintXf, worldScr, wound, xfApply, xfMul, xfRotX, xfRotY, xfTrans } from "./tk_rig";
-import { SHOUT } from "./fonts";
+import { PagePrint } from "./expose_page";
 
 const jsx = (t, p, k) => (0,jsx_runtime.jsx)(t, p, k);
 const jsxs = (t, p, k) => (0,jsx_runtime.jsxs)(t, p, k);
@@ -85,75 +85,15 @@ export const BundleStack = ({ rig, G, sq = 0 }) => {
 };
 // the top copy's thickness (its fold to the lens) — drawn before its printed page
 export const TopCopyEdge = ({ rig, X }) => jsx(Copy, { rig, X, y0: BUNDLE.TT, t: BUNDLE.TT, off: [0, 0], k: "top" });
-// the page's abstract layout: one SVG path of bars (type), the column rules, the headline block — seeded, fixed
-const PAGE = (() => {
-  const W = BUNDLE.W, D = BUNDLE.D, M = 16;
-  const r = seeded(9020);
-  const type = [], heads = [], rules = [], soft = [];
-  const bars = (x0, x1, y0, y1, arr, gap = 6.2, h = 2.6) => {
-    for (let y = y0; y < y1 - h; y += gap) {
-      const end = r() < 0.12 ? x0 + (x1 - x0) * (0.35 + 0.5 * r()) : x1;
-      arr.push([x0, y, end - x0, h]);
-    }
-  };
-  // the left "news digest" column
-  const cx0 = M, cx1 = 132;
-  for (let k = 0, y = 146; k < 5; k++) {
-    heads.push([cx0, y, (cx1 - cx0) * (0.6 + 0.3 * r()), 5]);
-    bars(cx0, cx1, y + 10, y + 52, type);
-    y += 62;
-  }
-  rules.push([cx1 + 7, 140, 1, D - 140 - 6]);
-  // the lead story: a two-line headline across three columns, a deck, then three columns of type
-  const lx0 = cx1 + 15, lx1 = W - M;
-  heads.push([lx0, 146, lx1 - lx0, 13], [lx0, 164, (lx1 - lx0) * 0.72, 13]);
-  soft.push([lx0, 186, (lx1 - lx0) * 0.86, 6], [lx0, 196, (lx1 - lx0) * 0.6, 6]);
-  const cw = (lx1 - lx0 - 16) / 3;
-  for (let c = 0; c < 3; c++) {
-    const x0 = lx0 + c * (cw + 8);
-    bars(x0, x0 + cw, 214, D - 8, type);
-    if (c > 0) rules.push([x0 - 4.5, 212, 0.8, D - 212 - 6]);
-  }
-  return { type, heads, rules, soft };
-})();
-const rectsD = (arr) => arr.map(([x, y, w, h]) => `M${f2(x)},${f2(y)}h${f2(w)}v${f2(h)}h${f2(-w)}Z`).join("");
-// the printed page on the top copy (HTML on the copy's own plane, so it rides every move of the copy and never swims)
-export const TopCopyPrint = ({ rig, X, mast = 0, date = 0, glint = -1, mastText, dateText, light = 0.8 }) => {
-  const W = BUNDLE.W, D = BUNDLE.D;
-  const g0 = clamp01(light);
-  const lit0 = paperOf(0.92 * g0 + 0.14), lit1 = paperOf(0.92 * g0 + 0.02), lit2 = paperOf(0.92 * g0 - 0.1);
-  const ease = (v) => ({ opacity: clamp01(v), transform: `scale(${(1.06 - 0.06 * clamp01(v)).toFixed(4)})` });
-  return jsx(XPlane, { rig, x: printXf(X), u: -W / 2, v: -D / 2, w: 0.6, width: W, height: D, probe: "the top copy's printed page", children: jsxs("div", { style: { position: "relative", width: W, height: D, overflow: "hidden", background: `linear-gradient(128deg, ${lit0} 0%, ${lit1} 46%, ${lit2} 100%)` }, children: [
-    // newsprint grain
-    jsxs("svg", { width: W, height: D, style: { position: "absolute", left: 0, top: 0 }, children: [
-      jsx("defs", { "data-probe-skip": true, children: jsxs("filter", { id: "exGrain", x: "0", y: "0", width: "100%", height: "100%", children: [
-        jsx("feTurbulence", { type: "fractalNoise", baseFrequency: "0.9", numOctaves: 2, seed: 7 }),
-        jsx("feColorMatrix", { values: "0 0 0 0 0.1  0 0 0 0 0.16  0 0 0 0 0.26  0 0 0 0.55 0" })
-      ] }) }),
-      jsx("rect", { "data-probe-skip": true, x: 0, y: 0, width: W, height: D, filter: "url(#exGrain)", opacity: 0.32 }),
-      // the masthead band's rules, the dateline strip, the page's type as abstract bars
-      jsx("path", { d: rectsD([[16, 86, W - 32, 2.6], [16, 91, W - 32, 1], [16, 136, W - 32, 1.2]]), fill: PRINT_INK, opacity: 0.85 }),
-      jsx("path", { d: rectsD([[W - 16 - 150, 109, 40, 8], [W - 16 - 100, 109, 84, 8]]), fill: PRINT_INK, opacity: 0.32 }),
-      jsx("path", { d: rectsD(PAGE.heads), fill: PRINT_INK, opacity: 0.62 }),
-      jsx("path", { d: rectsD(PAGE.soft), fill: PRINT_INK, opacity: 0.38 }),
-      jsx("path", { d: rectsD(PAGE.type), fill: PRINT_INK, opacity: 0.27 }),
-      jsx("path", { d: rectsD(PAGE.rules), fill: PRINT_INK, opacity: 0.55 }),
-      // the fold's soft shading at the page's foot (the lens side) and the light's sheen
-      jsx("rect", { x: 0, y: D - 26, width: W, height: 26, fill: "#2B3D57", opacity: 0.1 }),
-      glint > -1 && jsxs("g", { "data-probe-skip": true, children: [
-        jsx("defs", { children: jsxs("linearGradient", { id: "exSheen", x1: "0", y1: "0", x2: "1", y2: "0", children: [
-          jsx("stop", { offset: "0", stopColor: "#FFFFFF", stopOpacity: 0 }),
-          jsx("stop", { offset: "0.5", stopColor: "#FFFFFF", stopOpacity: 1 }),
-          jsx("stop", { offset: "1", stopColor: "#FFFFFF", stopOpacity: 0 })
-        ] }) }),
-        jsx("rect", { x: -260 + (W + 520) * glint - 130, y: -60, width: 260, height: D + 120, fill: "url(#exSheen)", opacity: 0.42 * Math.sin(Math.PI * clamp01(glint)), transform: "skewX(-24)" })
-      ] })
-    ] }),
-    // the masthead (Anton) and the dateline: printed in as their words are said
-    mast > 3e-3 && jsx("div", { style: { position: "absolute", left: 0, top: 22, width: W, textAlign: "center", transformOrigin: "50% 50%", ...ease(mast) }, children: jsx("span", { style: { fontFamily: SHOUT, fontWeight: 400, fontSize: 45, letterSpacing: 1, color: PRINT_INK, whiteSpace: "nowrap", lineHeight: 1 }, children: mastText }) }),
-    date > 3e-3 && jsx("div", { style: { position: "absolute", left: 18, top: 99, transformOrigin: "0% 50%", ...ease(date) }, children: jsx("span", { style: { fontFamily: SHOUT, fontWeight: 400, fontSize: 30, letterSpacing: 1.2, color: PRINT_INK, whiteSpace: "nowrap", lineHeight: 1 }, children: dateText }) })
-  ] }) });
+// the printed pages (expose_page): the top copy's, and the copy under it (another copy of the same edition), so the stack never
+//   shows a blank sheet when the top copy slides off it
+export const TopCopyPrint = (p) => jsx(PagePrint, { ...p, X: printXf(p.X), id: "ppT" });
+// the stack's top face (the copy under the top copy): its pose for the print, with the landing's squash
+export const stackTopXf = (G, sq = 0) => {
+  const off = OFFS[BUNDLE.N - 1];
+  return xfMul(G, xfTrans([off[0], -BUNDLE.N * BUNDLE.T * (1 - 0.04 * sq), off[1]]));
 };
+export const UnderPrint = ({ rig, G, sq, ...p }) => jsx(PagePrint, { rig, ...p, X: printXf(stackTopXf(G, sq)), probe: "the copy under the top copy: the same printed page", id: "ppU" });
 // ── the twine ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 // four arms from the knot on top: A runs along x (left arm "AL" down the lit left side), B along z (front arm "BF" down the folds);
 //   "AR" and "BB" go over the far edges (their sides face away). Each arm is a path in bundle space: the run on top (length LT),

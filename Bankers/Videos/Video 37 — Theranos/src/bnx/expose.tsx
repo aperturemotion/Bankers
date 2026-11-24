@@ -24,7 +24,7 @@ import { worldScr, xfAbout, xfApply, xfMul, xfRotX, xfRotZ, xfTrans } from "./tk
 import { TkFloor } from "./tk_floor";
 import { TK_FLOOR_Y } from "./tk_slab";
 import { theme } from "./theme";
-import { BUNDLE, BundleStack, TopCopyEdge, TopCopyPrint, Twine, topXf } from "./expose_bundle";
+import { BUNDLE, BundleStack, TopCopyEdge, TopCopyPrint, Twine, UnderPrint, topXf } from "./expose_bundle";
 
 const jsx = (t, p, k) => (0,jsx_runtime.jsx)(t, p, k);
 const jsxs = (t, p, k) => (0,jsx_runtime.jsxs)(t, p, k);
@@ -86,12 +86,13 @@ const scr = (q) => {
 };
 const G0 = xfTrans([X, FY, Z]);
 const TOPC = scr(xfApply(G0, [0, -H, 0]));
-const MAST = scr(xfApply(topXf(G0, SLIDE), [0, 0, -BUNDLE.D / 2 + 78]));
+// the push lands on the slid top copy, its whole width in frame: centred a little under the masthead
+const MAST = scr(xfApply(topXf(G0, SLIDE), [14, 0, -BUNDLE.D / 2 + 150]));
 const shots = (t) => [
   // the bundle, landing, the dateline strip readable
   { a: -9999, z: 1.3, push: 0.02, at: still(TOPC.x, TOPC.y + 50) },
   // pushing in with the sliding top copy onto its masthead, centred
-  { a: t.slide.a - 2, dur: t.slide.b - t.slide.a + 8, z: 1.62, push: 0.02, at: still(MAST.x, MAST.y + 40) }
+  { a: t.slide.a - 2, dur: t.slide.b - t.slide.a + 8, z: 1.4, push: 0.015, at: still(MAST.x, MAST.y) }
 ];
 export const exposeCamWindows = (t) => actionCamWindows(shots(t));
 export const exposeSfx = (t) => [
@@ -165,7 +166,10 @@ export const BxExpose = ({ at, end, w, stage }) => {
   return jsx(PlaceRoot, { children: [jsx(FloorLayer, { cam, turn, children: jsx(TkFloor, { id: "exF", rig: RIG, at: { x: X, z: Z + 60 }, reach: 1300, casters: [], stage: s, on: 1 - s }) }, "fl"), jsx(CamFn, { at: cam, children: jsx("div", { "data-probe-leaving": travelling(f, exposeCamWindows(t)), style: { position: "absolute", inset: 0 }, children: jsxs(Turn, { ...turn, children: [
     svg(jsx(Shade, { G, ink, lift }), "sh"),
     jsxs("div", { "data-probe-object": "the bundle of newspapers: folded copies stacked, cross-tied with twine; the top copy with THE WALL STREET JOURNAL and its dateline", style: { position: "absolute", inset: 0 }, children: [
-      svg([jsx(BundleStack, { rig: RIG, G, sq }, "st"), jsx(OverhangShade, { G, sl, ink }, "ov"), jsx(Twine, { rig: RIG, G, s: tw, layer: "sides" }, "tws")], "a"),
+      svg(jsx(BundleStack, { rig: RIG, G, sq }), "a"),
+      // the copy under the top one is printed too: mounted only once the top copy starts to slide (wholly covered before)
+      sl[1] > 0.3 && jsx(UnderPrint, { rig: RIG, G, sq, mast: rOut(f, t.mast.a, t.mast.b), date: 1, mastText: L("exposeMast"), dateText: L("exposeDate") }),
+      svg([jsx(OverhangShade, { G, sl, ink }, "ov"), jsx(Twine, { rig: RIG, G, s: tw, layer: "sides" }, "tws")], "a2"),
       svg(jsx(TopCopyEdge, { rig: RIG, X: TX }), "b"),
       jsx(TopCopyPrint, { rig: RIG, X: TX, mast: rOut(f, t.mast.a, t.mast.b), date: rOut(f, t.date.a, t.date.b), glint, mastText: L("exposeMast"), dateText: L("exposeDate") }),
       svg(jsx(Twine, { rig: RIG, G, s: tw, layer: "tops" }), "c")
