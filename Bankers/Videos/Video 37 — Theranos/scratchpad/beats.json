@@ -1,0 +1,79 @@
+{
+ "words": "scratchpad/syn_words.json",
+ "beats": [
+  {
+   "id": "hook",
+   "enter": 0,
+   "gone": 182
+  },
+  {
+   "id": "claim",
+   "enter": 182,
+   "gone": 391
+  },
+  {
+   "id": "claim2",
+   "enter": 391,
+   "gone": 498
+  },
+  {
+   "id": "hype",
+   "enter": 498,
+   "gone": 655
+  },
+  {
+   "id": "partner",
+   "enter": 655,
+   "gone": 770
+  },
+  {
+   "id": "mystery",
+   "enter": 770,
+   "gone": 914
+  },
+  {
+   "id": "crack",
+   "enter": 914,
+   "gone": 1037
+  },
+  {
+   "id": "truth",
+   "enter": 1037,
+   "gone": 1212
+  },
+  {
+   "id": "collapse",
+   "enter": 1212,
+   "gone": 1389
+  },
+  {
+   "id": "pension",
+   "enter": 1389,
+   "gone": 1512
+  },
+  {
+   "id": "felderhof",
+   "enter": 1606,
+   "gone": 1837
+  },
+  {
+   "id": "rule",
+   "enter": 1934,
+   "gone": 2119
+  },
+  {
+   "id": "close",
+   "enter": 2119,
+   "gone": 2143
+  },
+  {
+   "id": "brand",
+   "enter": 2143,
+   "gone": 2227
+  }
+ ],
+ "breaks": [
+  655,
+  1517
+ ]
+}
