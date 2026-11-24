@@ -8,7 +8,7 @@ import * as jsx_runtime from "react/jsx-runtime";
 import { clamp01, mixHex } from "./anim";
 import { label } from "./kit";
 import { rampAt } from "./solid_engine";
-import { XPlane, mapPath, mapScr, rrectPts, xfApply, xfMul, xfRotX, xfTrans } from "./tk_rig";
+import { XPlane, mapPath, mapScr, rrectPts, worldScr, xfApply, xfMul, xfRotX, xfTrans } from "./tk_rig";
 import { BR_BRASS, BR_BRASS_GROOVE, BR_BRASS_LIP, BR_PED, BR_STEEL, Painted, box, painted, ring } from "./backers_kit";
 
 const jsx = (t, p, k) => (0,jsx_runtime.jsx)(t, p, k);
@@ -94,5 +94,21 @@ export const NamePlate = ({ id, rig, pose, text, on = 1, lit = 1, size = 46, pro
     // the engraving: the cut letters (groove + lit lip) from the first frame, the black paint filling on the word
     jsx(XPlane, { rig, x: pxf, u: -W / 2, v: PV - Hh / 2, w: ZF + 0.2, width: W, height: Hh, probe: probe ?? "the nameplate's engraving", children: jsxs("div", { style: { position: "relative", width: W, height: Hh }, children: [run(BR_BRASS_LIP, 0.45 * (1 - dim), 1.1), run(BR_BRASS_GROOVE, 0.5, 0)] }) }),
     jsx(XPlane, { rig, x: pxf, u: -W / 2, v: PV - Hh / 2, w: ZF + 0.4, width: W, height: Hh, op: clamp01(on), probe: probe ?? "the nameplate's engraving", children: run(mixHex("#0D0A05", "#1A140A", dim), 1, 0) })
+  ] });
+};
+/** REV1: the plate's REFLECTION in the lacquered table top (the brass face mirrored about the top, fading away from the plate),
+ *  drawn before the plate; `topY` = the table top's world y; lit 0…1 */
+export const PlateReflection = ({ id, rig, pose, topY, lit = 1 }) => {
+  const mir = (q) => [q[0], 2 * topY - q[1], q[2]];
+  const pt = (u, v) => worldScr(rig, mir(plateAt(pose, u, v)));
+  const a = pt(-NP.pw / 2 + 4, -2), b = pt(NP.pw / 2 - 4, -2), c = pt(NP.pw / 2 - 4, -NP.ph * 0.85), d = pt(-NP.pw / 2 + 4, -NP.ph * 0.85);
+  const m0 = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], m1 = [(c[0] + d[0]) / 2, (c[1] + d[1]) / 2];
+  const P = [a, b, c, d].map((q) => `${q[0].toFixed(2)},${q[1].toFixed(2)}`).join("L");
+  return jsxs("svg", { width: 1, height: 1, style: { position: "absolute", left: 0, top: 0, overflow: "visible" }, children: [
+    jsx("defs", { children: jsxs("linearGradient", { id: `${id}Rf`, gradientUnits: "userSpaceOnUse", x1: m0[0].toFixed(2), y1: m0[1].toFixed(2), x2: m1[0].toFixed(2), y2: m1[1].toFixed(2), children: [
+      jsx("stop", { offset: "0", stopColor: rampAt(BR_BRASS, 0.7), stopOpacity: 0.34 * (0.4 + 0.6 * lit) }),
+      jsx("stop", { offset: "1", stopColor: rampAt(BR_BRASS, 0.5), stopOpacity: 0 })
+    ] }) }),
+    jsx("path", { d: `M${P}Z`, fill: `url(#${id}Rf)`, style: { mixBlendMode: "screen" } })
   ] });
 };

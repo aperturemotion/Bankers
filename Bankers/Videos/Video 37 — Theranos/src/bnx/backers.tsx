@@ -23,7 +23,8 @@ import { TK_FLOOR_Y } from "./tk_slab";
 import { TkFloor } from "./tk_floor";
 import { BR_INK, BR_LABEL } from "./backers_kit";
 import { CHAIR_N, CHAIR_Z, Chair, ChairReflection, TB_TOP, Table, chairCorners, chairTop, chairX, placeZ, tableCorners, viewDepth } from "./backers_room";
-import { NamePlate, plateCorners } from "./backers_plate";
+import { NamePlate, PlateReflection, plateCorners } from "./backers_plate";
+import { Tumbler } from "./backers_glass";
 import { Terrace, storeOrder, terraceCorners } from "./backers_stores";
 
 const jsx = (t, p, k) => (0,jsx_runtime.jsx)(t, p, k);
@@ -140,6 +141,25 @@ const FloorPool = ({ id, rig, pose, on }) => {
     jsx("ellipse", { cx: c[0], cy: c[1], rx, ry, fill: `url(#${id}Pl)`, opacity: clamp01(on), style: { mixBlendMode: "screen" } }, "e")
   ] });
 };
+// REV1 (Timur: "more eye catching … the lighting more cinematic"): a soft shaft of light from above onto each lit place — a
+//   narrow source over the chair's head widening onto its nameplate, faint, additive; it starts below the chair tops' label line
+//   (clear of FORMER SECRETARIES OF STATE and the captions). Light, not an object: measured as background by the probe.
+const LightShaft = ({ id, rig, pose, plate, on }) => {
+  if (on <= 3e-3) return null;
+  const top = worldScr(rig, chairTop(pose)), p = worldScr(rig, plate.t);
+  const y0 = top[1] - 30, x0 = top[0], x1 = p[0], y1 = p[1] + 26;
+  const w0 = 70, w1 = 230;
+  const d = `M${(x0 - w0).toFixed(1)},${y0.toFixed(1)}L${(x0 + w0).toFixed(1)},${y0.toFixed(1)}L${(x1 + w1).toFixed(1)},${y1.toFixed(1)}L${(x1 - w1).toFixed(1)},${y1.toFixed(1)}Z`;
+  return jsx("svg", { "data-probe": "bg", width: 1, height: 1, style: { position: "absolute", left: 0, top: 0, overflow: "visible" }, children: [
+    jsx("defs", { children: jsxs("linearGradient", { id: `${id}Sf`, gradientUnits: "userSpaceOnUse", x1: x0.toFixed(1), y1: y0.toFixed(1), x2: x1.toFixed(1), y2: y1.toFixed(1), children: [
+      jsx("stop", { offset: "0", stopColor: "#DCE9F8", stopOpacity: 0 }),
+      jsx("stop", { offset: "0.25", stopColor: "#DCE9F8", stopOpacity: 0.17 }),
+      jsx("stop", { offset: "0.8", stopColor: "#BFD5EF", stopOpacity: 0.1 }),
+      jsx("stop", { offset: "1", stopColor: "#BFD5EF", stopOpacity: 0 })
+    ] }) }, "d"),
+    jsx("path", { d, fill: `url(#${id}Sf)`, opacity: clamp01(on), style: { mixBlendMode: "screen", filter: "blur(6px)" } }, "s")
+  ] });
+};
 export const BxBackers = ({ at: at0, end, w, stage }) => {
   const f = (0,esm.useCurrentFrame)();
   const t = backersTimes(w, end);
@@ -183,6 +203,13 @@ export const BxBackers = ({ at: at0, end, w, stage }) => {
       jsx(FloorPool, { id: "bkLk", rig, pose: chairPose(KISS_I), on: litK }),
       order.map((i) => jsx(Chair, { id: `bkC${i}`, rig, pose: chairPose(i), lit: litOf(i) }, `c${i}`)),
       jsx(Table, { id: "bkT", rig, pose: ROOM, sheen, glow: [{ x: chairX(SHULTZ_I), on: litS }, { x: chairX(KISS_I), on: litK }], reflect: order.map((i) => jsx(ChairReflection, { id: `bkC${i}`, rig, pose: chairPose(i), lit: litOf(i) }, `m${i}`)) }),
+      // the place setting at each lit place: a crystal tumbler on its coaster, behind and right of the nameplate
+      jsx(PlateReflection, { id: "bkRs", rig, pose: platePose(SHULTZ_I), topY: FY + TB_TOP * 0.8, lit: litS }),
+      jsx(PlateReflection, { id: "bkRk", rig, pose: platePose(KISS_I), topY: FY + TB_TOP * 0.8, lit: litK }),
+      jsx(Tumbler, { id: "bkGs", rig, pose: ROOM, x: chairX(SHULTZ_I) + 84, y: TB_TOP, z: -248, lit: litS }),
+      jsx(Tumbler, { id: "bkGk", rig, pose: ROOM, x: chairX(KISS_I) + 84, y: TB_TOP, z: -248, lit: litK }),
+      jsx(LightShaft, { id: "bkSs", rig, pose: chairPose(SHULTZ_I), plate: platePose(SHULTZ_I), on: litS }),
+      jsx(LightShaft, { id: "bkSk", rig, pose: chairPose(KISS_I), plate: platePose(KISS_I), on: litK }),
       jsx(NamePlate, { id: "bkPS", rig, pose: platePose(SHULTZ_I), text: L("boardShultz"), on: rOut(f, t.shultz.a, t.shultz.b), lit: litS, probe: "the SHULTZ nameplate" }),
       jsx(NamePlate, { id: "bkPK", rig, pose: platePose(KISS_I), text: L("boardKissinger"), on: rOut(f, t.kiss.a, t.kiss.b), lit: litK, probe: "the KISSINGER nameplate" })
     ] }),

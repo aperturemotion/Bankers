@@ -89,7 +89,7 @@ const PLATE_C = scr(plateAt(PLATE, 0, -NP.ph / 2));
 const MID = { x: (BADGE_C.x + PLATE_C.x) / 2 + 10, y: (BADGE_C.y + PLATE_C.y) / 2 + 40 };
 const shots = (t) => [
   { a: -9999, z: 1.0, push: 0.03, at: () => MID },
-  { a: t.lean.a, dur: t.lean.dur, z: 1.3, push: 0, at: () => ({ x: BADGE_C.x - 20, y: BADGE_C.y - 30 }) },
+  { a: t.lean.a, dur: t.lean.dur, z: 1.2, push: 0, at: () => ({ x: BADGE_C.x - 150, y: BADGE_C.y - 30 }) },
   { a: t.back.a, dur: t.back.dur, z: 1.06, push: 0.02, at: () => MID }
 ];
 export const whistleCamWindows = (t) => actionCamWindows(shots(t));
