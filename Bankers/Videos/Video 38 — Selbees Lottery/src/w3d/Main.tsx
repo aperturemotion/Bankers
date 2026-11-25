@@ -8,7 +8,8 @@
 //     Overlay: ({ f, P }) => <HTML; P(localPoint) → screen {x,y} through the live camera>,
 //     sfx: () => [cueAt(...)] }
 import React from "react";
-import { AbsoluteFill, Audio, Sequence, staticFile, useCurrentFrame } from "remotion";
+import { AbsoluteFill, Audio, Sequence, useCurrentFrame } from "remotion";
+import { aud } from "../bnx/aud";
 import { World3D, makeCam, projectWith, HouseLights, ease } from "./kit";
 import { Karaoke } from "./karaoke";
 import { CHIPS, TOTAL, VO_END } from "./take";
@@ -40,19 +41,19 @@ export const SelbeesLottery = ({ solo }) => {
           </group>
         ))}
       </World3D>
-      {/* the annotation layer, pinned through the same camera */}
-      {live.map((s) => s.Overlay && <s.Overlay key={s.id} f={f} P={(p) => projectWith(k, [p[0] + s.origin[0], p[1] + s.origin[1], p[2] + s.origin[2]])} />)}
       {/* the reference look: a strong vignette, the lower quarter pushed dark for the captions (CLAUDE.md 3-D World §B7) */}
       <AbsoluteFill style={{ background: "radial-gradient(ellipse 85% 70% at 50% 42%, rgba(0,0,0,0) 55%, rgba(0,8,22,0.55) 100%)" }} />
       <AbsoluteFill style={{ background: "linear-gradient(180deg, rgba(0,8,22,0) 62%, rgba(0,8,22,0.38) 80%, rgba(0,8,22,0.62) 100%)" }} />
+      {/* the annotation layer, pinned through the same camera */}
+      {live.map((s) => s.Overlay && <s.Overlay key={s.id} f={f} P={(p) => projectWith(k, [p[0] + s.origin[0], p[1] + s.origin[1], p[2] + s.origin[2]])} />)}
       <AbsoluteFill style={{ background: "#001C3C", opacity: 0.86 * veil }} />
       <Karaoke chips={CHIPS} hideFrom={CLOSE_AT + 4} />
       {f >= CLOSE_AT && <BrandClose at={CLOSE_AT + 22} y={960} />}
       <Watermark lit={1} outAt={CLOSE_AT + 10} />
       {solo !== "picture" && (
         <>
-          <Sequence from={0}><Audio src={staticFile("vo_trimmed.mp3")} volume={1} /></Sequence>
-          <Audio src={staticFile(BED_FILE)} volume={1} />
+          <Sequence from={0}><Audio src={aud("vo_trimmed.mp3")} volume={1} /></Sequence>
+          <Audio src={aud(BED_FILE)} volume={1} />
           <SfxLayer cues={SFX} total={TOTAL} />
         </>
       )}
