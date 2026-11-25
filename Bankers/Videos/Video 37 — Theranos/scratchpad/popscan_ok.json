@@ -78,5 +78,21 @@
    1460
   ],
   "why": "claim: the mortarboard's last stretch of its fall past the side wall (~35 px/f, tassel streaking); continuous, crops 335-340 checked by builder B + integrator"
+ },
+ {
+  "kinds": [
+   "VANISH"
+  ],
+  "frames": [
+   1118,
+   1123
+  ],
+  "box": [
+   500,
+   1620,
+   660,
+   1800
+  ],
+  "why": "whistle -> expose slide (panR): the whistle place's left clip edge passes at the slide's peak speed (~55 px/f) as the expose stage comes in; continuous, looked at 1118-1122 by builder H + integrator (rev 4)"
  }
 ]
