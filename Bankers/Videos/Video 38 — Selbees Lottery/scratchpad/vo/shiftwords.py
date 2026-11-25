@@ -1,4 +1,4 @@
-# V41: the word timings of the RAW take (ElevenLabs Scribe, scratchpad/vo/scribe_raw37_words.json) SHIFTED through vo_trim.py's cut
+# V41: the word timings of the RAW take (ElevenLabs Scribe, scratchpad/vo/scribe_raw38_words.json) SHIFTED through vo_trim.py's cut
 # map (scratchpad/vo/trimmap.json) onto public/vo_trimmed.wav, written as fw.py writes them (scratchpad/fw_words.json).
 # Why: this cloud session cannot fetch the whisper model (huggingface.co is outside the network policy), so the take is transcribed
 # once, raw, and shifted, as OffCamCelebs 026's vo_retrim did (CLAUDE.md: "It SHIFTS the transcript rather than re-running it").
@@ -8,8 +8,8 @@
 import json, subprocess, os, sys
 
 M = json.load(open("scratchpad/vo/trimmap.json"))
-S = json.load(open("scratchpad/vo/scribe_raw37_words.json"))
-RAW = "ElevenLabs_2026-11-24_Jon - Calm Presence_v4_take37A_raw.mp3"   # V37 take A
+S = json.load(open("scratchpad/vo/scribe_raw38_words.json"))
+RAW = "ElevenLabs_2026-11-25_Jon - Calm Presence_v4_take38B_raw.mp3"   # V37 take A
 if M["source"] != RAW: sys.exit(f"trimmap.json was made from {M['source']}, not {RAW}")
 segs = M["segs"]
 # cumulative output start of each kept segment

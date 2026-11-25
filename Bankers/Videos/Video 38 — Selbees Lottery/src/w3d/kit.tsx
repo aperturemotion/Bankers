@@ -27,12 +27,13 @@ export const lerp3 = (a, b, t) => [lerp(a[0], b[0], t), lerp(a[1], b[1], t), ler
 // shots: [{ a, b, pos, target, fov?, roll?, arc? }] sorted by a. Before shot 0's a the camera holds shot 0. Between shot i's a and b
 // it travels from where it was to shot i (smootherstep, so it starts and lands soft); after b it holds, with a slow drift.
 // arc (optional): world units the travel bows UP at its middle (a crane over something in between).
+// cut (optional): jump to this shot at a (only after a push INTO a surface that fills the frame — the next shot starts on a matching surface).
 export const makeCam = (shots, drift = 1) => (f) => {
   let pos = shots[0].pos, target = shots[0].target, fov = shots[0].fov ?? 34, roll = shots[0].roll ?? 0;
   for (let i = 1; i < shots.length; i++) {
     const s = shots[i];
     if (f <= s.a) break;
-    const e = ease(f, s.a, s.b);
+    const e = s.cut ? 1 : ease(f, s.a, s.b);   // cut: a push-through lands on a matching close-up (the reference style's rare hard cut)
     const lift = (s.arc ?? 0) * Math.sin(Math.PI * e);
     pos = lerp3(pos, s.pos, e); pos = [pos[0], pos[1] + lift, pos[2]];
     target = lerp3(target, s.target, e);
@@ -132,3 +133,32 @@ export const canvasTex = (key, w, h, draw) => {
 };
 /** a deterministic pseudo-random in [0,1) from an integer seed */
 export const rnd = (i) => { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
+
+// ── the sky: a big inverted sphere with a vertical gradient (zenith navy → the logo blue → a pale horizon glow) ───────────────
+export const Sky = ({ zenith = "#020F24", mid = "#082A57", horizon = "#3F72B4", glowAt = 0.52, radius = 400 }) => {
+  const tex = useMemo(() => canvasTex(`sky_${zenith}_${mid}_${horizon}_${glowAt}`, 8, 512, (c, w, h) => {
+    const g = c.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, zenith); g.addColorStop(0.32, mid); g.addColorStop(glowAt, horizon); g.addColorStop(0.62, "#0B2A50"); g.addColorStop(1, "#061A33");
+    c.fillStyle = g; c.fillRect(0, 0, w, h);
+  }), [zenith, mid, horizon, glowAt]);
+  return (
+    <mesh scale={[-1, 1, 1]}>
+      <sphereGeometry args={[radius, 48, 32]} />
+      <meshBasicMaterial map={tex} side={THREE.BackSide} fog={false} depthWrite={false} />
+    </mesh>
+  );
+};
+// ── a soft light glow (an additive sprite): for lamps, lit windows, a screen, the jackpot's light ─────────────────────────────
+const glowTex = () => canvasTex("glow", 128, 128, (c, w, h) => {
+  const g = c.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
+  g.addColorStop(0, "rgba(255,255,255,1)"); g.addColorStop(0.18, "rgba(255,255,255,0.55)"); g.addColorStop(0.5, "rgba(255,255,255,0.12)"); g.addColorStop(1, "rgba(255,255,255,0)");
+  c.fillStyle = g; c.fillRect(0, 0, w, h);
+});
+export const Glow = ({ position, size = 2, color = "#FFC97A", opacity = 0.8 }) => {
+  const tex = useMemo(glowTex, []);
+  return (
+    <sprite position={position} scale={[size, size, size]}>
+      <spriteMaterial map={tex} color={color} transparent opacity={opacity} blending={THREE.AdditiveBlending} depthWrite={false} fog={false} />
+    </sprite>
+  );
+};

@@ -1,22 +1,6 @@
 {
-  "source": "ElevenLabs_2026-11-24_Jon - Calm Presence_v4_take37A_raw.mp3",
-  "_doc": "V37 take A (2026-11-24, Timur: 'generate the voiceover'): the three section moments are declared holds (rawGapStarts): flare 1 after the hook ('\u2026company.' -> 'In', kept 0.70 s as V36's hook hold), LightBreak 1 before 'But', LightBreak 2 before 'To be fair'. Every other SCENE change keeps 0.45 s of its pause (holdPads; V36's lesson: at 0.30 the slides carried things through the caption band under live chips). Pauses inside a place keep 0.30 s (vo_trim PAD). Raw-take gap starts from silencedetect -33 dB, d 0.45. \u2605 claim \u2192 claim2 ('\u2026Stanford.' \u2192 'The pitch') keeps 0.80 s: on this read 'dropped' lands 22 f before the 0.45-s hand-over, and STANFORD DROPOUT (on 'dropped', +10) must be read before the slide out (claimTimes). \u2605 crack \u2192 whistle ('\u2026not the Edison.' \u2192 'One whistleblower') keeps 0.75 s: EDISON: ~12 TESTS lands ON 'Edison', the line's last word, and must be read before the slide out (crackTimes).",
-  "rawGapStarts": [
-    5.6119,
-    31.4369,
-    63.7776
-  ],
-  "holdPads": {
-    "5.6119": 0.7,
-    "12.9012": 0.8,
-    "18.8991": 0.45,
-    "24.2772": 0.45,
-    "35.8229": 0.75,
-    "40.339": 0.45,
-    "44.6656": 0.45,
-    "53.003": 0.45,
-    "67.8162": 0.45,
-    "70.7475": 0.45,
-    "74.6275": 0.45
-  }
+  "source": "ElevenLabs_2026-11-25_Jon - Calm Presence_v4_take38B_raw.mp3",
+  "_doc": "V38 take B (2026-11-25, generated at Timur's standing order for this build: 'fully continue till the end'). One declared hold: after the hook ('…For nine years.' -> 'In two thousand three'), kept 0.60 s, the breath between the hook and the story. Every other pause keeps vo_trim's 0.30 s (the 3-D world style is a continuous talk-track; scene changes ride the camera, not pauses).",
+  "rawGapStarts": [7.32615],
+  "holdPads": { "7.32615": 0.6 }
 }

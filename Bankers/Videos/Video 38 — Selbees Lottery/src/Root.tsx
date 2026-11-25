@@ -1,20 +1,11 @@
 // @ts-nocheck
-// Video 36 "Bre-X Gold" — cloned from Video 35's recovered Root (transpiled JS; TS types were stripped by the build).
-import * as esm from "remotion";
-import * as jsx_runtime from "react/jsx-runtime";
-import { FPS, TOTAL_FRAMES } from "./bnx/captions";
-import { TheranosBloodTest, HEIGHT, WIDTH } from "./bnx/Composition";
-import { GlTest } from "./w3d/GlTest";
-
-export const RemotionRoot = () => /* @__PURE__ */ (0,jsx_runtime.jsxs)(jsx_runtime.Fragment, { children: [ /* @__PURE__ */ (0,jsx_runtime.jsx)(
-  esm.Composition,
-  {
-    id: "TheranosBloodTest",
-    component: TheranosBloodTest,
-    durationInFrames: TOTAL_FRAMES,
-    fps: FPS,
-    width: WIDTH,
-    height: HEIGHT,
-    defaultProps: { solo: void 0 }
-  }
-) , (0,jsx_runtime.jsx)(esm.Composition, { id: "GlTest", component: GlTest, durationInFrames: 60, fps: 30, width: 1080, height: 1920 }) ] });
+// Video 38 "The Couple Who Beat the Lottery" — the Bankers 3-D World style (Timur, 2026-11-25).
+import React from "react";
+import { Composition } from "remotion";
+import { SelbeesLottery } from "./w3d/Main";
+import { TOTAL, FPS } from "./w3d/take";
+export const RemotionRoot = () => (
+  <>
+    <Composition id="SelbeesLottery" component={SelbeesLottery} durationInFrames={TOTAL} fps={FPS} width={1080} height={1920} defaultProps={{ solo: undefined }} />
+  </>
+);
