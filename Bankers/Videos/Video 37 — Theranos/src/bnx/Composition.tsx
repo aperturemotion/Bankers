@@ -52,9 +52,14 @@ const MUSIC_VOL = 1;
 //   fifth hit (5.55 s; Timur on Video 13: "the music needs to begin at the start"). scratchpad/bed36.py shapes it per 10-s window
 //   against the voice and sets its level AS HEARD to the Radiohead bed it replaces (−28.8 LUFS both; 6.2 dB RMS under the speech-gated
 //   voice), the gain interpolated between window centres, a 0.3-s fade-in, the last 3 s faded. Static volume (the V16 rule).
-const BED_FILE = "bed_devil.mp3";
+// ★ V37 (Timur, 2026-11-25: "change the song … the video 'This company lost 104 billion in 9 months' about Anthropic — use the song from
+//   that video"): Video 33's song, quietshadow, "FOCUS (Slowed + Reverb)". Its source file was lost in the 2026-11-22 reset; the
+//   source here is Video 33's own baked bed, recovered from its published Studio bundle (scratchpad/music_focus_v33bed.mp3, 79.3 s),
+//   re-shaped by bed36.py per 10-s window against this film's voice and matched AS HEARD to the Me And The Devil bed it replaces
+//   (−29.1 LUFS; TARGET 5.6 dB under the speech-gated voice).
+const BED_FILE = "bed_focus.mp3";
 const BED_FRAMES = 2336;
-if (BED_FRAMES < TOTAL_FRAMES) throw new Error("Composition: the bed is shorter than the film — re-cut public/bed_radiohead.mp3");
+if (BED_FRAMES < TOTAL_FRAMES) throw new Error("Composition: the bed is shorter than the film — re-cut public/bed_focus.mp3");
 // ★ V36/V37: no spoken question — the close is the house close alone (flare 2 → the white stage → BANKER$). question.ts makes it optional.
 const HAS_QUESTION = Q !== null;
 // ★ V36: the close's frames after the lesson's last word — ONE copy (scratchpad/synth_captions.py reads it to size TOTAL_FRAMES):

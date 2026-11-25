@@ -24,8 +24,8 @@ PY
 ffmpeg -v error -y -i public/vo_trimmed.wav -c:a libmp3lame -b:a 192k public/vo_trimmed.mp3
 echo "voice: $(ffprobe -v error -show_entries format=duration -of csv=p=0 public/vo_trimmed.mp3) s"
 python3 scratchpad/synth_captions.py --take | grep -v "^    "
-python3 scratchpad/bed36.py
+BED_SRC=scratchpad/music_focus_v33bed.mp3 BED_OFFSET=0 BED_TARGET=5.6 BED_OUT=public/bed_focus.mp3 python3 scratchpad/bed36.py   # V37: FOCUS (Timur 2026-11-25)
 # the composition's bed-length guard reads the baked bed's real length (whole frames)
-BF=$(python3 -c "import subprocess;d=float(subprocess.run(['/home/user/ffbin/ffprobe','-v','error','-show_entries','format=duration','-of','csv=p=0','public/bed_devil.mp3'],capture_output=True,text=True).stdout);print(int(d*30))")
+BF=$(python3 -c "import subprocess;d=float(subprocess.run(['/home/user/ffbin/ffprobe','-v','error','-show_entries','format=duration','-of','csv=p=0','public/bed_focus.mp3'],capture_output=True,text=True).stdout);print(int(d*30))")
 sed -i "s/^const BED_FRAMES = [0-9]*;/const BED_FRAMES = $BF;/" src/bnx/Composition.tsx
 echo "BED_FRAMES = $BF"
