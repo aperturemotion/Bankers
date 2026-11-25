@@ -1,7 +1,9 @@
 // @ts-nocheck
 // ★ V37 "Theranos" — builder M. THE STORES of the backers place (the film's ONE grid): forty small pharmacy storefronts — "about
-//   forty stores" — set out as a TERRACE, five stepped rows of eight on a stepped satin-graphite stand (a steel nosing on each
-//   step), every row raised so each front reads. Each store is a real single-storey shopfront: its body, a parapet fascia with the
+//   forty stores" — REV2 (Timur: "more space between the stores … it kind of looks like a staircase"): laid out like the blocks of
+//   a TOWN on the floor, five rows of eight standing apart — each store its own little building with clear pavement between its
+//   neighbours, each row on its own concrete pavement strip with a curb, open floor between the rows, the rows staggered by half a
+//   store (no steps, no risers joining them). Each store is a real single-storey shopfront: its body, a parapet fascia with the
 //   sign panel, a projecting awning with its valance, a shop window (mullions, shelves of stock seen when lit), a glass door with
 //   its frame and pull bar, a kick plate, and a rooftop unit. The stores LIGHT one after another in a quick narrow wave (the
 //   window and door glow, the sign lights, a soft spill on the step in front).
@@ -9,21 +11,24 @@
 import * as jsx_runtime from "react/jsx-runtime";
 import { clamp01, mixHex } from "./anim";
 import { box3, rampAt } from "./solid_engine";
-import { mapPath, mapScr, xfApply } from "./tk_rig";
+import { mapPath, mapScr, worldView, xfApply } from "./tk_rig";
 import { BR_EDGE, BR_PED, BR_STEEL, Painted, painted } from "./backers_kit";
-import { HS_DOOR, HS_TRIM, HS_WALL } from "./honest_mat_b";
+import { HS_DOOR, HS_STONE, HS_TRIM, HS_WALL } from "./honest_mat_b";
 
 const jsx = (t, p, k) => (0,jsx_runtime.jsx)(t, p, k);
 const jsxs = (t, p, k) => (0,jsx_runtime.jsxs)(t, p, k);
 const f2 = (v) => v.toFixed(2);
-export const ST = { cols: 8, rows: 5, SW: 118, SH: 100, SD: 86, gap: 10, RH: 78, RD: 150, set: 18 };
-if (ST.cols * ST.rows !== 40) throw new Error("backers_stores: the terrace must hold the ~40 stores the line names");
-export const ST_W = ST.cols * ST.SW + (ST.cols - 1) * ST.gap;
-const STAND_W = ST_W + 70;
-// row r stands on its step: the step's top surface (y) and front (z)
-const stepY = (r) => -(r + 1) * ST.RH;
+export const ST = { cols: 8, rows: 5, SW: 118, SH: 100, SD: 86, gap: 62, RD: 330, set: 26, walk: 72 };
+if (ST.cols * ST.rows !== 40) throw new Error("backers_stores: the block must hold the ~40 stores the line names");
+const PX = ST.SW + ST.gap;
+export const ST_W = ST.cols * PX + PX / 2;
+const STAND_W = ST_W + 40;
+// every store stands on the floor (y 0); row r's pavement front is at z −r·RD; odd rows are staggered half a store to the right
+const stepY = (r) => 0;
 const stepZ = (r) => -r * ST.RD;
-export const storeFoot = (r, c) => [(c - (ST.cols - 1) / 2) * (ST.SW + ST.gap), stepY(r), stepZ(r) - ST.set];
+const rowShift = (r) => (r % 2 ? 0.25 : -0.25) * PX;
+export const storeFoot = (r, c) => [(c - (ST.cols - 1) / 2) * PX + rowShift(r), 0, stepZ(r) - ST.set];
+if (ST.RD - ST.SD - ST.set - ST.walk < 120) throw new Error("backers_stores: open floor must show between the rows");
 // the order the stores light in: a diagonal front leaning to the right, so the wave runs across the terrace left → right
 export const storeOrder = (() => {
   const keys = [];
@@ -56,14 +61,14 @@ const awningPts = (r, c) => {
     val: [[xl, yf, zt], [xr, yf, zt], [xr, yf + 6, zt], [xl, yf + 6, zt]]
   };
 };
-const standFaces = () => {
-  const out = [];
-  for (let r = 0; r < ST.rows; r++) {
-    const h = (r + 1) * ST.RH, d = ST.RD;
-    out.push(...box3([0, -h / 2, stepZ(r) - d / 2], [STAND_W, h, d], 3, 0));
-    out.push(...box3([0, stepY(r) + 4, stepZ(r) - 4], [STAND_W + 6, 8, 10], 4, 0));
-  }
-  return out;
+// a row's pavement: a low concrete strip under the row and in front of it, its front curb in steel-grey
+const walkFaces = (r) => {
+  const w = ST.cols * PX + 10, cx = rowShift(r), z0 = stepZ(r), zb = z0 - ST.set - ST.SD - 12;
+  const d = z0 - zb;
+  return [
+    ...box3([cx, -3, (z0 + zb) / 2], [w, 6, d], 3, 0),
+    ...box3([cx, -4, z0 - 3], [w + 4, 8, 6], 4, 0)
+  ];
 };
 const memo = new Map();
 const keyOf = (rig, s) => `${s}|${rig.cx}|${rig.cy}|${rig.yaw}|${rig.pitch}|${rig.persp}`;
@@ -74,25 +79,29 @@ const once = (k, fn) => {
 };
 export const terraceCorners = (pose) => {
   const out = [];
-  for (const x of [-STAND_W / 2, STAND_W / 2]) for (const z of [0, stepZ(ST.rows - 1) - ST.RD]) out.push(xfApply(pose, [x, 0, z]), xfApply(pose, [x, stepY(ST.rows - 1) - ST.SH, z]));
+  const zb = stepZ(ST.rows - 1) - ST.set - ST.SD - 12;
+  for (const x of [-STAND_W / 2, STAND_W / 2]) for (const z of [0, zb]) out.push(xfApply(pose, [x, 0, z]), xfApply(pose, [x, -ST.SH - 18, z]));
   return out;
 };
-/** world points of the terrace: its top centre (over the back row) and its foot centre (the front step) */
-export const terraceTop = (pose) => xfApply(pose, [0, stepY(ST.rows - 1) - ST.SH - 20, stepZ(ST.rows - 1) - ST.set]);
+/** world points of the block: its top centre (over the back row) and its foot centre (the front pavement) */
+export const terraceTop = (pose) => xfApply(pose, [0, -ST.SH - 20, stepZ(ST.rows - 1) - ST.set]);
 export const terraceFoot = (pose) => xfApply(pose, [0, 0, 0]);
 const WIN_ON = "#E6F0FB", WIN_OFF = "#0F2036", SIGN_ON = "#F4F8FD";
 /** the terrace. litAt(r, c) → { on 0…1, flash 0…1 } for each store */
 export const Terrace = ({ id, rig, pose, litAt }) => {
   const map = (q) => xfApply(pose, q);
   const P = (pts, close = true) => mapPath(map, rig, pts, close);
-  const stand = once(keyOf(rig, `${id}s`), () => painted(standFaces(), map, rig, 0.4));
-  // every store, back row first (rows nearer the lens paint over the ones behind)
-  const stores = [];
-  for (let r = ST.rows - 1; r >= 0; r--) for (let c = 0; c < ST.cols; c++) stores.push({ r, c, dws: once(keyOf(rig, `${id}${r}_${c}`), () => painted(storeFaces(r, c), map, rig, 0.45)) });
-  const MATS = [HS_TRIM, HS_DOOR, BR_PED, HS_WALL, BR_STEEL];
+  // back row first (each row's pavement, then its stores nearest-last), so rows nearer the lens paint over the ones behind
+  const items = [];
+  for (let r = ST.rows - 1; r >= 0; r--) {
+    items.push({ walk: r, dws: once(keyOf(rig, `${id}w${r}`), () => painted(walkFaces(r), map, rig, 0.3)) });
+    const row = Array.from({ length: ST.cols }, (_, c) => c).sort((a, b) => worldView(rig, map(storeFoot(r, a)))[2] - worldView(rig, map(storeFoot(r, b)))[2]);
+    for (const c of row) items.push({ r, c, dws: once(keyOf(rig, `${id}${r}_${c}`), () => painted(storeFaces(r, c), map, rig, 0.45)) });
+  }
+  const MATS = [HS_TRIM, HS_DOOR, BR_PED, HS_STONE, BR_STEEL];
   return jsxs("svg", { width: 1, height: 1, style: { position: "absolute", left: 0, top: 0, overflow: "visible" }, children: [
-    jsx(Painted, { dws: stand, mats: MATS }),
-    stores.map(({ r, c, dws }) => {
+    items.map((it) => it.walk === void 0 ? null : jsx(Painted, { dws: it.dws, mats: MATS, dim: 0.35 }, `w${it.walk}`)),
+    items.filter((it) => it.walk === void 0).map(({ r, c, dws }) => {
       const { on, flash } = litAt(r, c);
       const [x, y, z] = storeFoot(r, c);
       const { SW, SH } = ST;

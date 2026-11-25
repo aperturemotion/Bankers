@@ -6,7 +6,7 @@
 //     comes up and its brass nameplate's engraving fills: SHULTZ; on "secretaries" the fourth: KISSINGER (backers_plate.tsx);
 //     FORMER SECRETARIES OF STATE lands over the two lit chairs on "state".
 //   On "Walgreens" the ACTION CAMERA TRAVELS across the floor to Framing 2 — THE STORES (backers_stores.tsx, the film's ONE grid):
-//     forty pharmacy storefronts on a five-step terrace, WALGREENS over it as the camera arrives; on "offered" the stores light one
+//     forty pharmacy storefronts set out like the blocks of a town (REV2), WALGREENS over it as the camera arrives; on "offered" the stores light one
 //     after another in a quick narrow wave, landing ~40 STORES on "forty" and ARIZONA on "stores".
 //   Enters panFromR, exits panR (the composition's slides). Objects per framing: table · chairs · nameplates / the terrace.
 import * as esm from "remotion";
@@ -41,8 +41,11 @@ export const SHULTZ_I = 2, KISS_I = 3;
 //   every object, the floor's grid and the shadows re-project each frame — so the stores are seen as the boardroom was: square to
 //   the lens, never sheared by the lens's edge. (rig.cx + vx with the layer shifted back by vx = the camera moved vx along x.)
 const DX = 2150;
-const STORES = xfPose(540 + DX, FY, -30, 0.9, -6);
-const rigAt = (vx) => ({ ...RIG, cx: RIG.cx + vx });
+const STORES = xfPose(540 + DX, FY, 200, 0.72, -6);
+// REV2: the dolly also tilts the camera down (pitch −24° → −34°) as it travels, so the stores' block is seen from above like a
+//   town — the open floor between its rows shows (rig.pitch eases with the same curve as the dolly)
+const PITCH_STORES = -34;
+const rigAt = (vx) => ({ ...RIG, cx: RIG.cx + vx, pitch: RIG.pitch + (PITCH_STORES - RIG.pitch) * (vx / DX) });
 const KEYS = ["s0", "two", "former", "secretaries", "state", "board", "s1", "walgreens", "offered", "tests", "k40", "stores"];
 export const backersTimes = (w, end) => {
   for (const k of KEYS) if (!Number.isFinite(w[k])) throw new Error(`backers: the take has no word frame "${k}"`);
@@ -84,7 +87,7 @@ const ST_BOX = (() => {
   const xs = ps.map((p) => p[0]), ys = ps.map((p) => p[1]);
   return { x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys) };
 })();
-const STORES_AIM = { x: (ST_BOX.x0 + ST_BOX.x1) / 2, y: (ST_BOX.y0 + ST_BOX.y1) / 2 + 50 };
+const STORES_AIM = { x: (ST_BOX.x0 + ST_BOX.x1) / 2 - 26, y: (ST_BOX.y0 + ST_BOX.y1) / 2 + 30 };
 // REV1 (integrator: the names must read at once): the boardroom framing is TIGHT on the two lit places — the two nameplates in the
 //   lower third, their chairs above them, FORMER SECRETARIES OF STATE over the chairs (each name's cap height ≥ 40 px)
 const PAIR_Z = 1.55;
@@ -214,8 +217,8 @@ export const BxBackers = ({ at: at0, end, w, stage }) => {
       jsx(NamePlate, { id: "bkPK", rig, pose: platePose(KISS_I), text: L("boardKissinger"), on: rOut(f, t.kiss.a, t.kiss.b), lit: litK, probe: "the KISSINGER nameplate" })
     ] }),
     room && jsx(Tag, { x: boardAt[0], y: boardAt[1], on: rOut(f, t.board.a, t.board.b), text: L("boardLabel"), size: 46, probe: "FORMER SECRETARIES OF STATE" }),
-    stores && jsx("div", { "data-probe-object": "forty pharmacy storefronts on a stepped terrace", style: { position: "absolute", inset: 0 }, children: jsx(Terrace, { id: "bkS", rig, pose: STORES, litAt }) }),
-    stores && jsx(Tag, { x: box.x, y: box.y0 - 86, on: rOut(f, t.brand.a, t.brand.b), text: L("storesBrand"), size: 92, probe: "WALGREENS" }),
+    stores && jsx("div", { "data-probe-object": "forty pharmacy storefronts laid out like a town block", style: { position: "absolute", inset: 0 }, children: jsx(Terrace, { id: "bkS", rig, pose: STORES, litAt }) }),
+    stores && jsx(Tag, { x: box.x, y: box.y0 - 72, on: rOut(f, t.brand.a, t.brand.b), text: L("storesBrand"), size: 92, probe: "WALGREENS" }),
     stores && jsx(Tag, { x: box.x, y: box.y1 + 76, on: rOut(f, t.count.a, t.count.b), text: L("storesCount"), size: 96, probe: "~40 STORES" }),
     stores && jsx(Tag, { x: box.x, y: box.y1 + 154, on: rOut(f, t.state.a, t.state.b), text: L("storesState"), size: 40, kind: "lab", probe: "ARIZONA" })
   ] }) }) }) }) });
