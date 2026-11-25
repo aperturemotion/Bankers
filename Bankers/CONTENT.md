@@ -11,7 +11,7 @@ Authoritative for CONTENT. STYLE.md stays authoritative for the LOOK. Moved in f
 - 2026-11-23 — Video 36 (Bre-X): Timur "generate the voiceover" — the take was generated in ElevenLabs (Jon - Calm Presence,
   eleven_v4) for this film (the VO conflict below is ruled for Video 36; the standing rule for later films is still open).
   Timur: a real company's name on an object is OK ("it ok to show the name": FREEPORT-McMoRAN on the partner's rig plate).
-- 2026-11-24 — Video 37 (Theranos, app "Video 4 of 15"): built from the app's script after a primary-source fact-check (PLAN.md lists the
+- 2026-11-24 — Video 37 (Theranos, app "Video 4 of 15", due date moved to Nov 25): built from the app's script after a primary-source fact-check (PLAN.md lists the
   13 changes: "a few drops" not "one drop"; founded THEN dropped out; "about forty" stores; "One whistleblower"; sentenced in Nov 2022 and
   cut by a year in March 2026; "at its peak … no peer-reviewed data", not "never"). Same story format and rulings as Video 36 (no spoken
   question, company names on objects OK, no photos of people).
