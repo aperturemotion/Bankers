@@ -94,5 +94,21 @@
    1800
   ],
   "why": "whistle -> expose slide (panR): the whistle place's left clip edge passes at the slide's peak speed (~55 px/f) as the expose stage comes in; continuous, looked at 1118-1122 by builder H + integrator (rev 4)"
+ },
+ {
+  "kinds": [
+   "BLIP"
+  ],
+  "frames": [
+   91,
+   96
+  ],
+  "box": [
+   500,
+   1780,
+   700,
+   1880
+  ],
+  "why": "hook pull-back: the plinth's cornice mouldings sweep up behind the watermark at the dolly's peak speed; continuous, frames 92-95 identical in both renders (v1 passed under the threshold, v2's encoder noise crossed it), looked at by integrator (rev 4)"
  }
 ]
