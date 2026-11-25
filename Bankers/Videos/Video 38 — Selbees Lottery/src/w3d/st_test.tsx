@@ -17,7 +17,7 @@ import { Room, Outside, TableLamp, Mug, Notepad, formicaTex, ticketFaceTex, edge
 
 export const TEST_ORIGIN = [600, 0, 0];
 // ARRIVAL: "cut" (rolldown's last ~16 f push INTO its ticket stack; this station lands on a matching macro of a ticket) or "fly"
-export const TEST_ARRIVE = "cut";
+export const TEST_ARRIVE = "fly";   // integrator: rolldown ends on its balance (no push), so test arrives by a flight through the haze
 export const T = () => {
   const jerry = wf("jerry", 2), in36 = wf("$3,600"), inEnd = wEnd("in."), in63 = wf("$6,300"), back = wf("back."), backEnd = wEnd("back.");
   return { jerry, cut: jerry - 2, in36, inEnd, in63, back, backEnd, out: backEnd + 3 };   // out: the frame company's cut lands on
