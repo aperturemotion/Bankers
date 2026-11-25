@@ -1,0 +1,75 @@
+1
+00:00:00,000 --> 00:00:01,400
+A few drops of blood.
+
+2
+00:00:01,667 --> 00:00:05,033
+That was the promise behind a $9 billion company.
+
+3
+00:00:05,700 --> 00:00:11,800
+In 2003, Elizabeth Holmes founded Theranos at 19, then dropped out of Stanford.
+
+4
+00:00:12,533 --> 00:00:17,533
+The pitch: a full set of blood tests from one finger prick, on its Edison machine.
+
+5
+00:00:17,933 --> 00:00:22,367
+By 2014, it was worth $9 billion on paper.
+
+6
+00:00:22,767 --> 00:00:25,567
+Two former secretaries of state sat on its board.
+
+7
+00:00:25,800 --> 00:00:28,767
+Walgreens offered its tests in about 40 stores.
+
+8
+00:00:29,200 --> 00:00:32,733
+But most tests ran on other companies' machines, not the Edison.
+
+9
+00:00:33,433 --> 00:00:37,067
+One whistleblower was Tyler Shultz, a board member's grandson.
+
+10
+00:00:37,467 --> 00:00:41,033
+In October 2015, the Wall Street Journal exposed it.
+
+11
+00:00:41,400 --> 00:00:44,367
+Theranos voided two years of Edison results.
+
+12
+00:00:44,600 --> 00:00:45,833
+Walgreens walked away.
+
+13
+00:00:46,100 --> 00:00:48,267
+In 2018, it shut down.
+
+14
+00:00:48,700 --> 00:00:53,300
+In January 2022, Holmes was found guilty of defrauding investors.
+
+15
+00:00:53,533 --> 00:00:58,033
+Her sentence: 11 years and 3 months, later cut by one year.
+
+16
+00:00:58,467 --> 00:01:01,700
+To be fair, she testified that she believed in the technology.
+
+17
+00:01:02,133 --> 00:01:04,533
+And she was cleared of defrauding patients.
+
+18
+00:01:04,933 --> 00:01:07,933
+The lesson: famous names are not proof.
+
+19
+00:01:08,367 --> 00:01:13,867
+At its peak, Theranos had published no peer-reviewed data for outside scientists to check.
