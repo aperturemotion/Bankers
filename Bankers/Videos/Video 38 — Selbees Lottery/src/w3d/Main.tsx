@@ -30,16 +30,20 @@ export const SelbeesLottery = ({ solo }) => {
   const f = useCurrentFrame();
   const k = CAM(f);
   const live = STATIONS.filter((s) => f >= s.from && f <= s.to);
+  // the light of overlapping stations CROSS-FADES by how near the camera's aim is to each (it never doubles); one shadow caster
+  const near = live.map((s) => { const lt = s.light?.target ?? [0, 0, 0]; const dx = k.target[0] - (s.origin[0] + lt[0]), dz = k.target[2] - (s.origin[2] + lt[2]); return Math.exp(-Math.sqrt(dx * dx + dz * dz) / 25); });
+  const nsum = near.reduce((a, b) => a + b, 0) || 1;
+  const top = near.indexOf(Math.max(...near));
   const veil = ease(f, CLOSE_AT + 8, CLOSE_AT + 40);   // the world dims to the navy ground under the close
   return (
     <AbsoluteFill style={{ background: "#001C3C" }}>
       <World3D cam={CAM}>
-        {live.map((s) => (
+        {live.map((s, i) => { const { key: keyPos, ...lt } = s.light ?? {}; return (
           <group key={s.id} position={s.origin}>
-            <HouseLights target={[0, 0, 0]} {...(s.light ?? {})} />
+            <HouseLights target={[0, 0, 0]} {...lt} {...(keyPos ? { keyPos } : {})} gain={near[i] / nsum} casts={i === top} />
             <s.Scene f={f} />
           </group>
-        ))}
+        ); })}
       </World3D>
       {/* the reference look: a strong vignette, the lower quarter pushed dark for the captions (CLAUDE.md 3-D World §B7) */}
       <AbsoluteFill style={{ background: "radial-gradient(ellipse 85% 70% at 50% 42%, rgba(0,0,0,0) 55%, rgba(0,8,22,0.55) 100%)" }} />

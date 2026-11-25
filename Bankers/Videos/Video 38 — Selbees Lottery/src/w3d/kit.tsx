@@ -85,16 +85,19 @@ const Setup = ({ fog }) => {
   return null;
 };
 // THE BANKERS LIGHT: a cool key from the upper left (the house key), a navy hemisphere fill, a pale-blue rim from behind
-export const HouseLights = ({ key = [-9, 14, 8], keyI = 2.6, keyColor = "#DCE8FA", fillI = 0.55, rim = [6, 5, -10], rimI = 1.4, shadowBox = 14, target = [0, 0, 0] }) => {
+// gain: the integrator's blend weight when two stations are mounted at once (their lights cross-fade instead of doubling);
+// casts: only the dominant station's key casts shadows. keyPos = the key's offset (`key` is reserved by React and never arrives).
+export const HouseLights = ({ keyPos = [-9, 14, 8], keyI = 2.6, keyColor = "#DCE8FA", fillI = 0.55, rim = [6, 5, -10], rimI = 1.4, shadowBox = 14, target = [0, 0, 0], gain = 1, casts = true }) => {
+  const key = keyPos;
   const tgt = useMemo(() => { const o = new THREE.Object3D(); o.position.set(...target); return o; }, [target[0], target[1], target[2]]);
   return (
     <>
       <primitive object={tgt} />
-      <hemisphereLight args={["#8DB4EA", "#03101F", fillI]} />
-      <directionalLight castShadow position={[target[0] + key[0], target[1] + key[1], target[2] + key[2]]} target={tgt} intensity={keyI} color={keyColor}
+      <hemisphereLight args={["#8DB4EA", "#03101F", fillI * gain]} />
+      <directionalLight castShadow={casts} position={[target[0] + key[0], target[1] + key[1], target[2] + key[2]]} target={tgt} intensity={keyI * gain} color={keyColor}
         shadow-mapSize-width={2048} shadow-mapSize-height={2048} shadow-bias={-0.0004} shadow-normalBias={0.02}
         shadow-camera-left={-shadowBox} shadow-camera-right={shadowBox} shadow-camera-top={shadowBox} shadow-camera-bottom={-shadowBox} shadow-camera-near={0.5} shadow-camera-far={80} />
-      <directionalLight position={[target[0] + rim[0], target[1] + rim[1], target[2] + rim[2]]} target={tgt} intensity={rimI} color="#7FB0F0" />
+      <directionalLight position={[target[0] + rim[0], target[1] + rim[1], target[2] + rim[2]]} target={tgt} intensity={rimI * gain} color="#7FB0F0" />
     </>
   );
 };
