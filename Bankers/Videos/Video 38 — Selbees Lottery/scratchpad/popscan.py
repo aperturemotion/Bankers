@@ -24,7 +24,7 @@ SRC = next((a for a in sys.argv[1:] if not a.startswith("-")), "out/sweep_frames
 T = 16                      # tile (px of the half-size frame)
 STEP_MIN, RATIO, MARGIN = 14.0, 3.0, 10.0
 BLIP_BACK = 0.35            # frame t+2 within this share of the jump of frame t
-CAP = (110, 180)            # the caption band, half-size y (the film's 220–360)
+CAP = tuple(int(v) for v in os.environ.get("POP_CAP", "110,180").split(","))   # the caption band, half-size y (V38 karaoke: POP_CAP=600,720)
 
 num = lambda n: int(n[len("element-"):-len(".jpeg")])
 names = sorted((n for n in os.listdir(SRC) if n.startswith("element-") and n.endswith(".jpeg")), key=num)
