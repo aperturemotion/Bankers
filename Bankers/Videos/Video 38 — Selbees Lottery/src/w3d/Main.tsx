@@ -26,8 +26,16 @@ const OUTRO = { a: CLOSE_AT - 6, b: CLOSE_AT + 40, pos: [lastShot.pos[0], lastSh
 export const CAM = makeCam([...shotsAll, OUTRO]);
 export const SFX = [...STATIONS.flatMap((s) => (s.sfx ? s.sfx() : [])), cueAt("whooshlong", CLOSE_AT + 6, 40, 0.5)];
 
+const AudioLayers = () => (
+  <>
+    <Sequence from={0}><Audio src={aud("vo_trimmed.mp3")} volume={1} /></Sequence>
+    <Audio src={aud(BED_FILE)} volume={1} />
+    <SfxLayer cues={SFX} total={TOTAL} />
+  </>
+);
 export const SelbeesLottery = ({ solo }) => {
   const f = useCurrentFrame();
+  if (solo === "audio") return <AbsoluteFill style={{ background: "#001C3C" }}><AudioLayers /></AbsoluteFill>;   // the render's audio pass (no WebGL)
   const k = CAM(f);
   const live = STATIONS.filter((s) => f >= s.from && f <= s.to);
   // the light of overlapping stations CROSS-FADES by how near the camera's aim is to each (it never doubles); one shadow caster
@@ -54,13 +62,7 @@ export const SelbeesLottery = ({ solo }) => {
       <Karaoke chips={CHIPS} hideFrom={CLOSE_AT + 4} />
       {f >= CLOSE_AT && <BrandClose at={CLOSE_AT + 22} y={960} />}
       <Watermark lit={1} outAt={CLOSE_AT + 10} />
-      {solo !== "picture" && (
-        <>
-          <Sequence from={0}><Audio src={aud("vo_trimmed.mp3")} volume={1} /></Sequence>
-          <Audio src={aud(BED_FILE)} volume={1} />
-          <SfxLayer cues={SFX} total={TOTAL} />
-        </>
-      )}
+      {solo !== "picture" && <AudioLayers />}
     </AbsoluteFill>
   );
 };
