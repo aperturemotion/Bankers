@@ -140,6 +140,7 @@ def scan(get, n):
     return out
 
 # ── canaries, from real frames ──
+CY = 600 if not (CAP[0] < 680 and 600 < CAP[1]) else 400   # the canary's strip stays out of the masked caption band (V38: the karaoke band is low)
 # the canaries' ground is the frame whose strip under the block's path (y 600–680, x 40–380) is QUIETEST of twelve across the film:
 # the block is pasted opaque, so over a busy ground (Video 10's house at 1/3) every frame it moved uncovered real detail the frame
 # before had not shown, and an honest slide read as POPs
@@ -147,7 +148,7 @@ def _quiet_base():
     best = None
     for k in range(1, 12):
         im = load(names[k * len(names) // 12])
-        s = float(im[600:680, 40:380].std())
+        s = float(im[CY:CY + 80, 40:380].std())
         if best is None or s < best[0]: best = (s, k)
     return load(names[best[1] * len(names) // 12])
 base = _quiet_base()
@@ -166,7 +167,7 @@ def _texture_patch():
     return load(names[k * len(names) // 6])[y:y + 80, x:x + 160]
 patch = _texture_patch()
 def with_block(a, x, alpha=1.0):
-    b = a.copy(); y0 = 600
+    b = a.copy(); y0 = CY
     region = b[y0:y0 + 80, x:x + 160]
     b[y0:y0 + 80, x:x + 160] = region * (1 - alpha) + np.clip(patch + 90, 0, 255) * alpha
     return b
