@@ -8,4 +8,7 @@ import { ST as test } from "./st_test";
 import { ST as company } from "./st_company";
 import { ST as road } from "./st_road";
 import { ST as globe } from "./st_globe";
-export const STATIONS = [hook, store, rolldown, test, company, road, globe];
+import { ST as state } from "./st_state";
+import { ST as total } from "./st_total";
+import { ST as rules } from "./st_rules";
+export const STATIONS = [hook, store, rolldown, test, company, road, globe, state, total, rules];
