@@ -81,6 +81,10 @@ the other accounts (100bps, offcamcelebs and more).
   — the way to recover a lost film.
 - **The Worker app numbers Bankers per contract:** "Video 2 of 15" = Video 35 (the lottery reel); "Video 3 of 15" (Bre-X, due Nov 24)
   is the next; "Video 4 of 15" = Video 37 (Theranos, due Nov 25 — moved from Nov 26 in the app). The daily 06:00 Moscow routine (CONTENT.md changelog) checks it.
+  ★ **Already started? (Timur, 2026-11-25):** Timur may start the next video himself before its due date (e.g. on the 25th for a piece due the
+  27th). Before building any piece, the routine checks Bankers/Videos/, log.md and the Studio list for a video in progress and compares its
+  idea (PLAN.md / VO_SCRIPT.txt) with the piece's script in the app. If they match, the video is in the changes phase: the routine builds
+  nothing new, regenerates no voiceover, and only reports where it stands and acts on his notes. If a match is unclear, it asks him.
 
 ## 0. What this account is
 
