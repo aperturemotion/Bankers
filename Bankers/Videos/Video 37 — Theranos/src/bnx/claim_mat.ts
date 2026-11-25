@@ -15,6 +15,8 @@ export const TH_CLAD = mixR(HS_WALL, ["#132A47", "#1C3D63", "#2A5689", "#86A6CB"
 export const TH_CLAD_SEAM = "#08121F";
 // the building's granite base course: the plinth plate's graphite toward the school's stone (a cool dark stone, never a brown)
 export const TH_BASE = ["#12161B", "#1F252D", "#353E49", "#7A8693", "#CBD3DB"];
+// the mortarboard's cloth (claim's university object): a deep navy-black felt with a cool sheen
+export const TH_CAP = ["#05080E", "#0B111B", "#17222F", "#344A63", "#7F96B2"];
 // the roof's membrane deck: a flat dark graphite
 export const TH_ROOF = ["#0E1217", "#171C23", "#262E38", "#4F5A67", "#9AA4AF"];
 // the skirting / threshold / hood: the plinth graphite

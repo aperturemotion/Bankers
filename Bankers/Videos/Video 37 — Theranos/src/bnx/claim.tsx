@@ -7,7 +7,11 @@
 //   2003 (claimYear) on "2003", ELIZABETH HOLMES, 19 (claimFounder) on "19", STANFORD DROPOUT (claimSchool) on "dropped".
 //   On "founded Theranos" the name writes itself across the glass in gold leaf, letter by letter (claimName), then a burnish
 //   glint runs across it. The camera holds the door and the plate, creeping in; after the name it rides to the plate.
-//   Objects: the door (in its facade), the plate. No people.
+//   ★ REV 2 (Timur: "some kind of visual … connected to university … on 'then dropped out of Stanford'"): a graduation
+//   MORTARBOARD (claim_cap) perched on the parapet's front-right corner, its tassel swinging, tips over the edge just before
+//   "dropped" and drops — tumbling once, tassel trailing, past the corner outside the side wall — landing on the ground at the
+//   corner's foot on "Stanford" as STANFORD DROPOUT fills. The ride toward the plate leans right so corner and ground stay in.
+//   Objects: the building (door, plate), the mortarboard. No people.
 import * as esm from "remotion";
 import * as jsx_runtime from "react/jsx-runtime";
 import { clamp01, rInOut } from "./anim";
@@ -21,6 +25,7 @@ import { worldScr, xfApply, xfPose } from "./tk_rig";
 import { TK_FLOOR_Y } from "./tk_slab";
 import { TkFloor } from "./tk_floor";
 import { DOOR, LabDoor, doorAt, doorCorners } from "./th_door";
+import { CAP_T, ClaimCap, capCorners, capTopLocal } from "./claim_cap";
 
 const jsx = jsx_runtime.jsx, jsxs = jsx_runtime.jsxs;
 // the rig: a little above eye height, looking slightly down, the facade turned a few degrees so its depth reads
@@ -46,6 +51,9 @@ export const claimTimes = (w, end) => {
     // ELIZABETH HOLMES, 19 fills ON "19"; STANFORD DROPOUT on "dropped … Stanford"
     founder: { a: w.k19 - 13, b: w.k19 + 1 },
     school: { a: w.dropped - 6, b: w.dropped + 10 },
+    // ★ rev 2: the mortarboard perched on the parapet's corner tips over the edge just before "dropped" and drops out of the
+    //   picture's world: it lands at the corner's foot as "Stanford" is said
+    cap: { a: w.dropped - 14 },
     // the lean toward the door as the name writes; the ride toward the plate once it is written
     lean: { a: w.founded - 14, dur: 30 },
     ride: { a: w.theranos + 14, dur: 34 }
@@ -54,13 +62,14 @@ export const claimTimes = (w, end) => {
   if (t.ride.a < t.write.b) throw new Error("claim: the camera rides to the plate only once the name is written");
   if (t.founder.b > t.ride.a + t.ride.dur + 30) throw new Error("claim: the founder's line must fill while the plate is framed");
   if (t.school.b > end - 22) throw new Error("claim: STANFORD DROPOUT must be read before the slide out");
+  if (t.cap.a + CAP_T.land > end - 20) throw new Error("claim: the mortarboard must land before the slide out");
   return t;
 };
 // the framings, DERIVED from the construction: the door and the plate together (the left panel cropped by the frame), then the
 //   plate and the door's latch side. Everything stays under the caption headroom (450) in both.
 const DOOR_L = S([-DOOR.canopy.w / 2 + 40, 0, 0]), PLATE_R = S([DOOR.plate.cx + DOOR.plate.w / 2 + 30, 0, 0]);
 const DROP = 110, TOP_AT = 480;
-const TOP = [[DOOR.W0, -DOOR.H, 0], [DOOR.W1, -DOOR.H, 0], [DOOR.W0, -DOOR.H, -DOOR.SIDE], [DOOR.W1, -DOOR.H, -DOOR.SIDE], [-470, DOOR.P0 - 150, -1060]].map(S).reduce((a, b) => (b.y < a.y ? b : a)), FOOT = [S([0, 0, 40]), S([DOOR.W1 + DOOR.BZ, 0, DOOR.BZ])].reduce((a, b) => (b.y > a.y ? b : a));
+const TOP = [[DOOR.W0, -DOOR.H, 0], [DOOR.W1, -DOOR.H, 0], [DOOR.W0, -DOOR.H, -DOOR.SIDE], [DOOR.W1, -DOOR.H, -DOOR.SIDE], [-470, DOOR.P0 - 150, -1060], capTopLocal].map(S).reduce((a, b) => (b.y < a.y ? b : a)), FOOT = [S([0, 0, 40]), S([DOOR.W1 + DOOR.BZ, 0, DOOR.BZ])].reduce((a, b) => (b.y > a.y ? b : a));
 // (and the door's threshold stays above ~1650 on screen: the roof is kept under the headroom, so a closer zoom would drop the
 //   door's foot off the frame)
 const WIDE_Z = Math.min(1.08, 1000 / (PLATE_R.x - DOOR_L.x), (1640 - TOP_AT) / (FOOT.y - TOP.y));
@@ -77,7 +86,8 @@ const WHOLE = { x: (B_L.x + B_R.x) / 2, y: aimY(WHOLE_Z, TOP, FOOT) };
 const shots = (t) => [
   { a: -9999, z: WHOLE_Z, push: 0.02, at: still(WHOLE.x, WHOLE.y) },
   { a: t.lean.a, dur: t.lean.dur + 6, z: WIDE_Z, push: 0, at: still(WIDE.x - 20, aimY(WIDE_Z, TOP, FOOT)) },
-  { a: t.ride.a, dur: t.ride.dur, z: WIDE_Z, push: 0.02, at: still(WIDE.x + 50, aimY(WIDE_Z, TOP, FOOT)) }
+  // (the ride leans right: the parapet's corner with the mortarboard and the ground under it stay in the picture)
+  { a: t.ride.a, dur: t.ride.dur, z: WIDE_Z, push: 0.02, at: still(WIDE.x + 150, aimY(WIDE_Z, TOP, FOOT)) }
 ];
 // ★ flare 1's lit point: the lit glass of the door, the corridor's light just behind it (the bloom recedes into it), in SCREEN
 //   coordinates at the place's rest framing (the whole building; the action camera's first focus: screen = pivot + z · (p − aim);
@@ -96,6 +106,9 @@ export const claimSfx = (t) => [
   { job: "label", a: t.write.a, b: t.write.b, k: "io", vol: 0.5 },
   // the burnish glint crosses the name
   { job: "ping", a: t.glint.a + 8, vol: 0.5 },
+  // the mortarboard tips off the parapet and drops (a soft whoosh through its fall), lands on the ground (a thud)
+  { job: "obj", a: t.cap.a, b: t.cap.a + CAP_T.land, k: "in", vol: 0.45 },
+  { job: "thud", a: t.cap.a + CAP_T.land, vol: 0.42 },
   // ELIZABETH HOLMES, 19 · STANFORD DROPOUT fill on the plate
   { job: "label", a: t.founder.a, b: t.founder.b + 6, vol: 0.4 },
   { job: "label", a: t.school.a, b: t.school.b + 6, vol: 0.4 }
@@ -110,7 +123,8 @@ export const BxClaim = ({ at, end, w, stage }) => {
     { text: L("claimFounder"), size: 32, on: on(t.founder) },
     { text: L("claimSchool"), size: 32, on: on(t.school) }
   ];
-  const casters = [{ corners: doorCorners(POSE), k: 0.75 }];
+  const capK = f - t.cap.a;
+  const casters = [{ corners: doorCorners(POSE), k: 0.75 }, { corners: capCorners(POSE, capK, f), k: 0.5 }];
   return jsx(PlaceRoot, { children: jsx(CamFn, { at: actionCam(shots(t)), children: jsx("div", { "data-probe-leaving": travelling(f, claimCamWindows(t)), style: { position: "absolute", inset: 0 }, children: jsxs(Turn, { at, end, from: -5, to: 4, amp: 0.8, children: [
     jsx(TkFloor, { id: "clF", rig: R, at: { x: 640, z: 120 }, reach: 1300, casters, on: 1 - stage }),
     jsx("div", { "data-probe-object": "the Theranos lab door in its facade, the founder's brass plate beside it", style: { position: "absolute", inset: 0 }, children: jsx(LabDoor, {
@@ -124,6 +138,7 @@ export const BxClaim = ({ at, end, w, stage }) => {
       plaque: null,
       shutter: 0,
       board: null
-    }) })
+    }) }),
+    jsx("div", { "data-probe-object": "the mortarboard perched on the parapet, then dropping to the ground", style: { position: "absolute", inset: 0 }, children: jsx(ClaimCap, { id: "clCap", rig: R, pose: POSE, k: capK, f }) })
   ] }) }) }) });
 };

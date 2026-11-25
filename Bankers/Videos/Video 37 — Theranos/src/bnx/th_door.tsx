@@ -133,24 +133,25 @@ const GoldName = ({ rig, pose, text, write, glint }) => {
   const W = Math.ceil(N * size * 0.62 + 40), H = Math.ceil(size * 1.3);
   const x = xfMul(pose, xfTrans([0, D.nameY, D.glassZ + 0.6]));
   const g = TH_GOLD;
-  // each letter: a left-to-right wipe over 1.7 slots; the next starts one slot later
+  // each letter: a left-to-right wipe over 1.7 slots; the next starts one slot later (no clip once it is written)
   const p = (i) => clamp01((write * (N + 0.7) - i) / 1.7);
+  // ★ rev 2: the leaf is built from plain-colour runs (a deep shade, the body gold, its lit upper band, a bright top line, and
+  //   the burnish glint as a moving band) — NOT background-clip:text, which Chrome dropped for two frames of a frame-sequence
+  //   render under the 3-D plane (popscan 261 → 264), while stills drew it
   const sweep = -30 + 160 * clamp01(glint);
-  const letter = (ch, i, shade) => {
+  const letter = (ch, i, color) => {
     const q = p(i);
-    return jsx("span", { style: {
-      display: "inline-block",
-      clipPath: `inset(-10% ${(100 * (1 - q)).toFixed(2)}% -10% -10%)`,
-      ...shade ? { color: g.deep } : {
-        backgroundImage: `linear-gradient(104deg, transparent ${(sweep - 9).toFixed(1)}%, rgba(255,250,232,0.95) ${sweep.toFixed(1)}%, transparent ${(sweep + 9).toFixed(1)}%), linear-gradient(180deg, ${g.hi} 0%, ${g.edge} 22%, ${g.face} 46%, ${g.body} 70%, ${g.mid} 86%, ${g.dark} 100%)`,
-        WebkitBackgroundClip: "text",
-        backgroundClip: "text",
-        color: "transparent"
-      }
-    }, children: ch }, i);
+    return jsx("span", { style: { display: "inline-block", color, clipPath: q < 1 ? `inset(-10% ${(100 * (1 - q)).toFixed(2)}% -10% -10%)` : void 0 }, children: ch }, i);
   };
-  const run = (shade, dx, dy) => jsx("div", { style: { position: "absolute", left: dx, top: dy, width: W, height: H, lineHeight: `${H}px`, textAlign: "center", fontFamily: SHOUT, fontSize: size, letterSpacing: ls, whiteSpace: "pre", opacity: shade ? 0.85 : 1 }, children: Array.from(text).map((ch, i) => letter(ch, i, shade)) });
-  return jsx(XPlane, { rig, x, u: -W / 2, v: -H / 2, w: 0, width: W, height: H, probe: "the gold-leaf name on the door's glass", children: jsxs("div", { style: { position: "relative", width: W, height: H }, children: [run(true, 1.6, 1.8), run(false, 0, 0)] }) });
+  const run = (color, dx, dy, clip, op = 1) => jsx("div", { style: { position: "absolute", left: dx, top: dy, width: W, height: H, lineHeight: `${H}px`, textAlign: "center", fontFamily: SHOUT, fontSize: size, letterSpacing: ls, whiteSpace: "pre", opacity: op, clipPath: clip }, children: Array.from(text).map((ch, i) => letter(ch, i, color)) });
+  const band = glint > 1e-3 && glint < 1 - 1e-3 ? `polygon(${(sweep - 10).toFixed(1)}% 0%, ${(sweep + 4).toFixed(1)}% 0%, ${(sweep - 4).toFixed(1)}% 100%, ${(sweep - 18).toFixed(1)}% 100%)` : null;
+  return jsx(XPlane, { rig, x, u: -W / 2, v: -H / 2, w: 0, width: W, height: H, probe: "the gold-leaf name on the door's glass", children: jsxs("div", { style: { position: "relative", width: W, height: H }, children: [
+    run(g.deep, 1.6, 1.8, void 0, 0.85),
+    run(g.body, 0, 0),
+    run(g.face, 0, 0, "inset(0% 0% 50% 0%)"),
+    run(g.edge, 0, 0, "inset(0% 0% 72% 0%)"),
+    band && run("#FFF8E6", 0, 0, band, 0.9)
+  ] }) });
 };
 // ── the parts ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 const B = boxAB;
