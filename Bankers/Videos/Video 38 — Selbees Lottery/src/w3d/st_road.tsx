@@ -220,8 +220,8 @@ const shots = () => {
   const t = T();
   const close = heroCam(TRUNK_TUB, 0.19);
   return [
-    { a: 1062, b: 1102, pos: A([-15, 11, -0.8]), target: A([9, -0.5, 0.3]), fov: 40, arc: 10 },                   // arrival (flight)
-    { a: 1100, b: t.similar + 22, pos: A([-12.5, 3.2, -0.7]), target: A([12, 2.4, -0.5]), fov: 36 },              // crane down behind the car
+    { a: 1068, b: 1106, pos: A([-15, 11, -0.8]), target: A([9, -0.5, 0.3]), fov: 40, arc: 10 },                   // arrival (flight)
+    { a: 1104, b: t.similar + 24, pos: A([-12.5, 3.2, -0.7]), target: A([12, 2.4, -0.5]), fov: 36 },              // crane down behind the car
     { a: t.mass + 14, b: t.massEnd + 6, pos: A([-11.2, 2.7, -1.0]), target: A([10, 4.3, -0.8]), fov: 38 },         // tilt up as the sign goes over
     { a: t.forW - 4, b: t.forW + 22, pos: A([0.5, 2.6, -8.2]), target: A([0.3, 0.8, 0]), fov: 36 },              // round to the side …
     { a: t.forW + 14, b: t.forW + 46, pos: A([10.5, 2.1, -5.2]), target: A([0, 0.8, 0]), fov: 34 },             // … and ahead of it
@@ -281,7 +281,7 @@ const Overlay = ({ f, P: P0 }) => {
 const sfx = () => {
   const t = T();
   return [
-    cueAt("whooshlong", 1082, 30, 0.55),                         // the flight in (fastest frame ~ the middle of 1062–1102)
+    cueAt("whooshlong", 1086, 30, 0.55),                         // the flight in (fastest frame ~ the middle of 1062–1102)
     cueAt("whooshsoft", 1112, 24, 0.45),                         // crane down behind the car
     cueAt("ee_click_click_01", t.similar + 2, 10, 0.4),          // CASH WINFALL tag
     cueAt("airwoosh", t.massEnd + 10, 40, 0.5),                  // the gantry passes overhead
@@ -295,4 +295,4 @@ const sfx = () => {
     cueAt("ee_whoosh_fast_small_whoosh_01", t.cut - 11, 20, 0.5) // the push into the ticket
   ];
 };
-export const ST = { id: "road", origin: ROAD_O, from: 1060, to: ROAD_CUT, light: { keyI: 1.25, rimI: 1.1, shadowBox: 10, fillI: 0.32 }, shots, Scene, Overlay, sfx };
+export const ST = { id: "road", origin: ROAD_O, from: 1066, to: ROAD_CUT, light: { keyI: 1.25, rimI: 1.1, shadowBox: 10, fillI: 0.32 }, shots, Scene, Overlay, sfx };
