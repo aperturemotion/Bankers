@@ -1,29 +1,11 @@
-A few drops of blood. That was the promise behind a nine billion dollar company.
-
-In two thousand three, Elizabeth Holmes founded Theranos at nineteen, then dropped out of Stanford.
-
-The pitch: a full set of blood tests from one finger prick, on its Edison machine.
-
-By two thousand fourteen, it was worth nine billion dollars on paper.
-
-Two former secretaries of state sat on its board.
-
-Walgreens offered its tests in about forty stores.
-
-But most tests ran on other companies' machines, not the Edison.
-
-One whistleblower was Tyler Shultz, a board member's grandson.
-
-In October two thousand fifteen, the Wall Street Journal exposed it.
-
-Theranos voided two years of Edison results. Walgreens walked away. In two thousand eighteen, it shut down.
-
-In January two thousand twenty-two, Holmes was found guilty of defrauding investors. Her sentence: eleven years and three months, later cut by one year.
-
-To be fair, she testified that she believed in the technology.
-
-And she was cleared of defrauding patients.
-
-The lesson: famous names are not proof.
-
-At its peak, Theranos had published no peer-reviewed data for outside scientists to check.
+(DRAFT — the app's script for "Video 5 of 15", pending the primary-source fact-check; the corrected lines replace this.)
+A retired couple from a town of 1,900 people beat the lottery. Legally. For nine years.
+In 2003, Jerry Selbee, who had just sold his convenience store in Evart, Michigan, picked up a brochure for a new game called Winfall. It took him three minutes to find the flaw.
+When the jackpot reached five million dollars and nobody won it, the money didn't roll over. It rolled down, to everyone who matched three, four or five numbers. On those days, if you bought enough tickets, the math was on your side.
+Jerry tested it. Three thousand six hundred dollars in. Six thousand three hundred back.
+He and his wife Marge set up a company, sold shares to family and friends, and played every roll-down, until Michigan shut the game down.
+Then they found the same game in Massachusetts. For six years, they drove 900 miles each time and bet more than 600,000 dollars a round.
+They weren't alone. A group of MIT students was doing the exact same thing. In 2011, the Boston Globe broke the story, and people assumed the game was rigged.
+The state investigated. Its finding: everything was legal. The lottery itself had made 120 million dollars from the game.
+In the end, the Selbees' company won more than 26 million dollars, and kept nearly 8 million in profit before tax. They spent it fixing up their home and paying for their grandchildren's education.
+Sometimes the edge isn't luck. It's reading the rules.
