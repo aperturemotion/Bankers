@@ -27,6 +27,9 @@ the other accounts (100bps, offcamcelebs and more).
     differently, across the whole film;
   - check the specs, the audio (no clipping) and the post-voice tail.
   A master that fails is renamed `…_v1_<fault>.mp4` (never deleted), fixed, and rendered again; it is never handed back with a glitch.
+- **★★★★ FROM VIDEO 38 (2026-11-25) THE CURRENT STYLE IS "THE BANKERS 3-D WORLD" (section below, Timur's 8 reference reels).** Where it
+  conflicts with the older rules here, STYLE.md or the visual vocabulary (3-D worlds, cutaways, x-ray shells, machinery, real photos as proof,
+  karaoke captions, chips with leader lines), the 3-D World section wins; the Bankers logo, the blue and the fonts stay.
 - **★★★ WHAT MAY BE BUILT IS `Resources/visual-vocabulary.md`** (Timur, 2026-10-09, Video 8 revision: charts, big numbers,
   simple primitives and text-only beats; never maps, machinery, weather, liquids, cutaways or particle showers; ≤ 3 objects
   per scene). It applies to every Bankers video and supersedes the older "realistic hero objects" rules.
@@ -85,6 +88,103 @@ the other accounts (100bps, offcamcelebs and more).
   27th). Before building any piece, the routine checks Bankers/Videos/, log.md and the Studio list for a video in progress and compares its
   idea (PLAN.md / VO_SCRIPT.txt) with the piece's script in the app. If they match, the video is in the changes phase: the routine builds
   nothing new, regenerates no voiceover, and only reports where it stands and acts on his notes. If a match is unclear, it asks him.
+
+## ★★★★ 2026-11-25 — THE BANKERS 3-D WORLD STYLE (the current style, from Video 38 on)
+
+> **Timur, 2026-11-25:** the client asked to experiment with new styles to get more views. He sent 8 reference reels (a 3-D explainer
+> channel, "SizedUnderstood") and said: *"examine them with great detail, and copy their style … what visuals they use, what background …
+> which kind of visual it uses, what is the structure, where it uses specific visuals, where it uses real footage … what kind of animation …
+> the new style has a main accent on 3D visuals and like a 3D world and atmosphere … all of the scenes should be in that style … but the
+> main rules of the bankers should be kept"* — keep the Bankers logo (the bottom watermark and the end), the main colour BLUE ("really,
+> really important") and the fonts. **Every scene of a new video is in this style; never a mix of the old and the new.**
+
+**Where the evidence is:** `Resources/style-3d-world/` — `R1.md … R8.md` (per-reel, beat-by-beat breakdowns: timeline, transitions, overlays,
+captions, look, real footage, pacing, audio, with measurements), `ref_R*_overview.png` (a frame every 3 s of each reel), `ref_captions.png`,
+`ref_overlays.png`, `ref_detail.png`. The 8 reels: R1 Mercedes headlight (night road), R2 Microsoft undersea data centre, R3 COMAC electric
+plane, R4 GTA 6 preload/servers, R5 Lamborghini V12 gearbox/e-motor, R6 Spanish train crash (LZB), R7 USB-C $10 vs $69, R8 traffic-light
+induction loop. All 720×1280 at 30 fps, 63–98 s, −14.1 LUFS.
+
+### A. KEPT FROM BANKERS (non-negotiable)
+- **The logo:** the 30 % Bankers watermark at the bottom of every frame (§2.5.4) and the **BANKER$ close** at the end (§2.4). The references'
+  "Follow" card is NOT copied — the BANKER$ close replaces it.
+- **Blue is the main colour.** The references' single accent is lemon yellow (#F5FB14); in Bankers it is the **light blue** (`#7FB4F2` on
+  overlays, `#B3CEEF` / `#4D8ED9` for glows in 3-D). The world is lit at **blue hour / night in the Bankers blue family** (cool key
+  `#DCE8FA` from the upper left, navy hemisphere fill, pale-blue rims, navy fog `#0A2A52`, a sky from navy zenith through the logo blue to
+  a pale horizon glow). Warm colour only in small practical lights (lamps, lit windows) and real objects' own small accents; red only for a
+  failure/suspicion (the references' rule too); green only for money added.
+- **The fonts:** captions and labels in **Figtree** (the house subtitle face — close to the references' geometric sans), big figures in
+  **Anton**, the hero accent word in Instrument Serif italic.
+- Content rules (CONTENT.md): fact-checked lines, dates never relative, no advice, no bias, no AI images of real people, real photos only
+  credited, labels ≤ 4 words, figures only from FACTCHECK.md.
+
+### B. THE GRAMMAR (copied from the references; measured)
+1. **One continuous voice-over over ONE 3-D world.** No title card, no intro: frame 0 is already the hero 3-D shot with the first caption
+   word. The voice runs to ~0.7 s before the close. Story shape: surprising claim (0–5 s) → proof it is real (a named product/place, a
+   photo) → the mechanism in 3–5 steps, each with its own picture → a twist at ~55–65 % ("But why…?") → numbers/caveats → a one-line
+   payoff that CALLS BACK to the opening image.
+2. **A new visual idea every 2.2–3.3 s** (27–38 per film): a new framing, a reveal, a new object, a label, a counter. Every new sentence gets a
+   new picture within ~0.5 s. A new label or counter every 1–2 s.
+3. **The camera moves 70–90 % of the time:** slow, smooth push / dolly / orbit / follow / crane (≈ 2–15 % of the frame per second),
+   eased; 0.2–1.2 s quick travels only between ideas. No static hold over ~4 s unless something in frame is animating.
+4. **One world, one hero model, "home base" shots** that recur 3–5 times. Every explanation happens ON or INSIDE the real object:
+   cutaways, **x-ray glass shells**, exploded views, macro close-ups, top-down diagram views of the same world, mass instancing for scale,
+   everyday metaphors (balance scale, taxi meter, padlock and key).
+5. **The signature reveal:** solid object → its shell turns to clear glass in 0.15–0.4 s (white rim light) → the camera pushes inside → a
+   cutaway / exploded view → the active part GLOWS in the accent → a label → a counter → pull back.
+6. **Transitions:** mostly continuous camera through the world, or a 0.2–0.5 s dissolve; 2–4 signature moves per film (push THROUGH an object
+   into its inside; a shell turning to glass; through a boundary like a water surface or haze; real footage match-dissolved into the same
+   composition in CG; an object morphing/folding into the next). Hard cuts only when motivated (a flash, an object passing the lens) —
+   in our engine a push INTO a surface that fills the frame lands on a matching close-up (`cut: true`).
+7. **Look:** clean, stylised-photoreal CG (real proportions and real logos, simplified detail, no grime); soft low-contrast key with
+   haze/fog for depth, mild bloom on everything emissive, depth of field only on macros, a strong vignette, the lower 25–30 % of the
+   picture pushed dark for the captions. One world, one light, one time of day per film (or per place). One saturated hero colour on a
+   desaturated world.
+8. **People:** rare and stylised in the references (hard hat, sleeves, disembodied hands). **In Bankers: none modelled** — real people appear
+   only as credited real photos.
+
+### C. THE CAPTION (karaoke — `src/w3d/karaoke.tsx`)
+- Centred; a one-line chip's centre at **68–70 % of the height (≈ y 1310–1345 at 1920)**; two-line chips grow upward; never more than 2
+  lines; max line width ~62 % W.
+- Figtree ~56 px at 1080 wide (the references' 36–40 px at 720). **Word by word:** each word fades in (~0.1 s) on its voice onset; the
+  CURRENT word is white bold, SPOKEN words grey regular (~#9AA6B6), FUTURE words hidden.
+- Each line on its own dark translucent pill (black ≈ 70 %, radius ~9 px, padding ~12 px).
+- **One keyword per chip** (a number, the noun being explained, or the twist's verb) inside a 2–3 px outline box with two filled dots
+  on its top-left and bottom-right corners — in the Bankers light blue, not the references' yellow.
+- Chips of 1–6 words (median 3), on phrase boundaries, ~0.6–2 s each; numbers shown as numerals ("$3,600", "1,900", "2011").
+
+### D. OVERLAYS (`src/w3d/overlays.tsx`)
+- **Safe zones:** panels, counters and photo cards in the **15–35 % height band (y ≈ 290–670)** with 3–9 % side margins; nothing in the
+  caption band (y ≈ 1180–1460); keep the top ~220 px clear of text (Reels UI).
+- **Labels (`Tag`):** small caps (Figtree 700, ~24–30 px) on a dark chip (~90 %), a 3–5 px left accent bar, a 1–2 px white leader to a
+  6–8 px ring on the tracked 3-D point (projected through the live camera every frame); in over ~0.2 s on the spoken noun, hold 1–5 s,
+  fade out. Bar colours code meaning: light blue = the key thing, teal = OK/data, amber = power/speed, red = failure/limit.
+- **Counters (`Counter`):** a tiny caps label above a big figure with a small unit (hero ~100–115 px, in-scene ~55–60 px); they always ROLL
+  (≈ 0.6–2 s) and land on the spoken word; optional thin progress bar.
+- **Running pill (`Pill`):** for cumulative stories (cost, count, time) a top-right pill that keeps a running figure for most of the film
+  (R7's price counter); each addition slides in as a "+$N" chip.
+- **Real photos / footage (`Inset`):** only to PROVE something is real (the named person, product, document), 1–4.5 s each, ≤ 17 % of the
+  runtime: a 16:9 card ~92 % W at the top over the running 3-D shot, or a white-bordered card ~85 % W, with a small grey credit
+  ("Photo: CBS News / 60 Minutes"). A reconstructed event gets a small persistent disclaimer pill above the captions.
+- Highlight geometry: thin accent rectangles / corner brackets tracked to 3-D objects; a strike line through a debunked number.
+
+### E. SOUND
+- The references: wall-to-wall voice, tight edit, mastered at −14 LUFS (LRA ~2 LU); a soft ambient/electronic pad 20–30 dB under the
+  voice; almost no sound effects (a rare swoosh or impact swell). **In Bankers the bed follows Timur's 2026-11-25 ruling** ("the song is not
+  heard at all … make it louder"): the song sits ~3.5 LU under the voice and is audible on phone speakers (Video 37 rev 3); effects stay
+  sparse and quiet — one soft whoosh per big camera travel, a context sound only for a visible action.
+
+### F. THE ENGINE (`src/w3d/` in Video 38 — clone it for every film in this style)
+- **WebGL through `@remotion/three` 4.0.315 + `three` 0.169 + `@react-three/fiber` 9.1.** Headless Chrome renders it with SwiftShader
+  (`chromiumOptions: { gl: "swangle" }`), ~7–9 s per 1080×1920 frame; render single-tab, plan 4–6 h for a full film.
+- `kit.tsx`: `World3D` (ACES tone mapping, sRGB, soft shadows, a RoomEnvironment for reflections, FogExp2), ONE camera for the film
+  (`makeCam(shots)`: `{a, b, pos, target, fov, arc, cut}`, smootherstep, a tiny drift), `projectWith` (the same camera maths for the HTML
+  overlays), `HouseLights` (the Bankers key/fill/rim), `Sky`, `Glow` (additive light sprites), `canvasTex` (print and signage drawn on
+  canvas with the house fonts), `rnd`.
+- `Main.tsx` + `stations.tsx`: the film is a list of STATIONS (each a place in the world at its own origin, mounted only around its
+  frames: `{id, origin, from, to, shots(), Scene, Overlay, sfx()}`); the camera path is all stations' shots in order; the karaoke, the
+  watermark, the BANKER$ close (the camera lifts into the sky as the world dims) and the audio sit on top.
+- `take.ts` (generated by `scratchpad/caps38.py` from the take's Scribe words): WORDS, CHIPS, SENT, `wf(word)`; every action keys to a word.
+- Stills: `scratchpad/still38.mjs`.
 
 ## 0. What this account is
 
