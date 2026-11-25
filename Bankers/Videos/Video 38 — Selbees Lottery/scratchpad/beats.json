@@ -1,0 +1,79 @@
+{
+ "words": "scratchpad/fw_words.json",
+ "beats": [
+  {
+   "id": "hook",
+   "enter": 0,
+   "gone": 171
+  },
+  {
+   "id": "claim",
+   "enter": 171,
+   "gone": 376
+  },
+  {
+   "id": "claim2",
+   "enter": 376,
+   "gone": 538
+  },
+  {
+   "id": "hype",
+   "enter": 538,
+   "gone": 683
+  },
+  {
+   "id": "backers",
+   "enter": 683,
+   "gone": 876
+  },
+  {
+   "id": "crack",
+   "enter": 876,
+   "gone": 1003
+  },
+  {
+   "id": "whistle",
+   "enter": 1003,
+   "gone": 1124
+  },
+  {
+   "id": "expose",
+   "enter": 1124,
+   "gone": 1242
+  },
+  {
+   "id": "collapse",
+   "enter": 1242,
+   "gone": 1461
+  },
+  {
+   "id": "verdict",
+   "enter": 1461,
+   "gone": 1749
+  },
+  {
+   "id": "cleared",
+   "enter": 1864,
+   "gone": 1943
+  },
+  {
+   "id": "rule",
+   "enter": 2051,
+   "gone": 2226
+  },
+  {
+   "id": "close",
+   "enter": 2226,
+   "gone": 2250
+  },
+  {
+   "id": "brand",
+   "enter": 2250,
+   "gone": 2334
+  }
+ ],
+ "breaks": [
+  876,
+  1754
+ ]
+}

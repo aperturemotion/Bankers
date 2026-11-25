@@ -1,0 +1,351 @@
+{
+  "_doc": [
+    "Video 37 \"Theranos\". WRITTEN by scratchpad/synth_captions.py — edit the generator (SCENE_PLAN, NUMERALS, LABELS), not this file.",
+    "script: one entry per VO line, in order — scene (place id), vo (VO_SCRIPT.txt, spelled out), take (the caption form: numerals per house style; the real-take generator scratchpad/captions_vo.js aligns the take's words to these tokens), hero.",
+    "labels: every on-screen label from PLAN.md (Anton, ≤ 4 words), with its place and where it sits. WD is the flat map the film reads at runtime (src/bnx/data.ts L(key)).",
+    "THE TAKE: take B (2026-11-23), generated in ElevenLabs; captions.ts is timed from it (--take)."
+  ],
+  "script": [
+    {
+      "scene": "hook",
+      "vo": "A few drops of blood.",
+      "take": "A few drops of blood."
+    },
+    {
+      "scene": "hook",
+      "vo": "That was the promise behind a nine billion dollar company.",
+      "take": "That was the promise behind a $9 billion company."
+    },
+    {
+      "scene": "claim",
+      "vo": "In two thousand three, Elizabeth Holmes founded Theranos at nineteen, then dropped out of Stanford.",
+      "take": "In 2003, Elizabeth Holmes founded Theranos at 19, then dropped out of Stanford."
+    },
+    {
+      "scene": "claim2",
+      "vo": "The pitch: a full set of blood tests from one finger prick, on its Edison machine.",
+      "take": "The pitch: a full set of blood tests from one finger prick, on its Edison machine."
+    },
+    {
+      "scene": "hype",
+      "vo": "By two thousand fourteen, it was worth nine billion dollars on paper.",
+      "take": "By 2014, it was worth $9 billion on paper."
+    },
+    {
+      "scene": "backers",
+      "vo": "Two former secretaries of state sat on its board.",
+      "take": "Two former secretaries of state sat on its board."
+    },
+    {
+      "scene": "backers",
+      "vo": "Walgreens offered its tests in about forty stores.",
+      "take": "Walgreens offered its tests in about 40 stores."
+    },
+    {
+      "scene": "crack",
+      "vo": "But most tests ran on other companies' machines, not the Edison.",
+      "take": "But most tests ran on other companies' machines, not the Edison."
+    },
+    {
+      "scene": "whistle",
+      "vo": "One whistleblower was Tyler Shultz, a board member's grandson.",
+      "take": "One whistleblower was Tyler Shultz, a board member's grandson."
+    },
+    {
+      "scene": "expose",
+      "vo": "In October two thousand fifteen, the Wall Street Journal exposed it.",
+      "take": "In October 2015, the Wall Street Journal exposed it."
+    },
+    {
+      "scene": "collapse",
+      "vo": "Theranos voided two years of Edison results.",
+      "take": "Theranos voided two years of Edison results."
+    },
+    {
+      "scene": "collapse",
+      "vo": "Walgreens walked away.",
+      "take": "Walgreens walked away."
+    },
+    {
+      "scene": "collapse",
+      "vo": "In two thousand eighteen, it shut down.",
+      "take": "In 2018, it shut down."
+    },
+    {
+      "scene": "verdict",
+      "vo": "In January two thousand twenty-two, Holmes was found guilty of defrauding investors.",
+      "take": "In January 2022, Holmes was found guilty of defrauding investors."
+    },
+    {
+      "scene": "verdict",
+      "vo": "Her sentence: eleven years and three months, later cut by one year.",
+      "take": "Her sentence: 11 years and 3 months, later cut by one year."
+    },
+    {
+      "scene": "fair",
+      "vo": "To be fair, she testified that she believed in the technology.",
+      "take": "To be fair, she testified that she believed in the technology.",
+      "hero": true
+    },
+    {
+      "scene": "cleared",
+      "vo": "And she was cleared of defrauding patients.",
+      "take": "And she was cleared of defrauding patients."
+    },
+    {
+      "scene": "lesson",
+      "vo": "The lesson: famous names are not proof.",
+      "take": "The lesson: famous names are not proof.",
+      "hero": true
+    },
+    {
+      "scene": "rule",
+      "vo": "At its peak, Theranos had published no peer-reviewed data for outside scientists to check.",
+      "take": "At its peak, Theranos had published no peer-reviewed data for outside scientists to check."
+    }
+  ],
+  "labels": {
+    "hookFigure": {
+      "place": "hook",
+      "text": "$9 BILLION",
+      "note": "stamped on the plinth, large, early in the pull-back (Fortune, June 12, 2014: 'more than $9 billion')"
+    },
+    "hookTube": {
+      "place": "hook",
+      "text": "THERANOS",
+      "note": "printed on the nanotainer's label (company name: Timur 2026-11-23 rule)"
+    },
+    "claimName": {
+      "place": "claim",
+      "text": "THERANOS",
+      "note": "gold lettering on the glass door"
+    },
+    "claimYear": {
+      "place": "claim",
+      "text": "2003",
+      "note": "SEC complaint ¶13: 'established by Holmes in 2003'"
+    },
+    "claimFounder": {
+      "place": "claim",
+      "text": "ELIZABETH HOLMES, 19",
+      "note": "nameplate (born Feb 1984: Fortune, June 12, 2014)"
+    },
+    "claimSchool": {
+      "place": "claim",
+      "text": "STANFORD DROPOUT",
+      "note": "under the name (SEC ¶15; Stanford Daily, Sept 1, 2021)"
+    },
+    "claim2Device": {
+      "place": "claim2",
+      "text": "EDISON",
+      "note": "on the machine's face (DOJ: 'the TSPU, Edison, or minilab')"
+    },
+    "claim2Pitch": {
+      "place": "claim2",
+      "text": "ONE FINGER PRICK",
+      "note": "label (SEC ¶54: 'runs comprehensive blood tests from a finger-stick')"
+    },
+    "hypeFigure": {
+      "place": "hype",
+      "text": "$9B",
+      "note": "printed on the paper (Fortune, June 12, 2014)"
+    },
+    "hypeLabel": {
+      "place": "hype",
+      "text": "ON PAPER",
+      "note": "label"
+    },
+    "hypeYear": {
+      "place": "hype",
+      "text": "2014",
+      "note": "label"
+    },
+    "boardShultz": {
+      "place": "backers",
+      "text": "SHULTZ",
+      "note": "brass nameplate (Fortune, June 12, 2014 board list)"
+    },
+    "boardKissinger": {
+      "place": "backers",
+      "text": "KISSINGER",
+      "note": "brass nameplate"
+    },
+    "boardLabel": {
+      "place": "backers",
+      "text": "FORMER SECRETARIES OF STATE",
+      "note": "label"
+    },
+    "storesBrand": {
+      "place": "backers",
+      "text": "WALGREENS",
+      "note": "on the fronts (Walgreens release, June 12, 2016: 'all 40 Theranos Wellness Centers')"
+    },
+    "storesCount": {
+      "place": "backers",
+      "text": "~40 STORES",
+      "note": "label (Fortune, Oct 24, 2015: 41)"
+    },
+    "storesState": {
+      "place": "backers",
+      "text": "ARIZONA",
+      "note": "label"
+    },
+    "crackEdison": {
+      "place": "crack",
+      "text": "EDISON: ~12 TESTS",
+      "note": "the lit sliver (SEC complaint ¶5: 'approximately 12 tests of the over 200')"
+    },
+    "crackOthers": {
+      "place": "crack",
+      "text": "OTHER MACHINES",
+      "note": "the rest"
+    },
+    "crackTotal": {
+      "place": "crack",
+      "text": "200+ TESTS OFFERED",
+      "note": "the whole disc (SEC ¶5)"
+    },
+    "whistleName": {
+      "place": "whistle",
+      "text": "TYLER SHULTZ",
+      "note": "on the employee badge (employee 2013–14)"
+    },
+    "whistleRole": {
+      "place": "whistle",
+      "text": "EMPLOYEE",
+      "note": "on the badge"
+    },
+    "whistleLink": {
+      "place": "whistle",
+      "text": "GRANDSON",
+      "note": "the link to the SHULTZ nameplate (George Shultz, board 2011–15: KQED, Nov 17, 2016)"
+    },
+    "exposeMast": {
+      "place": "expose",
+      "text": "THE WALL STREET JOURNAL",
+      "note": "masthead in Anton (no logo)"
+    },
+    "exposeDate": {
+      "place": "expose",
+      "text": "OCT 15, 2015",
+      "note": "dateline (WSJ online Oct 15, 2015)"
+    },
+    "collapseVoid": {
+      "place": "collapse",
+      "text": "VOIDED",
+      "note": "across the results (WSJ, May 18, 2016)"
+    },
+    "collapseYears": {
+      "place": "collapse",
+      "text": "2014–2015",
+      "note": "the voided years"
+    },
+    "collapseWalgreens": {
+      "place": "collapse",
+      "text": "WALGREENS",
+      "note": "the partner plaque that falls away (June 12, 2016)"
+    },
+    "collapseShut": {
+      "place": "collapse",
+      "text": "SEPT 2018",
+      "note": "on the shutter (dissolution announced Sept 4, 2018)"
+    },
+    "verdictGuilty": {
+      "place": "verdict",
+      "text": "GUILTY",
+      "note": "lands (Jan 3, 2022)"
+    },
+    "verdictCounts": {
+      "place": "verdict",
+      "text": "4 COUNTS",
+      "note": "under it (9th Cir. opinion, Dec 22, 2025, p.16)"
+    },
+    "verdictDate": {
+      "place": "verdict",
+      "text": "JAN 3, 2022",
+      "note": "label"
+    },
+    "verdictMonths": {
+      "place": "verdict",
+      "text": "135 MONTHS",
+      "note": "the hourglass (sentenced Nov 18, 2022)"
+    },
+    "verdictCut": {
+      "place": "verdict",
+      "text": "123 MONTHS",
+      "note": "after the cut (Mar 26, 2026: Bloomberg)"
+    },
+    "clearedPatients": {
+      "place": "cleared",
+      "text": "PATIENTS: NOT GUILTY",
+      "note": "the rising pan (4 patient counts acquitted)"
+    },
+    "clearedInvestors": {
+      "place": "cleared",
+      "text": "INVESTORS: GUILTY",
+      "note": "the other pan"
+    },
+    "ruleGap": {
+      "place": "rule",
+      "text": "THERANOS",
+      "note": "the empty slot's spine label"
+    },
+    "ruleLabel": {
+      "place": "rule",
+      "text": "NO PEER-REVIEWED DATA",
+      "note": "label (Ioannidis, JAMA, Feb 17, 2015)"
+    },
+    "ruleJournal": {
+      "place": "rule",
+      "text": "JAMA",
+      "note": "on the volumes' spines"
+    },
+    "ruleDate": {
+      "place": "rule",
+      "text": "FEB 2015",
+      "note": "label"
+    }
+  },
+  "WD": {
+    "hookFigure": "$9 BILLION",
+    "hookTube": "THERANOS",
+    "claimName": "THERANOS",
+    "claimYear": "2003",
+    "claimFounder": "ELIZABETH HOLMES, 19",
+    "claimSchool": "STANFORD DROPOUT",
+    "claim2Device": "EDISON",
+    "claim2Pitch": "ONE FINGER PRICK",
+    "hypeFigure": "$9B",
+    "hypeLabel": "ON PAPER",
+    "hypeYear": "2014",
+    "boardShultz": "SHULTZ",
+    "boardKissinger": "KISSINGER",
+    "boardLabel": "FORMER SECRETARIES OF STATE",
+    "storesBrand": "WALGREENS",
+    "storesCount": "~40 STORES",
+    "storesState": "ARIZONA",
+    "crackEdison": "EDISON: ~12 TESTS",
+    "crackOthers": "OTHER MACHINES",
+    "crackTotal": "200+ TESTS OFFERED",
+    "whistleName": "TYLER SHULTZ",
+    "whistleRole": "EMPLOYEE",
+    "whistleLink": "GRANDSON",
+    "exposeMast": "THE WALL STREET JOURNAL",
+    "exposeDate": "OCT 15, 2015",
+    "collapseVoid": "VOIDED",
+    "collapseYears": "2014–2015",
+    "collapseWalgreens": "WALGREENS",
+    "collapseShut": "SEPT 2018",
+    "verdictGuilty": "GUILTY",
+    "verdictCounts": "4 COUNTS",
+    "verdictDate": "JAN 3, 2022",
+    "verdictMonths": "135 MONTHS",
+    "verdictCut": "123 MONTHS",
+    "clearedPatients": "PATIENTS: NOT GUILTY",
+    "clearedInvestors": "INVESTORS: GUILTY",
+    "ruleGap": "THERANOS",
+    "ruleLabel": "NO PEER-REVIEWED DATA",
+    "ruleJournal": "JAMA",
+    "ruleDate": "FEB 2015"
+  }
+}

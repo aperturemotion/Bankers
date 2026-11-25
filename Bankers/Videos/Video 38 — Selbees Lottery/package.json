@@ -1,0 +1,30 @@
+{
+  "name": "bankers-video-36",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "remotion studio --port 3437"
+  },
+  "dependencies": {
+    "@react-three/fiber": "^9.1.2",
+    "@remotion/bundler": "4.0.315",
+    "@remotion/cli": "4.0.315",
+    "@remotion/google-fonts": "4.0.315",
+    "@remotion/layout-utils": "4.0.315",
+    "@remotion/media-utils": "4.0.315",
+    "@remotion/renderer": "4.0.315",
+    "@remotion/three": "^4.0.315",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "remotion": "4.0.315",
+    "three": "^0.169.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.10.5",
+    "@types/react": "19.0.7",
+    "@types/react-dom": "19.0.3",
+    "simple-icons": "^13.21.0",
+    "svg-path-bbox": "^2.1.0",
+    "typescript": "5.7.3"
+  }
+}
