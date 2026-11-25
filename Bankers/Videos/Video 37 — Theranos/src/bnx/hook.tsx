@@ -1,10 +1,10 @@
 // @ts-nocheck
 // ★ V37 "Theranos" — place `hook` (builder H). "A few drops of blood. That was the promise behind a nine billion dollar company."
 //   Frame 0: the camera is already rushing in from far out onto a thumb-sized nanotainer (th_tube: clear skirted tube, blue snap
-//   cap flipped open on its hinge, the THERANOS label) standing in the key light's pool on a polished steel top; a pen lancet hangs
+//   cap off, set down upside-down on the steel beside it, the THERANOS label) standing in the key light's pool on a polished steel top; a pen lancet hangs
 //   point-down above it and a glossy red drop is ALREADY falling from its needle into the open tube. A second drop swells on the
 //   needle, lets go and falls in, then a third ("a few drops"): each sinks into the blood, which rises a little each time (a small
-//   ring spreads on its surface — never a splash). The lancet withdraws up out of frame and the cap snaps shut on "promise". On
+//   ring spreads on its surface — never a splash). The lancet withdraws up out of frame; the cap lifts off the steel, turns over in the air and drops onto the tube on "promise". On
 //   "$9 billion dollar company" — the BIGGEST motion — the camera pulls back hard (a real dolly, ~7×): the steel top turns out to
 //   be the top of a towering machined blue-steel plinth, the tiny tube standing on it, and $9 BILLION (hookFigure) eases onto the
 //   plinth's panel, fully read on "company", ≥ 1 s before flare 1. The composition's pushLight then carries the frame into flare 1
@@ -49,9 +49,10 @@ export const hookTimes = (w, end) => {
     push: { a: 0, b: 34 },
     det,
     grow: [null, { a: det[1] - 14, b: det[1] }, { a: det[2] - 14, b: det[2] }],
-    // the lancet withdraws up out of frame after the third drop; the cap snaps shut on "promise"
+    // the lancet withdraws up out of frame after the third drop; the cap (a separate part, resting upside-down on the steel beside
+    //   the seat — Timur rev 3) lifts, turns over in the air and drops onto the mouth, pushed on just after "promise"
     ret: null,
-    cap: { a: w.promise - 14, b: w.promise + 8 },
+    cap: { a: w.promise - 28, b: w.promise + 8 },
     // THE PAYOFF: the hard pull back, fastest on "$9 billion"; the figure eases on as it slows, fully read on "company"
     pull: { a: w.k9 - 26, b: w.billion + 14 },
     fig: { a: w.billion - 10, b: w.billion + 6 },
@@ -127,7 +128,8 @@ export const hookSfx = (t) => [
   ...t.touch.map((a, i) => ({ job: "ping", a: Math.round(a), vol: 0.55 - 0.05 * i })),
   // the lancet withdrawing up out of frame
   { job: "obj", a: t.ret.a, b: t.ret.b, k: "io", vol: 0.35 },
-  // the cap snapping shut
+  // the cap lifting off the steel and flying over, then snapping onto the tube
+  { job: "obj", a: t.cap.a, b: t.cap.b - 4, k: "io", vol: 0.3 },
   { job: "click", a: t.cap.b, vol: 1.1 },
   // THE PULL BACK (the biggest motion) and the weight of the reveal as $9 BILLION lands
   { job: "move", a: t.pull.a, b: t.pull.b, k: "io", vol: 1.15 },
@@ -178,7 +180,8 @@ export const BxHook = ({ at, end, w, stage }) => {
   const foot = cam.P(FOOT), kf = cam.K(FOOT), vz = cam.V(FOOT)[2];
   const lift = -520 * rInOut(f, t.ret.a, t.ret.b);
   const tip = [TX, FOOT_Y - TIP_S + lift, 0];
-  const open = 1 - rInOut(f, t.cap.a, t.cap.b);
+  // linear progress: thCapPose eases each part of the flight itself (lift, turn, travel, drop) — no second ease on top
+  const open = 1 - clamp01((f - t.cap.a) / (t.cap.b - t.cap.a));
   const fill = fillAt(t, f);
   const figOn = rInOut(f, t.fig.a, t.fig.b);
   // the key light's pool on the polished top, the tube's soft contact shadow (leaning away from the light)
@@ -209,8 +212,8 @@ export const BxHook = ({ at, end, w, stage }) => {
         jsx("stop", { offset: "1", stopColor: "#FFFFFF", stopOpacity: 0 })
       ] }), jsx("mask", { id: "hkRm", maskUnits: "userSpaceOnUse", x: -2000, y: -2000, width: 6000, height: 6000, children: jsx("rect", { x: -2000, y: f2(foot[1]), width: 6000, height: 4000, fill: "url(#hkRf)" }) })] }),
       jsx("clipPath", { id: "hkTopC2", clipPathUnits: "userSpaceOnUse", children: jsx("path", { d: topD }) }),
-      jsx("g", { mask: "url(#hkRm)", clipPath: "url(#hkTopC2)", children: jsx("g", { transform: `translate(0 ${f2(2 * foot[1])}) scale(1 -1)`, children: jsx(ThTube, { id: "hkTr", x: foot[0], y: foot[1], scale: kf, pitch: -cam.pitch, yaw: cam.yaw, persp: Math.max(50, cam.D - vz), fill, open, label: L("hookTube") }) }) }),
-      jsx(ThTube, { id: "hkT", x: foot[0], y: foot[1], scale: kf, pitch: cam.pitch, yaw: cam.yaw, persp: Math.max(50, cam.D - vz), fill, open, label: L("hookTube"), drops: dropsAt(t, f), ripple: rippleAt(t, f), stage }),
+      jsx("g", { mask: "url(#hkRm)", clipPath: "url(#hkTopC2)", children: jsx("g", { transform: `translate(0 ${f2(2 * foot[1])}) scale(1 -1)`, children: jsx(ThTube, { id: "hkTr", x: foot[0], y: foot[1], scale: kf, pitch: -cam.pitch, yaw: cam.yaw, persp: Math.max(50, cam.D - vz), fill, open, capGround: PL.top.y0 - PL.seat.y0, capShow: rInOut(f, t.cap.b - 6, t.cap.b), label: L("hookTube") }) }) }),
+      jsx(ThTube, { id: "hkT", x: foot[0], y: foot[1], scale: kf, pitch: cam.pitch, yaw: cam.yaw, persp: Math.max(50, cam.D - vz), fill, open, capGround: PL.top.y0 - PL.seat.y0, label: L("hookTube"), drops: dropsAt(t, f), ripple: rippleAt(t, f), stage }),
       f < t.ret.b + 2 && jsx(HookLancet, { cam, tip, g: f, printOn: 1 - rInOut(f, t.ret.a - 4, t.ret.a + 6) })
     ] })
     ] })

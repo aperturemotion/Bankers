@@ -57,6 +57,9 @@ const MUSIC_VOL = 1;
 //   source here is Video 33's own baked bed, recovered from its published Studio bundle (scratchpad/music_focus_v33bed.mp3, 79.3 s),
 //   re-shaped by bed36.py per 10-s window against this film's voice and matched AS HEARD to the Me And The Devil bed it replaces
 //   (−29.1 LUFS; TARGET 5.6 dB under the speech-gated voice).
+//   ★ rev 3 (Timur: "the song is not heard at all … make it louder"): FOCUS is nearly all sub-bass, so at that level its audible band
+//   sat 19.5 dB under the voice. Its sub is now shelved down (−24 dB under ~220 Hz) and the bed re-levelled per window: −25.3 LUFS
+//   (3.4 LU under the voice), its 200 Hz+ band 5.8 dB under the voice's, every 5-s window 4–8 (scratchpad/take37.sh).
 const BED_FILE = "bed_focus.mp3";
 const BED_FRAMES = 2336;
 if (BED_FRAMES < TOTAL_FRAMES) throw new Error("Composition: the bed is shorter than the film — re-cut public/bed_focus.mp3");

@@ -6,8 +6,9 @@
 //   ring of it projected through the one view, so the mouth, the rim, the label band and the domed well all share one perspective):
 //     · a clear moulded body with a thickened rim and a foot lip — a SKIRTED microtube: the sample well inside ends in a rounded
 //       (hemispherical) bottom above the foot, so the tube stands on its own; the empty skirt shows through the clear plastic
-//     · a coloured snap cap (house blue, ribbed skirt, domed top with a recessed centre) on a hinge strap at the back-right of the
-//       rim: closed over the mouth (open = 0) or flipped open and hanging upside-down beside the tube (open = 1)
+//     · a coloured push-on cap (house blue, ribbed skirt, domed top with a recessed centre), a SEPARATE part (Timur, rev 3: a cap
+//       hanging beside the tube with nothing holding it "looks weird"): closed over the mouth (open = 0), or set down upside-down
+//       on the surface beside the tube (open = 1); in between it flies up, turns over in the air and drops straight onto the mouth
 //     · a white paper label band high on the body, wrapped round it: THERANOS (the label text comes from the caller, L("hookTube"))
 //       set letter by letter ON the cylinder (each glyph foreshortened by its angle), a fine rule above and below, a barcode
 //     · the blood inside: a dark glossy column filling the well from its domed bottom (fill 0…1), its surface a meniscus disc
@@ -21,7 +22,10 @@
 //      tilt={0}       degrees: the tube leans in the picture plane about its foot (+ = top to the right)
 //      lit={0}        0…1  a light on it: a soft glow round the tube and brighter glints (e.g. inside the Edison's lit slot)
 //      stage={0}      0…1  the white stage: outlines and print turn navy so the clear tube still reads on white
-//      open={0}       0…1  the cap: 0 = snapped shut, 1 = flipped open and hanging beside the tube (the hook opens it for the drops)
+//      open={0}       0…1  the cap: 0 = pushed on, 1 = resting upside-down on the surface beside the tube (pass a LINEAR value:
+//                     thCapPose eases each part of the flight)
+//      capGround={0}  how far below the tube's foot the surface the cap rests on lies (tube units; the hook's seat is raised 6)
+//      capShow={1}    0…1  the cap's opacity (the hook's mirrored reflection hides it while it is off the tube)
 //      pitch={-14}    the view's pitch (deg; negative = looking down on it)  ·  yaw={0} the view's yaw (deg)
 //      persp={900}    the view's perspective distance in tube units (large = flat)
 //      label          the label's text (pass L("hookTube")); omit for a blank label
@@ -56,7 +60,7 @@ export const TH_TUBE = {
   BOT: 13,        // the apex of the well's domed bottom (the skirt below it is empty)
   LAB: [55, 73],  // the label band
   CAP: { R: 25.2, L: 21.5, SEAT: 77.5 }, // the cap: radius, length, the height its open end sits at when closed
-  HINGE: 128      // the hinge strap's angle round the rim (deg; 0 = the front, + = toward the viewer's right)
+  CAP_REST: [74, 6] // where the cap rests when off (x right, z toward the viewer): clear of the hook's seat (r 40) by ~9 units
 };
 export const thLevelS = (fill) => TH_TUBE.BOT + (TH_TUBE.RIM - 3 - TH_TUBE.BOT) * clamp01(fill);
 // ── the materials (house ramps: blue-steel family; red only for the blood) ──────────────────────────────────────────────────
@@ -214,30 +218,32 @@ export const thTubePoint = (view, s, r = 0, theta = 0) => {
   const pr = mkProj(view);
   return pr.P([r * Math.sin(theta), -s, r * Math.cos(theta)]);
 };
-// ── the cap's pose: closed over the mouth, or swung about the hinge strap's axis (a tangent at the rim) to hang open ────────────
-const capFrame = (open) => {
-  const { CAP, HINGE, R } = TH_TUBE;
-  const th = HINGE * D2R;
-  const rad = [Math.sin(th), 0, Math.cos(th)], tan = [Math.cos(th), 0, -Math.sin(th)];
-  const H = [rad[0] * (R + 3.4), -(CAP.SEAT + CAP.L * 0.32), rad[2] * (R + 3.4)];
-  // Rodrigues about the tangent through H; the sign swings the cap OUTWARD (its centre moves along +rad)
-  const ang = -196 * D2R * open;
-  const c = Math.cos(ang), s = Math.sin(ang);
-  const rotV = (v) => {
-    const k = tan, d = k[0] * v[0] + k[1] * v[1] + k[2] * v[2], kx = cross(k, v);
-    return [0, 1, 2].map((i) => v[i] * c + kx[i] * s + k[i] * d * (1 - c));
-  };
-  const rotP = (p) => {
-    const v = rotV([p[0] - H[0], p[1] - H[1], p[2] - H[2]]);
-    return [v[0] + H[0], v[1] + H[1], v[2] + H[2]];
-  };
-  const o = rotP([0, -CAP.SEAT, 0]);
-  return { fr: frameOf(o, rotV([0, -1, 0]), rotV([0, 0, 1])), H, rad };
+// ── the cap's pose: pushed on (open 0), or resting upside-down on the surface beside the tube (open 1). In between (k = 1 − open,
+//    already eased by the caller) it lifts, turns over in the picture plane (its open end swinging toward the tube) while it travels
+//    across, arrives ABOVE the mouth upright, then drops straight down onto it — it never slides sideways through the rim ─────────
+const ss = (v, a, b) => { const x = clamp01((v - a) / (b - a)); return x * x * (3 - 2 * x); };
+export const thCapPose = (open, ground = 0) => {
+  const { CAP, CAP_REST } = TH_TUBE;
+  const k = 1 - clamp01(open), L = CAP.L;
+  // (measured: while it is not yet upright over the mouth, its lowest point stays ≥ 20 units above the rim wherever it is over the
+  //  tube — it rises first, travels across high, and is upright and centred before it comes down)
+  const yRest = ground - L / 2, ySeat = -(CAP.SEAT + L / 2), yApex = ySeat - 40;
+  const mx = 1 - ss(k, 0.3, 0.7);
+  const y = k < 0.72 ? yRest + (yApex - yRest) * ss(k, 0, 0.45) : yApex + (ySeat - yApex) * ss(k, 0.72, 1);
+  const ang = Math.PI * (1 - ss(k, 0.1, 0.64));
+  const C = [CAP_REST[0] * mx, y, CAP_REST[1] * mx];
+  const axis = [Math.sin(ang), -Math.cos(ang), 0];
+  return { C, axis, k };
+};
+const capFrame = (open, ground = 0) => {
+  const { C, axis } = thCapPose(open, ground);
+  const o = C.map((v, i) => v - axis[i] * TH_TUBE.CAP.L / 2);
+  return { fr: frameOf(o, axis, [0, 0, 1]) };
 };
 // ── the cap (house-blue moulded plastic): ribbed skirt, rounded shoulder, a domed top with a recessed centre; inside dark ───────
-const Cap = ({ pr, open, id, stage, lit }) => {
+const Cap = ({ pr, open, ground, id, stage, lit }) => {
   const { CAP } = TH_TUBE;
-  const { fr } = capFrame(open);
+  const { fr } = capFrame(open, ground);
   const R = CAP.R, L = CAP.L;
   const shade = (l) => ({ c: rampAt(CAP_RAMP, 0.86 * l + 0.04 + 0.12 * lit) });
   const skirt = turned(pr, fr, 0, L - 4, R, R, shade);
@@ -314,7 +320,7 @@ export const ThDrop = ({ x, y, r, neck = 0, stretch = 0, lit = 1, id = "thD" }) 
   ] });
 };
 // ── the tube ────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-export const ThTube = ({ x, y, scale, fill = 0.3, tilt = 0, lit = 0, stage = 0, open = 0, pitch = -14, yaw = 0, persp = 900, label, drops = [], ripple = null, id = "thT" }) => {
+export const ThTube = ({ x, y, scale, fill = 0.3, tilt = 0, lit = 0, stage = 0, open = 0, capGround = 0, capShow = 1, pitch = -14, yaw = 0, persp = 900, label, drops = [], ripple = null, id = "thT" }) => {
   const T = TH_TUBE;
   const pr = mkProj({ x, y, scale, tilt, pitch, yaw, persp });
   const fr = frameOf([0, 0, 0], [0, -1, 0], [0, 0, 1]);
@@ -411,15 +417,18 @@ export const ThTube = ({ x, y, scale, fill = 0.3, tilt = 0, lit = 0, stage = 0, 
     }
     return out;
   })();
-  // ── the cap: behind the tube's body (draw first) or in front of it ──
-  const capO = capFrame(open).fr.at(TH_TUBE.CAP.L / 2, 0, 0);
-  const capFront = pr.V(capO)[2] > pr.V([0, -T.RIM, 0])[2] + 4;
-  const capEl = jsx(Cap, { pr, open, id, stage: st, lit: lt });
+  // ── the cap: a separate part, drawn in front of the body (resting beside it, it never overlaps it; flying, it comes down onto
+  //    the mouth from above); its soft contact shadow on the surface while it rests there, fading as it lifts ──
+  const capEl = jsx(Cap, { pr, open, ground: capGround, id, stage: st, lit: lt });
+  const capPose = thCapPose(open, capGround);
+  const capShadowK = 1 - ss(capPose.k, 0, 0.14);
+  const capShadow = capShadowK > 0.01 && capShow > 0.01 ? (() => {
+    const g = frameOf([T.CAP_REST[0] + 3, capGround - 0.05, T.CAP_REST[1] - 4], [0, -1, 0], [0, 0, 1]);
+    return [1.18, 1.06, 0.96].map((m, i) => jsx("path", { d: poly(ring(pr, g, 0, T.CAP.R * m)), fill: "#020812", opacity: (0.1 + 0.06 * i) * capShadowK * capShow }, `cs${i}`));
+  })() : null;
   const kth = keyAngle(pr, fr);
   const rimTop = poly(ring(pr, fr, T.RIM, T.R + 1.1, 64)) + poly(ring(pr, fr, T.RIM, T.RI, 64));
   const capCovers = open < 0.02;
-  const capFrontK = 1 - clamp01((open - 0.05) / 0.8);
-  const capBack = capFrontK >= 0.999 ? 0 : 1;
   return jsxs("g", { "data-probe-skip": true, children: [
     jsxs("defs", { children: [
       jsx(Grad, { id: `${id}G`, g: body }),
@@ -432,8 +441,7 @@ export const ThTube = ({ x, y, scale, fill = 0.3, tilt = 0, lit = 0, stage = 0, 
       ] })
     ] }),
     lt > 0.01 && jsx("circle", { cx: f2(pr.P([0, -48, 0])[0]), cy: f2(pr.P([0, -48, 0])[1]), r: f2(95 * scale), fill: `url(#${id}Gl)` }),
-    // the cap hanging open behind the tube; as it swings shut it crosses in front (a cross-fade over the swing, never a swap)
-    capBack > 0.01 && jsx("g", { opacity: capBack, children: capEl }),
+    capShadow,
     // the back of the clear body: a faint tint, the back halves of the foot and rim rings
     jsx("path", { d: poly(outline), fill: mixHex("#20446E", INK, st), opacity: 0.16 }),
     jsx("path", { d: poly(backArc(pr, fr, T.RIM, T.R + 1.1), false), stroke: edge, strokeWidth: sw * 0.9, opacity: 0.35, fill: "none" }),
@@ -473,12 +481,7 @@ export const ThTube = ({ x, y, scale, fill = 0.3, tilt = 0, lit = 0, stage = 0, 
     jsx("path", { d: rimTop, fillRule: "evenodd", fill: mixHex("#BFD3EA", INK, 0.5 * st), opacity: capCovers ? 0 : 0.42 }),
     jsx("path", { d: poly(frontArc(pr, fr, T.RIM, T.R + 1.1), false), stroke: mixHex("#F2F7FD", INK, st), strokeWidth: sw * 1.3, opacity: 0.85, fill: "none" }),
     jsx("path", { d: poly(frontArc(pr, fr, T.RIM, T.RI, 72, -Math.PI / 2).length ? backArc(pr, fr, T.RIM, T.RI) : [], false), stroke: mixHex("#F2F7FD", INK, st), strokeWidth: sw * 0.8, opacity: capCovers ? 0 : 0.5, fill: "none" }),
-    // the hinge strap: a small moulded block on the rim at the back right
-    (() => {
-      const th = T.HINGE * D2R, a = pr.P(fr.at(T.RIM - 1.5, T.R + 1.6, th - 0.16)), b = pr.P(fr.at(T.RIM - 1.5, T.R + 1.6, th + 0.16));
-      return jsx("path", { d: `M${f2(a[0])},${f2(a[1])}L${f2(b[0])},${f2(b[1])}`, stroke: rampAt(CAP_RAMP, 0.55), strokeWidth: sw * 4.2, strokeLinecap: "round", opacity: 0.95, fill: "none" });
-    })(),
-    capFrontK > 0.01 && jsx("g", { opacity: capFrontK, children: capEl }),
+    capShow > 0.01 && jsx("g", { opacity: capShow, children: capEl }),
     // drops above the rim, in front of everything
     upDrops.map((q, i) => dropEl(q, 100 + i, false))
   ] });
