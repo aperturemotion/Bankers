@@ -361,4 +361,4 @@ const sfx = () => {
     ...(COMPANY_DEPART === "push" ? [cueAt("ee_whoosh_fast_small_whoosh_01", t.game + 8, 12, 0.5)] : [])   // the push into the black screen (a flight's whoosh is road's)
   ];
 };
-export const ST = { id: "company", origin: COMPANY_ORIGIN, from: T().cut + 1, to: T().gameEnd + 6, light: { shadowBox: 11, keyI: 0.85, fillI: 0.3, rimI: 0.9 }, shots, Scene, Overlay, sfx };
+export const ST = { id: "company", origin: COMPANY_ORIGIN, from: T().cut + 1, to: T().gameEnd + 40, light: { shadowBox: 11, keyI: 0.85, fillI: 0.3, rimI: 0.9 }, shots, Scene, Overlay, sfx };

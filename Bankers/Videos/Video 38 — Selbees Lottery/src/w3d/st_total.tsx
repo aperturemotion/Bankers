@@ -199,7 +199,7 @@ const Overlay = ({ f, P }) => {
       <Counter at={t.m26 - 2} out={t.nearly - 4} x={540} y={300} value={26} prefix="$" unit="MILLION" label="Won, 9 years" size={112} countDur={26} />
       <Counter at={t.m8 - 2} out={t.tax + 8} x={540} y={300} value={8} prefix="$" unit="MILLION" label="Profit before tax" size={112} countDur={16} />
       <Tag text="Profit" at={t.profit} out={t.tax + 6} x={720} y={600} to={slab.behind ? null : slab} size={30} />
-      <Tag text="Family" at={t.family - 4} out={t.family + 12} x={120} y={560} to={home.behind ? null : home} size={32} />
+      <Tag text="Family" at={t.family - 4} out={t.family + 4} x={120} y={560} to={home.behind ? null : home} size={32} />
     </>
   );
 };

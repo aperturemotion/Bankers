@@ -398,9 +398,9 @@ const Overlay = ({ f, P }) => {
         const p = trayP(i);
         return <Tag key={i} text={txt} at={at} out={t.on - 2} x={Math.max(40, Math.min(820, p.x + 70))} y={Math.max(300, Math.min(1080, p.y - 150))} to={ok(p)} />;
       })}
-      <Tag text="Tickets" at={t.tickets - 2} out={t.sideEnd + 20} x={100} y={520} to={ok(panL)} />
-      <Tag text="Prizes" at={t.put} out={t.sideEnd + 20} x={760} y={520} to={ok(panR)} />
-      <Tag text="Math on your side" at={t.math} out={t.sideEnd + 20} x={300} y={330} to={ok(piv)} />
+      <Tag text="Tickets" at={t.tickets - 2} out={t.sideEnd + 2} x={100} y={520} to={ok(panL)} />
+      <Tag text="Prizes" at={t.put} out={t.sideEnd + 2} x={760} y={520} to={ok(panR)} />
+      <Tag text="Math on your side" at={t.math} out={t.sideEnd + 2} x={300} y={330} to={ok(piv)} />
     </>
   );
 };

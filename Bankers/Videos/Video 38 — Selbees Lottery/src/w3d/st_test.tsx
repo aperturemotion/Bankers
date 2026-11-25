@@ -193,7 +193,7 @@ const shots = () => {
   const arrive = TEST_ARRIVE === "cut"
     ? [{ a: t.cut, b: t.cut + 1, cut: true, pos: W([TKX + 0.05, LINE_Y + 1.25, 0.75]), target: W([TKX, LINE_Y, 0.0]), fov: 40 },   // macro on the top ticket
        { a: t.cut + 2, b: t.in36 + 4, ...wide }]                                                                                      // pull back
-    : [{ a: t.jerry - 20, b: t.jerry + 12, ...wide }];                                                                                // or: the flight lands on the wide
+    : [{ a: t.jerry - 6, b: t.jerry + 30, arc: 4, ...wide }];                                                                                // or: the flight lands on the wide
   return [
     ...arrive,
     { a: t.in36 + 4, b: t.in63 - 2, pos: W([-0.5, 5.4, 10.6]), target: W([-0.1, 0.7, -1]), fov: 40 },     // drift right as the line is drawn
@@ -217,7 +217,7 @@ const Overlay = ({ f, P }) => {
   return (
     <>
       {/* the vignette is global (Main.tsx) */}
-      <Tag text="Winfall tickets" at={t.jerry + 8} out={t.in36 - 6} x={70} y={clampY(tkSide.y - 280)} to={tkSide.behind ? null : tkSide} size={28} />
+      <Tag text="Winfall tickets" at={TEST_ARRIVE === "cut" ? t.jerry + 8 : t.jerry + 26} out={t.in36 - 6} x={70} y={clampY(tkSide.y - 280)} to={tkSide.behind ? null : tkSide} size={28} />
       <Counter at={t.in36 - 2} x={Math.max(250, Math.min(420, tk.x))} y={clampY(tk.y - 250)} value={3600} prefix="$" label="In" size={104} countDur={24} out={t.backEnd - 16} />
       <Counter at={t.in63 - 2} x={Math.max(660, Math.min(830, cs.x))} y={clampY(cs.y - 250)} value={6300} prefix="$" label="Back" size={104} countDur={30} out={t.backEnd - 14} />
       <Tag text="Profit" at={t.back - 2} out={t.backEnd - 14} x={Math.max(300, profitL.x - 300)} y={Math.max(clampY(tk.y - 250) + 190, Math.min(900, profitL.y - 40))} to={profitL.behind ? null : profitL} size={28} />
@@ -228,7 +228,7 @@ const Overlay = ({ f, P }) => {
 const sfx = () => {
   const t = T();
   return [
-    TEST_ARRIVE === "cut" ? cueAt("whooshsoft", t.cut + 14, 24, 0.45) : cueAt("whooshlong", t.jerry - 6, 34, 0.5),   // the pull-back off the ticket / the flight in
+    TEST_ARRIVE === "cut" ? cueAt("whooshsoft", t.cut + 14, 24, 0.45) : cueAt("whooshlong", t.jerry, 34, 0.5),   // the pull-back off the ticket / the flight in
     cueAt("pingshort", t.in36, 12, 0.4),                             // the count lands
     cueAt("ee_click_click_01", t.inEnd - 10, 6, 0.35),               // the line is drawn
     cueAt("whooshlong", t.in63 + 4, 34, 0.45),                       // the camera rises with the pour
@@ -237,4 +237,4 @@ const sfx = () => {
     cueAt("ee_whoosh_fast_small_whoosh_01", t.out - 8, 12, 0.5)      // the push onto the bill
   ];
 };
-export const ST = { id: "test", origin: TEST_ORIGIN, from: TEST_ARRIVE === "cut" ? T().cut + 1 : T().jerry - 22, to: T().out - 1, light: { shadowBox: 9, keyI: 0.85, fillI: 0.3, rimI: 0.9 }, shots, Scene, Overlay, sfx };
+export const ST = { id: "test", origin: TEST_ORIGIN, from: TEST_ARRIVE === "cut" ? T().cut + 1 : T().jerry - 8, to: T().out - 1, light: { shadowBox: 9, keyI: 0.85, fillI: 0.3, rimI: 0.9 }, shots, Scene, Overlay, sfx };
