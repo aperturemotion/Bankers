@@ -17,7 +17,7 @@ const serveUrl = await bundle({ entryPoint: path.resolve("src/index.ts") });
 process.on("exit", () => { try { fs.rmSync(serveUrl, { recursive: true, force: true }); } catch {} });
 const comp = await selectComposition({ serveUrl, id: "SelbeesLottery", port: PORT, chromiumOptions, inputProps: { solo: "picture" } });
 const N = comp.durationInFrames;
-const frames = (file) => { try { return Number(execFileSync(FFPROBE, ["-v", "error", "-count_packets", "-select_streams", "v:0", "-show_entries", "stream=nb_read_packets", "-of", "csv=p=0", file]).toString().trim()); } catch { return -1; } };
+const frames = (file) => { try { return parseInt(execFileSync(FFPROBE, ["-v", "error", "-count_packets", "-select_streams", "v:0", "-show_entries", "stream=nb_read_packets", "-of", "csv=p=0", file]).toString().trim(), 10); } catch { return -1; } };
 let [lo, hi] = ONLY ? ONLY.split("-").map(Number) : [0, N - 1];
 const t0 = Date.now();
 for (let a = 0; a < N; a += CHUNK) {

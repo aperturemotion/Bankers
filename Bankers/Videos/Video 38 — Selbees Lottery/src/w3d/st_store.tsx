@@ -18,7 +18,7 @@ import { wf, wEnd } from "./take";
 import { cueAt } from "../bnx/SfxLayer";
 import { BODY, FIGURE } from "./fonts3d";
 import { Brochure, BrochureStack, broPt, pxToDesign, RULE } from "./st_store_brochure";
-import { staticFile } from "remotion";
+import { aud } from "../bnx/aud";
 
 const O = [0, 0, -58];
 const W = (p) => [p[0] + O[0], p[1] + O[1], p[2] + O[2]];
@@ -373,7 +373,7 @@ const Overlay = ({ f, P }) => {
       {/* the vignette is global (Main.tsx) */}
       <Year at={t.y2003 - 6} out={t.store - 4} x={540} y={300} />
       <Tag text="His old store" at={t.store - 2} out={t.read - 6} x={110} y={960} to={sign.behind ? null : sign} />
-      <Inset src={staticFile("photos/selbees_2shot.jpg")} credit="Photo: CBS News / 60 Minutes" at={t.jerry - 3} out={t.read + 6} x={80} y={300} w={920} h={518} pos="50% 35%" />
+      <Inset src={aud("photos/selbees_2shot.jpg")} credit="Photo: CBS News / 60 Minutes" at={t.jerry - 3} out={t.read + 6} x={80} y={300} w={920} h={518} pos="50% 35%" />
       <Tag text="Jerry & Marge Selbee" at={t.jerry + 4} out={t.read + 4} x={80} y={836} />
       <Tag text="The brochure" at={t.brochure - 2} out={t.newG + 2} x={600} y={420} to={bro.behind ? null : bro} />
       <Tag text="New Michigan game" at={t.michigan - 6} out={t.he - 4} x={110} y={360} />

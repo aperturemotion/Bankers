@@ -4,7 +4,8 @@
 //   column of hundreds of bundles costs two draw calls. Positions/rotations are set every frame from plain item lists.
 import React, { useMemo } from "react";
 import * as THREE from "three";
-import { staticFile, delayRender, continueRender } from "remotion";
+import { delayRender, continueRender } from "remotion";
+import { aud } from "../bnx/aud";
 import { canvasTex, rnd } from "./kit";
 
 export const BUNDLE = [1.56, 0.13, 0.66];      // a real bundle's proportions (156 × 66 mm, ~13 mm thick), in units of 1 = 100 mm
@@ -19,7 +20,7 @@ const preload = (url) => {
   img.src = url;
   imgCache.set(url, { img, tex: null });
 };
-preload(staticFile("bill100.png"));
+preload(aud("bill100.png"));
 export const imgTex = (url) => {
   preload(url);
   const e = imgCache.get(url);
@@ -41,7 +42,7 @@ const strapTex = () => canvasTex("cash_strap", 128, 256, (c, w, h) => {
 const geoB = new THREE.BoxGeometry(BUNDLE[0], BUNDLE[1], BUNDLE[2]);
 const geoS = new THREE.BoxGeometry(0.2, BUNDLE[1] + 0.012, BUNDLE[2] + 0.012);
 const makeMats = (glow, white = false) => {
-  const bill = imgTex(staticFile("bill100.png"));
+  const bill = imgTex(aud("bill100.png"));
   const edge = edgeTex(), strap = strapTex();
   const em = glow ? { emissive: new THREE.Color(white ? "#FFFFFF" : "#4D8ED9"), emissiveIntensity: 0 } : {};
   const side = new THREE.MeshStandardMaterial({ map: edge, color: "#E8EEE6", roughness: 0.78, ...em });

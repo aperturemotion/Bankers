@@ -18,7 +18,7 @@ import { ease, easeOut, rnd, clamp01, Sky, Glow, canvasTex } from "./kit";
 import { Tag, Counter, Inset } from "./overlays";
 import { wf, wEnd } from "./take";
 import { cueAt } from "../bnx/SfxLayer";
-import { staticFile } from "remotion";
+import { aud } from "../bnx/aud";
 import { BODY, FIGURE, SERIF } from "./fonts3d";
 import { Room, Outside, TableLamp, noiseTex } from "./st_test_props";
 import { T as TT } from "./st_test";
@@ -339,7 +339,7 @@ const Overlay = ({ f, P }) => {
     <>
       {/* the vignette is global (Main.tsx) */}
       <Tag text="$500 a share" at={t.company} out={t.family - 4} x={1010} y={420} side="right" to={title.behind ? null : title} size={28} />
-      <Inset src={staticFile("photos/selbees_shareholders.jpg")} credit="Photo: CBS News / 60 Minutes" at={t.family - 2} out={t.played - 6} x={110} y={300} w={860} h={484} pos="50% 40%" />
+      <Inset src={aud("photos/selbees_shareholders.jpg")} credit="Photo: CBS News / 60 Minutes" at={t.family - 2} out={t.played - 6} x={110} y={300} w={860} h={484} pos="50% 40%" />
       <Tag text="25 members" at={t.friends} out={t.played - 6} x={110} y={820} to={fan.behind ? null : fan} size={28} />
       <Counter at={t.played} out={t.until - 2} x={540} y={Math.max(300, Math.min(520, board.y - 250))} from={drawn} value={drawn} unit="ROLL-DOWNS" size={110} countDur={1} />
       <Tag text="Game ended 2005" at={t.ended + 4} out={COMPANY_DEPART === "push" ? t.game + 6 : t.ended + 16} x={1010} y={Math.max(420, Math.min(620, scr.y - 330))} side="right" to={scr.behind ? null : scr} size={28} />
