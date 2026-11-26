@@ -174,14 +174,11 @@ const shots = () => {
   const close = heroCam(G_TUB, 0.19);
   return [
     { a: ROAD_CUT, b: ROAD_CUT, cut: true, pos: undrift(A(close.pos), FROM), target: A(close.target), fov: 34 },            // the matching close-up
-    { a: FROM + 1, b: t.alone + 30, pos: A([-3.6, 0.55, -0.55]), target: A([10, 4.4, 0.35]), fov: 40 },                     // pull back, low: stack and dome (rev 2: 41 f, a 50× zoom-out in 29 f lurched)
+    { a: FROM + 1, b: t.alone + 30, pos: A([-3.6, 0.55, -0.55]), target: A([10, 4.4, 0.35]), fov: 40, raw: true },   // rev 4f: raw — smoothCam's window reached back over the cut and pulled the pull-out's end back in (3.3 → 2.8 m, 48.2–48.7 s: "zooms in on 'a group started'")                     // pull back, low: stack and dome (rev 2: 41 f, a 50× zoom-out in 29 f lurched)
     { a: t.alone + 20, b: t.too + 8, pos: A([-3.9, 0.7, 0.9]), target: A([10, 4.6, -0.6]), fov: 40 },                          // drift across the stack
-    // rev 4f (Timur, 48 s: "it zooms out from the lottery tickets and then zooms in again … and zooms out. So delete the zoom in"):
-    //   the dive over the paper, the ease to its masthead and the pull back to the stack are gone. After the pull-out the camera only
-    //   rises UP and BACK behind the table, the paper in the foreground with the tubs and the dome behind it; RIGGED? at the same distance.
-    { a: t.too - 14, b: t.y2011 + 10, pos: A([-5.2, 3.3, -0.35]), target: A([0.4, 1.0, -0.2]), fov: 40 },                   // rise up and back over the table: framed as the paper falls onto it
-    { a: t.y2011 + 10, b: t.many + 6, pos: A([-5.25, 3.35, -0.6]), target: A([0.5, 0.6, -0.2]), fov: 40 },                 // settle on the paper as it lands
-    { a: t.many - 4, b: t.rigged + 17, pos: A([-5.3, 3.4, -1.3]), target: A([0.2, 0.7, -0.3]), fov: 40 }                    // drift a little left: RIGGED?
+    { a: t.y2011 - 2, b: t.boston + 4, pos: A(P_(-2.3, 3.1, 0.25)), target: A(P_(0.75, 0, 0)), fov: 36 },                  // up over the paper
+    { a: t.story - 10, b: t.many + 6, pos: A(P_(-1.5, 2.3, 0.1)), target: A(P_(0.4, 0, 0)), fov: 36 },                     // ease toward the masthead
+    { a: t.many + 6, b: t.rigged + 17, pos: A([-3.6, 1.7, -2.2]), target: A([-0.2, 0.85, -0.2]), fov: 38 }                  // back to the stack: RIGGED?
   ];
 };
 const RedTag = ({ text, at, dimAt, out, x, y, to }) => {
@@ -217,7 +214,7 @@ const Overlay = ({ f, P: P0 }) => {
   return (
     <>
       {/* rev 2 tag audit (REV2.md): fully in (at + 12; RedTag at + 8) by its word, ≥ 36 f readable, gone before the camera leaves */}
-      <Tag text="MIT group" at={t.mit - 12} out={t.too - 12} x={110} y={420} to={stack.behind ? null : stack} />
+      <Tag text="MIT group" at={t.mit - 12} out={t.y2011 - 12} x={110} y={420} to={stack.behind ? null : stack} />
       <Tag text="July 2011" at={t.boston + 2} out={t.many - 6} x={600} y={330} to={date.behind ? null : date} />
       <RedTag text="RIGGED?" at={t.many - 6} dimAt={t.rigged + 12} out={t.gameEnd - 10} x={150} y={360} to={stack.behind ? null : stack} />
     </>
