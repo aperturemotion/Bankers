@@ -37,7 +37,8 @@ const T = () => ({
 const PALLET_Y = 0.14, LAYER = TUB.y + 0.02;
 const slot = (i, j, layer) => [i * 0.24, PALLET_Y + layer * LAYER, j * 0.25];
 export const G_TUB = slot(-1, -1, 2);
-const PAPER_AT = [-1.15, 0, -0.2];
+const PAPER_AT = [-1.3, 0, -0.2];   // rev 4b: 15 cm further from the pallet, so the table under the paper clears it
+const TABLE_H = 0.74, TABLE_TOP = [1.5, 1.0];   // a folding table in front of the stack: the paper lands on its top
 // rev 4 (Timur: "add some texture to the ground … right now it's just a gray plain floor"): Killian Court's granite paving — slabs of
 //   1 m × 0.5 m in running bond, each its own tone of blue-grey granite with mica speckle, crisp dark joints with a lit upper arris;
 //   one tile = 4 m × 4 m (repeat 50 over the 200-m ground), the same canvas drives a bump map
@@ -60,6 +61,24 @@ const pavingTex = () => canvasTex("g_paving2", 1024, 1024, (c, w, h) => {
     c.fillRect(x, y, q < 0.55 ? 2 : 1.5, q < 0.55 ? 2 : 1.5);
   }
 });
+const FoldingTable = ({ p }) => {
+  const [W, D] = TABLE_TOP, H = TABLE_H, T = 0.035;
+  const steel = <meshStandardMaterial color="#2A3446" metalness={0.75} roughness={0.35} />;
+  return (
+    <group position={p}>
+      <mesh position={[0, H - T / 2, 0]} castShadow receiveShadow><boxGeometry args={[W, T, D]} /><meshStandardMaterial color="#6E5038" roughness={0.45} envMapIntensity={0.6} /></mesh>
+      <mesh position={[0, H - T - 0.002, 0]}><boxGeometry args={[W + 0.012, 0.006, D + 0.012]} /><meshStandardMaterial color="#3A2A1E" roughness={0.6} /></mesh>
+      {[-1, 1].map((s) => <mesh key={"ax" + s} position={[0, H - T - 0.05, s * (D / 2 - 0.05)]} castShadow><boxGeometry args={[W - 0.12, 0.08, 0.02]} /><meshStandardMaterial color="#5A3F2C" roughness={0.6} /></mesh>)}
+      {[-1, 1].map((s) => <mesh key={"az" + s} position={[s * (W / 2 - 0.06), H - T - 0.05, 0]} castShadow><boxGeometry args={[0.02, 0.08, D - 0.12]} /><meshStandardMaterial color="#5A3F2C" roughness={0.6} /></mesh>)}
+      {[[-1, -1], [-1, 1], [1, -1], [1, 1]].map(([a, b], i) => (
+        <mesh key={"lg" + i} position={[a * (W / 2 - 0.12), (H - T) / 2, b * (D / 2 - 0.1)]} rotation-x={b * 0.05} castShadow><cylinderGeometry args={[0.016, 0.016, H - T, 10]} />{steel}</mesh>
+      ))}
+      {[-1, 1].map((a) => <mesh key={"br" + a} position={[a * (W / 2 - 0.12), 0.22, 0]} rotation-x={Math.PI / 2}><cylinderGeometry args={[0.01, 0.01, D - 0.2, 8]} />{steel}</mesh>)}
+      {[-1, 1].map((a) => <mesh key={"hg" + a} position={[a * (W / 2 - 0.12), H - T - 0.1, 0]} rotation-x={Math.PI / 2}><cylinderGeometry args={[0.012, 0.012, D - 0.22, 8]} />{steel}</mesh>)}
+      {[[-1, -1], [-1, 1], [1, -1], [1, 1]].map(([a, b], i) => <mesh key={"ft" + i} position={[a * (W / 2 - 0.12), 0.012, b * (D / 2 - 0.1)]}><cylinderGeometry args={[0.024, 0.024, 0.024, 10]} /><meshStandardMaterial color="#111821" roughness={0.8} /></mesh>)}
+    </group>
+  );
+};
 const WOOD = ["#B49A76", "#A88E6A", "#BFA582", "#9E8562", "#B39773", "#AA9070", "#B8A07C"];
 const Pallet = () => {
   const H = PALLET_Y, top = 0.022, blk = H - 2 * top - 0.018;
@@ -93,12 +112,15 @@ const dropY = (f, at) => DROP_H * (1 - ease(f, at - DROP_F, at));
 const paperPose = (f, t) => {
   const a = t.y2011 + 4, b = t.boston - 2;
   const k = ease(f, a, b);
-  return { y: (1 - k) * (1 - k) * 3.2, yaw: (1 - k) * 1.4, tilt: (1 - k) * 0.5 * Math.sin((f - a) / 4), slide: (1 - easeOut(f, b, b + 10)) * 0.0 + (1 - k) * 0.8, vis: f >= a - 1 };
+  const tilt = (1 - k) * 0.5 * Math.sin((f - a) / 4);
+  return { y: TABLE_H + 0.003 + (1 - k) * (1 - k) * 3.2 + (PAPER_H / 2) * Math.abs(Math.sin(tilt)), yaw: (1 - k) * 1.4, tilt, slide: (1 - easeOut(f, b, b + 10)) * 0.0 + (1 - k) * 0.8, vis: f >= a - 1 };
 };
 const Scene = ({ f }) => {
   const t = useMemo(T, []);
   const paving = useMemo(pavingTex, []);
   paving.wrapS = paving.wrapT = THREE.RepeatWrapping; paving.repeat.set(50, 50); paving.anisotropy = 8;
+  const band = useMemo(() => { const b = paving.clone(); b.needsUpdate = true; b.wrapS = b.wrapT = THREE.RepeatWrapping; b.repeat.set(30 / 4, 7 / 4); b.anisotropy = 8; return b; }, [paving]);
+  const kerb = useMemo(() => { const b = paving.clone(); b.needsUpdate = true; b.wrapS = b.wrapT = THREE.RepeatWrapping; b.repeat.set(30 / 4, 0.3 / 4); return b; }, [paving]);
   const floods = useMemo(() => [0].map(() => { const o = new THREE.Object3D(); o.position.set(25, 6, 0); return o; }), []);
   const pp = paperPose(f, t);
   const red = ease(f, t.rigged - 2, t.rigged + 6) * (1 - 0.75 * ease(f, t.gameEnd - 4, t.gameEnd + 10));
@@ -109,7 +131,9 @@ const Scene = ({ f }) => {
       <Stars />
       <mesh rotation-x={-Math.PI / 2} position={[10, 0, 0]} receiveShadow><planeGeometry args={[200, 200]} /><meshStandardMaterial map={paving} bumpMap={paving} bumpScale={0.6} roughness={0.62} metalness={0.05} envMapIntensity={0.35} color="#C4CFDE" /></mesh>
       {/* a long reflecting band of darker stone leading to the steps */}
-      <mesh rotation-x={-Math.PI / 2} position={[14, 0.004, 0]} receiveShadow><planeGeometry args={[30, 7]} /><meshStandardMaterial color="#1D2A3E" roughness={0.3} metalness={0.2} /></mesh>
+      {/* rev 4b: the band to the steps is polished DARK granite in the same slabs (it was a flat grey plane), between light kerbs */}
+      <mesh rotation-x={-Math.PI / 2} position={[14, 0.004, 0]} receiveShadow><planeGeometry args={[30, 7]} /><meshStandardMaterial map={band} bumpMap={band} bumpScale={0.5} color="#7D8CA6" roughness={0.3} metalness={0.15} envMapIntensity={0.5} /></mesh>
+      {[-3.65, 3.65].map((z) => <mesh key={"kb" + z} position={[14, 0.02, z]} receiveShadow castShadow><boxGeometry args={[30, 0.04, 0.3]} /><meshStandardMaterial map={kerb} color="#D6DEEA" roughness={0.55} /></mesh>)}
       <group position={[26, 0, 0]} scale={0.6}><DomeBuilding /></group>
       {floods.map((o, i) => <primitive key={"ft" + i} object={o} />)}
       <spotLight position={[17, 0.4, 0]} target={floods[0]} angle={0.75} penumbra={0.8} intensity={28} distance={30} decay={1.3} color="#DCE9FF" />
@@ -133,6 +157,8 @@ const Scene = ({ f }) => {
       <group position={[0, d2, 0]} visible={f > t.too - DROP_F - 1}><Tub position={slot(-1, 1, 2)} rotY={0.03} seed={6} num={44} /></group>
       {/* the faint red light of the suspicion, then it dims */}
       <Glow position={[G_TUB[0] - 0.1, G_TUB[1] + 0.35, G_TUB[2]]} size={1.3} color="#FF3B3B" opacity={0.45 * red} />
+      {/* rev 4b: the folding table the paper lands on — a walnut top with an edge band and an apron, folding steel legs with braces */}
+      <FoldingTable p={[PAPER_AT[0], 0, PAPER_AT[2]]} />
       {/* the newspaper */}
       {pp.vis && (
         <group position={[PAPER_AT[0] - pp.slide, pp.y, PAPER_AT[2]]} rotation-y={pp.yaw} rotation-z={pp.tilt}>
@@ -142,7 +168,7 @@ const Scene = ({ f }) => {
     </group>
   );
 };
-const P_ = (dx, dy, dz) => [PAPER_AT[0] + dx, dy, PAPER_AT[2] + dz];
+const P_ = (dx, dy, dz) => [PAPER_AT[0] + dx, dy + TABLE_H, PAPER_AT[2] + dz];   // rev 4b: the paper is on the table
 const shots = () => {
   const t = T();
   const close = heroCam(G_TUB, 0.19);
