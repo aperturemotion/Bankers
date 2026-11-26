@@ -58,7 +58,7 @@ iy = next(i for i, w in enumerate(OW) if w["t"] == "years.")
 old_cut = OW[iy]["b"] + 0.03
 # rev 4d (Timur: "create a small pause in the voiceover after he says 'In this town'"): PAUSE_F frames of silence inserted at the
 #   QUIETEST 10-ms point between "town" and "of" (measured on the trimmed line), every later hook word moved by it
-PAUSE_F = int(os.environ.get("PAUSE_F", 10))
+PAUSE_F = int(os.environ.get("PAUSE_F", 0))   # rev 4e: Timur removed the pause again ("delete the pause … keep it as it was")
 it = next(i for i, w in enumerate(hook) if w["t"] == "town")
 pcm44 = np.frombuffer(subprocess.run([FF, "-v", "error", "-i", "out/hook38C.wav", "-f", "f32le", "-ac", "1", "-ar", "44100", "-"], capture_output=True).stdout, dtype=np.float32)
 lo, hi = int(hook[it]["b"] * 44100) - 2205, int(hook[it + 1]["a"] * 44100) + 1323

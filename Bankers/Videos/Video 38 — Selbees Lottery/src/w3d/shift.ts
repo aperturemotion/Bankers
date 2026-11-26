@@ -6,5 +6,5 @@
 //   · STORY time = real − HOOK_SHIFT: every other station, exactly as authored and checked on take B (take.ts, its solved camera keys,
 //     matched cuts, dissolves, sound cues). Main.tsx shifts their shots/cues/flashes by +HOOK_SHIFT and hands them story frames.
 //   HOOK_SHIFT is written by scratchpad/hook_vo.py into scratchpad/hook_shift.json; keep the two equal.
-export const HOOK_SHIFT = 53;   // rev 4d: + the 10-frame pause after "In this town"
+export const HOOK_SHIFT = 43;   // rev 4e: the pause after "In this town" removed again (Timur)
 export const HOOK_ID = "hook";
