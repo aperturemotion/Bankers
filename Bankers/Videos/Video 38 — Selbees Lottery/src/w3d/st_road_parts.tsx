@@ -11,6 +11,7 @@ import { WORDS } from "./take";
 import { BODY } from "./fonts3d";
 import { drawTicket } from "./ticket_art";
 import { toteGeometry, toteMats } from "./road_tote";
+import { HOOK_SHIFT } from "./shift";
 
 // ── the take: the first word equal to t at or after frame `after` (exact match, so "for" never finds "formed") ─────────────────
 const nrm = (s) => s.toLowerCase().replace(/[^a-z0-9$']/g, "");
@@ -18,7 +19,9 @@ export const wAt = (t, after = 0) => { const q = nrm(t); for (const w of WORDS) 
 export const wa = (t, after = 0) => wAt(t, after).at;
 
 // ── the kit camera's idle drift (kit.makeCam, drift 1): subtracted from a close-up key so that the LIVE camera sits exactly on it ─
-export const drift = (f) => [0.06 * Math.sin(f / 97), 0.04 * Math.sin(f / 131 + 1), 0.05 * Math.sin(f / 113 + 2)];
+// rev 4f: the kit's drift runs on REAL frames (makeCam sees shots already shifted by HOOK_SHIFT); this station is in STORY time, so
+//   its undrift adds HOOK_SHIFT — without it the 17 s push into the brochure overshot the chart's centre and the picture spun ~100°
+export const drift = (fs) => { const f = fs + HOOK_SHIFT; return [0.06 * Math.sin(f / 97), 0.04 * Math.sin(f / 131 + 1), 0.05 * Math.sin(f / 113 + 2)]; };
 export const undrift = (p, f) => { const d = drift(f); return [p[0] - d[0], p[1] - d[1], p[2] - d[2]]; };
 
 // ── the ticket: a generic $2 lottery slip (no real game's artwork), the same in the trunk and on the MIT stack ─────────────────

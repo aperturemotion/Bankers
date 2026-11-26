@@ -76,7 +76,16 @@ hook[it] = {**hook[it], "a": 0.48, "b": 0.76}
 hook[it + 1] = {**hook[it + 1], "a": round(0.80 + pdur, 3), "b": round(0.92 + pdur, 3)}
 for i in range(it + 2, len(hook)):   # keep the words in order after the pin
     if hook[i]["a"] < hook[i - 1]["b"]: hook[i] = {**hook[i], "a": hook[i - 1]["b"], "b": max(hook[i]["b"], hook[i - 1]["b"] + 0.06)}
-new_cut0 = hook[-1]["b"] + 0.03
+# rev 4f (Timur: "the voice over doesnt finish saying 9 years"): whisper ended "years." at 7.94 s, but the closing "s" (a sibilant,
+#   80–95 % of its energy over 4 kHz) runs on to ~8.29 s after a short dip — the cut at whisper's end chopped it off. The end is now
+#   MEASURED: the last 10-ms window above −45 dB within 0.6 s after whisper's end, + 40 ms of tail.
+pcm_e = np.frombuffer(subprocess.run([FF, "-v", "error", "-i", "out/hook38C.wav", "-f", "f32le", "-ac", "1", "-ar", "44100", "-"], capture_output=True).stdout, dtype=np.float32)
+e0, e1 = int(hook[-1]["b"] * 44100), min(len(pcm_e), int((hook[-1]["b"] + 0.6) * 44100))
+loud = [k for k in range(e0, e1 - 441, 441) if 20 * np.log10(np.sqrt(np.mean(pcm_e[k:k + 441] ** 2)) + 1e-9) > -45]
+end_meas = ((loud[-1] + 441) / 44100) if loud else hook[-1]["b"]
+print(f"'years.' whisper end {hook[-1]['b']:.3f} s → measured end {end_meas:.3f} s")
+hook[-1] = {**hook[-1], "b": round(max(hook[-1]["b"], end_meas), 3)}
+new_cut0 = hook[-1]["b"] + 0.04
 shift_f = round((new_cut0 - old_cut) * FPS + 0.4999)          # whole frames, rounded UP (the remainder is padded with silence)
 pad = shift_f / FPS - (new_cut0 - old_cut)
 new_cut = new_cut0 + pad

@@ -20,6 +20,7 @@ import { BODY, FIGURE } from "./fonts3d";
 import { Brochure, BrochureStack, broPt, pxToDesign, RULE } from "./st_store_brochure";
 import { aud } from "../bnx/aud";
 import { Town, addProps, addGoods } from "./town_parts";
+import { HOOK_SHIFT } from "./shift";
 
 const O = [0, 0, -58];
 const W = (p) => [p[0] + O[0], p[1] + O[1], p[2] + O[2]];
@@ -443,7 +444,9 @@ const Scene = ({ f }) => {
 };
 // the push INTO the diagram ends 7.5 cm over the paper (the near plane is 5 cm), closer than the camera's idle drift (kit.makeCam: ±6 cm) — so it is keyed one
 // shot per frame with that drift subtracted (the kit's own formula), landing exactly on the paper without ever dipping under it
-const drift = (f) => [0.06 * Math.sin(f / 97), 0.04 * Math.sin(f / 131 + 1), 0.05 * Math.sin(f / 113 + 2)];
+// rev 4f: the kit's drift runs on REAL frames (makeCam sees shots already shifted by HOOK_SHIFT); this station is in STORY time, so
+//   its undrift adds HOOK_SHIFT — without it the 17 s push into the brochure overshot the chart's centre and the picture spun ~100°
+const drift = (fs) => { const f = fs + HOOK_SHIFT; return [0.06 * Math.sin(f / 97), 0.04 * Math.sin(f / 131 + 1), 0.05 * Math.sin(f / 113 + 2)]; };
 const pushIn = (t, d) => {
   const a = t.threeEnd - 12, b = t.when - 1;
   const P5 = [d[0] - 0.2, d[1] + 0.36, d[2]], P6 = [d[0] - 0.008, d[1] + 0.075, d[2]];

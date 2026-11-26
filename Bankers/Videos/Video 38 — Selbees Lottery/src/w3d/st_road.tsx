@@ -69,7 +69,7 @@ const signTex = () => canvasTex("c_massSign2", 2048, 720, (c, w, h) => {
   c.fillStyle = "#FFFFFF";
   [w * 0.28, w * 0.72].forEach((x) => { c.beginPath(); c.moveTo(x, 640); c.lineTo(x - 64, 560); c.lineTo(x - 22, 560); c.lineTo(x - 22, 488); c.lineTo(x + 22, 488); c.lineTo(x + 22, 560); c.lineTo(x + 64, 560); c.closePath(); c.fill(); });
 });
-// the gantry passes over the camera (chase cam at x −8.5) 10 f after "Massachusetts." ends
+// the gantry reaches x −8.5 10 f after "Massachusetts." ends (rev 4f: the chase cam sits at −18.8, so it passes over it 22 f after)
 const gantryX = (f, t) => -8.5 + (S(t.massEnd + 10) - S(f));
 const barrierShape = () => {
   const s = new THREE.Shape();
@@ -226,11 +226,15 @@ const shots = () => {
   const close = heroCam(TRUNK_TUB, 0.19);
   return [
     ...roadArrival(A, t),                                                                                          // arrival (xfer_company_road.ts)
-    { a: 1104, b: t.similar + 24, pos: A([-12.5, 3.2, -0.7]), target: A([12, 2.4, -0.5]), fov: 36 },              // crane down behind the car
-    { a: t.similar + 16, b: t.massEnd + 6, pos: A([-11.2, 2.7, -1.0]), target: A([10, 4.3, -0.8]), fov: 38 },         // tilt up as the sign goes over
+    // rev 4f: both held at the arrival pull-out's distance from the car (~19 m; they were 12.7 / 11.3 m — a zoom back in after the pull-out)
+    { a: 1104, b: t.similar + 24, pos: A([-18.5, 4.4, -0.7]), target: A([12, 2.4, -0.5]), fov: 36 },              // crane down behind the car
+    { a: t.similar + 16, b: t.massEnd + 6, pos: A([-18.8, 3.8, -1.0]), target: A([10, 5.0, -0.8]), fov: 38 },         // tilt up as the sign goes over
     // rev 2 (Timur: no back-and-forth): ONE sweep round to the side (the "ahead" swing reversed it), then ONE gentle rise
-    { a: t.forW - 4, b: t.miles - 12, pos: A([0.5, 2.6, -8.2]), target: A([0.3, 0.8, 0]), fov: 36 },             // round to the side
-    { a: t.miles - 12, b: t.often - 8, pos: A([-6, 12, -3]), target: A([4, 0.5, 0]), fov: 38 },                  // a gentle aerial
+    // rev 4f (Timur, 40 s: "zooms out, zooms in, and zooms out again … it should just zoom out continuously"): the dive round to the
+    //   side (24 → 8.5 m) and the pull back up to the aerial are gone — ONE slow rise and pull-back from behind the car to a wide aerial;
+    //   the only way in after it is the single push into the trunk (and the ticket) at the end of the scene
+    // the rise waits until the gantry has passed over the camera (gantryX = −18.8 at massEnd + 22; clear of its truss by + 33)
+    { a: t.massEnd + 33, b: t.often - 8, pos: A([-16, 15, -6.5]), target: A([4, 0.5, 0]), fov: 38 },               // a slow rise to a wide aerial
     { a: t.often - 8, b: t.betting + 16, pos: A([-7.8, 4.4, -4.6]), target: A([-0.5, 0.75, 0]), fov: 36 },          // in behind the trunk
     { a: t.cut - 42, b: t.cut - 12, pos: A(heroCam(TRUNK_TUB, 1.4).pos), target: A(close.target), fov: 34 },     // line up on one ticket
     { a: t.cut - 15, b: t.cut, pos: undrift(A(close.pos), t.cut), target: A(close.target), fov: 34 }              // push straight into it
@@ -290,8 +294,8 @@ const sfx = () => {
     cueAt("whooshlong", 1086, 30, 0.55),                         // the flight in (fastest frame ~ the middle of 1062–1102)
     cueAt("whooshsoft", 1112, 24, 0.45),                         // crane down behind the car
     cueAt("ee_click_click_01", t.similar - 4, 10, 0.4),           // CASH WINFALL tag
-    cueAt("airwoosh", t.massEnd + 10, 40, 0.5),                  // the gantry passes overhead
-    cueAt("ee_whoosh_medium_whoosh_01", t.forW + 18, 40, 0.4),   // round to the side
+    cueAt("airwoosh", t.massEnd + 22, 40, 0.5),                  // the gantry passes overhead (rev 4f: the chase cam now sits at x −18.8)
+    cueAt("whooshsoft", t.massEnd + 60, 30, 0.35),               // rev 4f: the slow rise to the aerial (was the swing round to the side)
     cueAt("ee_click_click_01", t.years - 12, 10, 0.35),             // the pill
     cueAt("ee_whoosh_low_fast_whoosh", t.miles + 10, 30, 0.45),  // up to the aerial
     cueAt("ee_clock_clock_ticking_01", t.miles - 12, 36, 0.3),    // the odometer rolling

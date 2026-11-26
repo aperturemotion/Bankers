@@ -6,8 +6,11 @@
 //   drift included, sits exactly on the solved pose).
 import * as THREE from "three";
 import { projectWith, smoother, clamp01 } from "./kit";
+import { HOOK_SHIFT } from "./shift";
 
-export const drift = (f) => [0.06 * Math.sin(f / 97), 0.04 * Math.sin(f / 131 + 1), 0.05 * Math.sin(f / 113 + 2)];   // = kit.makeCam's
+// rev 4f: the kit's drift runs on REAL frames (makeCam sees shots already shifted by HOOK_SHIFT); this station is in STORY time, so
+//   its undrift adds HOOK_SHIFT — without it the 17 s push into the brochure overshot the chart's centre and the picture spun ~100°
+export const drift = (fs) => { const f = fs + HOOK_SHIFT; return [0.06 * Math.sin(f / 97), 0.04 * Math.sin(f / 131 + 1), 0.05 * Math.sin(f / 113 + 2)]; };   // = kit.makeCam's
 export const undrift = (p, f) => { const d = drift(f); return [p[0] - d[0], p[1] - d[1], p[2] - d[2]]; };
 export const fpx = (fov) => 960 / Math.tan((fov * Math.PI) / 360);
 const V = (a) => new THREE.Vector3(a[0], a[1], a[2]);
