@@ -10,7 +10,7 @@
 import React from "react";
 import { AbsoluteFill, Audio, Sequence, useCurrentFrame } from "remotion";
 import { aud } from "../bnx/aud";
-import { World3D, makeCam, projectWith, HouseLights, ease } from "./kit";
+import { World3D, makeCam, smoothCam, projectWith, HouseLights, ease } from "./kit";
 import { Karaoke } from "./karaoke";
 import { CHIPS, TOTAL, VO_END } from "./take";
 import { BrandClose, Watermark } from "../bnx/close";
@@ -29,7 +29,8 @@ const shotsAll = STATIONS.flatMap((s) => s.shots()).sort((p, q) => p.a - q.a);
 // the camera's final move: up and away into the navy sky as the close comes in (the world falls away under BANKER$)
 const lastShot = shotsAll[shotsAll.length - 1];
 const OUTRO = { a: CLOSE_AT - 6, b: CLOSE_AT + 40, pos: [lastShot.pos[0], lastShot.pos[1] + 22, lastShot.pos[2] + 10], target: [lastShot.target[0], lastShot.target[1] + 26, lastShot.target[2] - 6], fov: 40 };
-export const CAM = makeCam([...shotsAll, OUTRO]);
+export const CAM_RAW = makeCam([...shotsAll, OUTRO]);
+export const CAM = smoothCam(CAM_RAW, TOTAL, shotsAll.filter((s) => s.cut).map((s) => s.a), 14);   // one continuous glide (kit.smoothCam)
 // the store's push INTO the leaflet's bright diagram cuts to the dark coin wall (measured 159 → 102 mean levels at 480 → 481)
 const CUT_FLASH = [{ at: 481, o: 0.58, dur: 16, color: "#C8DBF4" }, { at: 883, o: 0.42, dur: 14, color: "#EEF3FA" }];   // 883: the bright bill → the gold seal (186 → 147)
 // a flight between stations crosses the navy HAZE (the reference style's "through a boundary" transition): the fog thickens to full

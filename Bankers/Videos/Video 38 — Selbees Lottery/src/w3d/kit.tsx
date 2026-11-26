@@ -51,6 +51,65 @@ export const makeCam = (shots, drift = 1) => (f) => {
   pos = [pos[0] + d * 0.06 * Math.sin(f / 97), pos[1] + d * 0.04 * Math.sin(f / 131 + 1), pos[2] + d * 0.05 * Math.sin(f / 113 + 2)];
   return { pos, target, fov, roll };
 };
+// ★ ONE CONTINUOUS GLIDE (Timur, 2026-11-26: "the camera movement … is not smooth … it just moves a bit, like each several shots …
+//   it just shakes … smoothen the camera movement a lot more"). makeCam eases every shot from rest to rest, so chained shots stopped
+//   and started ~27 times in the film (measured: speed < 0.05°/f between moves of > 0.3°/f). smoothCam low-passes the WHOLE path
+//   (pos, target, fov, roll) with a Gaussian of SIGMA frames, segment by segment between hard cuts; each segment is padded by POINT
+//   REFLECTION about its end frames, so a cut's two frames (the matched seal at 882/883 etc.) keep their exact pose and velocity.
+//   Short stops melt into one flowing move; holds longer than ~1 s still hold.
+export const smoothCam = (cam, total, cuts, sigma = 10, taper = 24) => {
+  // smoothed in a camera-shaped space: the aim point, the view DIRECTION and log DISTANCE (so a close macro never swings), fov, roll;
+  // the Gaussian narrows to nothing over `taper` frames before/after a hard cut (a push into a cut is one designed ease already, and
+  // the matched cut's frames must stay exactly where they were authored)
+  const N = total + 2, R = Math.ceil(sigma * 3);
+  const X = [];
+  for (let f = 0; f < N; f++) {
+    const k = cam(f), dx = k.pos[0] - k.target[0], dy = k.pos[1] - k.target[1], dz = k.pos[2] - k.target[2];
+    const d = Math.max(1e-4, Math.hypot(dx, dy, dz));
+    X.push([k.target[0], k.target[1], k.target[2], dx / d, dy / d, dz / d, Math.log(d), k.fov, k.roll ?? 0]);
+  }
+  const D = X[0].length;
+  // FLIGHTS between places (the raw camera travelling > 0.35 m a frame) are single designed eases across hundreds of metres: a
+  // Gaussian would start them ~20 f early (tags still up, the next place not yet mounted). They are kept raw, like a cut, and the
+  // smoothing fades in over `taper` frames either side of them.
+  // (a flight = a run of frames moving > 0.15 m/f whose total travel exceeds 30 m — the hops between places, not the local moves
+  // around a big set like the road's car)
+  const fast = new Array(N).fill(false), stepLen = new Array(N).fill(0);
+  for (let f = 1; f < N; f++) { const p = cam(f).pos, q = cam(f - 1).pos; stepLen[f] = Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]); }
+  for (let f = 1; f < N; ) {
+    if (stepLen[f] <= 0.15) { f++; continue; }
+    let g = f, tot = 0; while (g < N && stepLen[g] > 0.15) { tot += stepLen[g]; g++; }
+    if (tot > 30) for (let k = f - 1; k < g; k++) fast[k] = true;
+    f = g;
+  }
+  const distFast = new Array(N).fill(1e9);
+  for (let f = 0, last = -1e9; f < N; f++) { if (fast[f]) last = f; distFast[f] = f - last; }
+  for (let f = N - 1, next = 1e9; f >= 0; f--) { if (fast[f]) next = f; distFast[f] = Math.min(distFast[f], next - f); }
+  const bounds = [0, ...cuts.map((c) => c + 1).filter((c) => c > 0 && c < N), N];   // a cut shot at a jumps between a and a + 1
+  const out = new Array(N);
+  for (let si = 0; si < bounds.length - 1; si++) {
+    const a0 = bounds[si], a1 = bounds[si + 1] - 1;
+    const at = (i) => {                      // point reflection outside [a0, a1]
+      if (i < a0) { const m = Math.min(a1, 2 * a0 - i); return X[a0].map((v, j) => 2 * v - X[m][j]); }
+      if (i > a1) { const m = Math.max(a0, 2 * a1 - i); return X[a1].map((v, j) => 2 * v - X[m][j]); }
+      return X[i];
+    };
+    for (let f = a0; f <= a1; f++) {
+      const edge = Math.min(si > 0 ? f - a0 : 1e9, si < bounds.length - 2 ? a1 - f : 1e9, distFast[f]);
+      const sg = sigma * Math.min(1, Math.max(0, edge / taper));
+      if (sg < 0.35) { out[f] = X[f]; continue; }
+      const r = Math.min(R, Math.ceil(sg * 3));
+      const acc = new Array(D).fill(0); let ws = 0;
+      for (let k = -r; k <= r; k++) { const wk = Math.exp(-(k * k) / (2 * sg * sg)), x = at(f + k); ws += wk; for (let j = 0; j < D; j++) acc[j] += wk * x[j]; }
+      out[f] = acc.map((v) => v / ws);
+    }
+  }
+  return (f) => {
+    const v = out[Math.max(0, Math.min(N - 1, Math.round(f)))];
+    const n = Math.hypot(v[3], v[4], v[5]) || 1, d = Math.exp(v[6]);
+    return { pos: [v[0] + v[3] / n * d, v[1] + v[4] / n * d, v[2] + v[5] / n * d], target: [v[0], v[1], v[2]], fov: v[7], roll: v[8] };
+  };
+};
 const camObj = new THREE.PerspectiveCamera(34, W / H, 0.05, 600);
 const setCam = (c, k) => {
   c.fov = k.fov; c.aspect = W / H; c.near = 0.05; c.far = 600; c.updateProjectionMatrix();
