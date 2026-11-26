@@ -56,6 +56,26 @@ hook = [{"t": s, "a": w["a"], "b": w["b"]} for s, w in zip(SPOKEN, exp)]
 # 3. splice: new hook up to just after its "years." + the old take from just after its "years." (the 0.6 s hold, "In two thousand three", …)
 iy = next(i for i, w in enumerate(OW) if w["t"] == "years.")
 old_cut = OW[iy]["b"] + 0.03
+# rev 4d (Timur: "create a small pause in the voiceover after he says 'In this town'"): PAUSE_F frames of silence inserted at the
+#   QUIETEST 10-ms point between "town" and "of" (measured on the trimmed line), every later hook word moved by it
+PAUSE_F = int(os.environ.get("PAUSE_F", 10))
+it = next(i for i, w in enumerate(hook) if w["t"] == "town")
+pcm44 = np.frombuffer(subprocess.run([FF, "-v", "error", "-i", "out/hook38C.wav", "-f", "f32le", "-ac", "1", "-ar", "44100", "-"], capture_output=True).stdout, dtype=np.float32)
+lo, hi = int(hook[it]["b"] * 44100) - 2205, int(hook[it + 1]["a"] * 44100) + 1323
+win = 441; best = min(range(lo, max(lo + 1, hi - win), 110), key=lambda s0: float(np.sqrt(np.mean(pcm44[s0:s0 + win] ** 2))))
+pcut = float(os.environ.get("PAUSE_AT", "0.785")) if os.environ.get("PAUSE_AT", "0.785") else (best + win / 2) / 44100; pdur = PAUSE_F / FPS
+print(f"pause: {pdur:.3f} s at {pcut:.3f} s (rms {float(np.sqrt(np.mean(pcm44[best:best + win] ** 2))):.4f}) between town ({hook[it]['b']}) and of ({hook[it + 1]['a']})")
+r = run(FF, "-v", "error", "-y", "-i", "out/hook38C.wav", "-filter_complex",
+        f"[0:a]atrim=0:{pcut:.5f},afade=t=out:st={pcut - 0.01:.5f}:d=0.01,apad=pad_dur={pdur:.5f},asetpts=PTS-STARTPTS[x];[0:a]atrim=start={pcut:.5f},asetpts=PTS-STARTPTS,afade=t=in:st=0:d=0.01[y];[x][y]concat=n=2:v=0:a=1[o]",
+        "-map", "[o]", "-ar", "44100", "-ac", "1", "-c:a", "pcm_s16le", "out/hook38C_p.wav")
+if r.returncode: sys.exit(r.stderr)
+if PAUSE_F: os.replace("out/hook38C_p.wav", "out/hook38C.wav")
+hook = [w if i <= it else {**w, "a": round(w["a"] + pdur, 3), "b": round(w["b"] + pdur, 3)} for i, w in enumerate(hook)]   # "of" onward (whisper put town/of ~0.15 s early; the measured gap is at PAUSE_AT)
+# measured on the trimmed line's energy (whisper put them ~0.15 s early): "town" 0.48–0.76 s; "of" starts 0.80 s → after the pause
+hook[it] = {**hook[it], "a": 0.48, "b": 0.76}
+hook[it + 1] = {**hook[it + 1], "a": round(0.80 + pdur, 3), "b": round(0.92 + pdur, 3)}
+for i in range(it + 2, len(hook)):   # keep the words in order after the pin
+    if hook[i]["a"] < hook[i - 1]["b"]: hook[i] = {**hook[i], "a": hook[i - 1]["b"], "b": max(hook[i]["b"], hook[i - 1]["b"] + 0.06)}
 new_cut0 = hook[-1]["b"] + 0.03
 shift_f = round((new_cut0 - old_cut) * FPS + 0.4999)          # whole frames, rounded UP (the remainder is padded with silence)
 pad = shift_f / FPS - (new_cut0 - old_cut)

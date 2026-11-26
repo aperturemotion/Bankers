@@ -63,6 +63,7 @@ for k, w in enumerate(out):
     end_sent = bool(re.search(r"[.!?]$", t)); end_clause = t.endswith(",") or t.endswith(":")
     rest = rest_in_sentence(k)
     brk = end_sent or (end_clause and len(cur) >= 2 and rest > 2) or (chars >= 24 and rest > 2) or chars >= 40
+    if os.environ.get("CAPS_PAUSE_BREAK") and not brk and k + 1 < len(out) and out[k + 1]["a"] - w["b"] >= 0.25 and len(cur) >= 2: brk = True   # rev 4d: a chip ends on a spoken pause (\"In this town\" …)
     if brk and not end_sent and t in ("Jerry", "Boston", "Michigan", "MIT"): brk = chars >= 40   # never split a name
     if brk and not end_sent and k + 1 < len(out) and re.match(r"^[\d$]", t) and out[k + 1]["t"].lower().startswith("people"): brk = chars >= 40   # rev 4c: "1,903 | people" never splits
     if brk:
