@@ -34,8 +34,10 @@ const shotsAll = STATIONS.flatMap((s) => s.shots().map(real(s))).sort((p, q) => 
 const story = (s, f) => (s.id === HOOK_ID ? f : Math.max(0, f - S));   // the frame a station is handed
 // the camera's final move: up and away into the navy sky as the close comes in (the world falls away under BANKER$)
 const lastShot = shotsAll[shotsAll.length - 1];
-const OUTRO = { a: CLOSE_AT + 32, b: CLOSE_AT + 82,   // rev 2: after the slower fly-out
-   pos: [lastShot.pos[0], lastShot.pos[1] + 22, lastShot.pos[2] + 10], target: [lastShot.target[0], lastShot.target[1] + 26, lastShot.target[2] - 6], fov: 40 };
+// V39: the last place is INSIDE the store, so the outro PULLS BACK along the view (12 m, rising 1.5 m) instead of lifting into the sky
+const _d = [lastShot.pos[0] - lastShot.target[0], lastShot.pos[2] - lastShot.target[2]], _n = Math.hypot(_d[0], _d[1]) || 1;
+const OUTRO = { a: CLOSE_AT + 32, b: CLOSE_AT + 82,
+   pos: [lastShot.pos[0] + (_d[0] / _n) * 12, lastShot.pos[1] + 1.5, lastShot.pos[2] + (_d[1] / _n) * 12], target: [lastShot.target[0], lastShot.target[1] + 0.5, lastShot.target[2]], fov: 40 };
 export const CAM_RAW = makeCam([...shotsAll, OUTRO]);
 // one continuous glide (kit.smoothCam). rev 3 (Timur, 2026-11-26: "smoothen the camera move as much as you can … really pleasant"):
 //   SIGMA 14 → CAM_SIGMA; shots flagged `raw` (a move threading an opening) stay as authored
