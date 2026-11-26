@@ -325,7 +325,18 @@ const buildPerson = (S) => {
        [1.08, 0.172, 0.147, 0.115], [1.16, 0.17, 0.14, 0.115], [1.24, 0.172, 0.13, 0.118], [1.31, 0.178, 0.12, 0.12], [1.37, 0.19, 0.11, 0.118, 3.0],
        [1.415, 0.205, 0.098, 0.106, 3.4], [1.45, 0.19, 0.084, 0.092, 3.2], [1.482, 0.14, 0.072, 0.077, 2.6], [1.505, 0.085, 0.065, 0.065], [1.515, 0.07, 0.058, 0.058]];
   const torsoW = [[B.hips, 1], [B.spine, 1], [B.chest, 1], [B.thL, fem ? 0.9 : 0.25], [B.thR, fem ? 0.9 : 0.25]];
-  A.add("coat", loft(rows.map(([y, w, f, b, n]) => ({ c: [0, y, 0], sec: se(w, f, b, n ?? 2.4) })), 40, { uTheta: 1.0 }), new THREE.Matrix4(), torsoW, fem ? "#8796AA" : "#34445F");
+  // rev 4c review (Timur: "the bottom part of the [jacket] partly disappears when the leg appears"): HIS jacket below the hip joint is
+  //   carried by the thighs — blended by depth below the hip, more at the front than the back, split between the two thighs across the
+  //   zip — so the hem rides forward over the trouser like cloth instead of being pierced by it; above the hip the torso weights stand
+  const torsoDist = (p) => { const w = [[B.hips, 1], [B.spine, 1], [B.chest, 1]].map(([b, bias]) => [b, bias / Math.max(1e-6, segD(p, segs[b])) ** 4]); const t = w.reduce((a, q) => a + q[1], 0) || 1; return w.map(([b, v]) => [b, v / t]); };
+  const jacketW = (p) => {
+    const below = cl((S.hipY + 0.02 - p.y) / 0.12), front = cl(0.35 + p.z / 0.2);
+    const wT = below * below * (3 - 2 * below) * (0.2 + 0.6 * front);
+    if (wT <= 0) return torsoDist(p);
+    const wl = wT * cl(0.5 + p.x / 0.1), wr = wT * cl(0.5 - p.x / 0.1);
+    return [[B.hips, 1 - wT], [B.thL, wl], [B.thR, wr]].filter((q) => q[1] > 1e-4);
+  };
+  A.add("coat", loft(rows.map(([y, w, f, b, n]) => ({ c: [0, y, 0], sec: se(w, f, b, n ?? 2.4) })), 40, { uTheta: 1.0 }), new THREE.Matrix4(), fem ? torsoW : jacketW, fem ? "#8796AA" : "#34445F");
   // the front surface z at (x, y) — for placing pockets, buttons, the zip
   const rowAt = (y) => { let i = 1; while (i < rows.length - 1 && rows[i][0] < y) i++; const a = rows[i - 1][0] < rows[i][0] ? rows[i - 1] : rows[i], b = rows[i]; const t = cl((y - a[0]) / Math.max(1e-6, b[0] - a[0])); return [lerp(a[1], b[1], t), lerp(a[2], b[2], t), lerp(a[4] ?? 2.4, b[4] ?? 2.4, t)]; };
   const frontZ = (x, y) => { const [w, f, n] = rowAt(y); const s = cl(Math.abs(x) / w, 0, 0.999); const th = Math.asin(s ** (n / 2)); return f * Math.cos(th) ** (2 / n); };
@@ -333,17 +344,17 @@ const buildPerson = (S) => {
   const slope = (x, y) => Math.atan2(frontZ(x + 0.01, y) - frontZ(x - 0.01, y), 0.02);
   if (!fem) {
     // hem binding, the zip, the corduroy collar, a blue shirt collar inside it, two flap pockets
-    A.add("coat", loft([[0.79, 0.195, 0.145, 0.135], [0.8, 0.196, 0.146, 0.136], [0.82, 0.193, 0.144, 0.133]].map(([y, w, f, b]) => ({ c: [0, y, 0], sec: se(w, f, b) })), 40), new THREE.Matrix4(), torsoW, "#26324A");
+    A.add("coat", loft([[0.79, 0.195, 0.145, 0.135], [0.8, 0.196, 0.146, 0.136], [0.82, 0.193, 0.144, 0.133]].map(([y, w, f, b]) => ({ c: [0, y, 0], sec: se(w, f, b) })), 40), new THREE.Matrix4(), jacketW, "#26324A");
     const zipRows = []; for (let y = 0.8; y <= 1.5; y += 0.035) zipRows.push({ c: onFront(0, y, 0.001), sec: (th) => [0.0045 * Math.sin(th), 0.0025 * Math.cos(th)] });
-    A.add("metal", loft(zipRows, 6, { f: [0, 0, 1] }), new THREE.Matrix4(), torsoW, "#2A2F36");
+    A.add("metal", loft(zipRows, 6, { f: [0, 0, 1] }), new THREE.Matrix4(), jacketW, "#2A2F36");
     A.add("metal", new THREE.BoxGeometry(0.012, 0.03, 0.005), T4([0, 1.455, frontZ(0, 1.455) + 0.006]), B.chest, "#9AA3AE");
     A.add("cord", loft([[1.49, 0.08, 0.074], [1.5, 0.082, 0.076], [1.525, 0.079, 0.073], [1.548, 0.077, 0.07], [1.55, 0.07, 0.063], [1.535, 0.069, 0.062]].map(([y, rx, rz]) => ({ c: [0, y, 0.006], sec: circ(rx, rz) })), 28), new THREE.Matrix4(), [[B.chest, 1], [B.neck, 1.2]], "#46352B");
     A.add("twill", loft([[1.53, 0.066, 0.062], [1.562, 0.064, 0.06], [1.563, 0.058, 0.055]].map(([y, rx, rz]) => ({ c: [0, y, 0.008], sec: circ(rx, rz) })), 24), new THREE.Matrix4(), [[B.neck, 1]], "#A9C3DE");
     for (const s of [-1, 1]) {
       const x = s * 0.105, y = 0.93;
-      A.add("coat", new THREE.BoxGeometry(0.135, 0.13, 0.008), T4(onFront(x, y - 0.065, 0.003), [0, slope(x, y - 0.065), 0]), [[B.hips, 1], [B.spine, 0.5]], "#2F3E57");
-      A.add("coat", new THREE.BoxGeometry(0.145, 0.045, 0.014), T4(onFront(x, y + 0.01, 0.009), [0, slope(x, y), 0]), [[B.hips, 1], [B.spine, 0.5]], "#33445F");
-      A.add("metal", new THREE.CylinderGeometry(0.006, 0.006, 0.004, 10), T4(onFront(x, y + 0.008, 0.017), [PI / 2, 0, 0]), [[B.hips, 1], [B.spine, 0.5]], "#8A939E");
+      A.add("coat", new THREE.BoxGeometry(0.135, 0.13, 0.008), T4(onFront(x, y - 0.065, 0.003), [0, slope(x, y - 0.065), 0]), jacketW, "#2F3E57");
+      A.add("coat", new THREE.BoxGeometry(0.145, 0.045, 0.014), T4(onFront(x, y + 0.01, 0.009), [0, slope(x, y), 0]), jacketW, "#33445F");
+      A.add("metal", new THREE.CylinderGeometry(0.006, 0.006, 0.004, 10), T4(onFront(x, y + 0.008, 0.017), [PI / 2, 0, 0]), jacketW, "#8A939E");
     }
     // a chest seam (yoke) across the front
     A.add("coat", loft([...Array(15)].map((_, i) => { const x = -0.16 + i * 0.32 / 14; return { c: onFront(x, 1.31, 0.001), sec: (th) => [0.003 * Math.sin(th), 0.0018 * Math.cos(th)], t: [1, 0, 0] }; }), 4), new THREE.Matrix4(), torsoW, "#26324A");
@@ -585,6 +596,23 @@ const legState = (S, phi, stride) => {
   const e = s - Math.sin(TAU * s) / TAU;
   return { y: lerp(a.y, b.y, s) + 0.04 * Math.sin(PI * Math.pow(s, 0.8)), z: lerp(a.z, b.z, e), p: lerp(-TH_T, TH_H, sm(s)), lat: 0.012 * Math.sin(PI * s), stance: false };
 };
+// the most the pelvis must sit lower (than hipY − offset + bob) at any phase of the stride for both legs to reach — computed once per person
+const DROP_CACHE = new Map();
+const reachDrop = (S, stride, ph0) => {
+  const key = S.cad + "_" + stride.toFixed(4); if (DROP_CACHE.has(key)) return DROP_CACHE.get(key);
+  let worst = 0; const Lmax = (S.thigh + S.shin) * 0.97;
+  for (let i = 0; i < 240; i++) {
+    const phi = i / 240, s2 = Math.sin(TAU * phi), c2 = Math.cos(TAU * phi);
+    const Qp = qm(qa("y", -0.075 * c2), qa("z", 0.045 * s2), qa("x", S.fem ? 0.05 : 0.07));
+    const sway = (S.fem ? 0.026 : 0.022) * s2, hy = S.hipY - (S.fem ? 0.032 : 0.038) + 0.011 * Math.cos(4 * PI * (phi - 0.3));
+    for (const [s, ph] of [[1, phi], [-1, (phi + 0.5) % 1]]) {
+      const L = legState(S, ph, stride), H = v3(sway, hy, 0).add(v3(s * S.hipX, 0, 0).applyQuaternion(Qp));
+      const A = v3(s * (S.stepW / 2 + L.lat), L.y, L.z), hd = Math.hypot(A.x - H.x, A.z - H.z);
+      if (hd < Lmax) worst = Math.max(worst, H.y - (A.y + Math.sqrt(Lmax * Lmax - hd * hd)));
+    }
+  }
+  DROP_CACHE.set(key, worst); return worst;
+};
 // the full pose: world-space (person space, no rotation) joints for one person at time t
 const solvePose = (S, t, opt) => {
   const cyc = S.cad / 120, stride = SPEED / cyc, u = t * cyc + opt.ph;
@@ -594,7 +622,12 @@ const solvePose = (S, t, opt) => {
   const yaw = -0.075 * c2, roll = 0.045 * s2, sway = (S.fem ? 0.026 : 0.022) * s2;
   const pitch = S.fem ? 0.05 : 0.07;
   const Qp = qm(qa("y", yaw), qa("z", roll), qa("x", pitch));
-  let hy = S.hipY - (S.fem ? 0.032 : 0.038) - 0.01 * Math.cos(4 * PI * (phi - 0.06));
+  // rev 4c review (Timur: "they bump up and down … should be a lot more realistic and smooth"): the pelvis height is a CONSTANT
+  //   (lowered once by the most any phase of the stride needs, so a leg always reaches) plus a gentle bob — highest over the standing
+  //   leg at mid-stance, lowest in double support, ±1.1 cm (an older walker's ~2 cm) — instead of a per-frame drop that switched on
+  //   and off through the stride
+  const bob = 0.011 * Math.cos(4 * PI * (phi - 0.3));
+  let hy = S.hipY - (S.fem ? 0.032 : 0.038) - reachDrop(S, stride, opt.ph) + bob;
   const hipJ = (s, h) => v3(sway, h, 0).add(v3(s * S.hipX, 0, 0).applyQuaternion(Qp));
   const ank = (L) => { const yawF = L.s * 0.11; return v3(L.s * (S.stepW / 2 + L.lat) + Math.sin(yawF) * 0, L.y, L.z); };
   const Lmax = (S.thigh + S.shin) * 0.985;
