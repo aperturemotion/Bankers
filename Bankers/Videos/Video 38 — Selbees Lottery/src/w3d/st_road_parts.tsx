@@ -2,11 +2,14 @@
 // ★ V38 shared parts for the ROAD and GLOBE stations (builder C): the Massachusetts ticket, its bundles, the plastic ticket TUB
 //   (CBS: the Selbees kept their tickets in tubs), a word finder and the camera-drift compensator used by the push-through hand-over
 //   road → globe (the camera pushes into one ticket in the trunk and the cut lands on the identical ticket on the MIT group's stack).
+//   Rev 2 (builder D): the TUB is now a real plastic storage tote (road_tote.tsx: ribs, ledge, handholds, rim lip, snap lid with
+//   latches, frosted walls showing the slips, a written label card); the bundles and the hero slip's position are unchanged.
 import React, { useMemo, useLayoutEffect, useRef } from "react";
 import * as THREE from "three";
 import { canvasTex, rnd } from "./kit";
 import { WORDS } from "./take";
 import { BODY } from "./fonts3d";
+import { toteGeometry, toteMats } from "./road_tote";
 
 // ── the take: the first word equal to t at or after frame `after` (exact match, so "for" never finds "formed") ─────────────────
 const nrm = (s) => s.toLowerCase().replace(/[^a-z0-9$']/g, "");
@@ -64,13 +67,7 @@ const Bundle = ({ pos, hero = false, tint = 1, glow = 0 }) => {
     </group>
   );
 };
-const cardTex = () => canvasTex("tubCard", 128, 74, (c, w, h) => {
-  c.fillStyle = "#EEF2F7"; c.fillRect(0, 0, w, h);
-  c.fillStyle = "rgba(200,210,225,0.8)"; c.fillRect(0, 0, w, 10); c.fillRect(0, h - 10, w, 10);
-  c.strokeStyle = "rgba(20,40,80,0.55)"; c.lineWidth = 3;
-  [24, 40, 56].forEach((y, i) => { c.beginPath(); c.moveTo(14, y); for (let x = 14; x < 100 - i * 18; x += 6) c.lineTo(x, y + Math.sin(x * 0.7 + i) * 2); c.stroke(); });
-});
-// tub (outside) dims: length along x, height, depth along z
+// tub (outside) dims: length along x, height, depth along z (the tote in road_tote.tsx; its lid top = the stacking pitch 0.30)
 export const TUB = { x: 0.42, y: 0.28, z: 0.44, wall: 0.014 };
 // where the hero slip's face centre sits, relative to an open tub's base centre, and the direction it faces
 export const HERO_LOCAL = [-0.12 - 0.0141, 0.3 + 0.0141, 0];
@@ -80,29 +77,28 @@ export const heroCam = (tubBase, d = 0.19) => {
   const c = [tubBase[0] + HERO_LOCAL[0], tubBase[1] + HERO_LOCAL[1], tubBase[2] + HERO_LOCAL[2]];
   return { pos: [c[0] + HERO_N[0] * d, c[1] + HERO_N[1] * d, c[2] + HERO_N[2] * d], target: c };
 };
-const TUB_COLS = ["#5D84B9", "#4C72A6", "#6A8EC2", "#557BB0"];
-const tubMat = (glow, seed = 0) => ({ color: TUB_COLS[seed % TUB_COLS.length], roughness: 0.34, metalness: 0.05, emissive: "#7FB4F2", emissiveIntensity: glow * 1.15 });
-/** a plastic ticket tub: base at the origin; open shows the bundles; lid closes it */
-export const Tub = ({ position = [0, 0, 0], rotY = 0, open = false, hero = false, glow = 0, seed = 0 }) => {
-  const { x, y, z, wall } = TUB;
-  const m = tubMat(glow, seed);
+const setFade = (m, op) => { const tr = op < 0.999; if (m.transparent !== tr) { m.transparent = tr; m.needsUpdate = true; } m.opacity = op; m.depthWrite = true; m.visible = op > 0.004; };
+/** a plastic ticket tote (rev 2: road_tote.tsx): base at the origin; open shows the bundles; closed wears its snap lid.
+ *  glow: the accent light of the x-ray; fade: 0–1 (dissolves with the car's cabin); num: the number written on its label card */
+export const Tub = ({ position = [0, 0, 0], rotY = 0, open = false, hero = false, glow = 0, seed = 0, fade = 1, num }) => {
+  const g = toteGeometry();
+  const m = useMemo(() => toteMats(seed, num), [seed, num]);
+  m.wall.emissiveIntensity = glow * 1.15; m.lid.emissiveIntensity = glow * 1.15;
+  for (const k of Object.keys(m)) setFade(m[k], fade);
+  const lean = Math.atan2(0.02, 0.262);
   return (
     <group position={position} rotation-y={rotY}>
-      <mesh position={[0, wall / 2, 0]} castShadow receiveShadow><boxGeometry args={[x - 0.02, wall, z - 0.02]} /><meshStandardMaterial {...m} /></mesh>
-      {[-1, 1].map((s) => <mesh key={"x" + s} position={[s * (x / 2 - wall / 2), y / 2, 0]} castShadow receiveShadow><boxGeometry args={[wall, y, z]} /><meshStandardMaterial {...m} /></mesh>)}
-      {[-1, 1].map((s) => <mesh key={"z" + s} position={[0, y / 2, s * (z / 2 - wall / 2)]} castShadow receiveShadow><boxGeometry args={[x, y, wall]} /><meshStandardMaterial {...m} /></mesh>)}
-      {/* the rolled rim lip and two moulded handles */}
-      {[-1, 1].map((s) => <mesh key={"rx" + s} position={[s * (x / 2 - 0.002), y - 0.006, 0]} castShadow><boxGeometry args={[0.028, 0.016, z + 0.024]} /><meshStandardMaterial {...m} color="#6E93C6" /></mesh>)}
-      {[-1, 1].map((s) => <mesh key={"rz" + s} position={[0, y - 0.006, s * (z / 2 - 0.002)]} castShadow><boxGeometry args={[x + 0.024, 0.016, 0.028]} /><meshStandardMaterial {...m} color="#6E93C6" /></mesh>)}
-      {[-1, 1].map((s) => <mesh key={"h" + s} position={[s * (x / 2 + 0.006), y - 0.05, 0]}><boxGeometry args={[0.012, 0.03, 0.14]} /><meshStandardMaterial color="#2C4E7E" roughness={0.5} /></mesh>)}
-      {/* a white index card taped to the end (no writing legible at this size) */}
-      <mesh position={[-x / 2 - 0.0015, y * 0.55, 0]} rotation-y={-Math.PI / 2}><planeGeometry args={[0.13, 0.075]} /><meshStandardMaterial map={useMemo(cardTex, [])} roughness={0.7} /></mesh>
-      {open && <mesh position={[0, 0.13, 0]}><boxGeometry args={[x - 0.03, 0.24, z - 0.03]} /><meshStandardMaterial color="#DCE4EE" roughness={0.8} emissive="#7FB4F2" emissiveIntensity={glow * 0.2} /></mesh>}
-      {open
-        ? [-0.12, 0, 0.12].flatMap((bx, r) => [-0.13, 0, 0.13].map((bz, k) => (
-          <Bundle key={r + "_" + k} pos={r === 0 && k === 1 ? [bx, 0.3, bz] : [bx + (rnd(seed + r * 3 + k) - 0.5) * 0.01, 0.3 - rnd(seed + r * 7 + k) * 0.03, bz]} hero={hero && r === 0 && k === 1} glow={glow} />
-        )))
-        : <mesh position={[0, y + 0.008, 0]} castShadow receiveShadow><boxGeometry args={[x + 0.03, 0.022, z + 0.03]} /><meshStandardMaterial {...m} color="#7298CB" /></mesh>}
+      <mesh geometry={g.wall} material={m.wall} castShadow receiveShadow />
+      {!open && <mesh geometry={g.lid} material={m.lid} castShadow receiveShadow />}
+      {!open && <mesh geometry={g.clips} material={m.clips} castShadow />}
+      {/* the label card, taped flat to the end wall (which leans out as the tote widens upward) */}
+      <group position={[-0.2052, 0.11, 0]} rotation-z={lean}>
+        <mesh rotation-y={-Math.PI / 2} material={m.card}><planeGeometry args={[0.165, 0.093]} /></mesh>
+      </group>
+      {open && <mesh position={[0, 0.14, 0]}><boxGeometry args={[TUB.x - 0.06, 0.22, TUB.z - 0.06]} /><meshStandardMaterial color="#DCE4EE" roughness={0.8} emissive="#7FB4F2" emissiveIntensity={glow * 0.2} /></mesh>}
+      {open && [-0.12, 0, 0.12].flatMap((bx, r) => [-0.13, 0, 0.13].map((bz, k) => (
+        <Bundle key={r + "_" + k} pos={r === 0 && k === 1 ? [bx, 0.3, bz] : [bx + (rnd(seed + r * 3 + k) - 0.5) * 0.01, 0.3 - rnd(seed + r * 7 + k) * 0.03, bz]} hero={hero && r === 0 && k === 1} glow={glow} />
+      )))}
     </group>
   );
 };

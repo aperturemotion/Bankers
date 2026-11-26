@@ -4,7 +4,8 @@
 //   ARRIVAL (cut: true, a = 1356): the road station pushed into one $2 slip in the Selbees' trunk until it filled the frame; we land on
 //   the IDENTICAL slip, framed identically, on top of a second stack of ticket tubs — and pull back: the stack stands on a stone plaza
 //   at night in front of a domed neoclassical building in the spirit of MIT's Great Dome (generic, unlabelled). "They weren't alone."
-//   1412  "MIT": tag MIT GROUP on the stack; the camera drifts across it; on "played it too" two more tubs drop onto it.
+//   1412  "MIT": tag MIT GROUP on the stack; the camera drifts across it; on "played it too" two more totes are lowered into the
+//         top layer's two empty slots (rev 2: none hangs over an empty slot any more; one eased path each, then they stay).
 //   1474  "In 2011": a newspaper falls onto the plaza in front of the stack as the camera cranes up over it; the masthead
 //         "The Boston Globe" (text only, a neutral serif) reads on "Boston Globe"; the page below is blurred past reading.
 //   1540  "the story": tag JULY 2011 on the dateline; the camera eases down toward the masthead.
@@ -51,8 +52,11 @@ const Lamp = ({ p }) => (
     <Glow position={[0, 4.35, 0]} size={1.8} color="#FFC97A" opacity={0.6} />
   </group>
 );
-// the arriving tubs on "played it too": each drops from above and settles with a small bounce
-const dropY = (f, at) => { const k = clamp01((f - (at - 12)) / 12); const b = f > at ? 0.03 * Math.abs(Math.sin((f - at) / 2.2)) * Math.exp(-(f - at) / 5) : 0; return 3.2 * (1 - k * k) + b; };   // falls (gravity), lands on `at`, a small bounce
+// the arriving totes on "played it too" (rev 2, Timur: "a box disappears … the fourth box is just flying"): the draft dropped the
+// second one onto LAYER 3 over an EMPTY slot (it hung in the air) and both fell 3.2 m in 12 f. Now both fill the two empty slots of
+// the top layer, each lowered from above the frame on one eased path (accelerating, then a soft landing exactly on `at`), and stay.
+const DROP_H = 3.6, DROP_F = 22;
+const dropY = (f, at) => DROP_H * (1 - ease(f, at - DROP_F, at));
 const paperPose = (f, t) => {
   const a = t.y2011 + 4, b = t.boston - 2;
   const k = ease(f, a, b);
@@ -88,11 +92,11 @@ const Scene = ({ f }) => {
       {/* the MIT group's stack */}
       <mesh position={[0, PALLET_Y / 2, 0]} castShadow receiveShadow><boxGeometry args={[1.0, PALLET_Y, 1.1]} /><meshStandardMaterial color="#1F3556" roughness={0.6} /></mesh>
       {[-0.42, 0, 0.42].map((z) => <mesh key={z} position={[0, 0.03, z]}><boxGeometry args={[1.02, 0.06, 0.12]} /><meshStandardMaterial color="#162843" roughness={0.6} /></mesh>)}
-      {[0, 1].map((L) => [-1, 1].map((i) => [-1, 1].map((j) => <Tub key={L + "_" + i + "_" + j} position={slot(i, j, L)} rotY={(rnd(L * 9 + i * 3 + j) - 0.5) * 0.06} glow={0} seed={L * 4 + (i + 1) + (j + 1) * 2} />)))}
-      <Tub position={G_TUB} open hero glow={0} seed={3} />
-      <Tub position={slot(1, 1, 2)} rotY={0.04} seed={2} />
-      <group position={[0, d1, 0]} visible={f > t.played - 10}><Tub position={slot(1, -1, 2)} rotY={-0.05} seed={1} /></group>
-      <group position={[0, d2, 0]} visible={f > t.too - 12}><Tub position={slot(-1, 1, 3)} rotY={0.08} seed={3} /></group>
+      {[0, 1].map((L) => [-1, 1].map((i) => [-1, 1].map((j) => <Tub key={L + "_" + i + "_" + j} position={slot(i, j, L)} rotY={(rnd(L * 9 + i * 3 + j) - 0.5) * 0.06} glow={0} seed={L * 4 + (i + 1) + (j + 1) * 2} num={31 + L * 4 + (i + 1) + (j + 1) / 2} />)))}
+      <Tub position={G_TUB} open hero glow={0} seed={3} num={42} />
+      <Tub position={slot(1, 1, 2)} rotY={0.04} seed={2} num={41} />
+      <group position={[0, d1, 0]} visible={f > t.played + 2 - DROP_F - 1}><Tub position={slot(1, -1, 2)} rotY={-0.05} seed={1} num={43} /></group>
+      <group position={[0, d2, 0]} visible={f > t.too - DROP_F - 1}><Tub position={slot(-1, 1, 2)} rotY={0.03} seed={6} num={44} /></group>
       {/* the faint red light of the suspicion, then it dims */}
       <Glow position={[G_TUB[0] - 0.1, G_TUB[1] + 0.35, G_TUB[2]]} size={1.3} color="#FF3B3B" opacity={0.45 * red} />
       {/* the newspaper */}
@@ -149,9 +153,10 @@ const Overlay = ({ f, P: P0 }) => {
   const date = P([PAPER_AT[0] - pp.slide + PAPER_H * (0.5 - 0.205), pp.y + 0.01, PAPER_AT[2] - PAPER_W * 0.32]);
   return (
     <>
-      <Tag text="MIT group" at={t.mit} out={t.y2011 - 6} x={110} y={420} to={stack.behind ? null : stack} />
-      <Tag text="July 2011" at={t.story} out={t.many + 14} x={600} y={330} to={date.behind ? null : date} />
-      <RedTag text="RIGGED?" at={t.rigged - 2} dimAt={t.rigged + 12} out={t.gameEnd - 10} x={150} y={360} to={stack.behind ? null : stack} />
+      {/* rev 2 tag audit (REV2.md): fully in (at + 12; RedTag at + 8) by its word, ≥ 36 f readable, gone before the camera leaves */}
+      <Tag text="MIT group" at={t.mit - 12} out={t.y2011 - 12} x={110} y={420} to={stack.behind ? null : stack} />
+      <Tag text="July 2011" at={t.boston + 2} out={t.many - 6} x={600} y={330} to={date.behind ? null : date} />
+      <RedTag text="RIGGED?" at={t.many - 6} dimAt={t.rigged + 12} out={t.gameEnd - 10} x={150} y={360} to={stack.behind ? null : stack} />
     </>
   );
 };
@@ -159,12 +164,13 @@ const sfx = () => {
   const t = T();
   return [
     cueAt("whooshlong", FROM + 14, 30, 0.45),                     // the pull back off the slip
-    cueAt("ee_click_click_01", t.mit + 2, 10, 0.4),               // MIT GROUP
-    cueAt("thud", t.played + 2, 12, 0.45),                        // a tub lands
+    cueAt("ee_click_click_01", t.mit - 10, 10, 0.4),              // MIT GROUP
+    cueAt("whooshsoft", t.played + 2 - 9, 20, 0.3),              // a tote comes down …
+    cueAt("thud", t.played + 2, 12, 0.45),                        // … and lands
     cueAt("thud", t.too, 12, 0.4),                                // another
     cueAt("whooshsoft", t.y2011 + 12, 24, 0.45),                  // up over the plaza as the paper falls
     cueAt("ee_paper_paper_tear_01", t.boston - 2, 16, 0.35),      // the paper lands
-    cueAt("pingshort", t.story + 2, 18, 0.35),                    // JULY 2011
+    cueAt("pingshort", t.boston + 4, 18, 0.35),                  // JULY 2011
     cueAt("whooshsoft", t.many + 22, 24, 0.4),                    // up and back
     cueAt("sub", t.rigged, 26, 0.5)                               // RIGGED?
   ];

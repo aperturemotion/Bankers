@@ -271,11 +271,12 @@ const Overlay = ({ f, P: P0 }) => {
   const tubs = P([TRUNK_TUB[0] + 0.05, TRUNK_TUB[1] + 0.3, -0.45]);
   return (
     <>
-      <Tag text="Cash WinFall" at={t.similar} out={t.mass + 20} x={90} y={640} to={sign.behind ? null : sign} />
-      <Pill at={t.years - 4} out={t.cut - 24} x={1040} y={240} label="Played" value="6 YEARS" />
-      <Odometer at={t.miles - 4} out={t.often - 6} value={900} label="ONE WAY" unit="MILES" />
-      <Tag text="Tubs of tickets" at={t.betting + 10} out={t.cut - 20} x={110} y={600} to={tubs.behind ? null : tubs} />
-      <Counter at={t.money - 4} out={t.cut - 16} x={540} y={330} value={600000} prefix="$" unit="+" label="Often, a round" size={112} countDur={30} />
+      {/* rev 2 tag audit (REV2.md): each fully in (at + 12/14) by its word, ≥ 36 f readable, gone before the camera leaves its object */}
+      <Tag text="Cash WinFall" at={t.similar - 6} out={t.mass + 22} x={90} y={640} to={sign.behind ? null : sign} />
+      <Pill at={t.years - 14} out={t.cut - 24} x={1040} y={240} label="Played" value="6 YEARS" />
+      <Odometer at={t.miles - 14} out={t.often - 18} value={900} label="ONE WAY" unit="MILES" />
+      <Tag text="Tubs of tickets" at={t.betting + 4} out={t.cut - 20} x={110} y={600} to={tubs.behind ? null : tubs} />
+      <Counter at={t.money - 14} out={t.cut - 16} x={540} y={330} value={600000} prefix="$" unit="+" label="Often, a round" size={112} countDur={30} />
     </>
   );
 };
@@ -284,12 +285,12 @@ const sfx = () => {
   return [
     cueAt("whooshlong", 1086, 30, 0.55),                         // the flight in (fastest frame ~ the middle of 1062–1102)
     cueAt("whooshsoft", 1112, 24, 0.45),                         // crane down behind the car
-    cueAt("ee_click_click_01", t.similar + 2, 10, 0.4),          // CASH WINFALL tag
+    cueAt("ee_click_click_01", t.similar - 4, 10, 0.4),           // CASH WINFALL tag
     cueAt("airwoosh", t.massEnd + 10, 40, 0.5),                  // the gantry passes overhead
     cueAt("ee_whoosh_medium_whoosh_01", t.forW + 18, 40, 0.4),   // round to the side
-    cueAt("ee_click_click_01", t.years, 10, 0.35),               // the pill
+    cueAt("ee_click_click_01", t.years - 12, 10, 0.35),             // the pill
     cueAt("ee_whoosh_low_fast_whoosh", t.miles + 10, 30, 0.45),  // up to the aerial
-    cueAt("ee_clock_clock_ticking_01", t.miles - 2, 36, 0.3),    // the odometer rolling
+    cueAt("ee_clock_clock_ticking_01", t.miles - 12, 36, 0.3),    // the odometer rolling
     cueAt("whooshsoft", t.often + 6, 24, 0.4),                   // down behind the trunk
     cueAt("pingshort", t.betting + 2, 20, 0.4),                  // the shell turns to glass
     cueAt("coin", t.money + 26, 14, 0.45),                       // $600,000+ lands

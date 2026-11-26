@@ -19,6 +19,7 @@ import { cueAt } from "../bnx/SfxLayer";
 import { BODY, FIGURE } from "./fonts3d";
 import { Brochure, BrochureStack, broPt, pxToDesign, RULE } from "./st_store_brochure";
 import { aud } from "../bnx/aud";
+import { Town, addProps, addGoods } from "./town_parts";
 
 const O = [0, 0, -58];
 const W = (p) => [p[0] + O[0], p[1] + O[1], p[2] + O[2]];
@@ -96,6 +97,8 @@ const bladeTex = () => canvasTex("st_blade", 400, 400, (c, w, h) => {
   c.font = `110px ${FIGURE}`; c.fillText("CORNER", w / 2, 140); c.fillText("STORE", w / 2, 262);
   c.fillStyle = "#7FB4F2"; c.fillRect(70, 330, w - 140, 6);
 });
+// rev 2: the corner store's own signage, shared with the rules station's view of the same store (st_rules_street.tsx)
+export { signTex as storeSignTex, awningTex as storeAwningTex, bladeTex as storeBladeTex, openTex as storeOpenTex };
 // ── small builders ───────────────────────────────────────────────────────────────────────────────────────────────────────
 const Box = ({ p, s, m, cast = true, recv = true, ...r }) => (
   <mesh position={p} castShadow={cast} receiveShadow={recv} material={m} {...r}><boxGeometry args={s} /></mesh>
@@ -107,35 +110,40 @@ const M = {
   plastic: std("#1F2733", 0.45, 0.1), keys: std("#7A8798", 0.5, 0.2)
 };
 const glassMat = new THREE.MeshPhysicalMaterial({ color: "#A9C8EE", roughness: 0.04, metalness: 0, transparent: true, opacity: 0.14, envMapIntensity: 1.6, depthWrite: false, side: THREE.DoubleSide });
-// products on shelves: one instanced mesh, muted packaging colours (a few small warm accents)
-const PACK = ["#2F5F9E", "#E9EEF4", "#7C93B0", "#B83A3A", "#3B4A63", "#D8B25A", "#4E7FC2", "#9FB6D3", "#26406A", "#C8D4E2"];
-const Products = ({ slots }) => {
-  const ref = React.useRef();
-  const geo = useMemo(() => new THREE.BoxGeometry(1, 1, 1), []);
-  const mat = useMemo(() => new THREE.MeshStandardMaterial({ roughness: 0.55, metalness: 0.05 }), []);
-  React.useLayoutEffect(() => {
-    const m = ref.current, o = new THREE.Object3D(), c = new THREE.Color();
-    slots.forEach((s, i) => { o.position.set(...s.p); o.scale.set(...s.s); o.rotation.set(0, s.r ?? 0, 0); o.updateMatrix(); m.setMatrixAt(i, o.matrix); m.setColorAt(i, c.set(s.c)); });
-    m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true;
-  }, [slots]);
-  return <instancedMesh ref={ref} args={[geo, mat, slots.length]} castShadow receiveShadow />;
-};
-const shelfSlots = () => {
-  const out = [];
-  // back wall shelving behind the counter (packs, cartons)
-  for (let r = 0; r < 4; r++) for (let k = 0; k < 26; k++) {
-    const i = r * 100 + k, h = 0.16 + rnd(i) * 0.12, w = 0.1 + rnd(i + 3) * 0.06;
-    out.push({ p: [BACK - 0.22, 1.18 + r * 0.42 + h / 2, -0.9 + k * 0.27], s: [0.16, h, w], c: PACK[Math.floor(rnd(i + 7) * PACK.length)] });
-  }
-  // the gondola on the near side (two faces, three shelves)
-  for (let f = 0; f < 2; f++) for (let r = 0; r < 3; r++) for (let k = 0; k < 12; k++) {
-    const i = 1000 + f * 300 + r * 40 + k, h = 0.18 + rnd(i) * 0.16, w = 0.12 + rnd(i + 3) * 0.06;
-    out.push({ p: [9.55 + k * 0.16, 0.42 + r * 0.46 + h / 2, 5.05 + (f ? 0.22 : -0.22)], s: [w, h, 0.14], c: PACK[Math.floor(rnd(i + 7) * PACK.length)] });
-  }
-  // candy and gum on the counter's front rack
-  for (let k = 0; k < 9; k++) { const i = 2000 + k; out.push({ p: [8.36, 0.62 + (k % 3) * 0.13, 0.9 + Math.floor(k / 3) * 0.18 + (k % 3) * 0.05], s: [0.05, 0.1, 0.13], c: PACK[Math.floor(rnd(i) * PACK.length)] }); }
-  return out;
-};
+// ── rev 2: the store's own print (register screens, the receipt, the ticket case header, the cooler header) ─────────────
+const regScreenTex = () => canvasTex("st_regscreen", 512, 224, (c, w, h) => {
+  const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "#0E3E5E"); g.addColorStop(1, "#0A2C46"); c.fillStyle = g; c.fillRect(0, 0, w, h);
+  c.fillStyle = "#9FE6F2"; c.textAlign = "left"; c.textBaseline = "alphabetic";
+  c.font = `700 34px ${BODY}`; c.fillText("CORNER STORE", 22, 46);
+  c.font = `600 26px ${BODY}`; c.fillText("REGISTER 1", 22, 86); c.fillText("LOTTERY · GROCERY", 22, 122);
+  c.fillStyle = "rgba(159,230,242,0.35)"; c.fillRect(22, 140, w - 44, 3);
+  c.fillStyle = "#9FE6F2"; c.font = `800 40px ${BODY}`; c.fillText("THANK YOU", 22, 196);
+});
+const poleTex = () => canvasTex("st_pole", 512, 128, (c, w, h) => {
+  c.fillStyle = "#04140F"; c.fillRect(0, 0, w, h);
+  c.fillStyle = "#5CF2B0"; c.textAlign = "center"; c.font = `600 44px "Courier New", monospace`; c.fillText("WELCOME TO", w / 2, 52); c.fillText("CORNER STORE", w / 2, 106);
+});
+const receiptTex = () => canvasTex("st_receipt", 256, 640, (c, w, h) => {
+  c.fillStyle = "#F7F6F1"; c.fillRect(0, 0, w, h);
+  c.fillStyle = "#2A2E36"; c.textAlign = "center"; c.font = `700 22px "Courier New", monospace`;
+  ["CORNER STORE", "EVART, MICHIGAN"].forEach((t, k) => c.fillText(t, w / 2, 40 + k * 28));
+  c.font = `500 18px "Courier New", monospace`; c.fillText("2003", w / 2, 122);
+  c.textAlign = "left"; ["COFFEE", "NEWSPAPER", "BREAD", "MILK", "WINFALL PLAY SLIP"].forEach((t, k) => c.fillText(t, 20, 170 + k * 28));
+  c.textAlign = "center"; c.fillText("- - - - - - - - - - -", w / 2, 320); c.font = `700 20px "Courier New", monospace`; c.fillText("THANK YOU", w / 2, 356); c.font = `500 16px "Courier New", monospace`; c.fillText("COME AGAIN", w / 2, 384);
+});
+const caseHeadTex = () => canvasTex("st_casehead", 1024, 96, (c, w, h) => {
+  c.fillStyle = "#0B3F7A"; c.fillRect(0, 0, w, h); c.fillStyle = "#4D8ED9"; c.fillRect(0, h - 10, w, 10);
+  c.fillStyle = "#FFFFFF"; c.textAlign = "center"; c.textBaseline = "middle"; c.font = `800 50px ${BODY}`; c.fillText("INSTANT TICKETS", w * 0.36, h / 2 - 2);
+  c.font = `600 26px ${BODY}`; c.fillText("PLAY RESPONSIBLY", w * 0.8, h / 2 - 2);
+});
+const coolerHeadTex = () => canvasTex("st_coolhead", 1024, 128, (c, w, h) => {
+  const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "#1F5FB4"); g.addColorStop(1, "#0E3B73"); c.fillStyle = g; c.fillRect(0, 0, w, h);
+  c.fillStyle = "#FFFFFF"; c.textAlign = "center"; c.textBaseline = "middle"; c.font = `400 84px ${FIGURE}`; c.fillText("COLD DRINKS", w / 2, h / 2 + 4);
+});
+const bayTex = (key, text) => canvasTex("st_bay_" + key, 512, 96, (c, w, h) => {
+  c.fillStyle = "#F4F6F8"; c.fillRect(0, 0, w, h); c.fillStyle = "#1F5FB4"; c.fillRect(0, 0, w, 12);
+  c.fillStyle = "#123E73"; c.textAlign = "center"; c.textBaseline = "middle"; c.font = `800 46px ${BODY}`; c.fillText(text, w / 2, h / 2 + 6);
+});
 const Lamp = ({ z }) => (
   <group position={[FX - 0.08, 4.32, z]}>
     <mesh position={[-0.22, 0.12, 0]} rotation-z={0.9} material={M.frame}><cylinderGeometry args={[0.018, 0.018, 0.5, 8]} /></mesh>
@@ -144,43 +152,196 @@ const Lamp = ({ z }) => (
     <Glow position={[-0.36, 0.1, 0]} size={0.9} color="#FFD49A" opacity={0.55} />
   </group>
 );
+// ── the merged construction of the shop (town kit): facade brick/stone/steel, the interior fittings, the goods ───────────
+const SHELF = { x0: BACK - 0.38, z0: -1.0, z1: 3.75, ys: [0.52, 1.16, 1.58, 2.0, 2.42] };
+const COOL = { x0: BACK - 0.55, z0: 3.95, z1: 6.08 };
+const GON = { x0: 9.55, x1: 10.95, z: 5.05 };
+const buildShop = (m) => {
+  const W_ = Z1 - Z0, zc = (Z0 + Z1) / 2, fx = FX + WALL / 2;
+  const BR = "#C9C6CE", MT = { metric: true, uo: [0.37, 0.21] };
+  // ── the street face: brick piers, the knee wall under the display window, the sign band and the top band ──
+  m.box("brick0", [fx, SIDE + (TOPH - SIDE) / 2, Z1 - 0.25], [WALL, TOPH - SIDE, 0.5], BR, MT);
+  m.box("brick0", [fx, SIDE + (TOPH - SIDE) / 2, (DOOR.z1 + WIN.z0) / 2], [WALL, TOPH - SIDE, WIN.z0 - DOOR.z1], BR, MT);
+  m.box("brick0", [fx, SIDE + (TOPH - SIDE) / 2, (Z0 + DOOR.z0) / 2], [WALL, TOPH - SIDE, DOOR.z0 - Z0], BR, MT);
+  m.box("brick0", [fx, (SIDE + WIN.y0) / 2, (WIN.z0 + WIN.z1) / 2], [WALL, WIN.y0 - SIDE, WIN.z1 - WIN.z0], BR, MT);
+  m.box("brick0", [fx, 3.55, zc], [WALL, 1.3, W_], BR, MT);
+  m.box("brick0", [fx, 4.55, zc], [WALL, 0.9, W_], BR, MT);
+  // pilasters proud of the piers, their stone bases and capitals
+  for (const z of [Z0 + 0.12, (DOOR.z1 + WIN.z0) / 2, Z1 - 0.12]) {
+    m.box("brick0", [FX - 0.04, SIDE + 2.4, z], [0.08, 4.5, 0.34], BR, MT);
+    m.box("trim", [FX - 0.06, SIDE + 0.2, z], [0.14, 0.4, 0.4], "#8D97A6");
+    m.box("trim", [FX - 0.07, 2.92, z], [0.16, 0.12, 0.42], "#8D97A6");
+  }
+  // steel lintel with its rivets, stone sill, the cornice: soldier course, dentils, a cap, the coping
+  m.box("metal", [FX - 0.02, 2.98, zc], [0.12, 0.2, W_ - 0.2], "#1E2733");
+  for (let k = 0; k < 24; k++) m.cyl("metal", [FX - 0.085, 2.98, Z0 + 0.25 + k * (W_ - 0.5) / 23], 0.012, 0.012, "#3A4656", { r: [0, 0, Math.PI / 2], seg: 6 });
+  m.box("trim", [FX - 0.06, WIN.y0 - 0.03, (WIN.z0 + WIN.z1) / 2], [0.2, 0.07, WIN.z1 - WIN.z0 + 0.2], "#8D97A6");
+  m.box("trim", [FX - 0.06, 4.98, zc], [0.14, 0.12, W_], "#8D97A6");
+  m.box("metal", [FX - 0.12, 5.1, zc], [0.36, 0.14, W_ + 0.1], "#1E2733");
+  m.box("trim", [FX - 0.03, 4.7, zc], [0.06, 0.08, W_], "#8D97A6");
+  for (let i = 0; i < 30; i++) m.box("trim", [FX - 0.05, 4.86, Z0 + 0.15 + i * (W_ - 0.3) / 29], [0.08, 0.08, 0.1], "#8D97A6");
+  // the roof: membrane, a condenser, a vent stack, the parapet coping
+  m.box("roof", [(FX + BACK) / 2 + 0.1, TOPH + 0.13, zc], [BACK - FX - 0.4, 0.04, W_ - 0.4], "#FFFFFF", { metric: true });
+  m.box("metal", [10.6, TOPH + 0.55, 1.2], [1.1, 0.8, 0.8], "#A9B3C0"); m.cyl("metal", [10.6, TOPH + 0.96, 1.2], 0.32, 0.04, "#2A3240", { seg: 16 });
+  m.cyl("metal", [9.4, TOPH + 0.45, 4.8], 0.07, 0.65, "#5E6876", { seg: 8 });
+  // a downpipe off the cornice
+  m.box("metal", [FX - 0.3, 5.0, Z0 + 0.32], [0.2, 0.18, 0.16], "#3C4656"); m.box("metal", [FX - 0.3, 2.6, Z0 + 0.32], [0.08, 4.8, 0.08], "#3C4656"); m.box("metal", [FX - 0.4, 0.22, Z0 + 0.32], [0.24, 0.08, 0.08], "#3C4656");
+  // the sign's steel frame, the window and door frames, the push bar
+  m.box("metal", [FX - 0.06, 3.62, zc + 0.15], [0.08, 0.9, 6.4], "#2A3240");
+  m.box("metal", [FX + 0.06, (WIN.y0 + WIN.y1) / 2, WIN.z0 + 0.04], [0.1, WIN.y1 - WIN.y0, 0.08], "#2A3240");
+  m.box("metal", [FX + 0.06, (WIN.y0 + WIN.y1) / 2, WIN.z1 - 0.04], [0.1, WIN.y1 - WIN.y0, 0.08], "#2A3240");
+  m.box("metal", [FX + 0.06, WIN.y1 - 0.04, (WIN.z0 + WIN.z1) / 2], [0.1, 0.08, WIN.z1 - WIN.z0], "#2A3240");
+  m.box("metal", [FX + 0.06, WIN.y0 + 0.04, (WIN.z0 + WIN.z1) / 2], [0.1, 0.08, WIN.z1 - WIN.z0], "#2A3240");
+  m.box("metal", [FX + 0.06, 2.42, (WIN.z0 + WIN.z1) / 2], [0.08, 0.06, WIN.z1 - WIN.z0], "#2A3240");
+  m.box("metal", [FX + 0.06, SIDE + (DOOR.y1 - SIDE) / 2, DOOR.z0 + 0.05], [0.12, DOOR.y1 - SIDE, 0.1], "#2A3240");
+  m.box("metal", [FX + 0.06, SIDE + (DOOR.y1 - SIDE) / 2, DOOR.z1 - 0.05], [0.12, DOOR.y1 - SIDE, 0.1], "#2A3240");
+  m.box("metal", [FX + 0.06, DOOR.y1 - 0.05, (DOOR.z0 + DOOR.z1) / 2], [0.12, 0.1, DOOR.z1 - DOOR.z0], "#2A3240");
+  m.box("metal", [FX + 0.06, SIDE + 0.12, (DOOR.z0 + DOOR.z1) / 2], [0.12, 0.24, DOOR.z1 - DOOR.z0], "#2A3240");
+  m.box("metal", [FX - 0.04, 1.08, (DOOR.z0 + DOOR.z1) / 2], [0.05, 0.05, 0.9], "#8FA9C8");
+  for (const z of [-0.85, -0.05]) m.box("metal", [FX - 0.02, 1.08, z], [0.08, 0.04, 0.04], "#8FA9C8");
+  m.box("metal", [FX - 0.01, 0.4, (DOOR.z0 + DOOR.z1) / 2], [0.03, 0.4, DOOR.z1 - DOOR.z0 - 0.2], "#8FA9C8");   // the kick plate
+  m.box("trim", [FX - 0.22, SIDE + 0.03, (DOOR.z0 + DOOR.z1) / 2], [0.44, 0.06, DOOR.z1 - DOOR.z0 + 0.2], "#8D97A6");  // the step
+  // the ICE chest by the door: body, lid, hinges, a hasp, the vent grille
+  m.box("trim", [FX - 0.55, SIDE + 0.55, Z0 - 0.32], [0.78, 1.1, 0.9], "#E8EEF5");
+  m.box("metal", [FX - 0.55, SIDE + 1.12, Z0 - 0.32], [0.82, 0.06, 0.94], "#8FA9C8");
+  for (const z of [-0.6, -0.05]) m.box("metal", [FX - 0.2, SIDE + 1.1, Z0 + z], [0.04, 0.05, 0.1], "#5E6876");
+  m.box("metal", [FX - 0.955, SIDE + 1.0, Z0 - 0.32], [0.03, 0.12, 0.08], "#5E6876");
+  for (let k = 0; k < 5; k++) m.box("metal", [FX - 0.948, SIDE + 0.14 + k * 0.035, Z0 - 0.32], [0.01, 0.015, 0.5], "#5E6876");
+  // a pay phone on the end pier (2003), and the sidewalk's news box and trash can
+  m.push([FX - 0.02, 0, Z1 - 0.24], -Math.PI / 2);
+  m.box("metal", [0, 1.55, 0.08], [0.34, 0.62, 0.16], "#8FA0B4"); m.box("metal", [0, 1.9, 0.12], [0.4, 0.08, 0.26], "#5E6876");
+  m.box("trim", [-0.08, 1.58, 0.17], [0.07, 0.26, 0.05], "#1A1E24"); m.box("metal", [-0.08, 1.58, 0.205], [0.02, 0.18, 0.02], "#3A4656");
+  for (let r = 0; r < 4; r++) for (let k = 0; k < 3; k++) m.box("trim", [0.05 + k * 0.035, 1.66 - r * 0.04, 0.165], [0.025, 0.025, 0.01], "#D9DEE5");
+  m.box("metal", [0.09, 1.74, 0.165], [0.08, 0.02, 0.01], "#1A1E24");
+  m.pop();
+  addProps(m, [{ type: "news", p: [5.95, SIDE, 5.55], ry: -Math.PI / 2 }, { type: "trash", p: [5.1, SIDE, -0.95], ry: -Math.PI / 2 }]);
+  // ── the inside ──
+  // back-wall shelving: a pegboard back, uprights, five shelves with price-strip edges and bay headers, then the goods
+  m.box("trim", [BACK - 0.02, 1.55, (SHELF.z0 + SHELF.z1) / 2], [0.04, 2.7, SHELF.z1 - SHELF.z0], "#AEB8C6");
+  for (let z = SHELF.z0; z <= SHELF.z1 + 0.01; z += (SHELF.z1 - SHELF.z0) / 4) m.box("metal", [BACK - 0.2, 1.5, z], [0.36, 2.6, 0.04], "#7A8798");
+  SHELF.ys.forEach((y) => { m.box("metal", [BACK - 0.2, y, (SHELF.z0 + SHELF.z1) / 2], [0.38, 0.03, SHELF.z1 - SHELF.z0], "#9AA6B4"); });
+  m.box("metal", [BACK - 0.2, 0.3, (SHELF.z0 + SHELF.z1) / 2], [0.38, 0.28, SHELF.z1 - SHELF.z0], "#3A4656");   // the base
+  // the cooler: body, a lit back, glass doors with frames and handles, shelves of bottles
+  const czc = (COOL.z0 + COOL.z1) / 2, czl = COOL.z1 - COOL.z0;
+  m.box("trim", [BACK - 0.27, 2.66, czc], [0.54, 0.22, czl + 0.1], "#D9DEE5"); m.box("trim", [BACK - 0.27, 0.24, czc], [0.54, 0.16, czl + 0.1], "#D9DEE5");
+  for (const z of [COOL.z0 - 0.03, COOL.z1 + 0.03]) m.box("trim", [BACK - 0.27, 1.45, z], [0.54, 2.6, 0.06], "#D9DEE5");
+  m.box("bulb", [BACK - 0.08, 1.4, (COOL.z0 + COOL.z1) / 2], [0.02, 2.1, COOL.z1 - COOL.z0 - 0.1], "#9DB4D2");
+  const dw = (COOL.z1 - COOL.z0) / 3;
+  for (let k = 0; k <= 3; k++) m.box("metal", [COOL.x0 - 0.01, 1.42, COOL.z0 + k * dw], [0.06, 2.2, 0.06], "#2A3240");
+  for (const y of [0.32, 2.52]) m.box("metal", [COOL.x0 - 0.01, y, (COOL.z0 + COOL.z1) / 2], [0.06, 0.06, COOL.z1 - COOL.z0], "#2A3240");
+  for (let k = 0; k < 3; k++) m.box("metal", [COOL.x0 - 0.06, 1.35, COOL.z0 + (k + 0.82) * dw], [0.03, 0.7, 0.03], "#C9D3DE");
+  for (let r = 0; r < 5; r++) m.box("metal", [BACK - 0.3, 0.42 + r * 0.43, (COOL.z0 + COOL.z1) / 2], [0.42, 0.02, COOL.z1 - COOL.z0 - 0.1], "#C9D3DE");
+  // the gondola (shortened to leave an aisle at the cooler): a pegboard spine, three shelves both faces, an end cap
+  m.box("trim", [(GON.x0 + GON.x1) / 2, 0.85, GON.z], [GON.x1 - GON.x0, 1.4, 0.06], "#AEB8C6");
+  m.box("metal", [(GON.x0 + GON.x1) / 2, 0.24, GON.z], [GON.x1 - GON.x0, 0.16, 0.72], "#3A4656");
+  for (let r = 0; r < 3; r++) m.box("metal", [(GON.x0 + GON.x1) / 2, 0.4 + r * 0.46, GON.z], [GON.x1 - GON.x0, 0.03, 0.72], "#9AA6B4");
+  m.box("metal", [GON.x0 - 0.02, 0.85, GON.z], [0.04, 1.45, 0.74], "#7A8798");
+  // ── the counter: a panelled cabinet (kick plate, rails and stiles, raised panels), a steel nosing, the lottery ticket
+  //    case built into its customer face, a wire candy rack ──
+  const C = COUNTER, cz = (C.z0 + C.z1) / 2, cl = C.z1 - C.z0;
+  m.box("trim", [(C.x0 + C.x1) / 2 + 0.04, SIDE + 0.06, cz], [C.x1 - C.x0 - 0.08, 0.12, cl - 0.06], "#11161F");
+  m.box("trim", [(C.x0 + C.x1) / 2 + 0.01, (SIDE + 0.12 + C.top) / 2, cz], [C.x1 - C.x0 - 0.02, C.top - SIDE - 0.12, cl], "#34465F");
+  const face = C.x0 - 0.005, py0 = SIDE + 0.12, py1 = C.top - 0.02;
+  m.box("trim", [face, py0 + 0.04, cz], [0.03, 0.08, cl], "#2A3A52"); m.box("trim", [face, py1 - 0.05, cz], [0.03, 0.1, cl], "#2A3A52");
+  const panels = [[C.z0, 0.85], [1.6, 1.75], [3.45, C.z1]];   // stiles leave room for the candy rack (0.85–1.6) and the ticket case (1.75–3.45)
+  for (const [a, b] of panels) {
+    for (const z of [a + 0.04, b - 0.04]) m.box("trim", [face, (py0 + py1) / 2, z], [0.03, py1 - py0, 0.08], "#2A3A52");
+    if (b - a > 0.3) { m.box("trim", [face - 0.012, (py0 + py1) / 2, (a + b) / 2], [0.02, py1 - py0 - 0.3, b - a - 0.22], "#3E5270"); m.box("trim", [face - 0.022, (py0 + py1) / 2, (a + b) / 2], [0.01, py1 - py0 - 0.42, b - a - 0.34], "#465C7C"); }
+  }
+  m.box("metal", [C.x0 - 0.065, C.top + 0.015, cz], [0.03, 0.035, cl + 0.1], "#B9C6D8");
+  // the instant-ticket case: a steel frame, a lit back, 9 bins of fanned tickets
+  const T0 = 1.75, T1 = 3.45, ty0 = 0.36, ty1 = 0.82;
+  m.box("metal", [C.x0 - 0.035, ty1 + 0.02, (T0 + T1) / 2], [0.08, 0.04, T1 - T0 + 0.04], "#1B2433");
+  m.box("metal", [C.x0 - 0.035, ty0 - 0.02, (T0 + T1) / 2], [0.08, 0.04, T1 - T0 + 0.04], "#1B2433");
+  for (const z of [T0, T1]) m.box("metal", [C.x0 - 0.035, (ty0 + ty1) / 2, z], [0.08, ty1 - ty0 + 0.08, 0.04], "#1B2433");
+  m.box("bulb", [C.x0 - 0.002, (ty0 + ty1) / 2, (T0 + T1) / 2], [0.004, ty1 - ty0, T1 - T0], "#7E98BC");
+  const nb = 9, bw = (T1 - T0 - 0.06) / nb, tk = [];
+  for (let k = 0; k < nb; k++) for (let q = 0; q < 2; q++) {
+    const z = T0 + 0.03 + (k + 0.5) * bw;
+    tk.push({ type: "ticket", p: [C.x0 - 0.02 - q * 0.006, ty0 + 0.04 + (1 - q) * 0.17, z], s: [bw - 0.03, 0.22, 0.003], ry: -Math.PI / 2, v: (k * 3 + q * 5) % 16 });
+  }
+  for (let k = 1; k < nb; k++) m.box("metal", [C.x0 - 0.03, (ty0 + ty1) / 2, T0 + 0.03 + k * bw], [0.05, ty1 - ty0, 0.008], "#3A4656");
+  // the candy rack: a steel back, three wire tiers
+  m.box("metal", [C.x0 - 0.05, 0.82, 1.22], [0.03, 0.52, 0.7], "#8FA9C8");
+  for (let r = 0; r < 3; r++) { m.box("metal", [C.x0 - 0.12, 0.6 + r * 0.17, 1.22], [0.14, 0.012, 0.7], "#6E7A8A"); m.box("metal", [C.x0 - 0.19, 0.63 + r * 0.17, 1.22], [0.01, 0.05, 0.7], "#8A96A6"); }
+  const candy = [];
+  for (let r = 0; r < 3; r++) for (let k = 0; k < 7; k++) for (let q = 0; q < 3; q++) candy.push({ type: "candy", p: [C.x0 - 0.17 + q * 0.04, 0.607 + r * 0.17 + q * 0.022, 0.9 + k * 0.093], s: [0.088, 0.034 + (k % 3) * 0.006, 0.028], ry: -Math.PI / 2 + (q - 1) * 0.06, v: (r * 3 + k) % 8 });
+  // ── the register (a POS cash register, keypad toward the window): cash drawer, body, sloped keyboard, the operator display,
+  //    the customer pole display, a receipt printer with its paper; a card reader beside it ──
+  m.push([8.88, C.top + 0.03, 0.95], -Math.PI / 2);
+  m.box("trim", [0, 0.06, 0], [0.46, 0.12, 0.44], "#232A34");
+  m.box("trim", [0, 0.06, 0.222], [0.44, 0.004, 0.004], "#0B0F15"); m.box("trim", [0, 0.025, 0.224], [0.18, 0.02, 0.006], "#0B0F15");
+  m.cyl("metal", [0.17, 0.08, 0.226], 0.012, 0.01, "#C9D3DE", { r: [Math.PI / 2, 0, 0], seg: 10 });
+  m.box("trim", [0, 0.15, -0.02], [0.44, 0.07, 0.4], "#2B3440");
+  m.pushR([0, 0.2, 0.06], [-0.32, 0, 0]);
+  m.box("trim", [0, 0, 0], [0.4, 0.03, 0.26], "#3A4452");
+  for (let r = 0; r < 5; r++) for (let k = 0; k < 8; k++) {
+    if (k === 7 && r > 2) continue;
+    const fn = k >= 6, col = fn ? (r < 2 ? "#4D8ED9" : "#8FA9C8") : "#DDE2E8";
+    m.box("trim", [-0.165 + k * 0.045, 0.022, -0.1 + r * 0.045], [0.036, 0.016, 0.036], col);
+  }
+  m.box("trim", [0.15, 0.022, 0.08], [0.081, 0.018, 0.08], "#1F5FB4");   // the TOTAL key
+  m.pop();
+  m.box("trim", [0, 0.24, -0.16], [0.05, 0.12, 0.05], "#2B3440");
+  m.pushR([0, 0.36, -0.15], [-0.25, 0, 0]); m.box("trim", [0, 0, 0], [0.3, 0.15, 0.035], "#1F2733"); m.pop();
+  m.cyl("trim", [-0.17, 0.32, -0.17], 0.012, 0.24, "#2B3440", { seg: 8 }); m.box("trim", [-0.17, 0.47, -0.17], [0.22, 0.07, 0.05], "#1F2733");
+  m.box("trim", [0.31, 0.07, -0.04], [0.15, 0.14, 0.22], "#2B3440"); m.box("trim", [0.31, 0.141, -0.06], [0.11, 0.004, 0.02], "#0B0F15");
+  m.pop();
+  m.push([8.72, C.top + 0.03, 1.36], -Math.PI / 2 + 0.3);
+  m.pushR([0, 0.03, 0], [-0.25, 0, 0]); m.box("trim", [0, 0, 0], [0.09, 0.035, 0.16], "#1F2733");
+  for (let r = 0; r < 4; r++) for (let k = 0; k < 3; k++) m.box("trim", [-0.025 + k * 0.025, 0.02, 0.0 + r * 0.02], [0.018, 0.008, 0.014], "#C9D3DE");
+  m.box("bulb", [0, 0.019, -0.05], [0.06, 0.002, 0.035], "#5C9F8A");
+  m.pop(); m.pop();
+  // ── the goods ──
+  const goods = [...tk, ...candy];
+  const shelfType = ["box", "can", "box", "box", "bag"];
+  SHELF.ys.forEach((y, r) => {
+    let z = SHELF.z0 + 0.04, i = 0;
+    while (z < SHELF.z1 - 0.06) {
+      const face = Math.floor(rnd(r * 77 + i) * 3) + 2, ty = shelfType[r], v = Math.floor(rnd(r * 131 + i * 7) * 8);
+      for (let q = 0; q < face && z < SHELF.z1 - 0.06; q++) {
+        if (ty === "can") { const d = 0.068; goods.push({ type: "can", p: [SHELF.x0 + 0.06, y + 0.015, z + d / 2], s: [d, 0.122, d], ry: Math.PI / 2, v }); if (rnd(i + q) < 0.7) goods.push({ type: "can", p: [SHELF.x0 + 0.06, y + 0.137, z + d / 2], s: [d, 0.122, d], ry: Math.PI / 2, v }); z += d + 0.004; }
+        else if (ty === "bag") { const w = 0.17; goods.push({ type: "bag", p: [SHELF.x0 + 0.07, y + 0.015, z + w / 2], s: [w, 0.25, 0.07], ry: -Math.PI / 2, v }); z += w + 0.01; }
+        else { const big = r === 2, w = big ? 0.19 : 0.15, h = big ? 0.28 : r === 0 ? 0.3 : 0.2; const vv = big ? v % 5 : r === 0 ? 5 + (v % 3) : [5, 6, 7][v % 3]; goods.push({ type: "box", p: [SHELF.x0 + 0.045, y + 0.015, z + w / 2], s: [w, h, 0.07], ry: -Math.PI / 2, v: vv }); z += w + 0.008; }
+      }
+      z += 0.02; i++;
+    }
+  });
+  for (let r = 0; r < 5; r++) for (let k = 0; k < 3; k++) for (let q = 0; q < 6; q++) goods.push({ type: "bottle", p: [COOL.x0 + 0.08 + (q % 2) * 0.12, 0.44 + r * 0.43, COOL.z0 + 0.1 + k * dw + Math.floor(q / 2) * 0.2], s: [0.072, 0.24, 0.072], v: (r * 2 + k) % 8 });
+  for (let f = 0; f < 2; f++) for (let r = 0; r < 3; r++) {
+    let x = GON.x0 + 0.04; let i = 0;
+    while (x < GON.x1 - 0.12) {
+      const zf = GON.z + (f ? 0.22 : -0.22), ry = f ? 0 : Math.PI, v = Math.floor(rnd(f * 99 + r * 31 + i) * 8);
+      if (r === 2) { goods.push({ type: "bag", p: [x + 0.08, 0.415 + r * 0.46, zf], s: [0.16, 0.26, 0.07], ry, v }); x += 0.17; }
+      else if (r === 1) { goods.push({ type: "box", p: [x + 0.07, 0.415 + r * 0.46, zf], s: [0.14, 0.2, 0.06], ry, v: 5 + (v % 3) }); x += 0.15; }
+      else { goods.push({ type: "can", p: [x + 0.035, 0.415, zf], s: [0.068, 0.122, 0.068], ry: f ? Math.PI : 0, v }); x += 0.072; }
+      i++;
+    }
+  }
+  addGoods(m, goods);
+};
 // ── the shop ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
 const Shop = ({ f, t }) => {
   const W_ = Z1 - Z0;
-  const brickPier = useBrick(0.5, TOPH), brickBand = useBrick(W_, 1.3), brickKnee = useBrick(5, 0.6), brickTop = useBrick(W_, 0.9);
   const sign = useMemo(signTex, []), poster = useMemo(posterTex, []), lotto = useMemo(lottoSignTex, []), open = useMemo(openTex, []);
   const blade = useMemo(bladeTex, []), ice = useMemo(iceTex, []), term = useMemo(termTex, []), awn = useMemo(awningTex, []);
+  const scr = useMemo(regScreenTex, []), pole = useMemo(poleTex, []), rcpt = useMemo(receiptTex, []), chead = useMemo(caseHeadTex, []), cool = useMemo(coolerHeadTex, []);
+  const bays = useMemo(() => ["GROCERY", "SNACKS", "BREAKFAST"].map((b) => bayTex(b, b)), []);
   const tile = useMemo(() => { const t = tileTex().clone(); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(5.3 / 1.3, 7.1 / 1.3); t.needsUpdate = true; return t; }, []);
-  const slots = useMemo(shelfSlots, []);
   const zc = (Z0 + Z1) / 2;
-  const fx = FX + WALL / 2;
   // the OPEN sign breathes very slightly (a neon tube), the terminal screen idles
   const neon = 0.85 + 0.15 * Math.sin(f / 9);
   return (
     <group>
-      {/* ── the street face ── */}
-      <Box p={[fx, SIDE + (TOPH - SIDE) / 2, Z1 - 0.25]} s={[WALL, TOPH - SIDE, 0.5]} m={brickPier} />
-      <Box p={[fx, SIDE + (TOPH - SIDE) / 2, (DOOR.z1 + WIN.z0) / 2]} s={[WALL, TOPH - SIDE, WIN.z0 - DOOR.z1]} m={brickPier} />
-      <Box p={[fx, SIDE + (TOPH - SIDE) / 2, (Z0 + DOOR.z0) / 2]} s={[WALL, TOPH - SIDE, DOOR.z0 - Z0]} m={brickPier} />
-      <Box p={[fx, (SIDE + WIN.y0) / 2, (WIN.z0 + WIN.z1) / 2]} s={[WALL, WIN.y0 - SIDE, WIN.z1 - WIN.z0]} m={brickKnee} />
-      <Box p={[fx, 3.55, zc]} s={[WALL, 1.3, W_]} m={brickBand} />
-      <Box p={[fx, 4.55, zc]} s={[WALL, 0.9, W_]} m={brickTop} />
-      {/* steel lintel, stone sill, cornice with a soldier course and a cap */}
-      <Box p={[FX - 0.02, 2.98, zc]} s={[0.12, 0.2, W_ - 0.2]} m={M.lintel} />
-      <Box p={[FX - 0.06, WIN.y0 - 0.03, (WIN.z0 + WIN.z1) / 2]} s={[0.2, 0.07, WIN.z1 - WIN.z0 + 0.2]} m={M.stone} />
-      <Box p={[FX - 0.06, 4.98, zc]} s={[0.14, 0.12, W_]} m={M.stone} />
-      <Box p={[FX - 0.12, 5.1, zc]} s={[0.36, 0.14, W_ + 0.1]} m={M.lintel} />
-      {Array.from({ length: 30 }, (_, i) => <Box key={i} p={[FX - 0.05, 4.86, Z0 + 0.15 + i * (W_ - 0.3) / 29]} s={[0.08, 0.08, 0.1]} m={M.stone} cast={false} />)}
+      <Town build={buildShop} />
       {/* the sign panel and its gooseneck lamps */}
-      <group position={[FX - 0.06, 3.62, zc + 0.15]}>
-        <Box p={[0, 0, 0]} s={[0.08, 0.9, 6.4]} m={M.frame} />
-        <mesh position={[-0.041, 0, 0]} rotation-y={-Math.PI / 2}><planeGeometry args={[6.3, 0.88]} /><meshStandardMaterial map={sign} roughness={0.4} emissiveMap={sign} emissive="#ffffff" emissiveIntensity={0.55} /></mesh>
-      </group>
+      <mesh position={[FX - 0.06 - 0.041, 3.62, zc + 0.15]} rotation-y={-Math.PI / 2}><planeGeometry args={[6.3, 0.88]} /><meshStandardMaterial map={sign} roughness={0.4} emissiveMap={sign} emissive="#ffffff" emissiveIntensity={0.55} /></mesh>
       {[-0.4, 1.6, 3.6].map((z, i) => <Lamp key={i} z={z + 0.15} />)}
       {/* the awning over the display window */}
       <group position={[FX - 0.36, 2.98, (WIN.z0 + WIN.z1) / 2]} rotation-z={-0.38}>
         <mesh castShadow receiveShadow><boxGeometry args={[0.8, 0.025, WIN.z1 - WIN.z0 + 0.3]} /><meshStandardMaterial map={awn} roughness={0.85} /></mesh>
         <mesh position={[-0.4, -0.08, 0]} rotation-z={0.38}><boxGeometry args={[0.015, 0.16, WIN.z1 - WIN.z0 + 0.3]} /><meshStandardMaterial map={awn} roughness={0.85} /></mesh>
+        {[-1, 1].map((sd) => <mesh key={sd} position={[0, -0.02, sd * ((WIN.z1 - WIN.z0) / 2 + 0.14)]}><boxGeometry args={[0.78, 0.04, 0.02]} /><meshStandardMaterial color="#1B2433" metalness={0.6} roughness={0.4} /></mesh>)}
       </group>
       {/* the blade sign over the sidewalk, read from down the street */}
       <group position={[FX - 0.05, 3.55, Z1 - 0.45]}>
@@ -191,12 +352,7 @@ const Shop = ({ f, t }) => {
         {[1, -1].map((sd) => <mesh key={sd} position={[-0.45, 0, sd * 0.031]} rotation-y={sd > 0 ? 0 : Math.PI}><planeGeometry args={[0.72, 0.74]} /><meshStandardMaterial map={blade} roughness={0.4} emissiveMap={blade} emissive="#ffffff" emissiveIntensity={0.6} /></mesh>)}
         <Glow position={[-0.45, 0, 0.2]} size={1.6} color="#7FB4F2" opacity={0.22} />
       </group>
-      {/* the display window: frame, transom, glass, the hanging LOTTERY light box, the WINFALL poster, the neon OPEN */}
-      <Box p={[FX + 0.06, (WIN.y0 + WIN.y1) / 2, WIN.z0 + 0.04]} s={[0.1, WIN.y1 - WIN.y0, 0.08]} m={M.frame} />
-      <Box p={[FX + 0.06, (WIN.y0 + WIN.y1) / 2, WIN.z1 - 0.04]} s={[0.1, WIN.y1 - WIN.y0, 0.08]} m={M.frame} />
-      <Box p={[FX + 0.06, WIN.y1 - 0.04, (WIN.z0 + WIN.z1) / 2]} s={[0.1, 0.08, WIN.z1 - WIN.z0]} m={M.frame} />
-      <Box p={[FX + 0.06, WIN.y0 + 0.04, (WIN.z0 + WIN.z1) / 2]} s={[0.1, 0.08, WIN.z1 - WIN.z0]} m={M.frame} />
-      <Box p={[FX + 0.06, 2.42, (WIN.z0 + WIN.z1) / 2]} s={[0.08, 0.06, WIN.z1 - WIN.z0]} m={M.frame} />
+      {/* the display glass, the hanging LOTTERY light box, the WINFALL poster, the neon OPEN */}
       <mesh position={[FX + 0.1, (WIN.y0 + WIN.y1) / 2, (WIN.z0 + WIN.z1) / 2]} rotation-y={-Math.PI / 2} material={glassMat}><planeGeometry args={[WIN.z1 - WIN.z0, WIN.y1 - WIN.y0]} /></mesh>
       <group position={[FX + 0.35, 2.12, 4.6]}>
         {[-0.5, 0.5].map((z) => <mesh key={z} position={[0, 0.22, z]} material={M.frame}><cylinderGeometry args={[0.006, 0.006, 0.3, 4]} /></mesh>)}
@@ -205,22 +361,10 @@ const Shop = ({ f, t }) => {
         <Glow position={[-0.1, 0, 0]} size={1.4} color="#7FB4F2" opacity={0.35} />
       </group>
       <mesh position={[FX + 0.115, 1.3, 1.25]} rotation-y={-Math.PI / 2}><planeGeometry args={[0.45, 0.6]} /><meshStandardMaterial map={poster} roughness={0.5} emissiveMap={poster} emissive="#ffffff" emissiveIntensity={0.25} /></mesh>
-      {/* the door: frame, glass, push bar, the neon OPEN behind its glass */}
-      <Box p={[FX + 0.06, SIDE + (DOOR.y1 - SIDE) / 2, DOOR.z0 + 0.05]} s={[0.12, DOOR.y1 - SIDE, 0.1]} m={M.frame} />
-      <Box p={[FX + 0.06, SIDE + (DOOR.y1 - SIDE) / 2, DOOR.z1 - 0.05]} s={[0.12, DOOR.y1 - SIDE, 0.1]} m={M.frame} />
-      <Box p={[FX + 0.06, DOOR.y1 - 0.05, (DOOR.z0 + DOOR.z1) / 2]} s={[0.12, 0.1, DOOR.z1 - DOOR.z0]} m={M.frame} />
-      <Box p={[FX + 0.06, SIDE + 0.12, (DOOR.z0 + DOOR.z1) / 2]} s={[0.12, 0.24, DOOR.z1 - DOOR.z0]} m={M.frame} />
       <mesh position={[FX + 0.07, 1.5, (DOOR.z0 + DOOR.z1) / 2]} rotation-y={-Math.PI / 2} material={glassMat}><planeGeometry args={[DOOR.z1 - DOOR.z0 - 0.2, 2.3]} /></mesh>
-      <Box p={[FX - 0.04, 1.08, (DOOR.z0 + DOOR.z1) / 2]} s={[0.05, 0.05, 0.9]} m={M.steel} />
       <mesh position={[FX + 0.16, 2.05, (DOOR.z0 + DOOR.z1) / 2]} rotation-y={-Math.PI / 2}><planeGeometry args={[0.7, 0.26]} /><meshBasicMaterial map={open} transparent blending={THREE.AdditiveBlending} opacity={neon} toneMapped={false} depthWrite={false} /></mesh>
       <Glow position={[FX + 0.05, 2.05, (DOOR.z0 + DOOR.z1) / 2]} size={1.1} color="#FF9F5E" opacity={0.32 * neon} />
-      {/* the ICE chest by the door */}
-      <group position={[FX - 0.55, SIDE, Z0 + 0.1]}>
-        <Box p={[0, 0.55, 0]} s={[0.75, 1.1, 0.0001]} m={M.top} cast={false} />
-        <Box p={[0, 0.55, -0.42]} s={[0.78, 1.1, 0.9]} m={std("#E8EEF5", 0.4, 0.1)} />
-        <Box p={[0, 1.12, -0.42]} s={[0.82, 0.06, 0.94]} m={M.steel} />
-        <mesh position={[-0.395, 0.66, -0.42]} rotation-y={-Math.PI / 2}><planeGeometry args={[0.7, 0.44]} /><meshStandardMaterial map={ice} roughness={0.5} /></mesh>
-      </group>
+      <mesh position={[FX - 0.951, SIDE + 0.66, Z0 - 0.32]} rotation-y={-Math.PI / 2}><planeGeometry args={[0.7, 0.44]} /><meshStandardMaterial map={ice} roughness={0.5} /></mesh>
       {/* ── the inside ── */}
       <mesh rotation-x={-Math.PI / 2} position={[(FX + WALL + BACK) / 2, SIDE + 0.002, zc]} receiveShadow><planeGeometry args={[BACK - FX - WALL, W_ - 0.2]} /><meshStandardMaterial map={tile} color="#6E7C90" roughness={0.35} metalness={0.05} envMapIntensity={0.35} /></mesh>
       <Box p={[BACK + 0.15, TOPH / 2, zc]} s={[0.3, TOPH, W_]} m={M.wallIn} />
@@ -238,17 +382,21 @@ const Shop = ({ f, t }) => {
       <pointLight position={[10.8, 2.95, 0.6]} intensity={1.6} distance={6} decay={1.6} color="#FFE2BC" />
       {/* the pool of light on the counter where the leaflet lies */}
       <pointLight position={[8.95, 1.95, 2.25]} intensity={1.1} distance={2.6} decay={2} color="#FFF1DC" />
-      {/* the counter: kick plate, laminate front, the top; a candy rack on its customer face */}
-      <Box p={[(COUNTER.x0 + COUNTER.x1) / 2, SIDE + 0.06, (COUNTER.z0 + COUNTER.z1) / 2]} s={[COUNTER.x1 - COUNTER.x0 - 0.08, 0.12, COUNTER.z1 - COUNTER.z0 - 0.08]} m={M.dark} />
-      <Box p={[(COUNTER.x0 + COUNTER.x1) / 2, (SIDE + 0.12 + COUNTER.top) / 2, (COUNTER.z0 + COUNTER.z1) / 2]} s={[COUNTER.x1 - COUNTER.x0, COUNTER.top - SIDE - 0.12, COUNTER.z1 - COUNTER.z0]} m={M.lam} />
+      {/* bay headers over the back shelving, the cooler's header */}
+      {bays.map((b, i) => <mesh key={i} position={[BACK - 0.05, 2.86, SHELF.z0 + (i + 0.5) * (SHELF.z1 - SHELF.z0) / 3]} rotation-y={-Math.PI / 2}><planeGeometry args={[1.2, 0.225]} /><meshStandardMaterial map={b} roughness={0.5} emissiveMap={b} emissive="#ffffff" emissiveIntensity={0.35} /></mesh>)}
+      <mesh position={[COOL.x0 - 0.045, 2.68, (COOL.z0 + COOL.z1) / 2]} rotation-y={-Math.PI / 2}><planeGeometry args={[COOL.z1 - COOL.z0, 0.26]} /><meshBasicMaterial map={cool} toneMapped={false} /></mesh>
+      {/* the counter top (laminate) */}
       <Box p={[(COUNTER.x0 + COUNTER.x1) / 2, COUNTER.top + 0.015, (COUNTER.z0 + COUNTER.z1) / 2]} s={[COUNTER.x1 - COUNTER.x0 + 0.14, 0.03, COUNTER.z1 - COUNTER.z0 + 0.1]} m={M.top} />
-      <Box p={[COUNTER.x0 - 0.06, 0.82, 1.2]} s={[0.04, 0.5, 0.7]} m={M.steel} />
-      {/* the register */}
-      <group position={[8.9, COUNTER.top + 0.03, 0.95]}>
-        <Box p={[0, 0.06, 0]} s={[0.42, 0.12, 0.42]} m={M.plastic} />
-        <Box p={[-0.06, 0.16, 0]} s={[0.22, 0.08, 0.34]} m={M.keys} rotation-z={0.25} />
-        <Box p={[0.12, 0.3, 0]} s={[0.04, 0.2, 0.3]} m={M.plastic} />
-        <mesh position={[0.098, 0.32, 0]} rotation-y={-Math.PI / 2}><planeGeometry args={[0.26, 0.12]} /><meshBasicMaterial color="#7FB4F2" toneMapped={false} /></mesh>
+      {/* the ticket case: its header and glass */}
+      <mesh position={[COUNTER.x0 - 0.078, 0.9, 2.6]} rotation-y={-Math.PI / 2}><planeGeometry args={[1.74, 0.13]} /><meshBasicMaterial map={chead} toneMapped={false} /></mesh>
+      <mesh position={[COUNTER.x0 - 0.072, 0.59, 2.6]} rotation-y={-Math.PI / 2} material={glassMat}><planeGeometry args={[1.66, 0.44]} /></mesh>
+      {/* the register's screens and the receipt */}
+      <group position={[8.88, COUNTER.top + 0.03, 0.95]} rotation-y={-Math.PI / 2}>
+        <mesh position={[0, 0.3647, -0.1305]} rotation-x={-0.25}><planeGeometry args={[0.27, 0.12]} /><meshBasicMaterial map={scr} toneMapped={false} /></mesh>
+        <mesh position={[-0.17, 0.47, -0.144]}><planeGeometry args={[0.2, 0.05]} /><meshBasicMaterial map={pole} toneMapped={false} /></mesh>
+        <mesh position={[0.31, 0.19, -0.065]} rotation-x={0.15}><planeGeometry args={[0.085, 0.1]} /><meshStandardMaterial map={rcpt} roughness={0.8} side={THREE.DoubleSide} /></mesh>
+        <mesh position={[0.31, 0.261, -0.002]} rotation-x={1.2}><planeGeometry args={[0.085, 0.12]} /><meshStandardMaterial map={rcpt} roughness={0.8} side={THREE.DoubleSide} /></mesh>
+        <Glow position={[0, 0.38, -0.05]} size={0.5} color="#7FD8F0" opacity={0.25} />
       </group>
       {/* the lottery terminal: body, slanted screen, ticket slot, a roll of stock */}
       <group position={[8.86, COUNTER.top + 0.03, 3.45]}>
@@ -272,11 +420,6 @@ const Shop = ({ f, t }) => {
         <mesh position={[-0.075, 0, 0]} rotation-z={-Math.PI / 2} material={M.steel}><coneGeometry args={[0.0055, 0.014, 12]} /></mesh>
       </group>
       {[0, 1, 2].map((i) => <mesh key={i} position={[8.62 + i * 0.01, COUNTER.top + 0.032 + i * 0.0006, 1.86 - i * 0.03]} rotation-x={-Math.PI / 2} rotation-z={0.3 + i * 0.12} receiveShadow><planeGeometry args={[0.09, 0.19]} /><meshStandardMaterial color={i === 2 ? "#E9EFF7" : "#D7E2F0"} roughness={0.7} /></mesh>)}
-      {/* shelves behind the counter and the gondola */}
-      {[0, 1, 2, 3].map((r) => <Box key={r} p={[BACK - 0.2, 1.16 + r * 0.42, 2.6]} s={[0.36, 0.03, 7.2]} m={M.shelf} cast={false} />)}
-      <Box p={[10.5, 0.75, 5.05]} s={[2.0, 1.5, 0.08]} m={M.shelf} />
-      {[0, 1, 2].map((r) => <Box key={r} p={[10.5, 0.4 + r * 0.46, 5.05]} s={[2.0, 0.03, 0.7]} m={M.shelf} cast={false} />)}
-      <Products slots={slots} />
     </group>
   );
 };
@@ -287,7 +430,7 @@ const hiK = (t, f) => ease(f, t.loophole - 4, t.loopEnd + 16);
 const DIAG = pxToDesign(1330, 960);
 const diagPt = (dz = 0.002) => broPt(BP, DIAG[0], DIAG[1], dz);
 const rulePt = () => { const d = pxToDesign(1420, 340); return broPt(BP, d[0], d[1]); };
-const coverPt = () => broPt(BP, -0.15 + 0.0, 0.02);
+const coverPt = () => broPt(BP, 0, 0.02);   // rev 2: the folded cover lies on the spread's middle panel (−0.15 pointed past its left edge)
 const Scene = ({ f }) => {
   const t = useMemo(T, []);
   return (
@@ -363,6 +506,7 @@ const Year = ({ at, out, x, y }) => {
     </div>
   );
 };
+const BRO_TAG = { x: 715, y: 880 }, LOOP_Y = 540;
 const Overlay = ({ f, P }) => {
   const t = T();
   const sign = P([FX - 0.05, 2.1, 3.3]);
@@ -371,14 +515,16 @@ const Overlay = ({ f, P }) => {
   return (
     <>
       {/* the vignette is global (Main.tsx) */}
-      <Year at={t.y2003 - 6} out={t.store - 4} x={540} y={300} />
-      <Tag text="His old store" at={t.store - 2} out={t.read - 6} x={110} y={960} to={sign.behind ? null : sign} />
-      <Inset src={aud("photos/selbees_2shot.jpg")} credit="Photo: CBS News / 60 Minutes" at={t.jerry - 3} out={t.read + 6} x={80} y={300} w={920} h={518} pos="50% 35%" />
-      <Tag text="Jerry & Marge Selbee" at={t.jerry + 4} out={t.read + 4} x={80} y={836} />
-      <Tag text="The brochure" at={t.brochure - 2} out={t.newG + 2} x={600} y={420} to={bro.behind ? null : bro} />
-      <Tag text="New Michigan game" at={t.michigan - 6} out={t.he - 4} x={110} y={360} />
-      <Tag text="The loophole" at={t.loophole} out={t.three - 2} x={120} y={420} to={rule.behind ? null : rule} />
-      <Timer at={t.three - 12} land={t.three + 2} out={t.threeEnd - 10} x={540} y={330} />
+      {/* rev 2 tag audit: each fully in by its word (Tag at + 12, chips at + 14), read ≥ 36 f, pinned tags gone before the camera leaves
+          their object (the flight through the window starts at read − 4) */}
+      <Year at={t.y2003 - 14} out={t.store - 14} x={620} y={300} />
+      <Tag text="His old store" at={t.store - 14} out={t.read - 12} x={110} y={960} to={sign.behind ? null : sign} />
+      <Inset src={aud("photos/selbees_2shot.jpg")} credit="Photo: CBS News / 60 Minutes" at={t.jerry - 18} out={t.read + 6} x={80} y={300} w={920} h={518} pos="50% 35%" />
+      <Tag text="Jerry & Marge Selbee" at={t.jerry - 14} out={t.read + 4} x={80} y={836} />
+      <Tag text="The brochure" at={t.brochure - 12} out={t.newG + 10} x={BRO_TAG.x} y={BRO_TAG.y} to={bro.behind ? null : bro} />
+      <Tag text="New Michigan game" at={t.newG - 12} out={t.he - 4} x={110} y={360} />
+      <Tag text="The loophole" at={t.loophole - 12} out={t.three + 8} x={60} y={LOOP_Y} to={rule.behind ? null : rule} />
+      <Timer at={t.loophole - 1} land={t.three + 2} out={t.threeEnd - 7} x={540} y={330} />
     </>
   );
 };

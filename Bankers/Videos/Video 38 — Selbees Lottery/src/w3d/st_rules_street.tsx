@@ -4,12 +4,16 @@
 //   stock, the counter with a lottery terminal and a stand of WINFALL brochures, a pendant lamp), and the street outside: the row
 //   of two-storey brick shops with lit windows and awnings, wet asphalt with the dashed centre line, the sidewalk and lamps.
 //   Local metres; the store's front face is the plane z = 0 (street at +z); COUNTER_TOP is the counter's surface height.
+//   rev 2 (builder A, Timur 2026-11-26: "the city scene at the end … make more detail … do them also the same exact"): the street is
+//   built from the shared town kit (town_parts.tsx) exactly as the hook's, and the store wears the hook's CORNER STORE dress (its
+//   sign, the blue striped awning, the blade sign, gooseneck lamps, the neon OPEN); its shelves carry the same printed goods.
 import React, { useMemo } from "react";
 import * as THREE from "three";
 import { canvasTex, rnd, std, Glow } from "./kit";
 import { BODY, FIGURE } from "./fonts3d";
-import { facade } from "./st_state_house";
 import { LightPool, LightWash } from "./st_state_fx";
+import { Town, addBuilding, addProps, addGoods, STRIPS, GR } from "./town_parts";
+import { storeSignTex, storeAwningTex, storeBladeTex, storeOpenTex } from "./st_store";
 
 export const COUNTER_TOP = 0.96, COUNTER_Z = -0.75;
 // ── print ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -42,38 +46,29 @@ const asphaltTex = () => canvasTex("rs_asphalt", 512, 512, (c, w, h) => {
   c.fillStyle = "#1a2433"; c.fillRect(0, 0, w, h);
   for (let i = 0; i < 12000; i++) { const g = 30 + rnd(i) * 40; c.fillStyle = `rgba(${g},${g + 8},${g + 20},${0.25 + rnd(i + 7) * 0.3})`; c.fillRect(rnd(i + 1) * w, rnd(i + 2) * h, 2, 2); }
 });
-// a ground-floor shopfront for the neighbours: lit display window (warm), a door, a dark sign band (unreadable lettering)
-const shopTex = (i) => ({
-  map: canvasTex("rs_shop" + i, 512, 256, (c, w, h) => shopDraw(c, w, h, i, false)),
-  emis: canvasTex("rs_shopE" + i, 512, 256, (c, w, h) => shopDraw(c, w, h, i, true))
-});
-const shopDraw = (c, w, h, i, e) => {
-  c.fillStyle = e ? "#000" : "#1D2838"; c.fillRect(0, 0, w, h);
-  if (!e) { c.fillStyle = ["#2A3F5E", "#3B2F3A", "#24404A"][i % 3]; c.fillRect(0, 0, w, 58); c.fillStyle = "rgba(220,230,245,0.35)"; for (let k = 0; k < 9; k++) c.fillRect(60 + k * 44, 22, 30, 14); }
-  const lit = rnd(i * 7 + 1) < 0.75;
-  const g = c.createLinearGradient(0, 70, 0, h);
-  if (lit) { g.addColorStop(0, "#FFE1AE"); g.addColorStop(1, "#C98A4A"); } else { g.addColorStop(0, e ? "#000" : "#22344d"); g.addColorStop(1, e ? "#000" : "#121e30"); }
-  c.fillStyle = g; c.fillRect(24, 76, 330, 160);
-  if (!e || lit) { c.fillStyle = e ? "#000" : "rgba(0,0,0,0.45)"; for (let x = 24; x < 354; x += 82) c.fillRect(x, 76, 5, 160); }
-  c.fillStyle = e ? "#000" : "#0E1724"; c.fillRect(380, 80, 100, 176);
-  if (!e) { c.fillStyle = "rgba(255,220,170,0.25)"; c.fillRect(392, 92, 76, 90); }
-};
-// ── the neighbours ─────────────────────────────────────────────────────────────────────────────────────────────────────────
-const BASES = ["#5A4644", "#4B5466", "#63504A", "#40506A", "#5B5250", "#4E4448"];
-const Shop = ({ x, w, h, i }) => {
-  const v = i % 4, rows = Math.max(1, Math.round((h - 3.6) / 2.8));
-  const up = useMemo(() => facade("rs_up" + v + "_" + rows, 512, 512, { cols: 3, rows, base: BASES[v], lit: 0.55, seed: 40 + v, top: 46, bottom: 16 }), [v, rows]);
-  const sh = useMemo(() => shopTex(i % 3), [i]);
-  return (
-    <group position={[x, 0, -3]}>
-      <mesh position={[0, h / 2, 0]} castShadow receiveShadow><boxGeometry args={[w, h, 6]} /><meshStandardMaterial color={BASES[v]} roughness={0.85} /></mesh>
-      <mesh position={[0, 3.6 + (h - 3.6) / 2, 3.01]}><planeGeometry args={[w, h - 3.6]} /><meshStandardMaterial map={up.map} emissiveMap={up.emis} emissive="#FFFFFF" emissiveIntensity={0.9} roughness={0.8} /></mesh>
-      <mesh position={[0, 1.8, 3.01]}><planeGeometry args={[w, 3.6]} /><meshStandardMaterial map={sh.map} emissiveMap={sh.emis} emissive="#FFFFFF" emissiveIntensity={0.85} roughness={0.6} /></mesh>
-      <mesh position={[0, h + 0.18, 0]} castShadow><boxGeometry args={[w + 0.2, 0.36, 6.2]} /><meshStandardMaterial color="#232D3C" roughness={0.6} /></mesh>
-      <mesh position={[0, h - 0.5, 3.08]}><boxGeometry args={[w, 0.16, 0.16]} /><meshStandardMaterial color="#8C97A8" roughness={0.6} /></mesh>
-      <mesh position={[0, 3.25, 3.6]} rotation-x={0.42} castShadow><boxGeometry args={[w * 0.9, 0.06, 1.3]} /><meshStandardMaterial color={i % 2 ? "#1F4E8C" : "#35455E"} roughness={0.7} /></mesh>
-    </group>
-  );
+// ── the neighbours: the town kit (the same buildings as the hook's main street) ─────────────────────────────────────────────
+const NEAR_SIGNS = [13, 0, 6, 8, 3, 11, 5, 9, 15, 10, 14], NEAR_KIND = ["brick", "clap", "brick", "brick", "clap", "brick", "brick", "brick", "clap", "brick", "brick"];
+const FAR_SIGNS = [1, 4, 2, 7, 12, 0, 6, 13, 10, 5, 11, 3, 8, 9, 15, 14];
+const buildStreet = (m, shops) => {
+  // sidewalks (concrete slabs) and curbs, both sides of the road
+  for (const z of [1.75, 14.25]) m.box("concrete", [-15, 0.08, z], [200, 0.16, 3.5], "#FFFFFF", { metric: true });
+  for (const z of [3.43, 12.57]) m.box("trim", [-15, 0.085, z], [200, 0.17, 0.14], "#A3ABB6", { metric: true });
+  shops.forEach((s, k) => {
+    m.push([s.x, 0.16, 0], 0);
+    addBuilding(m, { w: s.w - 0.05, h: s.h, d: 6, seed: s.i + 40, kind: NEAR_KIND[k % NEAR_KIND.length], brick: k % 4, sign: NEAR_SIGNS[k % NEAR_SIGNS.length], lit: 0.6 });
+    m.pop();
+  });
+  shops.filter((s) => s.x > -60).forEach((s, k) => {
+    m.push([s.x - 2.5, 0.16, 16], Math.PI);
+    addBuilding(m, { w: s.w - 0.05, h: s.h + (s.i % 3 === 1 ? 2.2 : 0), d: 6, seed: s.i + 90, kind: k % 3 === 1 ? "clap" : "brick", brick: (k + 2) % 4, sign: FAR_SIGNS[k % FAR_SIGNS.length], lit: 0.6 });
+    m.pop();
+  });
+  const N = (x, type, z = 3.0) => ({ type, p: [x, 0.16, z], ry: 0 }), X = (x, type, z = 13.0) => ({ type, p: [x, 0.16, z], ry: Math.PI });
+  addProps(m, [
+    N(-8.5, "bench", 1.0), N(-11, "planter", 2.6), N(-13.2, "hydrant"), N(-19, "trash"), N(-21.5, "news", 0.9), N(-24, "meter"), N(-29, "planter", 2.6), N(-31.5, "bench", 1.0), N(-39, "mailbox", 0.9), N(-42, "sign", 3.15),
+    N(5.2, "planter", 2.6), N(9.5, "bench", 1.0), N(12.5, "hydrant"),
+    X(-12, "bench", 15.0), X(-14.5, "planter", 13.4), X(-21, "trash"), X(-26, "hydrant"), X(-33.5, "planter", 13.4), X(-3.5, "news", 15.1), X(3.5, "planter", 13.4), X(9, "meter")
+  ]);
 };
 const Lamp = ({ x, z }) => (
   <group position={[x, 0, z]}>
@@ -86,34 +81,67 @@ const Lamp = ({ x, z }) => (
 );
 // ── the store ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
 const WIN = { x0: -3.3, x1: 1.1, y0: 0.75, y1: 2.9 };
-const Store = () => {
-  const brick = useMemo(() => { const t = brickTex("store", "#5C4A47"); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(2, 2); return t; }, []);
-  const sign = useMemo(signTex, []), decal = useMemo(decalTex, []), tile = useMemo(() => { const t = tileTex(); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(4, 3); return t; }, []);
-  const stock = useMemo(() => {
-    const geo = new THREE.BoxGeometry(1, 1, 1), n = 150;
-    const m = new THREE.InstancedMesh(geo, new THREE.MeshStandardMaterial({ roughness: 0.6 }), n);
-    const M = new THREE.Matrix4(), C = new THREE.Color();
-    const cols = ["#D9E3F0", "#4D8ED9", "#22406A", "#E9EEF5", "#8FA9C8", "#C9A35C", "#B3CEEF", "#3A5A88", "#E0B070"];
-    let i = 0;
-    for (let s = 0; s < 4; s++) for (let k = 0; k < 36 && i < n; k++, i++) {
-      const w = 0.12 + rnd(i) * 0.1, hh = 0.16 + rnd(i + 3) * 0.2;
-      M.makeScale(w, hh, 0.22); M.setPosition(-3.6 + k * 0.2 + rnd(i + 5) * 0.02, 0.62 + s * 0.52 + hh / 2, -5.55);
-      m.setMatrixAt(i, M); m.setColorAt(i, C.set(cols[Math.floor(rnd(i + 9) * cols.length)]));
+const buildStore = (m) => {
+  const BR = "#C9C6CE", MT = { metric: true, uo: [0.37, 0.21] };
+  // the facade around the openings (the hook store's brick), stone plinths and caps, the steel lintel, the cornice with dentils
+  m.box("brick0", [-3.65, 2.2, -0.15], [0.7, 4.4, 0.3], BR, MT); m.box("brick0", [1.3, 1.45, -0.15], [0.4, 2.9, 0.3], BR, MT);
+  m.box("brick0", [3.3, 1.45, -0.15], [1.4, 2.9, 0.3], BR, MT); m.box("brick0", [-1.1, 0.375, -0.15], [4.4, 0.75, 0.3], BR, MT);
+  m.box("brick0", [0, 3.65, -0.15], [8, 1.5, 0.3], BR, MT);
+  for (const x of [-3.62, 1.3, 3.85]) { m.box("brick0", [x, 2.25, 0.04], [0.34, 4.3, 0.08], BR, MT); m.box("trim", [x, 0.2, 0.05], [0.4, 0.4, 0.14], "#8D97A6"); m.box("trim", [x, 2.95, 0.06], [0.42, 0.12, 0.16], "#8D97A6"); }
+  m.box("metal", [-1.1, 2.98, 0.02], [4.6, 0.18, 0.1], "#1E2733");
+  m.box("trim", [-1.1, WIN.y0 - 0.03, 0.06], [4.6, 0.07, 0.2], "#8D97A6");
+  m.box("trim", [0, 4.42, 0.05], [8, 0.08, 0.1], "#8D97A6");
+  for (let i = 0; i < 40; i++) m.box("trim", [-3.9 + i * 7.8 / 39, 4.32, 0.05], [0.1, 0.08, 0.08], "#8D97A6");
+  m.box("metal", [0, 4.55, 0.12], [8.3, 0.14, 0.36], "#1E2733");
+  m.box("metal", [-1.1, WIN.y1 - 0.01, 0.02], [4.5, 0.06, 0.06], "#1B2433");
+  // the door's kick plate, the step, the sign's steel frame
+  m.box("metal", [2.05, 0.36, -0.03], [0.82, 0.36, 0.02], "#8FA9C8"); m.box("trim", [2.05, 0.03, 0.22], [1.2, 0.06, 0.44], "#8D97A6");
+  m.box("metal", [0, 3.62, -0.01], [6.4, 0.9, 0.06], "#2A3240");
+  // a news box and a trash can by the door (the same street furniture as the hook's)
+  addProps(m, [{ type: "news", p: [3.4, 0.16, 0.9], ry: 0 }, { type: "trash", p: [-4.6, 0.16, 0.8], ry: 0 }]);
+  // the counter's customer face (toward the window): kick plate, rails, raised panels, the steel nosing
+  const cx = -1.2, cl = 3.6, fz = COUNTER_Z + 0.305;
+  m.box("trim", [cx, 0.06, fz - 0.02], [cl, 0.12, 0.02], "#11161F");
+  m.box("trim", [cx, 0.17, fz], [cl, 0.08, 0.02], "#2A3A52"); m.box("trim", [cx, COUNTER_TOP - 0.1, fz], [cl, 0.1, 0.02], "#2A3A52");
+  for (let k = 0; k < 4; k++) { const px = cx - cl / 2 + (k + 0.5) * cl / 4; m.box("trim", [px, 0.52, fz + 0.012], [cl / 4 - 0.2, 0.5, 0.02], "#3E5270"); m.box("trim", [px, 0.52, fz + 0.022], [cl / 4 - 0.32, 0.38, 0.01], "#465C7C"); m.box("trim", [cx - cl / 2 + k * cl / 4, 0.52, fz], [0.08, 0.72, 0.02], "#2A3A52"); }
+  // the back-wall shelving: uprights and the goods (the store station's printed packs), price strips
+  for (let x = -3.7; x <= 3.5; x += 1.8) m.box("metal", [x, 1.45, -5.55], [0.04, 2.3, 0.4], "#7A8798");
+  const goods = [];
+  for (let s = 0; s < 4; s++) {
+    let x = -3.6, i = 0; const y = 0.62 + s * 0.52;
+    while (x < 3.6) {
+      const n = 2 + Math.floor(rnd(s * 41 + i) * 3), v = Math.floor(rnd(s * 17 + i * 5) * 8);
+      for (let q = 0; q < n && x < 3.6; q++) {
+        if (s === 0) { goods.push({ type: "can", p: [x + 0.035, y, -5.45], s: [0.068, 0.122, 0.068], ry: Math.PI, v }); goods.push({ type: "can", p: [x + 0.035, y + 0.122, -5.45], s: [0.068, 0.122, 0.068], ry: Math.PI, v }); x += 0.074; }
+        else if (s === 3) { goods.push({ type: "bag", p: [x + 0.09, y, -5.45], s: [0.17, 0.25, 0.07], v }); x += 0.18; }
+        else { const big = s === 1; goods.push({ type: "box", p: [x + (big ? 0.1 : 0.08), y, -5.47], s: [big ? 0.19 : 0.15, big ? 0.28 : 0.2, 0.07], v: big ? v % 5 : 5 + (v % 3) }); x += big ? 0.2 : 0.16; }
+      }
+      x += 0.03; i++;
     }
-    m.count = i; m.receiveShadow = true;
-    return m;
-  }, []);
+    for (let k = 0; k < 14; k++) m.quad("goods", [-3.45 + k * 0.53, y - 0.035, -5.348], 0.5, 0.05, "#FFFFFF", GR.strip(s), {});
+  }
+  addGoods(m, goods);
+};
+const Store = () => {
+  const sign = useMemo(storeSignTex, []), awn = useMemo(storeAwningTex, []), blade = useMemo(storeBladeTex, []), open = useMemo(storeOpenTex, []);
+  const decal = useMemo(decalTex, []), tile = useMemo(() => { const t = tileTex(); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(4, 3); return t; }, []);
   const frame = <meshStandardMaterial color="#1B2433" metalness={0.6} roughness={0.35} />;
   return (
     <group>
-      {/* the facade around the openings: piers, bulkhead, the header with the sign band */}
-      <mesh position={[-3.65, 2.2, -0.15]} castShadow receiveShadow><boxGeometry args={[0.7, 4.4, 0.3]} /><meshStandardMaterial map={brick} roughness={0.85} /></mesh>
-      <mesh position={[1.3, 1.45, -0.15]} castShadow receiveShadow><boxGeometry args={[0.4, 2.9, 0.3]} /><meshStandardMaterial map={brick} roughness={0.85} /></mesh>
-      <mesh position={[3.3, 1.45, -0.15]} castShadow receiveShadow><boxGeometry args={[1.4, 2.9, 0.3]} /><meshStandardMaterial map={brick} roughness={0.85} /></mesh>
-      <mesh position={[-1.1, 0.375, -0.15]} castShadow receiveShadow><boxGeometry args={[4.4, 0.75, 0.3]} /><meshStandardMaterial map={brick} roughness={0.85} /></mesh>
-      <mesh position={[0, 3.65, -0.15]} castShadow receiveShadow><boxGeometry args={[8, 1.5, 0.3]} /><meshStandardMaterial map={brick} roughness={0.85} /></mesh>
-      <mesh position={[0, 3.55, 0.03]}><planeGeometry args={[5.6, 0.86]} /><meshStandardMaterial map={sign} roughness={0.4} emissiveMap={sign} emissive="#FFFFFF" emissiveIntensity={0.55} /></mesh>
-      <mesh position={[0, 4.5, -0.1]} castShadow><boxGeometry args={[8.2, 0.2, 0.5]} /><meshStandardMaterial color="#2A3446" roughness={0.6} /></mesh>
+      <Town build={buildStore} />
+      {/* the hook store's dress: its CORNER STORE sign, the blue striped awning over the window, the blade sign, the neon OPEN */}
+      <mesh position={[0, 3.62, 0.025]}><planeGeometry args={[6.3, 0.88]} /><meshStandardMaterial map={sign} roughness={0.4} emissiveMap={sign} emissive="#FFFFFF" emissiveIntensity={0.55} /></mesh>
+      <group position={[-1.1, 2.98, 0.36]} rotation-x={0.38}>
+        <mesh castShadow receiveShadow><boxGeometry args={[WIN.x1 - WIN.x0 + 0.3, 0.025, 0.8]} /><meshStandardMaterial map={awn} roughness={0.85} /></mesh>
+        <mesh position={[0, -0.08, 0.4]} rotation-x={-0.38}><boxGeometry args={[WIN.x1 - WIN.x0 + 0.3, 0.16, 0.015]} /><meshStandardMaterial map={awn} roughness={0.85} /></mesh>
+      </group>
+      <group position={[3.95, 3.55, 0.05]} rotation-y={-Math.PI / 2}>
+        <mesh position={[-0.45, 0.62, 0]}><boxGeometry args={[0.9, 0.04, 0.04]} /><meshStandardMaterial color="#2A3240" metalness={0.75} roughness={0.35} /></mesh>
+        <mesh position={[-0.45, 0, 0]}><boxGeometry args={[0.78, 0.8, 0.06]} /><meshStandardMaterial color="#2A3240" metalness={0.75} roughness={0.35} /></mesh>
+        {[1, -1].map((sd) => <mesh key={sd} position={[-0.45, 0, sd * 0.031]} rotation-y={sd > 0 ? 0 : Math.PI}><planeGeometry args={[0.72, 0.74]} /><meshStandardMaterial map={blade} roughness={0.4} emissiveMap={blade} emissive="#ffffff" emissiveIntensity={0.6} /></mesh>)}
+      </group>
+      <mesh position={[2.05, 2.05, -0.1]}><planeGeometry args={[0.7, 0.26]} /><meshBasicMaterial map={open} transparent blending={THREE.AdditiveBlending} opacity={0.9} toneMapped={false} depthWrite={false} /></mesh>
+      <Glow position={[2.05, 2.05, 0.0]} size={1.1} color="#FF9F5E" opacity={0.3} />
       {[-1, 1].map((sd) => <group key={sd}><mesh position={[sd * 3.1, 4.05, 0.25]}><cylinderGeometry args={[0.03, 0.03, 0.5, 6]} /><meshStandardMaterial color="#1B2433" /></mesh><mesh position={[sd * 3.1, 3.82, 0.32]} rotation-x={0.5}><coneGeometry args={[0.16, 0.2, 12, 1, true]} /><meshStandardMaterial color="#1B2433" side={THREE.DoubleSide} /></mesh><Glow position={[sd * 3.1, 3.72, 0.36]} size={0.9} color="#FFE2B0" opacity={0.8} /></group>)}
       {/* the display window: frame, mullions, the glass (a faint reflection), the decal */}
       {[[WIN.x0, (WIN.y0 + WIN.y1) / 2, 0.06, WIN.y1 - WIN.y0], [WIN.x1, (WIN.y0 + WIN.y1) / 2, 0.06, WIN.y1 - WIN.y0], [-1.1, (WIN.y0 + WIN.y1) / 2, 0.05, WIN.y1 - WIN.y0]].map(([x, y, w, h], i) => <mesh key={i} position={[x, y, -0.05]}><boxGeometry args={[w, h, 0.08]} />{frame}</mesh>)}
@@ -132,7 +160,6 @@ const Store = () => {
       <mesh position={[0, 3.2, -3]} rotation-x={Math.PI / 2}><planeGeometry args={[8, 6]} /><meshStandardMaterial color="#D8DCE2" roughness={0.9} emissive="#FFE8C8" emissiveIntensity={0.15} /></mesh>
       {/* shelving and stock on the back wall */}
       {[0, 1, 2, 3].map((s) => <mesh key={s} position={[-0.1, 0.6 + s * 0.52, -5.55]} receiveShadow><boxGeometry args={[7.4, 0.04, 0.4]} /><meshStandardMaterial color="#E2E6EC" roughness={0.6} /></mesh>)}
-      <primitive object={stock} />
       {/* two ceiling light panels */}
       {[-2, 1.5].map((x) => <mesh key={x} position={[x, 3.19, -3]} rotation-x={Math.PI / 2}><planeGeometry args={[1.2, 0.5]} /><meshBasicMaterial color="#FFF4E0" /></mesh>)}
       {/* the counter along the window: a panelled front, a dark laminate top with a steel nosing */}
@@ -172,15 +199,12 @@ export const Street = () => {
       <mesh rotation-x={-Math.PI / 2} position={[0, -0.03, 0]} receiveShadow><planeGeometry args={[400, 400]} /><meshStandardMaterial color="#0d2238" roughness={0.95} /></mesh>
       <mesh rotation-x={-Math.PI / 2} position={[-15, 0, 8]} receiveShadow><planeGeometry args={[200, 9]} /><meshStandardMaterial map={asphalt} color="#7a8aa3" roughness={0.3} metalness={0.15} /></mesh>
       {Array.from({ length: 30 }, (_, i) => <mesh key={i} rotation-x={-Math.PI / 2} position={[30 - i * 7, 0.005, 8]}><planeGeometry args={[3.2, 0.16]} /><meshStandardMaterial color="#E8C766" emissive="#6b5520" emissiveIntensity={0.3} roughness={0.5} /></mesh>)}
-      <mesh position={[-15, 0.08, 1.75]} receiveShadow><boxGeometry args={[200, 0.16, 3.5]} /><meshStandardMaterial color="#364152" roughness={0.8} /></mesh>
-      <mesh position={[-15, 0.08, 14.25]} receiveShadow><boxGeometry args={[200, 0.16, 3.5]} /><meshStandardMaterial color="#364152" roughness={0.8} /></mesh>
       <Store />
       {/* the store's own depth behind its facade */}
       <mesh position={[0, 4.45, -3.2]} castShadow><boxGeometry args={[8.1, 0.3, 6.2]} /><meshStandardMaterial color="#232D3C" roughness={0.7} /></mesh>
-      {shops.map((s) => <Shop key={s.i} {...s} />)}
-      {/* across the street: the other row of shops, facing the store */}
+      <Town build={(m) => buildStreet(m, shops)} />
+      {/* across the street: its lamps (its row of shops is in the merged street above) */}
       <group position={[0, 0, 16]} rotation-y={Math.PI}>
-        {shops.filter((s) => s.x > -60).map((s) => <Shop key={"x" + s.i} x={-s.x + 2.5} w={s.w} h={s.h + (s.i % 3 === 1 ? 2.2 : 0)} i={s.i + 17} />)}
         {[-10, 0, 10, 20, 30, 40].map((x) => <Lamp key={x} x={x} z={3.1} />)}
       </group>
       {[-6, -16, -26, -36, -46, 7, 17].map((x) => <Lamp key={x} x={x} z={3.1} />)}

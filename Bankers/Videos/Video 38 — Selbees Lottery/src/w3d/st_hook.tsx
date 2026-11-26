@@ -11,6 +11,7 @@ import { Tag, Counter } from "./overlays";
 import { wf } from "./take";
 import { cueAt } from "../bnx/SfxLayer";
 import { BODY, FIGURE } from "./fonts3d";
+import { Town, addBuilding, addProps } from "./town_parts";
 
 const T = () => ({ town: wf("town"), lottery: wf("lottery."), legally: wf("legally."), years: wf("9"), next: wf("in") });
 // ── the street ───────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -19,44 +20,32 @@ const asphaltTex = () => canvasTex("asphalt", 512, 512, (c, w, h) => {
   c.fillStyle = "#1a2433"; c.fillRect(0, 0, w, h);
   for (let i = 0; i < 9000; i++) { const g = 30 + rnd(i) * 40; c.fillStyle = `rgba(${g},${g + 8},${g + 20},${0.25 + rnd(i + 7) * 0.3})`; c.fillRect(rnd(i + 1) * w, rnd(i + 2) * h, 2, 2); }
 });
-const facadeTex = (key, base, rows, cols, lit) => canvasTex("facade_" + key, 512, 512, (c, w, h) => {
-  c.fillStyle = base; c.fillRect(0, 0, w, h);
-  // brick courses
-  c.strokeStyle = "rgba(0,0,0,0.18)"; c.lineWidth = 1;
-  for (let y = 0; y < h; y += 10) { c.beginPath(); c.moveTo(0, y); c.lineTo(w, y); c.stroke(); }
-  // a cornice band
-  c.fillStyle = "rgba(255,255,255,0.10)"; c.fillRect(0, 18, w, 14);
-  // the windows (upper floor) and the shop front (ground floor)
-  const cw = w / cols;
-  for (let r = 0; r < rows; r++) for (let k = 0; k < cols; k++) {
-    const on = rnd(k * 13 + r * 7 + key.length) < lit;
-    const x = k * cw + cw * 0.22, y = 60 + r * 90, ww = cw * 0.56, hh = 60;
-    c.fillStyle = "#0c1626"; c.fillRect(x - 4, y - 4, ww + 8, hh + 8);
-    const g = c.createLinearGradient(0, y, 0, y + hh);
-    if (on) { g.addColorStop(0, "#FFD99A"); g.addColorStop(1, "#E9A85A"); } else { g.addColorStop(0, "#22344d"); g.addColorStop(1, "#16243a"); }
-    c.fillStyle = g; c.fillRect(x, y, ww, hh);
-    c.fillStyle = "rgba(0,0,0,0.35)"; c.fillRect(x + ww / 2 - 1, y, 2, hh);
+// ── the buildings: the town kit (town_parts.tsx), one merged street ─────────────────────────────────────────────────────────
+// the right side (the side the camera looks at) carries the named shops; the gap at z ≈ −58 is the corner store (store station)
+const RIGHT = [{ sign: 0, kind: "brick", brick: 0, awn: 1 }, { sign: 1, kind: "brick", brick: 2, awn: 3, door: "c" }, { sign: 3, kind: "clap", awn: -1 }, { sign: 2, kind: "brick", brick: 1, awn: -1 },
+  null, { sign: 4, kind: "brick", brick: 0, awn: 6 }, { sign: 5, kind: "clap" }, { sign: 14, kind: "brick", brick: 3 }, { sign: 12, kind: "brick", brick: 2 }];
+const LEFT = [{ sign: 8, kind: "brick", brick: 1, awn: 0 }, { sign: 13, kind: "clap", awn: 2 }, { sign: 7, kind: "brick", brick: 0 }, { sign: 6, kind: "brick", brick: 2, awn: 4 },
+  { sign: 10, kind: "clap" }, { sign: 11, kind: "brick", brick: 3 }, { sign: 9, kind: "brick", brick: 0 }, { sign: 15, kind: "clap" }, { sign: 2, kind: "brick", brick: 1 }];
+export const buildHookStreet = (m, blds) => {
+  // sidewalks (concrete slabs with tooled joints) and granite curbs
+  for (const sd of [-1, 1]) {
+    m.box("concrete", [sd * (ROAD_W / 2 + 1.1), 0.08, -60], [2.2, 0.16, 220], "#FFFFFF", { metric: true });
+    m.box("trim", [sd * (ROAD_W / 2 + 0.07), 0.085, -60], [0.14, 0.17, 220], "#A3ABB6", { metric: true });
   }
-  const sy = h - 170;
-  c.fillStyle = "#0b1422"; c.fillRect(20, sy, w - 40, 150);
-  const g2 = c.createLinearGradient(0, sy, 0, sy + 150); g2.addColorStop(0, "#F7CF8A"); g2.addColorStop(1, "#B9783E");
-  c.fillStyle = g2; c.globalAlpha = 0.85; c.fillRect(30, sy + 10, w - 60, 130); c.globalAlpha = 1;
-  c.fillStyle = "rgba(0,0,0,0.4)"; for (let x = 30; x < w - 30; x += 70) c.fillRect(x, sy + 10, 4, 130);
-});
-const Building = ({ x, z, w, h, d, side, i }) => {
-  const bases = ["#5b3b34", "#4a5466", "#6a4b3a", "#3f4d63", "#5e5248"];
-  const tex = useMemo(() => facadeTex(String(i), bases[i % bases.length], Math.max(1, Math.round(h / 4) - 1), 3, 0.6), [i]);
-  const front = side < 0 ? Math.PI / 2 : -Math.PI / 2;
-  return (
-    <group position={[x, h / 2, z]}>
-      <mesh castShadow receiveShadow><boxGeometry args={[d, h, w]} /><meshStandardMaterial color={bases[i % bases.length]} roughness={0.85} /></mesh>
-      {/* the street face (a textured plane just proud of the box) */}
-      <mesh position={[side < 0 ? d / 2 + 0.01 : -d / 2 - 0.01, 0, 0]} rotation-y={front}><planeGeometry args={[w, h]} /><meshStandardMaterial map={tex} roughness={0.8} emissiveMap={tex} emissive="#ffb766" emissiveIntensity={0.35} /></mesh>
-      {/* a parapet cap and an awning */}
-      <mesh position={[0, h / 2 + 0.15, 0]} castShadow><boxGeometry args={[d + 0.25, 0.3, w + 0.25]} /><meshStandardMaterial color="#2a3446" roughness={0.6} /></mesh>
-      <mesh position={[side < 0 ? d / 2 + 0.6 : -d / 2 - 0.6, -h / 2 + 3.1, 0]} rotation-z={side < 0 ? -0.35 : 0.35} castShadow><boxGeometry args={[1.3, 0.08, w * 0.9]} /><meshStandardMaterial color={i % 2 ? "#1F4E8C" : "#8A2F2F"} roughness={0.7} /></mesh>
-    </group>
-  );
+  for (const b of blds) {
+    const spec = (b.side > 0 ? RIGHT : LEFT)[Math.floor(b.i / 2)] ?? {};
+    m.push([b.side * (ROAD_W / 2 + 2.2), 0.16, b.z], b.side < 0 ? Math.PI / 2 : -Math.PI / 2);
+    addBuilding(m, { w: b.w, h: b.h, d: b.d, seed: b.i + 3, lit: 0.6, ...spec });
+    m.pop();
+  }
+  // street furniture on both sidewalks (clear of the lamps at z = −8 − 9k and the town sign at z = −12)
+  const R = (sd, z, type, off = 0.55) => ({ type, p: [sd * (ROAD_W / 2 + off), 0.16, z], ry: sd < 0 ? Math.PI / 2 : -Math.PI / 2 });
+  addProps(m, [
+    R(1, -21.5, "hydrant", 0.45), R(1, -24, "sign", 0.35), R(1, -29.5, "bench", 1.7), R(1, -31.2, "planter", 0.75), R(1, -35.8, "trash", 0.5), R(1, -38.6, "pole", 2.05),
+    R(1, -39.6, "news", 0.6), R(1, -42.6, "meter", 0.35), R(1, -45.2, "planter", 0.75), R(1, -47, "bench", 1.7), R(1, -66, "mailbox", 0.6), R(1, -70.5, "planter", 0.75),
+    R(-1, -22, "planter", 0.75), R(-1, -28.5, "bench", 1.7), R(-1, -30.5, "trash", 0.5), R(-1, -34.5, "hydrant", 0.45), R(-1, -40.5, "planter", 0.75), R(-1, -46, "news", 0.6),
+    R(-1, -49.5, "meter", 0.35), R(-1, -52.2, "bench", 1.7), R(-1, -57.6, "planter", 0.75), R(-1, -63.5, "mailbox", 0.6)
+  ].map((q) => q.type === "pole" ? { ...q, p: [q.p[0] - 0.1, 2.2, q.p[2]] } : q));
 };
 const Lamp = ({ x, z }) => (
   <group position={[x, 0, z]}>
@@ -76,7 +65,8 @@ const signTex = () => canvasTex("evartSign", 512, 320, (c, w, h) => {
   c.font = `600 64px ${BODY}`; c.fillText("POP. 1,903", w / 2, 250);
 });
 // the ticket: a generic lottery ticket (no real game's artwork): header band, six-number rows, a barcode
-const ticketTex = () => canvasTex("ticket", 512, 900, (c, w, h) => {
+const ticketTex = () => canvasTex("ticket", 1024, 1800, (c) => {
+  c.scale(2, 2); const w = 512, h = 900;   // drawn at 2× (rev 2: the ticket lands 1.5× bigger, and the rules close-up reads it too)
   c.fillStyle = "#F4F7FB"; c.fillRect(0, 0, w, h);
   c.fillStyle = "#0B3F7A"; c.fillRect(0, 0, w, 150);
   c.fillStyle = "#FFFFFF"; c.textAlign = "center"; c.font = `800 86px ${BODY}`; c.fillText("LOTTERY", w / 2, 108);
@@ -91,6 +81,7 @@ const ticketTex = () => canvasTex("ticket", 512, 900, (c, w, h) => {
   });
   c.fillStyle = "#0B2547"; for (let k = 0; k < 64; k++) { const bw = 2 + Math.floor(rnd(k + 90) * 4); c.fillRect(48 + k * 6.6, 730, bw, 110); }
   c.font = `500 26px ${BODY}`; c.textAlign = "center"; c.fillText("DRAW 2003", w / 2, 880);
+  c.font = `600 22px ${BODY}`; c.fillText("KEEP THIS TICKET · CHECK YOUR NUMBERS", w / 2, 708);
 });
 export const Ticket = ({ pos = [0, 0, 0], rot = [0, 0, 0], s = 1 }) => {
   const tex = useMemo(ticketTex, []);
@@ -103,9 +94,10 @@ export const Ticket = ({ pos = [0, 0, 0], rot = [0, 0, 0], s = 1 }) => {
 };
 // ── the ticket's fall: from above, a slow leaf-like sway, landing upright on its edge (a small settle) ─────────────────────────
 const TICKET_AT = [0, 0, -16];
+export const TICKET_S = 1.5;   // Timur, 2026-11-26: "make it a bit bigger when it lands on the street"
 const ticketPose = (t, f) => {
   const k = ease(f, t.lottery - 34, t.lottery + 6);
-  const y = 1.55 + 13 * (1 - k) * (1 - k);
+  const y = 0.05 + 1.5 * TICKET_S + 13 * (1 - k) * (1 - k);
   const sway = (1 - k) * 0.45 * Math.sin((f - t.lottery) / 5);
   return { pos: [TICKET_AT[0] + (1 - k) * 2.2 * Math.sin((f - t.lottery) / 9), y, TICKET_AT[2]], rot: [sway * 0.6, -0.35 + (1 - k) * 2.4, sway], vis: f > t.lottery - 36 };
 };
@@ -125,9 +117,8 @@ const Scene = ({ f }) => {
       {/* ground: wet asphalt road, sidewalks, the verges */}
       <mesh rotation-x={-Math.PI / 2} position={[0, 0, -60]} receiveShadow><planeGeometry args={[ROAD_W, 220]} /><meshStandardMaterial map={asphalt} color="#7a8aa3" roughness={0.32} metalness={0.15} /></mesh>
       {Array.from({ length: 26 }, (_, i) => <mesh key={i} rotation-x={-Math.PI / 2} position={[0, 0.005, 20 - i * 7]}><planeGeometry args={[0.18, 3.2]} /><meshStandardMaterial color="#E8C766" emissive="#6b5520" emissiveIntensity={0.3} roughness={0.5} /></mesh>)}
-      {[-1, 1].map((s) => <mesh key={s} position={[s * (ROAD_W / 2 + 1.1), 0.08, -60]} receiveShadow><boxGeometry args={[2.2, 0.16, 220]} /><meshStandardMaterial color="#4a5668" roughness={0.8} /></mesh>)}
       <mesh rotation-x={-Math.PI / 2} position={[0, -0.02, -60]} receiveShadow><planeGeometry args={[400, 400]} /><meshStandardMaterial color="#0d2238" roughness={0.95} /></mesh>
-      {blds.map((b) => <Building key={b.i} {...b} />)}
+      <Town build={(m) => buildHookStreet(m, blds)} />
       {Array.from({ length: 6 }, (_, i) => <Lamp key={i} x={(i % 2 ? 1 : -1) * (ROAD_W / 2 + 0.6)} z={-8 - i * 9} />)}
       {/* the town-limit sign, right verge */}
       <group position={[ROAD_W / 2 + 0.9, 0, -12]} rotation-y={-0.32}>
@@ -136,7 +127,7 @@ const Scene = ({ f }) => {
         <mesh position={[0, 2.5, 0.032]}><planeGeometry args={[2.6, 1.62]} /><meshStandardMaterial map={sign} roughness={0.35} emissiveMap={sign} emissive="#ffffff" emissiveIntensity={0.18} /></mesh>
       </group>
       {/* the ticket, falling then standing on the road, with its contact shadow under the lamps */}
-      {tp.vis && <Ticket pos={tp.pos} rot={tp.rot} />}
+      {tp.vis && <Ticket pos={tp.pos} rot={tp.rot} s={TICKET_S} />}
       {/* far hills and a water tower on the skyline (the town's silhouette) */}
       <group position={[-14, 0, -118]}>
         <mesh position={[0, 9, 0]}><sphereGeometry args={[3.2, 24, 16]} /><meshStandardMaterial color="#5b7392" roughness={0.6} metalness={0.3} /></mesh>
@@ -151,19 +142,22 @@ const shots = () => {
   return [
     { a: 0, b: 0, pos: [-1.0, 1.25, 15], target: [2.6, 2.0, -12], fov: 40 },
     { a: 0, b: t.lottery - 10, pos: [-0.9, 1.7, 5], target: [1.2, 1.6, -15], fov: 38 },
-    { a: t.lottery - 10, b: t.years + 26, pos: [-2.0, 2.5, 1.2], target: [0.1, 1.15, -16], fov: 34 }
+    { a: t.lottery - 10, b: t.years + 26, pos: [-2.0, 2.5, 1.2], target: [-1.3, 1.15, -16], fov: 34 }   // rev 2: aimed 1.4 m left, so the bigger ticket stands right of centre and 9 YEARS has the upper left
   ];
 };
+const COUNTER_X = 290;
 const Overlay = ({ f, P }) => {
   const t = T();
   const sign = P([ROAD_W / 2 + 0.9, 2.6, -12]);
   const tk = ticketPose(t, f);
-  const tick = P([tk.pos[0] - 0.8, tk.pos[1] + 0.2, tk.pos[2]]);
+  const tick = P([tk.pos[0] - 0.8 * TICKET_S, tk.pos[1] + 0.2 * TICKET_S, tk.pos[2]]);
   return (
     <>
-      <Tag text="Evart, Michigan" at={t.town} out={t.lottery - 10} x={80} y={420} to={sign.behind ? null : sign} />
-      <Tag text="Legal" at={t.legally - 2} out={t.next - 6} x={90} y={640} to={tick} />
-      <Counter at={t.years - 4} out={t.next - 4} x={540} y={330} value={9} unit="YEARS" label="2003 – 2012" size={112} countDur={14} />
+      {/* rev 2 tag audit: each is fully in (at + 12/14) by its word, reads ≥ 36 f, and the pinned ones leave before the flight to
+          the store (t.next − 20 = the store's first travel) */}
+      <Tag text="Evart, Michigan" at={t.town - 14} out={t.lottery - 10} x={80} y={420} to={sign.behind ? null : sign} />
+      <Tag text="Legal" at={t.legally - 14} out={t.next - 32} x={70} y={640} to={tick} />
+      <Counter at={t.years - 14} out={t.next - 11} x={COUNTER_X} y={330} value={9} unit="YEARS" label="2003 – 2012" size={112} countDur={14} />
     </>
   );
 };

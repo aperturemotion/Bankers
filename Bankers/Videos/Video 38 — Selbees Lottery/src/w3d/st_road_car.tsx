@@ -1,132 +1,117 @@
 // @ts-nocheck
-// ★ V38 ROAD — the Selbees' sedan (builder C). Built, not drawn: an extruded, bevelled body shell from a real sedan side profile,
-//   a glass greenhouse with body-colour roof and pillars, four wheels (tyre, five-spoke rim, brake disc), headlight units with
-//   their light (two spot lights) and a visible beam in the haze, tail-light bars, plate, mirrors, door seams and handles.
-//   X-RAY: on "betting" the shell turns to clear blue glass with a white rim (EdgesGeometry) and the cabin shows what it carries:
-//   tubs of tickets in the trunk and on the back seat. Front of the car = +x, right side = +z; it sits on y = 0.
+// ★ V38 ROAD — the Selbees' sedan. Rev 2 (builder D; Timur 2026-11-26: "make the car a lot more detailed, make it more realistic"):
+//   a generic mid-2000s American four-door family sedan, no make and no badges (road_carbody.ts: a lofted body with shoulder crease,
+//   tumblehome, tucked sill and cut wheel arches; a lofted glasshouse with A/B/C pillars, black window frames and drip mouldings),
+//   panel gaps, sill trim and body-side mouldings printed into its paint (+ bump), lamp clusters with reflectors and lenses, grille,
+//   intake and fog lamps cut as decals from the body, real wheels (road_wheel.tsx), mirrors, chrome handles, belt mouldings, wipers,
+//   a Michigan plate, the exhaust, and a full cabin (road_interior.tsx) with the steering wheel on the LEFT.
+//   ★ THE ROOF FIX: the draft drew the whole glasshouse (roof included) as one transparent mesh and the body paint as a transparent
+//   material too; the renderer sorts transparent meshes by their centres, so from the front (the cabin's centre then FARTHER than the
+//   body's) the glass drew first without writing depth and the body painted over it — the roof and windshield "went transparent".
+//   Now the body, the roof and every trim are OPAQUE until the x-ray starts (their materials switch to transparent only while the
+//   shell is fading), only the window panes are glass, and the glass always draws after the opaque car.
+//   X-RAY (unchanged timing and look): on "betting" the shell turns to clear pale-blue glass with a white rim (the panel and window
+//   lines + a fresnel edge glow); the cabin and the tubs of tickets show; the tubs glow. Front = +x, right = +z, ground y = 0.
 import React, { useMemo } from "react";
 import * as THREE from "three";
+import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { canvasTex, Glow, clamp01 } from "./kit";
 import { Tub } from "./st_road_parts";
+import { bodyGeometry, greenGeometry, featureLines, decal, topY, roofY, beltW, sideZ, AXLE, TRACK } from "./road_carbody";
+import { sideTex, sideBump, topTex, topBump, headTex, headEmis, tailTex, tailEmis, grilleTex, intakeTex, plateTex } from "./road_cartex";
+import { Wheel, useWheelMats } from "./road_wheel";
+import { Cabin, useCabinMats } from "./road_interior";
 
-const bodyShape = () => {
-  const s = new THREE.Shape();
-  s.moveTo(-2.45, 0.42);
-  s.lineTo(-2.43, 0.74);
-  s.quadraticCurveTo(-2.41, 0.96, -2.2, 0.99);
-  s.lineTo(-1.36, 1.02);
-  s.lineTo(1.0, 1.0);
-  s.quadraticCurveTo(1.85, 0.96, 2.3, 0.8);
-  s.quadraticCurveTo(2.47, 0.74, 2.47, 0.6);
-  s.lineTo(2.45, 0.36);
-  s.lineTo(1.88, 0.32);
-  s.absarc(1.45, 0.34, 0.43, 0, Math.PI, false);
-  s.lineTo(-1.02, 0.32);
-  s.absarc(-1.45, 0.34, 0.43, 0, Math.PI, false);
-  s.lineTo(-2.45, 0.42);
-  return s;
-};
-const cabinShape = () => {
-  const s = new THREE.Shape();
-  s.moveTo(-1.42, 0.98);
-  s.quadraticCurveTo(-1.0, 1.3, -0.72, 1.4);
-  s.quadraticCurveTo(-0.2, 1.47, 0.32, 1.43);
-  s.quadraticCurveTo(0.62, 1.38, 1.08, 0.98);
-  s.lineTo(-1.42, 0.98);
-  return s;
-};
-const BODY_W = 1.7, CAB_W = 1.36;
-// the plan view of a real car: narrower at the nose and tail, the sides tucking in above the shoulder (tumblehome) and at the sill
-const sculpt = (g, cabin) => {
-  const p = g.attributes.position;
-  for (let i = 0; i < p.count; i++) {
-    const x = p.getX(i), y = p.getY(i); let z = p.getZ(i);
-    const ax = Math.abs(x), te = Math.max(0, Math.min(1, (ax - 1.5) / 1.0));
-    z *= 1 - (x > 0 ? 0.2 : 0.14) * te * te;
-    if (cabin) z *= 1 - 0.24 * Math.max(0, Math.min(1, (y - 0.98) / 0.47));
-    else {
-      z *= 1 - 0.1 * Math.max(0, Math.min(1, (y - 0.8) / 0.25));
-      z *= 1 - 0.06 * Math.max(0, Math.min(1, (0.5 - y) / 0.2));
-    }
-    p.setZ(i, z);
-  }
-  g.computeVertexNormals();
-  // the flat side panels (the extrusion's caps, group 0): smooth normals, a touch upward above the shoulder (no facets)
-  const n = g.attributes.normal, cap = g.groups[0];
-  for (let i = cap.start; i < cap.start + cap.count; i++) {
-    const y = p.getY(i), s = Math.sign(p.getZ(i)) || 1;
-    const up = cabin ? 0.45 : 0.28 * Math.max(0, Math.min(1, (y - 0.8) / 0.25)) - 0.15 * Math.max(0, Math.min(1, (0.5 - y) / 0.2));
-    const l = Math.hypot(up, 1); n.setXYZ(i, 0, up / l, s / l);
-  }
-  n.needsUpdate = true;
-  return g;
-};
-const plateTex = () => canvasTex("plateMI", 256, 128, (c, w, h) => {
-  c.fillStyle = "#EEF3FA"; c.fillRect(0, 0, w, h);
-  c.strokeStyle = "#0B2547"; c.lineWidth = 6; c.strokeRect(5, 5, w - 10, h - 10);
-  c.fillStyle = "#0B3F7A"; c.fillRect(5, 5, w - 10, 22);
-  c.fillStyle = "rgba(11,37,71,0.55)"; for (let i = 0; i < 6; i++) c.fillRect(30 + i * 34, 52, 24, 48);
-});
-const rimTex = () => canvasTex("rim5", 256, 256, (c, w, h) => {
-  // a five-spoke alloy in motion: the spokes softened by speed, the hub crisp
-  c.fillStyle = "#1A2433"; c.fillRect(0, 0, w, h);
-  const g = c.createRadialGradient(w / 2, h / 2, 10, w / 2, h / 2, w / 2);
-  g.addColorStop(0, "#C9D6E6"); g.addColorStop(0.75, "#8EA3BE"); g.addColorStop(0.92, "#5D7290"); g.addColorStop(1, "#1A2433");
-  c.fillStyle = g; c.beginPath(); c.arc(w / 2, h / 2, w / 2 - 2, 0, Math.PI * 2); c.fill();
-  c.save(); c.translate(w / 2, h / 2);
-  for (let k = 0; k < 5; k++) { c.rotate((Math.PI * 2) / 5); c.fillStyle = "rgba(10,20,36,0.55)"; c.beginPath(); c.moveTo(18, -16); c.lineTo(108, -40); c.lineTo(108, 40); c.lineTo(18, 16); c.fill(); }
-  c.restore();
-  c.fillStyle = "#24364F"; c.beginPath(); c.arc(w / 2, h / 2, 22, 0, Math.PI * 2); c.fill();
-  c.fillStyle = "#AFC0D6"; c.beginPath(); c.arc(w / 2, h / 2, 12, 0, Math.PI * 2); c.fill();
-});
 const beamTex = () => canvasTex("beamCone", 16, 256, (c, w, h) => {
   const g = c.createLinearGradient(0, 0, 0, h);   // top row = the cone's apex (the lamp)
   g.addColorStop(0, "rgba(255,255,255,0.95)"); g.addColorStop(0.25, "rgba(255,255,255,0.35)"); g.addColorStop(0.7, "rgba(255,255,255,0.08)"); g.addColorStop(1, "rgba(255,255,255,0)");
   c.fillStyle = g; c.fillRect(0, 0, w, h);
 });
-
-const Wheel = ({ x, z, spin }) => {
-  const rim = useMemo(rimTex, []);
-  const side = z > 0 ? 1 : -1;
-  return (
-    <group position={[x, 0.34, z]}>
-      <mesh rotation-x={Math.PI / 2} castShadow><cylinderGeometry args={[0.34, 0.34, 0.24, 32]} /><meshStandardMaterial color="#121A26" roughness={0.85} /></mesh>
-      {/* the rim face, turning */}
-      <mesh position={[0, 0, side * 0.122]} rotation-y={side > 0 ? 0 : Math.PI} rotation-z={spin * side}>
-        <circleGeometry args={[0.235, 36]} />
-        <meshStandardMaterial map={rim} metalness={0.75} roughness={0.28} />
-      </mesh>
-    </group>
-  );
+/** opaque until it must fade: a material is transparent ONLY while op < 1 (switching recompiles once, then caches) */
+const fade = (m, op, depthWrite = false) => {
+  const tr = op < 0.999;
+  if (m.transparent !== tr) { m.transparent = tr; m.needsUpdate = true; }
+  m.opacity = op; m.depthWrite = !tr || depthWrite; m.visible = op > 0.004;
 };
+const rimShader = () => new THREE.ShaderMaterial({
+  transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+  uniforms: { k: { value: 0 }, col: { value: new THREE.Color("#E6F1FF") } },
+  vertexShader: "varying vec3 vN; varying vec3 vV; void main(){ vec4 mv = modelViewMatrix * vec4(position, 1.0); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }",
+  fragmentShader: "uniform float k;\nuniform vec3 col;\nvarying vec3 vN;\nvarying vec3 vV;\nvoid main(){\n float f = pow(1.0 - abs(dot(normalize(vN), normalize(vV))), 2.6);\n gl_FragColor = vec4(col * f * k, 1.0);\n#include <tonemapping_fragment>\n#include <colorspace_fragment>\n}"
+});
 
-/** the car. f: frame; xray 0–1 (shell → glass); flash 0–1 (the white rim's peak); shell 0–1 (whole car dissolves for the push in);
+const PAINT = "#A9BCD4", XRAY = "#8FC0F5";
+const useCarParts = () => useMemo(() => {
+  const B = bodyGeometry(), G = greenGeometry();
+  const st = sideTex(), sb = sideBump(), tt = topTex(), tb = topBump();
+  const paintP = { color: PAINT, metalness: 0.55, roughness: 0.3, clearcoat: 1, clearcoatRoughness: 0.06 };
+  const M = {
+    side: new THREE.MeshPhysicalMaterial({ ...paintP, map: st, bumpMap: sb, bumpScale: 2.2 }),
+    top: new THREE.MeshPhysicalMaterial({ ...paintP, map: tt, bumpMap: tb, bumpScale: 2.2 }),
+    roof: new THREE.MeshPhysicalMaterial({ ...paintP }),
+    under: new THREE.MeshStandardMaterial({ color: "#0B111A", roughness: 0.9 }),
+    trim: new THREE.MeshPhysicalMaterial({ color: "#0A0E15", roughness: 0.32, metalness: 0.2, clearcoat: 0.5 }),
+    chrome: new THREE.MeshStandardMaterial({ color: "#DDE7F4", metalness: 1, roughness: 0.14 }),
+    mirror: new THREE.MeshStandardMaterial({ color: "#B9C9DD", metalness: 1, roughness: 0.03 }),
+    liner: new THREE.MeshStandardMaterial({ color: "#070C14", roughness: 0.95, side: THREE.DoubleSide }),
+    plate: new THREE.MeshStandardMaterial({ map: plateTex(), roughness: 0.4, metalness: 0.1 }),
+    head: new THREE.MeshPhysicalMaterial({ map: headTex(), emissiveMap: headEmis(), emissive: "#FFFFFF", emissiveIntensity: 2.4, alphaTest: 0.5, roughness: 0.12, metalness: 0.35, clearcoat: 1, clearcoatRoughness: 0.03 }),
+    tail: new THREE.MeshPhysicalMaterial({ map: tailTex(), emissiveMap: tailEmis(), emissive: "#FFFFFF", emissiveIntensity: 1.8, alphaTest: 0.5, roughness: 0.15, metalness: 0.1, clearcoat: 1, clearcoatRoughness: 0.03 }),
+    grille: new THREE.MeshPhysicalMaterial({ map: grilleTex(), alphaTest: 0.5, roughness: 0.2, metalness: 0.75, clearcoat: 0.6 }),
+    intake: new THREE.MeshPhysicalMaterial({ map: intakeTex(), alphaTest: 0.5, roughness: 0.35, metalness: 0.4 }),
+    third: new THREE.MeshStandardMaterial({ color: "#7A1F25", emissive: "#E02A2A", emissiveIntensity: 2, toneMapped: false }),
+    glass: new THREE.MeshPhysicalMaterial({ color: "#0B1626", metalness: 0.25, roughness: 0.04, clearcoat: 1, clearcoatRoughness: 0.03, envMapIntensity: 1.3, transparent: true, opacity: 0.8 }),
+    rim: rimShader()
+  };
+  // decals cut from the body's own faces (they hug the nose and tail exactly)
+  const D = {
+    head: [1, -1].map((s) => decal({ c: [2.33, 0.715, s * 0.6], dir: [1, 0, 0.62 * s], w: 0.62, h: 0.2, flipU: s < 0 })),
+    tail: [1, -1].map((s) => decal({ c: [-2.36, 0.855, s * 0.6], dir: [-1, 0, 0.55 * s], w: 0.6, h: 0.2, flipU: s < 0 })),
+    grille: decal({ c: [2.46, 0.705, 0], dir: [1, 0, 0], w: 0.64, h: 0.17 }),
+    intake: decal({ c: [2.46, 0.43, 0], dir: [1, 0, 0], w: 1.15, h: 0.2 })
+  };
+  // belt mouldings (chrome) along the shelf under the side glass
+  const belt = [1, -1].map((s) => {
+    const pts = []; for (let x = -1.4; x <= 0.97; x += 0.06) pts.push(new THREE.Vector3(x, topY(x) + 0.006, s * (beltW(x) + 0.016)));
+    return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 60, 0.0075, 6, false);
+  });
+  // wipers parked along the windshield's foot: blade + arm to its pivot at the cowl
+  const wip = [[-0.68, -0.12], [-0.06, 0.48]].map(([z0, z1]) => {
+    const x = 0.955, y = roofY(x) + 0.009;
+    return { x, y, z: (z0 + z1) / 2, len: z1 - z0 };
+  });
+  // the door mirror's housing: a rounded shell, deeper at its outer end, its glass on the rear face
+  const mirrorBody = new RoundedBoxGeometry(0.1, 0.105, 0.2, 3, 0.04);
+  { const p = mirrorBody.attributes.position; for (let i = 0; i < p.count; i++) { const z = p.getZ(i), k = 0.75 + 0.25 * (z + 0.1) / 0.2; p.setY(i, p.getY(i) * k); p.setX(i, p.getX(i) * (0.8 + 0.2 * k) + (p.getX(i) > 0 ? 0.012 * (1 - k) : 0)); } mirrorBody.computeVertexNormals(); }
+  return { B, G, M, D, belt, wip, lines: featureLines(), handle: new RoundedBoxGeometry(0.17, 0.034, 0.03, 2, 0.012), mirrorBody };
+}, []);
+
+/** the car. xray 0–1 (shell → glass); flash 0–1 (the white rim's peak); shell 0–1 (whole car dissolves for the push in);
  *  glow 0–1 (the tubs light in the accent); spin: wheel angle */
 export const Car = ({ xray = 0, flash = 0, shell = 1, glow = 0, spin = 0, lit = 1 }) => {
-  const geo = useMemo(() => {
-    const g = new THREE.ExtrudeGeometry(bodyShape(), { depth: BODY_W, bevelEnabled: true, bevelThickness: 0.09, bevelSize: 0.07, bevelSegments: 5, curveSegments: 28 });
-    g.translate(0, 0, -BODY_W / 2); return sculpt(g, false);
-  }, []);
-  const cab = useMemo(() => {
-    const g = new THREE.ExtrudeGeometry(cabinShape(), { depth: CAB_W, bevelEnabled: true, bevelThickness: 0.1, bevelSize: 0.06, bevelSegments: 5, curveSegments: 20 });
-    g.translate(0, 0, -CAB_W / 2); return sculpt(g, true);
-  }, []);
-  const edges = useMemo(() => new THREE.EdgesGeometry(geo, 28), [geo]);
-  const cabEdges = useMemo(() => new THREE.EdgesGeometry(cab, 28), [cab]);
-  const plate = useMemo(plateTex, []);
+  const { B, G, M, D, belt, wip, lines, handle, mirrorBody } = useCarParts();
+  const W = useWheelMats();
+  const C = useCabinMats();
   const beam = useMemo(beamTex, []);
-  const tgt = useMemo(() => [0].map(() => { const o = new THREE.Object3D(); o.position.set(18, -0.6, 0); return o; }), []);
-  const paint = useMemo(() => new THREE.MeshPhysicalMaterial({ color: "#A7B9D1", metalness: 0.55, roughness: 0.3, clearcoat: 1, clearcoatRoughness: 0.07, transparent: true }), []);
-  const glass = useMemo(() => new THREE.MeshPhysicalMaterial({ color: "#040B16", metalness: 0.1, roughness: 0.12, clearcoat: 1, clearcoatRoughness: 0.1, envMapIntensity: 0.22, transparent: true, opacity: 0.94 }), []);
-  // the x-ray: the paint thins to a pale-blue glass, the shell keeps its form in a white rim
+  const tgt = useMemo(() => { const o = new THREE.Object3D(); o.position.set(18, -0.6, 0); return o; }, []);
+  // ── the x-ray (timing and look as the draft): paint thins to pale-blue glass, white rim ─────────────────────────────────
   const op = shell * (1 - 0.86 * xray);
-  paint.opacity = op; paint.depthWrite = op > 0.95; paint.visible = op > 0.004;
-  paint.color.set("#A7B9D1").lerp(new THREE.Color("#8FC0F5"), xray);
-  paint.emissive.set("#3F7CC4"); paint.emissiveIntensity = 0.5 * xray + 1.4 * flash;
-  const gop = shell * (0.94 - 0.84 * xray);
-  glass.opacity = gop; glass.depthWrite = gop > 0.95; glass.visible = gop > 0.004;
+  for (const k of ["side", "top", "roof"]) {
+    const m = M[k]; fade(m, op);
+    m.color.set(PAINT).lerp(new THREE.Color(XRAY), xray);
+    m.emissive.set("#3F7CC4"); m.emissiveIntensity = 0.5 * xray + 1.4 * flash;
+  }
+  for (const k of ["under", "trim", "chrome", "mirror", "liner", "plate", "grille", "intake"]) fade(M[k], shell * (1 - (k === "liner" ? 0.7 : 0.8) * xray));
+  fade(M.head, shell * (1 - 0.45 * xray)); fade(M.tail, shell * (1 - 0.55 * xray)); fade(M.third, shell * (1 - 0.6 * xray));
+  M.head.emissiveIntensity = 2.4 * shell * lit; M.tail.emissiveIntensity = 1.8 * shell * (1 - 0.6 * xray);
+  // the panes: tinted glass, always drawn after the opaque car; they write depth until the x-ray thins them
+  const gop = shell * (0.8 - 0.7 * xray);
+  M.glass.opacity = gop; M.glass.depthWrite = xray < 0.02 && shell > 0.99; M.glass.visible = gop > 0.004;
   const rimOp = shell * clamp01(0.7 * xray + 0.6 * flash);
-  const trim = (o = 1) => ({ transparent: true, opacity: o * shell * (1 - 0.8 * xray), depthWrite: xray < 0.05 });
+  M.rim.uniforms.k.value = shell * clamp01(0.28 * xray + 0.8 * flash);
+  for (const m of Object.values(C)) fade(m, shell, true);
+  for (const m of Object.values(W)) fade(m, shell, true);
+  const cast = xray < 0.3 && shell > 0.5;
   const lampsOn = shell;
   return (
     <group>
@@ -135,76 +120,80 @@ export const Car = ({ xray = 0, flash = 0, shell = 1, glow = 0, spin = 0, lit = 
         <planeGeometry args={[5.6, 2.5]} />
         <meshBasicMaterial color="#000814" transparent opacity={0.55 * shell} depthWrite={false} alphaMap={useMemo(() => canvasTex("carShadow", 128, 64, (c, w, h) => { const g = c.createRadialGradient(w / 2, h / 2, 4, w / 2, h / 2, w / 2); g.addColorStop(0, "#fff"); g.addColorStop(0.6, "#888"); g.addColorStop(1, "#000"); c.fillStyle = g; c.fillRect(0, 0, w, h); }), [])} />
       </mesh>
-      <mesh geometry={geo} material={paint} castShadow={xray < 0.3 && shell > 0.5} receiveShadow />
-      <mesh geometry={cab} material={glass} castShadow={xray < 0.3 && shell > 0.5} />
-      <lineSegments geometry={edges}><lineBasicMaterial color="#E6F1FF" transparent opacity={rimOp} depthWrite={false} /></lineSegments>
-      <lineSegments geometry={cabEdges}><lineBasicMaterial color="#E6F1FF" transparent opacity={rimOp * 0.8} depthWrite={false} /></lineSegments>
-      {/* the glasshouse is one dark piece (black roof, as many sedans); a chrome strip frames the side glass */}
-      {[-1, 1].map((s) => (
+      {/* the body and its glasshouse */}
+      <mesh geometry={B.side} material={M.side} castShadow={cast} receiveShadow />
+      <mesh geometry={B.top} material={M.top} castShadow={cast} receiveShadow />
+      <mesh geometry={B.under} material={M.under} />
+      <mesh geometry={G.paint} material={M.roof} castShadow={cast} receiveShadow />
+      <mesh geometry={G.trim} material={M.trim} castShadow={cast} />
+      <mesh geometry={G.glass} material={M.glass} renderOrder={2} />
+      {/* the x-ray's white rim: panel / window lines and a fresnel edge glow */}
+      <lineSegments geometry={lines} visible={rimOp > 0.003}><lineBasicMaterial color="#E6F1FF" transparent opacity={rimOp} depthWrite={false} /></lineSegments>
+      {M.rim.uniforms.k.value > 0.003 && <><mesh geometry={B.all} material={M.rim} renderOrder={3} /><mesh geometry={G.all} material={M.rim} renderOrder={3} /></>}
+      {/* lamps, grille, intake (decals on the body) */}
+      {D.head.map((g, i) => <mesh key={"h" + i} geometry={g} material={M.head} />)}
+      {D.tail.map((g, i) => <mesh key={"t" + i} geometry={g} material={M.tail} />)}
+      <mesh geometry={D.grille} material={M.grille} />
+      <mesh geometry={D.intake} material={M.intake} />
+      {[1, -1].map((s) => (
         <group key={s}>
-          <mesh position={[-0.17, 1.03, s * 0.705]}><boxGeometry args={[2.3, 0.018, 0.012]} /><meshStandardMaterial color="#DDE7F4" metalness={1} roughness={0.15} {...trim()} /></mesh>
-          {/* door seams, handles, the shoulder line, mirror */}
-          {[0.98, -0.18, -1.22].map((x) => <mesh key={x} position={[x, 0.68, s * (BODY_W / 2 + 0.072)]}><boxGeometry args={[0.012, 0.6, 0.006]} /><meshStandardMaterial color="#1E2C40" {...trim()} /></mesh>)}
-          {[0.55, -0.62].map((x) => <mesh key={x} position={[x, 0.86, s * (BODY_W / 2 + 0.078)]}><boxGeometry args={[0.16, 0.03, 0.02]} /><meshStandardMaterial color="#D7E2F0" metalness={0.8} roughness={0.25} {...trim()} /></mesh>)}
-          <mesh position={[0, 0.9, s * (BODY_W / 2 + 0.07)]}><boxGeometry args={[4.1, 0.012, 0.006]} /><meshStandardMaterial color="#DDE8F6" emissive="#9CC2EE" emissiveIntensity={0.3} {...trim(0.8)} /></mesh>
-          <group position={[0.95, 1.04, s * (BODY_W / 2 + 0.12)]}>
-            <mesh material={paint}><boxGeometry args={[0.16, 0.12, 0.16]} /></mesh>
-            <mesh position={[-0.081, 0, 0]}><boxGeometry args={[0.005, 0.1, 0.13]} /><meshStandardMaterial color="#C9D8EA" metalness={1} roughness={0.05} {...trim()} /></mesh>
+          <mesh geometry={belt[s > 0 ? 0 : 1]} material={M.chrome} />
+          {/* door handles (chrome pulls in their finger cups) */}
+          {[0.42, -0.62].map((x) => <mesh key={x} geometry={handle} material={M.chrome} position={[x, 0.862, s * (sideZ(x, 0.862) + 0.013)]} />)}
+          {/* the door mirror: a painted housing on its stalk, the glass facing back */}
+          <group position={[0.84, 1.035, s * (beltW(0.84) + 0.16)]} scale={[1, 1, s]}>
+            <mesh geometry={mirrorBody} material={M.roof} castShadow={cast} />
+            <mesh position={[-0.0505, 0.002, 0.004]} rotation-y={-Math.PI / 2} material={M.mirror}><planeGeometry args={[0.165, 0.082]} /></mesh>
+            <mesh position={[0.02, -0.03, -0.115]} material={M.trim}><boxGeometry args={[0.09, 0.035, 0.07]} /></mesh>
           </group>
-          {/* lower sill in a darker trim */}
-          <mesh position={[0, 0.36, s * (BODY_W / 2 + 0.04)]}><boxGeometry args={[2.0, 0.08, 0.04]} /><meshStandardMaterial color="#25344A" roughness={0.6} {...trim()} /></mesh>
+          {/* wheel-arch liners */}
+          {[AXLE, -AXLE].map((x) => <mesh key={"l" + x} position={[x, 0.34, s * 0.73]} rotation-x={Math.PI / 2} material={M.liner}><cylinderGeometry args={[0.4, 0.4, 0.3, 24, 1, true, Math.PI / 2, Math.PI]} /></mesh>)}
         </group>
       ))}
-      {/* front: grille, headlight units, lamps, beams */}
-      <mesh position={[2.5, 0.5, 0]}><boxGeometry args={[0.05, 0.16, 0.9]} /><meshStandardMaterial color="#0C1522" metalness={0.5} roughness={0.4} {...trim()} /></mesh>
-      <mesh position={[2.49, 0.68, 0]}><boxGeometry args={[0.04, 0.07, 0.7]} /><meshStandardMaterial color="#C9D8EA" metalness={0.9} roughness={0.2} {...trim()} /></mesh>
+      {/* wipers: blade and arm, parked */}
+      {wip.map((w, i) => (
+        <group key={"w" + i} position={[w.x, w.y, w.z]}>
+          <mesh material={M.trim}><boxGeometry args={[0.016, 0.014, w.len]} /></mesh>
+          <mesh position={[0.035, -0.004, 0.06]} rotation-y={0.12} material={M.trim}><boxGeometry args={[0.012, 0.012, w.len * 0.85]} /></mesh>
+        </group>
+      ))}
+      {/* the rear plate (in a dark recess on the bumper) and its lamp; the exhaust tip */}
+      <mesh position={[-2.452, 0.54, 0]} rotation-y={-Math.PI / 2} material={M.trim}><planeGeometry args={[0.36, 0.19]} /></mesh>
+      <mesh position={[-2.458, 0.54, 0]} rotation-y={-Math.PI / 2} material={M.plate}><planeGeometry args={[0.305, 0.152]} /></mesh>
+      <Glow position={[-2.47, 0.63, 0]} size={0.25} color="#EAF2FF" opacity={0.5 * lampsOn} />
+      <group position={[-2.37, 0.3, -0.48]} rotation-z={Math.PI / 2}>
+        <mesh material={M.chrome}><cylinderGeometry args={[0.035, 0.035, 0.16, 20, 1, true]} /></mesh>
+        <mesh position={[0, -0.07, 0]} material={M.under}><cylinderGeometry args={[0.03, 0.03, 0.01, 20]} /></mesh>
+      </group>
+      {/* the third brake light on the parcel shelf, under the rear window */}
+      <mesh position={[-1.34, 1.02, 0]} material={M.third}><boxGeometry args={[0.05, 0.03, 0.3]} /></mesh>
+      {/* headlamp light: glows on the lenses, the beams in the haze, one spot for both */}
       {[-1, 1].map((s) => (
-        <group key={"hl" + s} position={[2.38, 0.72, s * 0.62]}>
-          <mesh rotation-y={s * 0.35}><boxGeometry args={[0.16, 0.1, 0.4]} /><meshStandardMaterial color="#F2F7FF" emissive="#EAF3FF" emissiveIntensity={3.2 * lampsOn} toneMapped={false} transparent opacity={shell} /></mesh>
-          <Glow position={[0.14, 0, 0]} size={1.3} color="#DCEBFF" opacity={0.85 * lampsOn * lit} />
-          <Glow position={[0.16, 0, 0]} size={0.45} color="#FFFFFF" opacity={0.95 * lampsOn * lit} />
-          {/* the beam in the haze: an open cone, apex at the lamp */}
+        <group key={"hl" + s}>
+          <Glow position={[2.48, 0.72, s * 0.46]} size={1.3} color="#DCEBFF" opacity={0.85 * lampsOn * lit} />
+          <Glow position={[2.5, 0.72, s * 0.46]} size={0.42} color="#FFFFFF" opacity={0.95 * lampsOn * lit} />
+          <Glow position={[2.42, 0.72, s * 0.6]} size={0.5} color="#DCEBFF" opacity={0.5 * lampsOn * lit} />
           {[0.45, 0.75, 1].map((k) => (
-            <mesh key={k} position={[7.6, -0.32, s * 0.35]} rotation-z={Math.PI / 2 + 0.045}>
+            <mesh key={k} position={[2.38 + 7.6, 0.72 - 0.32, s * 0.97]} rotation-z={Math.PI / 2 + 0.045}>
               <coneGeometry args={[2.4 * k, 15, 28, 1, true]} />
               <meshBasicMaterial map={beam} color="#BFD8FF" transparent opacity={0.035 * lampsOn * lit} blending={THREE.AdditiveBlending} depthWrite={false} side={THREE.DoubleSide} />
             </mesh>
           ))}
+          <Glow position={[-2.5, 0.86, s * 0.5]} size={0.9} color="#FF4A4A" opacity={0.5 * lampsOn * (1 - 0.6 * xray)} />
         </group>
       ))}
-      {/* both lamps' light as ONE spot between them (render cost: one light, not two) */}
-      <primitive object={tgt[0]} />
-      <spotLight position={[2.35, 0.72, 0]} target={tgt[0]} angle={0.42} penumbra={0.8} intensity={340 * lampsOn * lit} distance={46} decay={1.6} color="#EAF2FF" />
-      {/* rear: tail-light bars, third brake light, plate, bumper */}
-      {[-1, 1].map((s) => (
-        <group key={"tl" + s} position={[-2.47, 0.82, s * 0.6]}>
-          <mesh><boxGeometry args={[0.04, 0.09, 0.42]} /><meshStandardMaterial color="#FF6B6B" emissive="#E02A2A" emissiveIntensity={2.6 * lampsOn * (1 - 0.6 * xray)} toneMapped={false} transparent opacity={shell} /></mesh>
-          <Glow position={[-0.06, 0, 0]} size={0.9} color="#FF4A4A" opacity={0.55 * lampsOn * (1 - 0.6 * xray)} />
-        </group>
-      ))}
-      <mesh position={[-2.47, 0.82, 0]}><boxGeometry args={[0.035, 0.05, 0.75]} /><meshStandardMaterial color="#7A1F25" emissive="#B0202A" emissiveIntensity={0.8 * lampsOn} transparent opacity={shell} /></mesh>
-      <mesh position={[-1.3, 1.02, 0]}><boxGeometry args={[0.03, 0.03, 0.3]} /><meshStandardMaterial color="#FF6B6B" emissive="#E02A2A" emissiveIntensity={2 * lampsOn} toneMapped={false} transparent opacity={shell} /></mesh>
-      <mesh position={[-2.545, 0.6, 0]} rotation-y={-Math.PI / 2}><planeGeometry args={[0.5, 0.25]} /><meshStandardMaterial map={plate} roughness={0.4} transparent opacity={shell * (1 - 0.8 * xray)} /></mesh>
-      <mesh position={[-2.5, 0.47, 0]}><boxGeometry args={[0.06, 0.1, 1.6]} /><meshStandardMaterial color="#1B283B" roughness={0.6} {...trim()} /></mesh>
-      {/* wheel-arch liners (dark), then the wheels */}
-      {[1.45, -1.45].map((x) => <mesh key={"lin" + x} position={[x, 0.34, 0]} rotation-x={Math.PI / 2}><cylinderGeometry args={[0.415, 0.415, 1.58, 20, 1, true, Math.PI / 2, Math.PI]} /><meshStandardMaterial color="#070D17" roughness={0.9} side={THREE.DoubleSide} transparent opacity={shell * (1 - 0.7 * xray)} /></mesh>)}
+      <primitive object={tgt} />
+      <spotLight position={[2.35, 0.72, 0]} target={tgt} angle={0.42} penumbra={0.8} intensity={340 * lampsOn * lit} distance={46} decay={1.6} color="#EAF2FF" />
       {/* wheels */}
-      {[[1.45, 1], [1.45, -1], [-1.45, 1], [-1.45, -1]].map(([x, s]) => <Wheel key={x + "_" + s} x={x} z={s * 0.77} spin={spin} />)}
-      {/* the cabin: dark seats; what the car carries — tubs of tickets on the back seat and in the trunk */}
-      <group visible={xray > 0.02 || shell < 1}>
-        {[0.25, -0.75].map((x) => [-0.36, 0.36].map((z) => (
-          <group key={x + "_" + z} position={[x, 0, z]}>
-            <mesh position={[0, 0.6, 0]}><boxGeometry args={[0.5, 0.14, 0.5]} /><meshStandardMaterial color="#132238" roughness={0.9} /></mesh>
-            <mesh position={[-0.27, 0.92, 0]} rotation-z={-0.18}><boxGeometry args={[0.12, 0.6, 0.48]} /><meshStandardMaterial color="#132238" roughness={0.9} /></mesh>
-          </group>
-        )))}
-        <Tub position={[-0.7, 0.67, -0.33]} rotY={0.04} glow={glow} />
-        <Tub position={[-0.7, 0.67, 0.33]} rotY={-0.03} glow={glow} />
-        <Tub position={[-0.72, 0.97, 0.05]} rotY={0.1} glow={glow} />
-      </group>
-      <Tub position={TRUNK_TUB} open hero glow={glow} seed={3} />
-      <Tub position={[-1.88, 0.48, -0.47]} open glow={glow} seed={11} />
-      <Tub position={[-1.88, 0.48, 0.47]} open glow={glow} seed={17} />
+      {[[AXLE, 1], [AXLE, -1], [-AXLE, 1], [-AXLE, -1]].map(([x, s]) => <Wheel key={x + "_" + s} x={x} z={s * TRACK} side={s} spin={spin} mats={W} />)}
+      {/* the cabin, and what the car carries — tubs of tickets on the back seat and in the trunk */}
+      <group visible={shell > 0.004}><Cabin mats={C} /></group>
+      <Tub position={[-0.7, 0.67, -0.33]} rotY={0.04} glow={glow} seed={5} fade={shell} num={18} />
+      <Tub position={[-0.7, 0.67, 0.33]} rotY={-0.03} glow={glow} seed={6} fade={shell} num={19} />
+      <Tub position={[-0.72, 0.97, 0.05]} rotY={0.1} glow={glow} seed={7} fade={shell} num={20} />
+      <Tub position={TRUNK_TUB} open hero glow={glow} seed={3} num={22} />
+      <Tub position={[-1.88, 0.48, -0.47]} open glow={glow} seed={11} num={21} />
+      <Tub position={[-1.88, 0.48, 0.47]} open glow={glow} seed={17} num={23} />
       {/* the trunk's own small lamp (a warm practical) */}
       <Glow position={[-1.6, 0.95, 0]} size={0.7} color="#FFC97A" opacity={0.6 * xray * shell} />
     </group>
