@@ -225,3 +225,11 @@ The rights belong to the outlets named. A credit line is not permission to use a
   so this is secondary-level confidence. The brochure's odds are COMPUTED from 6 of 49 (1 in 13,983,816 for the jackpot).
 - Lower-tier prize AMOUNTS ($2,500 / $100 / $5 in the summaries) are NOT printed: no primary source could be read. The brochure says
   "set by the game rules" and makes no pari-mutuel claim.
+
+## Rev 4c (2026-11-26) — the new opening line
+- Timur re-wrote the hook: "In this town of just 1,903 people, a retired couple found a way to beat the lottery. Legally. For nine years."
+- **1,903** is Evart's population as HL gives it (HL, 2018-03-01: "Evart, Michigan: 1,903 residents"; the 2010 US Census count), the same
+  figure as the town sign in the hook (POP. 1,903). The rest of the script keeps CBS's figures; the population is the only HL figure, on its
+  own line, so no line mixes the two source families.
+- "found a way to beat the lottery" describes the roll-down strategy both sources report (CBS; HL); "Legally" stands (Inspector General
+  review, already cited).
