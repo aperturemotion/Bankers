@@ -11,7 +11,7 @@ const chromiumOptions = { gl: "swangle" };
 const composition = await selectComposition({ serveUrl, id: "SelbeesLottery", port: PORT, chromiumOptions, inputProps: { solo: "picture" } });
 for (const frame of frames) {
   const t = Date.now();
-  await renderStill({ serveUrl, composition, frame, scale, port: PORT, chromiumOptions, inputProps: { solo: "picture" }, output: path.resolve(`${OUTD}/f${frame}.png`),
+  await renderStill({ serveUrl, composition, frame, scale, port: PORT, chromiumOptions, inputProps: { solo: "picture" }, output: path.resolve(`${OUTD}/f${frame}.png`), timeoutInMilliseconds: 300000,
     onBrowserLog: (l) => { if (l.type === "error") console.log("BROWSER", l.text.slice(0, 300)); } });
   console.log(`f${frame} ${((Date.now() - t) / 1000).toFixed(1)}s`);
 }
