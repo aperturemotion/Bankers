@@ -32,7 +32,7 @@ const OUTRO = { a: CLOSE_AT - 6, b: CLOSE_AT + 40, pos: [lastShot.pos[0], lastSh
 export const CAM_RAW = makeCam([...shotsAll, OUTRO]);
 export const CAM = smoothCam(CAM_RAW, TOTAL, shotsAll.filter((s) => s.cut).map((s) => s.a), 14);   // one continuous glide (kit.smoothCam)
 // the store's push INTO the leaflet's bright diagram cuts to the dark coin wall (measured 159 → 102 mean levels at 480 → 481)
-const CUT_FLASH = [{ at: 481, o: 0.58, dur: 16, color: "#C8DBF4" }, { at: 883, o: 0.42, dur: 14, color: "#EEF3FA" }];   // 883: the bright bill → the gold seal (186 → 147)
+const CUT_FLASH = [{ at: 481, o: 0.58, dur: 16, color: "#C8DBF4" }, { at: 883, o: 0.25, dur: 14, color: "#EEF3FA" }];   // 883: the $1's seal → the gold seal, matched in place (rev 2: 165.6 → 139 without flash; 0.25 evens it, builder E)
 // a flight between stations crosses the navy HAZE (the reference style's "through a boundary" transition): the fog thickens to full
 // as the camera crosses and clears as it lands, so a fast arrival into a small room never flashes (test: 51 → 81 levels in one frame)
 const HAZE = [{ a: 744, peak: 756, b: 778 }];
