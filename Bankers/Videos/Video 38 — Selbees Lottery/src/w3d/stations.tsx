@@ -1,7 +1,7 @@
 // @ts-nocheck
 // The stations of V38, in story order. Each builder adds its own import + entry; the integrator owns this file.
 import { ST as hookRaw } from "./st_hook";
-const hook = { ...hookRaw, to: Math.max(hookRaw.to, 335) };   // the store's exterior shots stand in the hook's street
+const hook = { ...hookRaw, to: Math.max(hookRaw.to, 335 + 43) };   // rev 4c: the hook runs in REAL time (shift.ts): story 335 + 43   // the store's exterior shots stand in the hook's street
 import { ST as storeRaw } from "./st_store";
 const store = { ...storeRaw, from: 0 };   // the store stands at the end of the hook's street from frame 0 (mounting it at 200 popped it into the distance)
 import { ST as rolldown } from "./st_rolldown";
