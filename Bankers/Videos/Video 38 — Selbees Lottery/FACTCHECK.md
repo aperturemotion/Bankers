@@ -216,3 +216,12 @@ The rights belong to the outlets named. A credit line is not permission to use a
 10. Wikipedia, "Evart, Michigan" (US Census figures). https://en.wikipedia.org/wiki/Evart,_Michigan
 11. Wikipedia, "Massachusetts Lottery" (Cash WinFall end date 2012-01-26; secondary). https://en.wikipedia.org/wiki/Massachusetts_Lottery
 12. Wikipedia, "Michigan Lottery" (Lotto 47 replaced Winfall 2005-05-15; citation needed). https://en.wikipedia.org/wiki/Michigan_Lottery
+
+## Rev 2 (2026-11-26) — the WinFall brochure's print
+- **Michigan WinFall was pick 6 of 49** (launched January 2003, replacing Michigan Millions' 51-number field; jackpot odds "1 in 14 million").
+  Source: web search summaries of the Michigan Bureau of State Lottery 2003 Annual Report
+  (https://www.michigan.gov/documents/BSL-L-AR2003_133757_7.pdf) and the Lottery's announcement as reported by the Las Vegas Sun /
+  AP, 2002-12-12 (https://lasvegassun.com/news/2002/dec/12/lottery-announces-new-game/). Both pages refused a direct fetch (403 / 402),
+  so this is secondary-level confidence. The brochure's odds are COMPUTED from 6 of 49 (1 in 13,983,816 for the jackpot).
+- Lower-tier prize AMOUNTS ($2,500 / $100 / $5 in the summaries) are NOT printed: no primary source could be read. The brochure says
+  "set by the game rules" and makes no pari-mutuel claim.

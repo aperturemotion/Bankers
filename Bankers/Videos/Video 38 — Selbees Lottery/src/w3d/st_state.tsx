@@ -21,6 +21,7 @@ import { BODY, FIGURE } from "./fonts3d";
 import { StateHouse } from "./st_state_house";
 import { Cash } from "./st_total_cash";
 import { LightPool, LightWash } from "./st_state_fx";
+import { SERIF as PSERIF, line as pline, para as ppara, rule as prule, grain as pgrain } from "./print_type";
 
 export const O_STATE = [1800, 0, 0];
 const nrm = (s) => s.toLowerCase().replace(/[^a-z0-9$']/g, "");
@@ -59,37 +60,88 @@ const lawnTex = () => canvasTex("st_lawn", 512, 512, (c, w, h) => {
   c.fillStyle = "#142638"; c.fillRect(0, 0, w, h);
   for (let i = 0; i < 26000; i++) { const g = rnd(i) * 40; c.fillStyle = `rgba(${30 + g},${50 + g},${70 + g},${0.25})`; c.fillRect(rnd(i + 3) * w, rnd(i + 4) * h, 1.5, 3); }
 });
-const coverTex = () => canvasTex("st_cover", 640, 840, (c, w, h) => {
+// ── the Inspector General's report (rev 2, builder B; Timur 2026-11-26: "gray lines appear. Please don't do that … add some actual
+//   detail inside"): the cover, the inside of the cover (contents) and the FINDINGS page are set in real type (print_type.tsx).
+//   Every statement is from FACTCHECK.md (TREAS / CBS / HL): requested by the Treasurer and the Lottery; no illicit activity or
+//   collusion; no player disadvantaged, the same odds for everyone; the design not flawed, worked as intended; some agents bent
+//   or broke the rules with some officials' assent; about $120 million to the state; the $2 million roll-down, $2 tickets.
+//   The check boxes stay where rev 1 had them (CHECK1/CHECK2: u 0.159, v 0.395 / 0.598 of the page).
+const RP = { w: 1280, h: 1680 };
+const coverTex = () => canvasTex("st_cover2", RP.w, RP.h, (c, w, h) => {
   const g = c.createLinearGradient(0, 0, w, h); g.addColorStop(0, "#123A6E"); g.addColorStop(1, "#0A2448");
   c.fillStyle = g; c.fillRect(0, 0, w, h);
-  for (let i = 0; i < 9000; i++) { c.fillStyle = `rgba(255,255,255,${rnd(i) * 0.05})`; c.fillRect(rnd(i + 1) * w, rnd(i + 2) * h, 2, 2); }   // the leatherette grain
-  c.strokeStyle = "rgba(214,228,248,0.75)"; c.lineWidth = 3; c.strokeRect(34, 34, w - 68, h - 68);
-  c.lineWidth = 1.2; c.strokeRect(46, 46, w - 92, h - 92);
-  c.fillStyle = "#E8F0FB"; c.textAlign = "center";
-  c.font = `600 26px ${BODY}`; c.fillText("COMMONWEALTH OF MASSACHUSETTS", w / 2, 150);
-  c.fillStyle = "rgba(214,228,248,0.8)"; c.fillRect(w / 2 - 120, 180, 240, 2);
-  c.fillStyle = "#FFFFFF"; c.font = `700 44px ${BODY}`; c.fillText("OFFICE OF THE", w / 2, 300);
-  c.font = `800 66px ${BODY}`; c.fillText("INSPECTOR", w / 2, 384); c.fillText("GENERAL", w / 2, 458);
-  c.fillStyle = "#7FB4F2"; c.fillRect(w / 2 - 160, 510, 320, 5);
-  c.fillStyle = "#E8F0FB"; c.font = `700 38px ${BODY}`; c.fillText("CASH WINFALL REVIEW", w / 2, 590);
-  c.font = `600 34px ${BODY}`; c.fillStyle = "rgba(214,228,248,0.9)"; c.fillText("JULY 2012", w / 2, 650);
+  for (let i = 0; i < 30000; i++) { c.fillStyle = `rgba(255,255,255,${rnd(i) * 0.045})`; c.fillRect(rnd(i + 1) * w, rnd(i + 2) * h, 2, 2); }   // the leatherette grain
+  c.strokeStyle = "rgba(214,228,248,0.75)"; c.lineWidth = 6; c.strokeRect(68, 68, w - 136, h - 136);
+  c.lineWidth = 2.4; c.strokeRect(92, 92, w - 184, h - 184);
+  const ink = "#E8F0FB";
+  pline(c, "COMMONWEALTH OF MASSACHUSETTS", w / 2, 300, { w: 600, px: 52, fam: BODY, color: ink, align: "center", track: 4 });
+  c.fillStyle = "rgba(214,228,248,0.8)"; c.fillRect(w / 2 - 240, 360, 480, 4);
+  pline(c, "OFFICE OF THE", w / 2, 600, { w: 700, px: 88, fam: BODY, color: "#FFFFFF", align: "center" });
+  pline(c, "INSPECTOR", w / 2, 768, { w: 800, px: 132, fam: BODY, color: "#FFFFFF", align: "center" });
+  pline(c, "GENERAL", w / 2, 916, { w: 800, px: 132, fam: BODY, color: "#FFFFFF", align: "center" });
+  c.fillStyle = "#7FB4F2"; c.fillRect(w / 2 - 320, 1020, 640, 10);
+  pline(c, "CASH WINFALL REVIEW", w / 2, 1180, { w: 700, px: 76, fam: BODY, color: ink, align: "center" });
+  pline(c, "A review of the Massachusetts State Lottery's", w / 2, 1262, { w: 500, px: 38, fam: PSERIF, color: "rgba(214,228,248,0.9)", align: "center", style: "italic" });
+  pline(c, "Cash WinFall game", w / 2, 1310, { w: 500, px: 38, fam: PSERIF, color: "rgba(214,228,248,0.9)", align: "center", style: "italic" });
+  pline(c, "JULY 2012", w / 2, 1400, { w: 600, px: 68, fam: BODY, color: "rgba(214,228,248,0.95)", align: "center", track: 3 });
+  c.fillStyle = "rgba(214,228,248,0.5)"; c.fillRect(w / 2 - 300, 1470, 600, 2);
+  pline(c, "Gregory W. Sullivan, Inspector General", w / 2, 1530, { w: 500, px: 34, fam: PSERIF, color: ink, align: "center" });
 });
-const pageTex = () => canvasTex("st_page", 640, 840, (c, w, h) => {
-  c.fillStyle = "#F4F7FB"; c.fillRect(0, 0, w, h);
-  for (let i = 0; i < 4000; i++) { c.fillStyle = `rgba(30,50,80,${rnd(i) * 0.03})`; c.fillRect(rnd(i + 1) * w, rnd(i + 2) * h, 2, 2); }
-  c.fillStyle = "#0B2547"; c.textAlign = "left"; c.font = `800 46px ${BODY}`; c.fillText("FINDINGS", 70, 110);
-  c.fillStyle = "#4D8ED9"; c.fillRect(70, 128, 140, 5);
-  // illegible body text (grey bars of varied length): never an invented readable claim
-  const bars = (y0, n, x0 = 70, wmax = 500) => { for (let i = 0; i < n; i++) { const ww = wmax * (0.55 + rnd(y0 + i * 7) * 0.45); c.fillStyle = "rgba(40,60,90,0.32)"; c.fillRect(x0, y0 + i * 26, i === n - 1 ? ww * 0.5 : ww, 9); } };
-  bars(170, 4);
-  // two findings with their check boxes (the ticks are 3-D, drawn in by the station)
-  [300, 470].forEach((y) => {
-    c.strokeStyle = "#0B2547"; c.lineWidth = 5; c.strokeRect(70, y, 64, 64);
-    c.fillStyle = "rgba(77,142,217,0.10)"; c.fillRect(160, y - 10, 420, 112);
-    bars(y + 4, 3, 176, 380);
+// the inside of the front cover: the contents page (it lies face-up to the left of the findings once the cover has swung over)
+const innerTex = () => canvasTex("st_inner2", RP.w, RP.h, (c, w, h) => {
+  c.translate(w, h); c.scale(-1, -1);   // the cover's underside maps its texture turned 180°: print it turned so it reads
+  c.fillStyle = "#F2F5F9"; c.fillRect(0, 0, w, h);
+  pgrain(c, w, h, 9000, rnd, "30,50,80", 0.015, 0.03, 2);
+  pline(c, "CASH WINFALL REVIEW", 120, 120, { w: 700, px: 26, fam: BODY, color: "#4A5F7E", track: 3 });
+  prule(c, 120, 140, w - 120, 2, "#0B2547");
+  pline(c, "CONTENTS", 120, 280, { w: 800, px: 84, fam: BODY, color: "#0B2547" });
+  c.fillStyle = "#4D8ED9"; c.fillRect(120, 312, 220, 9);
+  [["Executive Summary", "1"], ["Findings", "1"], ["Background: the Cash WinFall game", "3"], ["How a roll-down works", "4"], ["High-volume betting", "6"],
+   ["The Lottery's oversight", "9"], ["Recommendations", "12"], ["Appendix: the Treasurer's request", "15"]].forEach(([a, b], i) => {
+    const y = 440 + i * 112;
+    pline(c, a, 120, y, { w: 500, px: 40, fam: PSERIF, color: "#14294A" });
+    pline(c, b, w - 120, y, { w: 700, px: 40, fam: BODY, color: "#14294A", align: "right" });
+    c.font = `500 40px ${PSERIF}`; const aw = c.measureText(a).width;
+    c.fillStyle = "rgba(20,41,74,0.45)"; for (let d = 120 + aw + 24; d < w - 190; d += 16) c.fillRect(d, y - 6, 4, 4);
   });
-  bars(640, 5);
-  c.fillStyle = "rgba(40,60,90,0.5)"; c.font = `600 18px ${BODY}`; c.textAlign = "center"; c.fillText("— 1 —", w / 2, 800);
+  ppara(c, "This review was conducted at the request of the State Treasurer and the Massachusetts State Lottery.", 120, 1420, w - 240, { w: 400, px: 32, lh: 1.35, fam: PSERIF, color: "#4A5F7E", style: "italic" });
+});
+const pageTex = () => canvasTex("st_page2", RP.w, RP.h, (c, w, h) => {
+  c.fillStyle = "#F4F7FB"; c.fillRect(0, 0, w, h);
+  pgrain(c, w, h, 9000, rnd, "30,50,80", 0.015, 0.03, 2);
+  const L = 140, R = w - 120, NAVY = "#0B2547", INK = "#14294A", MUTE = "#4A5F7E";
+  // running head
+  pline(c, "OFFICE OF THE INSPECTOR GENERAL", L, 92, { w: 700, px: 24, fam: BODY, color: MUTE, track: 2 });
+  pline(c, "CASH WINFALL REVIEW · JULY 2012", R, 92, { w: 700, px: 24, fam: BODY, color: MUTE, align: "right", track: 2 });
+  prule(c, L, 112, R, 2, NAVY);
+  pline(c, "FINDINGS", L, 226, { w: 800, px: 92, fam: BODY, color: NAVY });
+  c.fillStyle = "#4D8ED9"; c.fillRect(L, 254, 280, 10);
+  ppara(c, "At the request of the State Treasurer and the Lottery, this office reviewed the Cash WinFall game: its design, its roll-down drawings and the high-volume betting by organized groups.",
+    L, 330, R - L, { w: 400, px: 33, lh: 1.32, fam: PSERIF, color: INK, justify: true });
+  // the two findings with their check boxes (the ticks are 3-D, drawn in by the station)
+  [[600, "The betting was legal.", "No evidence was found of any illicit activities or collusion among bettors, Lottery officials or Lottery agents."],
+   [940, "No player was disadvantaged.", "Everyone received the same odds and was eligible for the same payouts. High-volume betting did not hurt anyone's odds of winning."]]
+    .forEach(([y, hd, body], i) => {
+      c.fillStyle = "rgba(77,142,217,0.10)"; c.fillRect(L + 170, y - 14, R - L - 170, 300);
+      c.strokeStyle = NAVY; c.lineWidth = 10; c.strokeRect(L, y, 128, 128);
+      pline(c, `${i + 1}.  ${hd}`, L + 196, y + 50, { w: 800, px: 44, fam: BODY, color: NAVY });
+      ppara(c, body, L + 196, y + 110, R - L - 220, { w: 400, px: 32, lh: 1.3, fam: PSERIF, color: INK });
+    });
+  // table 1
+  const ty = 1290;
+  pline(c, "Table 1.  Cash WinFall at a glance", L, ty, { w: 700, px: 28, fam: BODY, color: NAVY });
+  const rows = [["Roll-down level", "$2 million jackpot"], ["Ticket price", "$2"], ["Game design", "Not flawed; worked as intended"],
+    ["Lottery agents", "Some bent or broke the rules"], ["Profit to the state", "About $120 million"]];
+  prule(c, L, ty + 20, R, 3, NAVY);
+  rows.forEach(([a, b], i) => {
+    const y = ty + 66 + i * 52;
+    if (i % 2 === 0) { c.fillStyle = "rgba(11,37,71,0.05)"; c.fillRect(L, y - 36, R - L, 52); }
+    pline(c, a, L + 14, y, { w: 600, px: 29, fam: BODY, color: INK });
+    pline(c, b, L + 470, y, { w: 400, px: 29, fam: PSERIF, color: INK });
+  });
+  prule(c, L, ty + 66 + rows.length * 52 - 28, R, 2, NAVY);
+  // folio
+  pline(c, "1", w / 2, h - 40, { w: 600, px: 28, fam: BODY, color: MUTE, align: "center" });
 });
 const pageEdgeTex = () => canvasTex("st_pedge", 256, 64, (c, w, h) => {
   c.fillStyle = "#E6ECF4"; c.fillRect(0, 0, w, h);
@@ -167,10 +219,10 @@ const reportPose = (t, f) => {
   return { y: y + settle, ry: 0.35 * (1 - k) - 0.06, rz: 0.25 * (1 - k), rx: -0.2 * (1 - k), vis: f > t.inv - 8 };
 };
 const Report = ({ t, f }) => {
-  const cover = useMemo(coverTex, []), page = useMemo(pageTex, []), edge = useMemo(pageEdgeTex, []);
+  const cover = useMemo(coverTex, []), page = useMemo(pageTex, []), edge = useMemo(pageEdgeTex, []), inner = useMemo(innerTex, []);
   const pose = reportPose(t, f);
   if (!pose.vis) return null;
-  const open = ease(f, t.betting - 6, t.legal - 2);             // the cover swings over on its spine
+  const open = ease(f, t.inv + 22, t.betting + 4);             // the cover swings over on its spine (rev 2: earlier, so the LEGAL tag is in on its word)
   const th = Math.PI * 0.985 * open;
   const lift = Math.sin(Math.PI * open) * 0.05;
   return (
@@ -187,12 +239,12 @@ const Report = ({ t, f }) => {
       <group position={[-BW / 2 + 0.02, 0.38 + lift, 0]} rotation-z={th}>
         <mesh position={[BW / 2, 0.03, 0]} castShadow receiveShadow>
           <boxGeometry args={[BW, 0.06, BD]} />
-          {[0, 1, 2, 3, 4, 5].map((i) => <meshStandardMaterial key={i} attach={`material-${i}`} color={i === 2 ? "#FFFFFF" : i === 3 ? "#1A3E70" : "#0C2A52"} map={i === 2 ? cover : null} roughness={i === 2 ? 0.45 : 0.6} metalness={0.05} />)}
+          {[0, 1, 2, 3, 4, 5].map((i) => <meshStandardMaterial key={i} attach={`material-${i}`} color={i === 2 || i === 3 ? "#FFFFFF" : "#0C2A52"} map={i === 2 ? cover : i === 3 ? inner : null} roughness={i === 2 ? 0.45 : i === 3 ? 0.7 : 0.6} metalness={0.05} />)}
         </mesh>
       </group>
       {/* the checks */}
-      <Tick pos={[CHECK1[0] - BIND[0], PAGE_Y, CHECK1[2] - BIND[2]]} k={ease(f, t.legal - 2, t.legal + 12)} />
-      <Tick pos={[CHECK2[0] - BIND[0], PAGE_Y, CHECK2[2] - BIND[2]]} k={ease(f, t.no + 2, t.no + 16)} />
+      <Tick pos={[CHECK1[0] - BIND[0], PAGE_Y, CHECK1[2] - BIND[2]]} k={ease(f, t.legal - 12, t.legal + 2)} />
+      <Tick pos={[CHECK2[0] - BIND[0], PAGE_Y, CHECK2[2] - BIND[2]]} k={ease(f, t.no - 17, t.no - 3)} />
     </group>
   );
 };
@@ -273,8 +325,9 @@ const shots = () => {
     { a: t.inv + 26, b: t.legal + 2, pos: W([2.4, 6.8, 3.2]), target: W([-0.2, -0.4, -9.2]), fov: 34 },
     { a: t.legal + 2, b: t.hurt + 4, pos: W([-0.7, 6.3, 2.0]), target: W([-0.3, -0.5, -9.0]), fov: 34 },
     // the money: pull back and rise; the stream, the door, the dome (slow push while it fills)
-    { a: t.hurt + 2, b: t.m120 + 12, pos: W([-3.2, 4.0, 11.5]), target: W([0, 8.6, -18]), fov: 40 },
-    { a: t.m120 + 12, b: t.it + 8, pos: W([-1.6, 3.7, 8.6]), target: W([0, 9.4, -18]), fov: 40 }
+    { a: t.hurt + 10, b: t.m120 + 12, pos: W([-3.2, 4.0, 11.5]), target: W([0, 8.6, -18]), fov: 40 },
+    // (rev 2) the slow push lands at it − 8, as the total station's truck to the right begins (one continuous move, no haze)
+    { a: t.m120 + 8, b: t.it - 8, pos: W([-1.6, 3.7, 8.6]), target: W([0, 9.4, -18]), fov: 40 }
   ];
 };
 const Overlay = ({ f, P }) => {
@@ -283,10 +336,11 @@ const Overlay = ({ f, P }) => {
   const c1 = P(CHECK1), c2 = P(CHECK2);
   return (
     <>
-      <Tag text="Massachusetts State House" at={t.state} out={t.inv + 24} x={70} y={330} to={dome.behind ? null : dome} size={28} />
-      <Tag text="Legal" at={t.legal + 2} out={t.hurt + 10} x={620} y={300} to={c1.behind ? null : c1} size={34} />
-      <Tag text="No one's odds hurt" at={t.no + 4} out={t.hurt + 12} x={470} y={400} to={c2.behind ? null : c2} size={34} />
-      <Counter at={t.m120 - 2} out={t.next - 4} x={540} y={330} value={120} prefix="$" unit="MILLION" label="To the state" size={112} countDur={28} />
+      {/* rev 2 tag audit (REV2: fully in by the word, ≥ 36 f read, gone before the camera leaves its object) */}
+      <Tag text="Massachusetts State House" at={t.s0 + 12} out={t.inv + 34} x={70} y={330} to={dome.behind ? null : dome} size={28} />
+      <Tag text="Legal" at={t.legal - 12} out={t.hurt + 9} x={620} y={300} to={c1.behind ? null : c1} size={34} />
+      <Tag text="No one's odds hurt" at={t.no - 17} out={t.hurt + 9} x={470} y={400} to={c2.behind ? null : c2} size={34} />
+      <Counter at={t.m120 - 2} out={t.it - 6} x={540} y={330} value={120} prefix="$" unit="MILLION" label="To the state" size={112} countDur={28} />
     </>
   );
 };
@@ -296,10 +350,10 @@ const sfx = () => {
     cueAt("whooshlong", t.s0 + 2, 30, 0.55),                      // the arrival flight (fastest ≈ its middle)
     cueAt("ee_whoosh_fast_small_whoosh_01", t.inv + 10, 14, 0.35), // the report falling
     cueAt("thud", t.inv + 20, 14, 0.55),                          // …and landing
-    cueAt("ee_paper_paper_tear_01", t.betting + 2, 12, 0.18),     // the cover swinging open (a soft paper sound)
-    cueAt("ee_click_click_01", t.legal + 4, 6, 0.4),              // check 1
-    cueAt("ee_click_click_01", t.no + 6, 6, 0.4),                 // check 2
-    cueAt("whooshsoft", t.hurt + 14, 24, 0.45),                   // the pull-back
+    cueAt("ee_paper_paper_tear_01", t.inv + 24, 12, 0.18),        // the cover swinging open (a soft paper sound)
+    cueAt("ee_click_click_01", t.legal - 6, 6, 0.4),              // check 1
+    cueAt("ee_click_click_01", t.no - 11, 6, 0.4),                // check 2
+    cueAt("whooshsoft", t.hurt + 22, 24, 0.45),                   // the pull-back
     cueAt("coin", t.made + 6, 16, 0.35), cueAt("coin", t.m120 + 6, 16, 0.35), cueAt("coin", t.m120 + 20, 16, 0.3),
     cueAt("pingshort", t.m120 + 28, 12, 0.4)                       // the counter lands
   ];

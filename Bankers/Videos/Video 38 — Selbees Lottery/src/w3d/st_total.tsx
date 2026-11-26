@@ -20,7 +20,11 @@ import { House, PICTURE } from "./st_total_house";
 import { LightPool, LightWash } from "./st_state_fx";
 import { wAt, wEndAt } from "./st_state";
 
-export const O_TOTAL = [2100, 0, 0];
+// rev 2 (builder B, Timur 2026-11-26: the 1:00 transition "is great, but make it more smooth"): the street now lies 40 m to the
+//   right of the State House plaza (it was 300 m away, crossed in ~25 frames through an empty navy haze). The camera trucks right
+//   in ONE eased move from the dome to the plinth, both places in view the whole way; nothing of either place is ever on screen
+//   when it mounts or unmounts (checked from the cameras: the nearest other-station object sits ≥ 19° outside the frame edge).
+export const O_TOTAL = [1840, 0, 0];
 const T = () => {
   const s0 = wAt("in", 1852);
   return {
@@ -54,13 +58,32 @@ const lawnTex = () => canvasTex("tt_lawn", 512, 512, (c, w, h) => {
   c.fillStyle = "#12233A"; c.fillRect(0, 0, w, h);
   for (let i = 0; i < 26000; i++) { const g = rnd(i) * 40; c.fillStyle = `rgba(${30 + g},${48 + g},${68 + g},0.25)`; c.fillRect(rnd(i + 3) * w, rnd(i + 4) * h, 1.5, 3); }
 });
-const plaqueTex = () => canvasTex("tt_plaque", 768, 192, (c, w, h) => {
-  const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "#C9D6E6"); g.addColorStop(1, "#8696AD");
+// the plaque (rev 2, Timur: "the GS investment strategies [text] falls out of the white thing … It cuts out the number"): every line is
+//   FITTED inside the engraved border with a 7% margin (measured, scaled down if needed), the plate is a framed brushed-steel plaque
+//   with thickness, and it sits higher on the plinth's face so the years line is never under the frame's edge
+const PLAQUE = { w: 2.5, h: 0.5, y: 0.4 };
+const plaqueTex = () => canvasTex("tt_plaque2", 2048, 410, (c, w, h) => {
+  const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "#D6E1EE"); g.addColorStop(0.55, "#AFBED1"); g.addColorStop(1, "#8D9DB3");
   c.fillStyle = g; c.fillRect(0, 0, w, h);
-  c.strokeStyle = "rgba(20,36,60,0.6)"; c.lineWidth = 4; c.strokeRect(10, 10, w - 20, h - 20);
-  c.fillStyle = "#10233F"; c.textAlign = "center";
-  c.font = `800 54px ${BODY}`; c.fillText("G.S. INVESTMENT STRATEGIES", w / 2, 92);
-  c.font = `600 38px ${BODY}`; c.fillText("2003 – 2012", w / 2, 150);
+  for (let i = 0; i < 900; i++) { c.fillStyle = `rgba(255,255,255,${0.04 + rnd(i) * 0.06})`; c.fillRect(0, rnd(i + 7) * h, w, 1); }   // the brushing
+  c.strokeStyle = "rgba(16,35,63,0.75)"; c.lineWidth = 8; c.strokeRect(26, 26, w - 52, h - 52);
+  c.lineWidth = 3; c.strokeRect(44, 44, w - 88, h - 88);
+  const fit = (txt, y, wt, px, track) => {   // set a line, shrinking it until it sits inside the border with the margin
+    const maxW = w * 0.86;
+    let size = px;
+    for (;;) { c.font = `${wt} ${size}px ${BODY}`; if ("letterSpacing" in c) c.letterSpacing = `${track * size}px`; if (c.measureText(txt).width <= maxW || size < 20) break; size -= 2; }
+    c.fillStyle = "rgba(255,255,255,0.45)"; c.fillText(txt, w / 2 + 2, y + 3);   // the engraving's lit lower lip
+    c.fillStyle = "#10233F"; c.fillText(txt, w / 2, y);
+    if ("letterSpacing" in c) c.letterSpacing = "0px";
+  };
+  c.textAlign = "center"; c.textBaseline = "alphabetic";
+  fit("G.S. INVESTMENT STRATEGIES", 205, 800, 150, 0.06);
+  fit("EVART, MICHIGAN   2003 – 2012", 322, 600, 82, 0.12);
+  [[70, 70], [w - 70, 70], [70, h - 70], [w - 70, h - 70]].forEach(([x, y]) => {   // the four fixing screws
+    const sg = c.createRadialGradient(x - 5, y - 5, 2, x, y, 16); sg.addColorStop(0, "#F2F6FB"); sg.addColorStop(1, "#5E6E84");
+    c.fillStyle = sg; c.beginPath(); c.arc(x, y, 15, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = "rgba(16,35,63,0.6)"; c.lineWidth = 3; c.beginPath(); c.moveTo(x - 9, y + 9); c.lineTo(x + 9, y - 9); c.stroke();
+  });
 });
 const graniteTex = () => canvasTex("tt_granite", 512, 256, (c, w, h) => {
   c.fillStyle = "#1C2738"; c.fillRect(0, 0, w, h);
@@ -149,7 +172,10 @@ const Scene = ({ f }) => {
       {/* the plinth: polished granite drum, a brushed steel ring, the plaque */}
       <mesh position={[0, PLINTH_H / 2, 0]} castShadow receiveShadow><cylinderGeometry args={[3.5, 3.7, PLINTH_H, 64]} /><meshStandardMaterial map={granite} color="#C5D2E4" roughness={0.18} metalness={0.25} /></mesh>
       <mesh position={[0, PLINTH_H + 0.02, 0]}><cylinderGeometry args={[3.52, 3.52, 0.05, 64]} /><meshStandardMaterial color="#A9BBD3" metalness={0.9} roughness={0.25} /></mesh>
-      <mesh position={[0, PLINTH_H * 0.5, 3.62]} rotation-x={-0.05}><planeGeometry args={[2.8, 0.7]} /><meshStandardMaterial map={plaque} metalness={0.6} roughness={0.35} /></mesh>
+      <group position={[0, PLAQUE.y, 3.64]} rotation-x={-0.05}>
+        <mesh position={[0, 0, -0.03]} castShadow><boxGeometry args={[PLAQUE.w + 0.08, PLAQUE.h + 0.08, 0.06]} /><meshStandardMaterial color="#5C6B80" metalness={0.8} roughness={0.35} /></mesh>
+        <mesh position={[0, 0, 0.002]}><planeGeometry args={[PLAQUE.w, PLAQUE.h]} /><meshStandardMaterial map={plaque} metalness={0.55} roughness={0.38} emissiveMap={plaque} emissive="#FFFFFF" emissiveIntensity={0.12} /></mesh>
+      </group>
       {/* the light ring around the plinth's foot */}
       <LightPool position={[0, 0.02, 0]} r={6} color="#7FB4F2" opacity={0.22 + 0.25 * glass} />
       {/* the monolith: the column of bundles and its case, rising out of the plinth */}
@@ -173,17 +199,19 @@ export const TOTAL_PUSH_END = () => T().next - 2;              // the frame the 
 const shots = () => {
   const t = T();
   return [
-    // arrival: a flight from the state station, settling low before the plinth
-    { a: t.s0 - 21, b: t.s0 + 2, pos: W([-12, 7, 72]), target: W([0, 4.4, 0]), fov: 36, arc: 8 },
-    { a: t.s0 - 7, b: t.s0 + 16, pos: W([-4.5, 2.4, 17.5]), target: W([0, 4.4, 0]), fov: 36 },
-    // the monolith rises: a low angle easing in as it climbs
-    { a: t.s0 + 14, b: t.m26 + 8, pos: W([-3.0, 1.8, 14.5]), target: W([0, 5.2, 0]), fov: 36 },
+    // arrival (rev 2): ONE eased truck from the State House framing (st_state's last shot lands at it − 8) across the plaza's edge
+    //   to the plinth 40 m to the right, a crane up over the plaza's trees at its middle; it starts while the money still streams into the door and
+    //   lands low before the plinth with the plaque in the frame's lower band (above the watermark)
+    { a: t.s0 - 23, b: t.s0 + 22, pos: W([-4.5, 2.4, 17.5]), target: W([0, 3.7, 0]), fov: 36, arc: 5.5 },
+    // the monolith rises: a low angle easing in as it climbs (it begins as the truck settles, so the speed never drops to zero)
+    { a: t.s0 + 17, b: t.m26 + 8, pos: W([-3.0, 1.8, 14.5]), target: W([0, 5.2, 0]), fov: 36 },
     // the glass reveal: push in toward the bundles
     { a: t.m26 + 8, b: t.nearly, pos: W([2.4, 4.6, 12.6]), target: W([0, 5.4, 0]), fov: 36 },
     // the profit: rise to the glowing slab as it lifts out
     { a: t.nearly, b: t.tax, pos: W([3.8, 9.6, 12.8]), target: W([0, 11.2, 0]), fov: 36 },
     // to the home: glide right across the lawn, the case passing on the left, the house front with its lit windows
-    { a: t.tax - 4, b: t.family - 2, pos: W([PIC[0] - 2.4, 2.6, PIC[2] + 16]), target: W([PIC[0] - 1.2, 2.2, PIC[2]]), fov: 40 },
+    //   (rev 2: it leaves earlier and lands nearer, so FAMILY is in before its word and reads ~1.1 s before the push)
+    { a: t.tax - 10, b: t.theirs + 10, pos: W([PIC[0] - 2.0, 2.5, PIC[2] + 12]), target: W([PIC[0] - 1.0, 2.1, PIC[2]]), fov: 40 },
     // …and into the picture window: the room's light fills the frame
     { a: t.family + 2, b: t.next - 2, pos: W([PIC[0], PIC[1] - 0.02, PIC[2] + 0.1]), target: W([PIC[0], PIC[1] - 0.02, PIC[2] - 4]), fov: 34 }
   ];
@@ -192,14 +220,15 @@ const Overlay = ({ f, P }) => {
   const t = T();
   const plaque = P([-SHELL[0] / 2 + 0.3, PLINTH_H + 4.2 - (SHELL[1] + 0.3) * (1 - ease(f, t.s0 - 4, t.company + 10)), SHELL[2] / 2]);
   const slab = P([BX / 2, PLINTH_H + (LAYERS - PROFIT / 2) * BY + ease(f, t.m8 + 2, t.profit + 10) * 2.1, BZ]);
-  const home = P([HOUSE_AT[0] - 0.8, 2.6, HOUSE_AT[2] + 3.6]);
+  const home = P([PIC[0] - 0.7, PIC[1] + 0.35, PIC[2] + 0.05]);   // the lit picture window the camera pushes into
   return (
     <>
-      <Tag text="Their company" at={t.company - 2} out={t.m26 + 10} x={70} y={560} to={plaque.behind ? null : plaque} size={30} />
+      {/* rev 2 tag audit (REV2: fully in by the word, ≥ 36 f read, gone before the camera leaves its object) */}
+      <Tag text="Their company" at={t.company - 12} out={t.m26 + 10} x={70} y={560} to={plaque.behind ? null : plaque} size={30} />
       <Counter at={t.m26 - 2} out={t.nearly - 4} x={540} y={300} value={26} prefix="$" unit="MILLION" label="Won, 9 years" size={112} countDur={26} />
       <Counter at={t.m8 - 2} out={t.tax + 8} x={540} y={300} value={8} prefix="$" unit="MILLION" label="Profit before tax" size={112} countDur={16} />
-      <Tag text="Profit" at={t.profit} out={t.tax + 6} x={720} y={600} to={slab.behind ? null : slab} size={30} />
-      <Tag text="Family" at={t.family - 4} out={t.family + 4} x={120} y={560} to={home.behind ? null : home} size={32} />
+      <Tag text="Profit" at={t.m8 - 8} out={t.tax - 10} x={720} y={600} to={slab.behind ? null : slab} size={30} />
+      <Tag text="Family" at={t.tax + 7} out={t.family + 8} x={120} y={560} to={home.behind ? null : home} size={32} />
     </>
   );
 };
@@ -207,7 +236,7 @@ const sfx = () => {
   const t = T();
   const G0 = t.m26 + 16;
   return [
-    cueAt("whooshlong", t.s0 - 6, 30, 0.5),                     // the arrival flight
+    cueAt("whooshlong", t.s0 - 13, 30, 0.45),                   // the arrival truck (its fastest frame ≈ its middle, s0 − 1)
     cueAt("sub", t.s0 + 2, 40, 0.45),                           // the monolith rising
     cueAt("chainshort", t.all, 30, 0.22),
     cueAt("pingshort", G0 + 2, 12, 0.5),                        // the shell flashing to glass
@@ -215,7 +244,7 @@ const sfx = () => {
     cueAt("coin", t.m26 + 24, 16, 0.35),                        // $26M lands
     cueAt("whooshsoft", t.m8 + 6, 20, 0.4),                     // the slab lifting out
     cueAt("pingshort", t.m8 + 14, 12, 0.35),
-    cueAt("airwoosh", t.tax + 14, 30, 0.45),                    // the glide to the house
+    cueAt("airwoosh", t.tax - 10, 30, 0.45),                    // the glide to the house (fastest ≈ 2048; airwoosh peaks 21 f in)
     cueAt("whooshsoft", t.family + 8, 14, 0.4)                  // the push into the window
   ];
 };
