@@ -29,7 +29,7 @@ rm -rf "$OUT"
 node node_modules/@remotion/cli/remotion-cli.js bundle src/index.ts --out-dir "$OUT" --public-path ./ >/dev/null
 restore
 rm -f "$OUT"/public/*.wav "$OUT"/public/*.mp3 "$OUT"/public/*.png "$OUT"/public/*.jpg; rm -rf "$OUT/public/sfx" "$OUT/public/photos" "$OUT/public/vo" ; rm -f "$OUT"/*.map "$OUT"/public/ElevenLabs*
-sed -i 's#<title>[^<]*</title>#<title>Selbees Lottery Studio</title>#' "$OUT/index.html"
+sed -i 's#<title>[^<]*</title>#<title>Ronald Read Studio</title>#' "$OUT/index.html"
 du -sh "$OUT"; ls "$OUT"
 # the Artifact tool refuses a literal U+FFFD (three.js/troika carry it in string literals): escape it — identical in JS strings and regexes
 python3 -c "

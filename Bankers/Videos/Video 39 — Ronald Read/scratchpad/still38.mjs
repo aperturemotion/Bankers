@@ -8,7 +8,7 @@ const OUTD = process.env.STILL_OUT ?? "out/v"; fs.mkdirSync(OUTD, { recursive: t
 const PORT = Number(process.env.PORT_STILL ?? 3880);
 const serveUrl = await bundle({ entryPoint: path.resolve("src/index.ts") });
 const chromiumOptions = { gl: "swangle" };
-const composition = await selectComposition({ serveUrl, id: "SelbeesLottery", port: PORT, chromiumOptions, inputProps: { solo: "picture" } });
+const composition = await selectComposition({ serveUrl, id: "RonaldRead", port: PORT, chromiumOptions, inputProps: { solo: "picture" } });
 for (const frame of frames) {
   const t = Date.now();
   await renderStill({ serveUrl, composition, frame, scale, port: PORT, chromiumOptions, inputProps: { solo: "picture" }, output: path.resolve(`${OUTD}/f${frame}.png`), timeoutInMilliseconds: 300000,

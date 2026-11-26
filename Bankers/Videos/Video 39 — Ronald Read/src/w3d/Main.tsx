@@ -1,6 +1,6 @@
 // @ts-nocheck
-// ★ V38 "The Couple Who Beat the Lottery" — the film in the BANKERS 3-D WORLD style (Timur, 2026-11-25).
-//   ONE WebGL world (blue-hour Michigan → the road → Boston), ONE continuous camera assembled from the stations' shots, the HTML
+// ★ V39 "The Janitor Who Died With $8 Million" (Ronald Read) — cloned from V38's engine, the BANKERS 3-D WORLD style.
+//   ONE WebGL world (blue-hour Brattleboro, Vermont), ONE continuous camera assembled from the stations' shots, the HTML
 //   annotation layer pinned to world points, the karaoke caption, the Bankers watermark and the BANKER$ close; voice, song, effects.
 //   Station contract (src/w3d/st_<id>.tsx): export const ST = { id, origin:[x,y,z], from, to,           // frames it is mounted
 //     shots: () => [{ a, b, pos, target, fov?, arc? }],   // WORLD coordinates (add origin), arrival first
@@ -17,8 +17,7 @@ import { HOOK_SHIFT as S, HOOK_ID } from "./shift";
 import { BrandClose, Watermark } from "../bnx/close";
 import { SfxLayer, cueAt } from "../bnx/SfxLayer";
 import { STATIONS } from "./stations";
-import { TEST_CUT } from "./st_test";
-import { TOTAL_PUSH_END } from "./st_total";
+import { WIN } from "./windows";
 
 export const CLOSE_AT = VO_END + 12;          // the close begins after the last line's breath
 // ★ the song (Timur, 2026-11-26: "change the song to the video about Nvidia sold … billion of chips in 3 months" = Video 34 "Nvidia Keeps",
@@ -26,8 +25,8 @@ export const CLOSE_AT = VO_END + 12;          // the close begins after the last
 //   2026-10-15 / 10-22), started so its big drop (117.38 s in the source) lands on "In 2003," (frame 212); the volume matches the FOCUS
 //   bed it replaces as heard (both −24.8 LUFS over the body: the 711 body is −10.1 LUFS at 1.0 → 0.18)
 const BED_FILE = "711.mp3";
-const BED_START = 3308 - S;   // rev 4c: the drop still lands on "In 2003" (now real frame 255)
-const BED_START_TAKE_B = 3308;     // frames into the source: 110.27 s → the drop at 117.38 s plays at 7.11 s (frame 213), on "In" (212)
+// V39: the previous film's song (the song rule), its drop (117.38 s = source frame 3521) on "Ronald Read" — the line after the hook (frame 221)
+const BED_START = 3521 - WIN().farm.start - 4;
 const BED_VOL = 0.18;
 // rev 4c: every station but the hook is authored in STORY time (real − S): its shots move by +S
 const real = (s) => (sh) => (s.id === HOOK_ID ? sh : { ...sh, a: sh.a + S, b: sh.b + S });
@@ -49,12 +48,13 @@ export const CAM = smoothCam(CAM_RAW, TOTAL, shotsAll.filter((s) => s.cut).map((
 //   and the two pictures cross-fade on a smootherstep. The 70 s window → brochure cut became one too (it pushed through the pane onto
 //   the blank back wall: 8 grey frames).
 const HALF = 7;
-export const DISSOLVES = [{ at: TEST_CUT() + S, pre: "rolldown", post: "test" }, { at: TOTAL_PUSH_END() + S, pre: "total", post: "rules" }].map((d) => ({
+// V39: EVERY scene boundary is a cross-dissolve (twelve unlike places): the incoming station's first shot is a cut at its window start
+export const DISSOLVES = STATIONS.slice(1).filter((s) => s.arrive !== "fly").map((s) => ({ at: WIN()[s.id].start, pre: STATIONS[STATIONS.indexOf(s) - 1].id, post: s.id })).map((d) => ({
   ...d, camPre: makeCam([...shotsAll.filter((s) => s.a < d.at), OUTRO].filter((s) => s.a < d.at)), camPost: makeCam(shotsAll.filter((s) => s.a >= d.at))
 }));
 const dissolveAt = (f) => DISSOLVES.find((d) => f >= d.at + 1 - HALF && f < d.at + 1 + HALF);   // a cut shot at `at` lands on at + 1
 // the store's push INTO the leaflet's bright diagram cuts to the dark coin wall (measured 159 → 102 mean levels at 480 → 481)
-const CUT_FLASH = [{ at: 481 + S, o: 0.58, dur: 16, color: "#C8DBF4" }, { at: 883 + S, o: 0.25, dur: 14, color: "#EEF3FA" }];   // story 481 / 883   // 883: the $1's seal → the gold seal, matched in place (rev 2: 165.6 → 139 without flash; 0.25 evens it, builder E)
+const CUT_FLASH = [];   // V39: none yet
 // a flight between stations crosses the navy HAZE (the reference style's "through a boundary" transition): the fog thickens to full
 // as the camera crosses and clears as it lands, so a fast arrival into a small room never flashes (test: 51 → 81 levels in one frame)
 const HAZE = [];   // rev 3: the 24 s flight through the haze is a cross-dissolve now (DISSOLVES)
@@ -67,7 +67,7 @@ const AudioLayers = () => (
     <SfxLayer cues={SFX} total={TOTAL} />
   </>
 );
-export const SelbeesLottery = ({ solo }) => {
+export const RonaldRead = ({ solo }) => {
   const f = useCurrentFrame();
   if (solo === "audio") return <AbsoluteFill style={{ background: "#001C3C" }}><AudioLayers /></AbsoluteFill>;   // the render's audio pass (no WebGL)
   const k = CAM(f);

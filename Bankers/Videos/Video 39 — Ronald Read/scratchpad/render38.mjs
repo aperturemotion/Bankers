@@ -2,7 +2,7 @@
 //   node scratchpad/render38.mjs [--chunk 120] [--conc 1] [--port 5900] [--only a-b]
 //   1. picture: out/r38/seg_<start>.mp4 for each chunk (muted, solo "picture"); a chunk whose file probes to the right frame count is skipped
 //   2. audio:   out/r38/audio.wav (solo "audio": no WebGL)
-//   3. concat + mux → out/selbees_lottery.mp4, then probed (duration, streams) — success is the artefact, not the exit code.
+//   3. concat + mux → out/ronald_read.mp4, then probed (duration, streams) — success is the artefact, not the exit code.
 import { bundle } from "@remotion/bundler";
 import { selectComposition, renderMedia } from "@remotion/renderer";
 import { execFileSync } from "child_process";
@@ -17,7 +17,7 @@ const SCALE = CHECK ? 0.5 : 1;
 const chromiumOptions = { gl: "swangle" };
 const serveUrl = await bundle({ entryPoint: path.resolve("src/index.ts") });
 process.on("exit", () => { try { fs.rmSync(serveUrl, { recursive: true, force: true }); } catch {} });
-const comp = await selectComposition({ serveUrl, id: "SelbeesLottery", port: PORT, chromiumOptions, inputProps: { solo: "picture" } });
+const comp = await selectComposition({ serveUrl, id: "RonaldRead", port: PORT, chromiumOptions, inputProps: { solo: "picture" } });
 const N = comp.durationInFrames;
 const frames = (file) => { try { return parseInt(execFileSync(FFPROBE, ["-v", "error", "-count_packets", "-select_streams", "v:0", "-show_entries", "stream=nb_read_packets", "-of", "csv=p=0", file]).toString().trim(), 10); } catch { return -1; } };
 let [lo, hi] = ONLY ? ONLY.split("-").map(Number) : [0, N - 1];
@@ -50,7 +50,7 @@ const wav = `${D}/audio.wav`;
 await renderMedia({ serveUrl, composition: { ...comp, props: { ...comp.props, solo: "audio" } }, codec: "wav", outputLocation: wav, port: PORT, inputProps: { solo: "audio" }, concurrency: 1 });
 const segs = fs.readdirSync(D).filter((f) => /^seg_\d+\.mp4$/.test(f)).sort();
 fs.writeFileSync(`${D}/list.txt`, segs.map((f) => `file '${f}'`).join("\n") + "\n");
-const master = "out/selbees_lottery.mp4";
+const master = "out/ronald_read.mp4";
 execFileSync(FFMPEG, ["-y", "-v", "error", "-f", "concat", "-safe", "0", "-i", `${D}/list.txt`, "-i", wav, "-map", "0:v", "-map", "1:a", "-c:v", "copy", "-c:a", "aac", "-b:a", "320k", "-ar", "48000", "-movflags", "+faststart", "-shortest", master]);
 const nf = frames(master);
 const dur = Number(execFileSync(FFPROBE, ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", master]).toString());

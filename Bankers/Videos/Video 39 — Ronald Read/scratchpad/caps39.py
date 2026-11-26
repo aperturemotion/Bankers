@@ -1,0 +1,104 @@
+#!/usr/bin/env python3
+# V39 (cloned from V38's caps38.py) — the take → src/w3d/take.ts: WORDS (display tokens in frames, spoken number phrases merged into numerals as the reference
+# style shows them), CHIPS (the karaoke chips: 2–5 words, broken at punctuation, never ending on a bare "and"/"the"/"a"),
+# SENT (sentence starts/ends), TOTAL / VO_END. Refuses if the take's words no longer match VO_SCRIPT.txt.
+import json, re, sys, os
+IN = os.environ.get("CAPS_IN", "scratchpad/fw_words.json"); SCRIPT = os.environ.get("CAPS_SCRIPT", "VO_SCRIPT.txt"); OUT = os.environ.get("CAPS_OUT", "src/w3d/take.ts")
+FPS = 30
+d = json.load(open(IN))["words"]
+words = [{"t": w["t"], "a": w["a"], "b": w["b"]} for w in d]
+script = re.findall(r"[A-Za-z0-9'\-,.:]+", open(SCRIPT).read())
+norm = lambda s: re.sub(r"[^a-z0-9']", "", s.lower())
+if [norm(w["t"]) for w in words] != [norm(s) for s in script]:
+    sys.exit("REFUSED: the take's words differ from VO_SCRIPT.txt")
+# spoken phrase → numeral (merged into ONE token; its timing spans the phrase)
+MERGE = [
+    (["twenty", "fourteen,"], "2014,"),
+    (["eight", "million", "dollars."], "$8 million."),
+    (["twenty-five", "years,"], "25 years,"),
+    (["seventeen", "more."], "17 more."),
+    (["ninety-five", "stocks."], "95 stocks."),
+    (["five", "inches"], "5 inches"),
+    (["two", "thousand", "eight."], "2008."),
+    (["four", "point", "eight", "million", "dollars"], "$4.8 million"),
+    (["one", "point", "two", "million"], "$1.2 million"),
+    (["twenty", "twenty-three,"], "2023,"),
+]
+out, i = [], 0
+while i < len(words):
+    hit = None
+    for pat, rep in MERGE:
+        seg = [w["t"].lower() for w in words[i:i + len(pat)]]
+        if seg == pat:
+            hit = (len(pat), rep); break
+    if hit:
+        n, rep = hit
+        out.append({"t": rep, "a": words[i]["a"], "b": words[i + n - 1]["b"]}); i += n
+    else:
+        out.append(words[i]); i += 1
+for w in out:
+    w["at"] = round(w["a"] * FPS); w["end"] = round(w["b"] * FPS)
+# chips
+SOFT = {"and", "the", "a", "to", "of", "in", "by", "for", "on", "from", "with", "it", "when"}
+chips, cur = [], []
+def flush():
+    global cur
+    if cur: chips.append(cur); cur = []
+def rest_in_sentence(k):
+    n = 0
+    for w in out[k + 1:]:
+        n += 1
+        if re.search(r"[.!?]$", w["t"]): break
+    return n
+for k, w in enumerate(out):
+    cur.append(w)
+    t = w["t"]
+    chars = len(" ".join(x["t"] for x in cur))
+    end_sent = bool(re.search(r"[.!?]$", t)); end_clause = t.endswith(",") or t.endswith(":")
+    rest = rest_in_sentence(k)
+    brk = end_sent or (end_clause and len(cur) >= 2 and rest > 2) or (chars >= 24 and rest > 2) or chars >= 40
+    if os.environ.get("CAPS_PAUSE_BREAK") and not brk and k + 1 < len(out) and out[k + 1]["a"] - w["b"] >= 0.25 and len(cur) >= 2: brk = True   # rev 4d: a chip ends on a spoken pause (\"In this town\" …)
+    if brk and not end_sent and t in ("Ronald", "Read", "Toyota", "Lehman", "Vermont"): brk = chars >= 40   # never split a name
+    KEEP = {("local", "hospital,"), ("new", "wing,"), ("his", "safe"), ("safe", "deposit"), ("deposit", "box"), ("revealed", "he")}
+    if brk and not end_sent and k + 1 < len(out) and (t.lower(), out[k + 1]["t"].lower()) in KEEP: brk = chars >= 46   # V39: never split a phrase
+    if brk and not end_sent and k + 1 < len(out) and re.match(r"^[\d$]", t) and out[k + 1]["t"].lower().startswith("people"): brk = chars >= 40   # rev 4c: "1,903 | people" never splits
+    if brk:
+        if not end_sent and cur[-1]["t"].lower().strip(",") in SOFT and len(cur) > 1:
+            last = cur.pop(); flush(); cur = [last]
+        else:
+            flush()
+flush()
+CH = []
+STOP = {"the","and","a","an","of","to","in","on","for","from","with","by","it","its","his","their","theirs","they","he","was","were","that","this","those","these","your","who","has","had","have","many","over","nearly","often","went","made","played","found","started","into","until","before"}
+def keyword(c):
+    for i, w in enumerate(c):
+        if re.search(r"[0-9$]", w["t"]): return i
+    best, bl = -1, 0
+    for i, w in enumerate(c):
+        core = re.sub(r"[^A-Za-z'-]", "", w["t"])
+        if core.lower() in STOP: continue
+        if len(core) > bl: best, bl = i, len(core)
+    return best if bl >= 4 else -1
+for c in chips:
+    CH.append({"at": c[0]["at"], "until": None, "kw": keyword(c), "parts": [{"word": w["t"], "at": w["at"]} for w in c]})
+for k, c in enumerate(CH):
+    nxt = CH[k + 1]["at"] if k + 1 < len(CH) else None
+    endw = chips[k][-1]["end"]
+    c["until"] = min(nxt, endw + 24) if nxt else endw + 30
+# sentences
+sents, s0 = [], 0
+for k, w in enumerate(out):
+    if re.search(r"[.!?]$", w["t"]):
+        sents.append({"at": out[s0]["at"], "end": w["end"], "text": " ".join(x["t"] for x in out[s0:k + 1])}); s0 = k + 1
+VO_END = out[-1]["end"]
+TOTAL = VO_END + 12 + 96          # the line, then the close (BANKER$): 12 f breath, 96 f close
+with open(OUT, "w") as f:
+    f.write("// @ts-nocheck\n// GENERATED by scratchpad/caps38.py from " + IN + " (V39 take39B, pauses trimmed, ×1.04) — do not edit by hand.\n")
+    f.write(f"export const FPS = {FPS};\nexport const VO_END = {VO_END};\nexport const TOTAL = {TOTAL};\n")
+    f.write("export const WORDS = " + json.dumps([{"t": w["t"], "at": w["at"], "end": w["end"]} for w in out]) + ";\n")
+    f.write("export const CHIPS = " + json.dumps(CH) + ";\n")
+    f.write("export const SENT = " + json.dumps(sents) + ";\n")
+    f.write("const nrm = (s) => s.toLowerCase().replace(/[^a-z0-9$']/g, '');\nexport const wf = (t, occ = 1) => { let n = 0; const q = nrm(t); for (const w of WORDS) if (nrm(w.t).startsWith(q)) { n++; if (n === occ) return w.at; } throw new Error('take: no word ' + t + ' #' + occ); };\nexport const wEnd = (t, occ = 1) => { let n = 0; const q = nrm(t); for (const w of WORDS) if (nrm(w.t).startsWith(q)) { n++; if (n === occ) return w.end; } throw new Error('take: no word ' + t + ' #' + occ); };\n")
+print(f"{len(out)} tokens, {len(CH)} chips, {len(sents)} sentences, VO_END {VO_END} f, TOTAL {TOTAL} f ({TOTAL / FPS:.1f} s)")
+for c in CH[:60]:
+    print(f"{c['at']:5d}-{c['until']:5d}  " + " ".join(p["word"] for p in c["parts"]))
