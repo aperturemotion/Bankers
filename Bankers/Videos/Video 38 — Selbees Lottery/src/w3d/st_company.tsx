@@ -197,8 +197,8 @@ const shots = () => {
   return [
     ...seal,
     { a: P1, b: t.company - 4, pos: W([-1.7, 4.3, 5.9]), target: W([-2.3, 0.1, 0.8]), fov: 40 },                 // pull back as the fan opens
-    { a: t.company - 4, b: t.played - 18, pos: W([-1.0, 5.0, 7.3]), target: W([-2.2, 0.15, 0.55]), fov: 40 },          // a slow drift right
-    { a: t.played - 18, b: PUSH0 - 12, pos: TALLY.pos.map((v, i) => v - drift(PUSH0)[i]), target: TALLY.target, fov: 40, arc: 1.2 },   // crane up to the tally
+    { a: t.company - 4, b: t.played - 32, pos: W([-1.0, 5.0, 7.3]), target: W([-2.2, 0.15, 0.55]), fov: 40 },          // a slow drift right
+    { a: t.played - 36, b: PUSH0 - 12, pos: TALLY.pos.map((v, i) => v - drift(PUSH0)[i]), target: TALLY.target, fov: 40, arc: 1.2 },   // crane up to the tally (rev 2: 36 f, it was a 20-f lurch)
     ...keysFrom(PUSH0 + 1, CUT2 - 1, chalkPose),                                                                       // push into the chalk WINFALL
     ...keysFrom(CUT2, DEPART - 1, (f) => departCam(f))                                                                // the terminal (store frame)
   ];

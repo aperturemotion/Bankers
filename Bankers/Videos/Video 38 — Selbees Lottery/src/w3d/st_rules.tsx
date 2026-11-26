@@ -57,6 +57,7 @@ const Scene = ({ f }) => {
 };
 const W = (p) => [p[0] + O_RULES[0], p[1] + O_RULES[1], p[2] + O_RULES[2]];
 const add = (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+const LEAN = [-0.08, 0.75, -0.6];   // rev 2: the lean-in on the rule from ~1 m (0.38 m made the fly-out whip: image jerk 30 → 16 px/f²)
 const shots = () => {
   const t = T();
   const r = RULE_PT(), c = brPx(1300, 560);
@@ -66,9 +67,10 @@ const shots = () => {
     // a slow drift up and back: the whole spread, the leaflet stand at its side, the lit street through the window beyond
     { a: t.cut + 1, b: t.isnt + 6, pos: W(add(bro(0.03, -0.1), [-0.05, 0.6, -0.56])), target: W(bro(0.03, 0.05)), fov: 34 },
     // lean in on the rule as the ticket is gone
-    { a: t.luck + 2, b: t.rules - 2, pos: W(add(r, [-0.03, 0.3, -0.24])), target: W(add(r, [0, 0, 0.01])), fov: 34 },
-    // fly forward over the counter, out through the display window into main street, turning to look down the road (the hook's street)
-    { a: t.rules + 1, b: t.rulesE + 14, pos: W([0.4, 2.4, 8.4]), target: W([-30, 2.2, 7.4]), fov: 40 }
+    { a: t.luck + 2, b: t.rules - 8, pos: W(add(r, LEAN)), target: W(add(r, [0, 0, 0.01])), fov: 34 },
+    // fly forward over the counter, out through the display window into main street, turning to look down the road (the hook's street);
+    // rev 2: a slow 62-f move (it was a 35-f whip from a 0.35-m close-up: Timur, no fast back-and-forth)
+    { a: t.rules - 6, b: t.rules + 74, pos: W([0.4, 2.4, 8.4]), target: W([-30, 2.2, 7.4]), fov: 40 }
   ];
 };
 const Overlay = ({ f, P }) => {
@@ -79,7 +81,7 @@ const Overlay = ({ f, P }) => {
   return (
     <>
       <Tag text="Luck" at={t.luck - 14} out={t.reading + 14} x={600} y={520} to={tk.behind ? null : tk} size={32} />
-      <Tag text="The roll-down rule" at={t.reading - 16} out={t.rulesE - 6} x={90} y={520} to={rl.behind ? null : rl} size={30} />
+      <Tag text="The roll-down rule" at={t.reading - 16} out={t.rules + 2} x={90} y={520} to={rl.behind ? null : rl} size={30} />
     </>
   );
 };

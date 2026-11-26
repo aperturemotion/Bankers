@@ -28,7 +28,8 @@ const BED_VOL = 0.18;
 const shotsAll = STATIONS.flatMap((s) => s.shots()).sort((p, q) => p.a - q.a);
 // the camera's final move: up and away into the navy sky as the close comes in (the world falls away under BANKER$)
 const lastShot = shotsAll[shotsAll.length - 1];
-const OUTRO = { a: CLOSE_AT - 6, b: CLOSE_AT + 40, pos: [lastShot.pos[0], lastShot.pos[1] + 22, lastShot.pos[2] + 10], target: [lastShot.target[0], lastShot.target[1] + 26, lastShot.target[2] - 6], fov: 40 };
+const OUTRO = { a: CLOSE_AT + 32, b: CLOSE_AT + 82,   // rev 2: after the slower fly-out
+   pos: [lastShot.pos[0], lastShot.pos[1] + 22, lastShot.pos[2] + 10], target: [lastShot.target[0], lastShot.target[1] + 26, lastShot.target[2] - 6], fov: 40 };
 export const CAM_RAW = makeCam([...shotsAll, OUTRO]);
 export const CAM = smoothCam(CAM_RAW, TOTAL, shotsAll.filter((s) => s.cut).map((s) => s.a), 14);   // one continuous glide (kit.smoothCam)
 // the store's push INTO the leaflet's bright diagram cuts to the dark coin wall (measured 159 → 102 mean levels at 480 → 481)

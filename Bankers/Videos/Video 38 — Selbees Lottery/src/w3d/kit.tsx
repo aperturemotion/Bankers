@@ -95,10 +95,14 @@ export const smoothCam = (cam, total, cuts, sigma = 10, taper = 24) => {
       return X[i];
     };
     for (let f = a0; f <= a1; f++) {
-      const edge = Math.min(si > 0 ? f - a0 : 1e9, si < bounds.length - 2 ? a1 - f : 1e9, distFast[f]);
-      const sg = sigma * Math.min(1, Math.max(0, edge / taper));
+      // the 30 f either side of a hard cut stay RAW (a push into a cut / the pull-back out of it is one designed ease; a Gaussian
+      // ramping up across it multiplied the 45 s pull-back's image speed 4×), then the smoothing fades in over `taper`
+      // the strength is a PRODUCT of eased ramps (one per edge): a min() of linear ramps kinked at a short segment's middle and the
+      // camera jolted there (V38 31.4 s)
+      const ramp = (e) => { const x = Math.min(1, Math.max(0, e / taper)); return x * x * (3 - 2 * x); };
+      const sg = sigma * ramp(si > 0 ? f - a0 - 30 : 1e9) * ramp(si < bounds.length - 2 ? a1 - f - 30 : 1e9) * ramp(distFast[f]);
       if (sg < 0.35) { out[f] = X[f]; continue; }
-      const r = Math.min(R, Math.ceil(sg * 3));
+      const r = Math.min(R, Math.ceil(sg * 3), Math.max(0, distFast[f] - 1));   // the window never reaches INTO a flight (it pulled a hold toward it: V38 22 s overshoot)
       const acc = new Array(D).fill(0); let ws = 0;
       for (let k = -r; k <= r; k++) { const wk = Math.exp(-(k * k) / (2 * sg * sg)), x = at(f + k); ws += wk; for (let j = 0; j < D; j++) acc[j] += wk * x[j]; }
       out[f] = acc.map((v) => v / ws);

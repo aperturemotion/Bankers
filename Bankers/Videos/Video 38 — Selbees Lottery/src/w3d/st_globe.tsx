@@ -114,7 +114,7 @@ const shots = () => {
   const close = heroCam(G_TUB, 0.19);
   return [
     { a: ROAD_CUT, b: ROAD_CUT, cut: true, pos: undrift(A(close.pos), FROM), target: A(close.target), fov: 34 },            // the matching close-up
-    { a: FROM + 1, b: t.alone + 18, pos: A([-3.6, 0.55, -0.55]), target: A([10, 4.4, 0.35]), fov: 40 },                     // pull back, low: stack and dome
+    { a: FROM + 1, b: t.alone + 30, pos: A([-3.6, 0.55, -0.55]), target: A([10, 4.4, 0.35]), fov: 40 },                     // pull back, low: stack and dome (rev 2: 41 f, a 50× zoom-out in 29 f lurched)
     { a: t.mit - 6, b: t.too + 8, pos: A([-3.9, 0.7, 0.9]), target: A([10, 4.6, -0.6]), fov: 40 },                          // drift across the stack
     { a: t.y2011 - 2, b: t.boston + 4, pos: A(P_(-2.3, 3.1, 0.25)), target: A(P_(0.75, 0, 0)), fov: 36 },                  // up over the paper
     { a: t.story - 10, b: t.many + 6, pos: A(P_(-1.5, 2.3, 0.1)), target: A(P_(0.4, 0, 0)), fov: 36 },                     // ease toward the masthead
