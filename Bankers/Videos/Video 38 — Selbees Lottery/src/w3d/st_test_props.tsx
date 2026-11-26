@@ -4,7 +4,7 @@
 //   · Outside    what the window sees: a navy lawn, neighbours' houses with warm lit windows, trees, a street lamp (fogged)
 //   · TableLamp  a small practical light (the only warm light in the frame): ceramic base, brass stem, a glowing shade, a warm pool
 //   · Mug, Notepad, Pencil  small table props (FG depth)
-//   · paper textures: the lottery ticket face, the $1 bill face, paper-stack edges, the $1 strap ("$100", ABA blue)
+//   · paper textures: the lottery ticket face, paper-stack edges (the cash: money.tsx)
 import React, { useMemo } from "react";
 import * as THREE from "three";
 import { canvasTex, rnd, Glow } from "./kit";
@@ -49,42 +49,7 @@ export const edgeTex = (key, base, line) => canvasTex("stt_edge_" + key, 64, 256
   c.fillStyle = base; c.fillRect(0, 0, w, h);
   for (let y = 0; y < h; y += 2) { c.fillStyle = rnd(y + key.length) < 0.5 ? line : "rgba(255,255,255,0.18)"; c.fillRect(0, y, w, 1); }
 });
-// the $1 bill (generic: no portrait, no real serials): sage-grey paper, a dark engraved frame of guilloche, corner numerals, a rosette oval
-export const billFaceTex = () => canvasTex("stt_billface", 1024, 436, (c, w, h) => {
-  const g = c.createLinearGradient(0, 0, w, h); g.addColorStop(0, "#CBD5C8"); g.addColorStop(1, "#BCC8BF"); c.fillStyle = g; c.fillRect(0, 0, w, h);
-  const ink = "#2F4B44";
-  c.strokeStyle = ink; c.lineWidth = 10; c.strokeRect(22, 22, w - 44, h - 44);
-  // guilloche border band
-  c.lineWidth = 1.2; c.strokeStyle = "rgba(47,75,68,0.75)";
-  for (let k = 0; k < 4; k++) {
-    c.beginPath();
-    for (let x = 34; x <= w - 34; x += 2) { const y = 48 + 8 * Math.sin(x / (7 + k) + k); x === 34 ? c.moveTo(x, y) : c.lineTo(x, y); } c.stroke();
-    c.beginPath();
-    for (let x = 34; x <= w - 34; x += 2) { const y = h - 48 + 8 * Math.sin(x / (7 + k) + k * 2); x === 34 ? c.moveTo(x, y) : c.lineTo(x, y); } c.stroke();
-  }
-  // centre oval with a rosette (instead of a portrait)
-  c.save(); c.translate(w / 2, h / 2);
-  c.fillStyle = "rgba(255,255,255,0.35)"; c.beginPath(); c.ellipse(0, 0, 118, 140, 0, 0, Math.PI * 2); c.fill();
-  c.strokeStyle = ink; c.lineWidth = 6; c.beginPath(); c.ellipse(0, 0, 118, 140, 0, 0, Math.PI * 2); c.stroke();
-  c.lineWidth = 1; c.strokeStyle = "rgba(47,75,68,0.8)";
-  for (let k = 0; k < 36; k++) { c.beginPath(); c.ellipse(0, 0, 90, 38, (k * Math.PI) / 36, 0, Math.PI * 2); c.stroke(); }
-  c.restore();
-  // seals and numerals
-  [[230, h / 2], [w - 230, h / 2]].forEach(([x, y], i) => {
-    c.strokeStyle = ink; c.lineWidth = 3; c.beginPath(); c.arc(x, y, 58, 0, Math.PI * 2); c.stroke();
-    for (let k = 0; k < 40; k++) { const a = (k / 40) * Math.PI * 2; c.beginPath(); c.moveTo(x + Math.cos(a) * 40, y + Math.sin(a) * 40); c.lineTo(x + Math.cos(a) * 56, y + Math.sin(a) * 56); c.stroke(); }
-    c.fillStyle = i ? "rgba(30,90,80,0.55)" : "rgba(20,40,50,0.45)"; c.beginPath(); c.arc(x, y, 30, 0, Math.PI * 2); c.fill();
-  });
-  c.fillStyle = ink; c.font = `400 92px ${FIGURE}`; c.textAlign = "center";
-  [[90, 130], [w - 90, 130], [90, h - 62], [w - 90, h - 62]].forEach(([x, y]) => c.fillText("1", x, y));
-  c.font = `800 44px ${BODY}`; c.fillText("ONE", w / 2, h - 66);
-});
-// the $1 strap: ABA standard blue, printed "$100" (100 × $1)
-export const strapTex = () => canvasTex("stt_strap", 256, 512, (c, w, h) => {
-  c.fillStyle = "#2D62B0"; c.fillRect(0, 0, w, h);
-  c.fillStyle = "rgba(255,255,255,0.10)"; c.fillRect(0, 0, 10, h); c.fillRect(w - 10, 0, 10, h);
-  c.fillStyle = "#FFFFFF"; c.font = `400 104px ${FIGURE}`; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText("$100", w / 2, h / 2 + 4);
-});
+// (rev 2: the $1 note, its bundle sides and the ABA strap live in money.tsx — the real scan of the $1, shared by every station)
 // ── the room: a back wall with a window opening, skirting, a vinyl floor ───────────────────────────────────────────────────
 const wallTex = () => {
   const t = canvasTex("stt_wall", 256, 256, (c, w, h) => {

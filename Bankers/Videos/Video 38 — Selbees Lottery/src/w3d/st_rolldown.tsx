@@ -3,7 +3,8 @@
 //   prizes. On those days, enough tickets put the math on your side."
 //   A sculptural JACKPOT MACHINE in a navy studio void on a glossy floor (the machine mirrored in it): a glass column on a stepped
 //   plinth, filling with silver-blue and gold coins; a glowing $5M ring; at the top a MATCH 6 tray behind a shut gate; and a
-//   staircase of three lit trays (MATCH 5 / 4 / 3) stepping down to the right — the brochure's diagram made real.
+//   staircase of three lit prize bins (MATCH 5 / 4 / 3) stepping down to the right — the brochure's diagram made real. (rev 2: the bins,
+//   the chutes and the MATCH 6 bin rebuilt as detailed machinery — see Bin; the column and the coins' choreography unchanged.)
 //   480 the cut lands close on the column (matching the push into the leaflet's diagram), coins pouring in; the camera pulls back
 //   as the coins reach the $5M ring ($5 MILLION lands on its word); on "nobody won" it cranes to the shut MATCH 6 gate (its lamp
 //   blinks, NOBODY MATCHED 6); on "rolled down" the spout opens and the coins cascade tray to tray while the camera follows down
@@ -16,6 +17,8 @@ import { Tag, Counter } from "./overlays";
 import { wf, wEnd } from "./take";
 import { cueAt } from "../bnx/SfxLayer";
 import { BODY, FIGURE } from "./fonts3d";
+import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 
 const O = [300, 0, 0];
 const W = (p) => [p[0] + O[0], p[1] + O[1], p[2] + O[2]];
@@ -56,17 +59,178 @@ const stackTex = () => canvasTex("rd_stack", 256, 512, (c, w, h) => {
     c.fillStyle = "rgba(3,12,28,0.18)"; c.fillRect(rnd(r + 40) * w, r * rh, 18 + rnd(r + 9) * 30, rh);
   }
 });
-const plateTex = (k) => canvasTex("rd_plate" + k, 512, 160, (c, w, h) => {
-  const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "#0E3B73"); g.addColorStop(1, "#071F42"); c.fillStyle = g; c.fillRect(0, 0, w, h);
-  c.strokeStyle = "rgba(127,180,242,0.9)"; c.lineWidth = 5; c.strokeRect(8, 8, w - 16, h - 16);
+// ★ rev 2 (builder C) — THE PRIZE BINS (Timur: "a bit too boxy … not detailed enough … a lot more detail into the boxes, so they look a lot
+//   more eye-catching, aesthetic"). Each tier is a glass-fronted prize bin: a bevelled brushed-steel base on a cantilever bracket from a
+//   column behind it, a glass hopper with brushed corner posts and top/bottom rails, rivets, a navy-enamel floor, light-blue lit edges,
+//   a polished pour lip on its right side (5 → 4 → 3) and an engraved tier plate (MATCH 5 / MATCH 4 / MATCH 3, "5 OF 6 NUMBERS", a row of
+//   six real enamel balls — the matched ones white with their numbers, the rest navy). The coins and their choreography are unchanged.
+const BIN_H = 0.32, BASE_H = 0.15, POST_Z = -0.82, POST_X = -0.35;
+const BALL_NUMS = [4, 11, 19, 27, 33, 42];
+const plateTex = (k) => canvasTex("rd_plate2_" + k, 2048, 704, (c, w, h) => {
+  // a navy enamel panel inside a cut border
+  const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "#123F78"); g.addColorStop(0.55, "#0A2C5A"); g.addColorStop(1, "#061D40");
+  c.fillStyle = g; c.fillRect(0, 0, w, h);
+  for (let i = 0; i < 2200; i++) { c.fillStyle = `rgba(255,255,255,${rnd(i + k * 13) * 0.035})`; c.fillRect(rnd(i * 3 + 1) * w, rnd(i * 7 + 2) * h, 2, 2); }
+  c.strokeStyle = "rgba(179,206,239,0.95)"; c.lineWidth = 10; c.strokeRect(26, 26, w - 52, h - 52);
+  c.strokeStyle = "rgba(127,180,242,0.55)"; c.lineWidth = 3; c.strokeRect(52, 52, w - 104, h - 104);
+  // the engraved title, with a 1-px light chamfer under each stroke
+  c.textBaseline = "alphabetic"; c.textAlign = "left";
+  c.font = `800 210px ${BODY}`; c.letterSpacing = "22px";
+  c.fillStyle = "rgba(0,8,24,0.75)"; c.fillText("MATCH " + k, 118, 300);
+  c.fillStyle = "#F4F8FD"; c.fillText("MATCH " + k, 110, 292);
+  c.letterSpacing = "0px";
+  c.textAlign = "right"; c.font = `700 64px ${BODY}`; c.fillStyle = "#B3CEEF"; c.letterSpacing = "8px";
+  c.fillText(k + " OF 6 NUMBERS", w - 112, 190);
+  c.font = `600 46px ${BODY}`; c.fillStyle = "rgba(179,206,239,0.75)"; c.fillText(k === 6 ? "JACKPOT TIER" : "PRIZE TIER", w - 112, 270);
+  c.letterSpacing = "0px";
+  // the rule between title and the ball row, and the six ball sockets (the 3-D enamel balls sit in them)
+  c.fillStyle = "rgba(179,206,239,0.6)"; c.fillRect(110, 352, w - 220, 4);
   for (let i = 0; i < 6; i++) {
-    const x = 70 + i * 74, y = h / 2, on = i < k;
-    const gg = c.createRadialGradient(x - 9, y - 10, 3, x, y, 28);
-    if (on) { gg.addColorStop(0, "#FFFFFF"); gg.addColorStop(1, "#4D8ED9"); } else { gg.addColorStop(0, "#28466F"); gg.addColorStop(1, "#13284A"); }
-    c.fillStyle = gg; c.beginPath(); c.arc(x, y, 27, 0, 7); c.fill();
-    c.lineWidth = 3; c.strokeStyle = on ? "#B3CEEF" : "#3A5784"; c.stroke();
+    const x = w / 2 + (i - 2.5) * 262, y = 530;
+    const sg = c.createRadialGradient(x, y + 10, 40, x, y, 104); sg.addColorStop(0, "rgba(0,6,18,0.85)"); sg.addColorStop(0.8, "rgba(0,6,18,0.5)"); sg.addColorStop(1, "rgba(0,6,18,0)");
+    c.fillStyle = sg; c.beginPath(); c.arc(x, y, 104, 0, 7); c.fill();
+    c.strokeStyle = i < k ? "rgba(179,206,239,0.9)" : "rgba(90,120,170,0.6)"; c.lineWidth = 6; c.beginPath(); c.arc(x, y, 92, 0, 7); c.stroke();
   }
 });
+// an enamel lottery ball: white, a light-blue belt, its number in a white disc on the front (u 0.25 faces +z on a SphereGeometry)
+const ballTex = (n) => canvasTex("rd_ball_" + n, 512, 256, (c, w, h) => {
+  c.fillStyle = "#F7FAFE"; c.fillRect(0, 0, w, h);
+  c.fillStyle = "#4D8ED9"; c.fillRect(0, h * 0.36, w, h * 0.28);
+  c.fillStyle = "#FFFFFF"; c.beginPath(); c.ellipse(w * 0.25, h / 2, 62, 58, 0, 0, 7); c.fill();
+  c.fillStyle = "#0B2A57"; c.font = `400 86px ${FIGURE}`; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText(String(n), w * 0.25, h / 2 + 4);
+  c.fillStyle = "#FFFFFF"; c.beginPath(); c.ellipse(w * 0.75, h / 2, 62, 58, 0, 0, 7); c.fill();
+  c.fillStyle = "#0B2A57"; c.fillText(String(n), w * 0.75, h / 2 + 4);
+});
+// brushed steel: fine horizontal grain (map and roughness)
+const brushedTex = () => canvasTex("rd_brushed", 512, 512, (c, w, h) => {
+  c.fillStyle = "#C3CFDD"; c.fillRect(0, 0, w, h);
+  for (let i = 0; i < 4200; i++) {
+    const y = rnd(i * 2 + 1) * h, x = rnd(i * 5 + 3) * w, len = 30 + rnd(i + 7) * 260, v = rnd(i + 11);
+    c.fillStyle = v < 0.5 ? `rgba(255,255,255,${0.05 + v * 0.12})` : `rgba(40,55,80,${0.03 + (v - 0.5) * 0.1})`;
+    c.fillRect(x, y, len, 1);
+  }
+});
+let BIN_MATS = null;
+const binMats = () => {
+  if (BIN_MATS) return BIN_MATS;
+  const br = brushedTex();
+  BIN_MATS = {
+    steel: new THREE.MeshStandardMaterial({ color: "#AFC2DA", map: br, roughnessMap: br, roughness: 0.42, metalness: 0.92, envMapIntensity: 1.25 }),
+    dark: new THREE.MeshStandardMaterial({ color: "#2A3D58", map: br, roughness: 0.4, metalness: 0.85, envMapIntensity: 1.0 }),
+    enamel: new THREE.MeshPhysicalMaterial({ color: "#0E2B55", roughness: 0.3, metalness: 0.2, clearcoat: 1, clearcoatRoughness: 0.12, envMapIntensity: 0.9 }),
+    glass: new THREE.MeshPhysicalMaterial({ color: "#CFE2F8", roughness: 0.02, metalness: 0, transparent: true, opacity: 0.16, envMapIntensity: 1.6, depthWrite: false, side: THREE.DoubleSide, clearcoat: 1 }),
+    glassEdge: new THREE.MeshBasicMaterial({ color: "#DCEBFC", transparent: true, opacity: 0.55, toneMapped: false, depthWrite: false }),
+    chrome: new THREE.MeshStandardMaterial({ color: "#DCE6F2", roughness: 0.14, metalness: 1, envMapIntensity: 1.6 }),
+    polished: new THREE.MeshStandardMaterial({ color: "#B9CBE0", map: br, roughness: 0.26, metalness: 0.9, envMapIntensity: 1.4, side: THREE.DoubleSide }),
+    ballOff: new THREE.MeshPhysicalMaterial({ color: "#1A3563", roughness: 0.22, clearcoat: 1, clearcoatRoughness: 0.06, envMapIntensity: 1.1 })
+  };
+  return BIN_MATS;
+};
+const rbox = (w, h, d, r, x, y, z) => { const g = new RoundedBoxGeometry(w, h, d, 2, Math.min(r, w / 2 - 1e-4, h / 2 - 1e-4, d / 2 - 1e-4)); g.translate(x, y, z); return g; };
+const cyl = (r0, r1, h, x, y, z, seg = 20, rx = 0, rz = 0) => { const g = new THREE.CylinderGeometry(r0, r1, h, seg); if (rx) g.rotateX(rx); if (rz) g.rotateZ(rz); g.translate(x, y, z); return g; };
+// a polished half-pipe chute of length L along +x (open on top), its rim at y 0, with rolled lips; ry0 = inner radius
+const halfPipe = (L, r = 0.2, t = 0.018) => {
+  const sh = new THREE.Shape();
+  sh.absarc(0, 0, r + t, Math.PI, 2 * Math.PI, false); sh.absarc(0, 0, r, 2 * Math.PI, Math.PI, true);
+  const g = new THREE.ExtrudeGeometry(sh, { depth: L, bevelEnabled: false, curveSegments: 18 });
+  g.rotateY(Math.PI / 2);   // extrude along +x
+  const lipA = cyl(0.018, 0.018, L, L / 2, 0, r + t / 2, 10, 0, Math.PI / 2), lipB = cyl(0.018, 0.018, L, L / 2, 0, -(r + t / 2), 10, 0, Math.PI / 2);
+  return mergeGeometries([g.toNonIndexed(), lipA.toNonIndexed(), lipB.toNonIndexed()]);
+};
+/** Bin: a prize bin with its floor (the coins' heap plane) at the group origin. open: the right side is a pour lip (feeds the next bin);
+ *  gate: the left side is left to MATCH 6's gate; h: the height of the floor above the studio floor (for the support column). */
+const Bin = ({ w, d, k, lit, h, open = false, gate = false, lite = false, postX = POST_X }) => {
+  const M = binMats();
+  const plate = useMemo(() => plateTex(k), [k]);
+  const geo = useMemo(() => {
+    const steel = [], dark = [], glass = [], edges = [], strips = [];
+    const hw = w / 2, hd = d / 2, pr = 0.026;
+    // the base: a bevelled brushed slab, a darker plinth band under it
+    steel.push(rbox(w + 0.1, BASE_H, d + 0.1, 0.03, 0, -BASE_H / 2, 0));
+    dark.push(rbox(w - 0.06, 0.06, d - 0.06, 0.02, 0, -BASE_H - 0.03, 0));
+    // the corner posts (square tube) and the rails
+    const corners = [[-hw, -hd], [-hw, hd], [hw, -hd], [hw, hd]].filter(([x]) => !(gate && x < 0));
+    corners.forEach(([x, z]) => steel.push(rbox(0.05, BIN_H + 0.02, 0.05, 0.012, x, BIN_H / 2, z)));
+    steel.push(rbox(w + 0.05, 0.036, 0.046, 0.012, 0, BIN_H, hd), rbox(w + 0.05, 0.036, 0.046, 0.012, 0, BIN_H, -hd));                // top rails
+    steel.push(rbox(w + 0.03, 0.03, 0.04, 0.01, 0, 0.02, hd), rbox(w + 0.03, 0.03, 0.04, 0.01, 0, 0.02, -hd));                        // bottom rails
+    if (!gate) steel.push(rbox(0.046, 0.036, d + 0.05, 0.012, -hw, BIN_H, 0), rbox(0.04, 0.03, d + 0.03, 0.01, -hw, 0.02, 0));
+    if (!open) steel.push(rbox(0.046, 0.036, d + 0.05, 0.012, hw, BIN_H, 0), rbox(0.04, 0.03, d + 0.03, 0.01, hw, 0.02, 0));
+    else steel.push(rbox(0.046, 0.036, d + 0.05, 0.012, hw, BIN_H, 0));                                                              // open side: a header only
+    // the glass: front, back, left (and right when closed); a bright edge line along each pane's top
+    const pane = (pw, ph, x, z, along) => { glass.push(along === "x" ? rbox(pw, ph, 0.012, 0.004, x, ph / 2 + 0.03, z) : rbox(0.012, ph, pw, 0.004, x, ph / 2 + 0.03, z)); };
+    pane(w - 0.05, BIN_H - 0.04, 0, hd, "x"); pane(w - 0.05, BIN_H - 0.04, 0, -hd, "x");
+    if (!gate) pane(d - 0.05, BIN_H - 0.04, -hw, 0, "z");
+    if (!open) pane(d - 0.05, BIN_H - 0.04, hw, 0, "z");
+    edges.push(rbox(w - 0.06, 0.006, 0.014, 0.002, 0, BIN_H - 0.012, hd + 0.001));
+    // the pour lip: a polished half-pipe stepping down out of the open side toward the next bin
+    let lip = null;
+    if (open) { lip = halfPipe(0.36, 0.24); lip.rotateZ(-0.42); lip.translate(hw - 0.02, 0.05, 0); }
+    // the support: a round column behind the bin with collars and a foot, a cantilever arm and a gusset under the base
+    const ph = Math.max(0.2, h - BASE_H - 0.06);
+    steel.push(cyl(0.06, 0.06, ph, postX, -BASE_H - 0.06 - ph / 2, POST_Z, 28));
+    steel.push(cyl(0.085, 0.085, 0.05, postX, -BASE_H - 0.09, POST_Z, 28), cyl(0.085, 0.085, 0.04, postX, -BASE_H - 0.06 - ph * 0.5, POST_Z, 28));
+    dark.push(cyl(0.19, 0.21, 0.05, postX, -h + 0.025, POST_Z, 32), cyl(0.1, 0.13, 0.06, postX, -h + 0.08, POST_Z, 28));
+    steel.push(rbox(0.12, 0.07, Math.abs(POST_Z) + 0.35, 0.02, postX, -BASE_H - 0.07, (POST_Z + 0.35) / 2));
+    dark.push(rbox(0.04, 0.22, 0.4, 0.01, postX, -BASE_H - 0.18, POST_Z + 0.22));
+    // the tier plate's frame on the base's front
+    steel.push(rbox(1.16, 0.46, 0.05, 0.02, 0.0, -BASE_H - 0.26, hd + 0.075));
+    // light strips: the base's front top edge and its foot, the plate frame's lower lip
+    strips.push(rbox(w + 0.04, 0.008, 0.01, 0.003, 0, -0.008, hd + 0.053), rbox(w - 0.1, 0.008, 0.01, 0.003, 0, -BASE_H - 0.004, hd + 0.053));
+    strips.push(rbox(1.08, 0.008, 0.01, 0.003, 0, -BASE_H - 0.48, hd + 0.1));
+    const mg = (a) => mergeGeometries(a.map((g) => (g.index ? g.toNonIndexed() : g)));
+    return { steel: mg(steel), dark: mg(dark), glass: mg(glass), edges: mg(edges), strips: mg(strips), lip };
+  }, [w, d, open, gate, h, postX]);
+  // rivets along the base's front and the plate frame's corners; the floor's enamel
+  const rivRef = useRef();
+  useLayoutEffect(() => {
+    const m = rivRef.current; if (!m) return;
+    const o = new THREE.Object3D(); let i = 0;
+    const put = (x, y, z) => { o.position.set(x, y, z); o.rotation.set(Math.PI / 2, 0, 0); o.updateMatrix(); m.setMatrixAt(i++, o.matrix); };
+    const n = 11; for (let j = 0; j < n; j++) put(-w / 2 + 0.02 + (j * (w - 0.04)) / (n - 1), -BASE_H / 2, d / 2 + 0.05);
+    [[-0.54, -BASE_H - 0.07], [0.54, -BASE_H - 0.07], [-0.54, -BASE_H - 0.45], [0.54, -BASE_H - 0.45]].forEach(([x, y]) => put(x, y, d / 2 + 0.1));
+    m.count = i; m.instanceMatrix.needsUpdate = true;
+  }, [w, d]);
+  const rivetGeo = useMemo(() => new THREE.SphereGeometry(0.014, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), []);
+  const balls = useMemo(() => BALL_NUMS.map((n, i) => (i < k ? new THREE.MeshPhysicalMaterial({ map: ballTex(n), roughness: 0.18, clearcoat: 1, clearcoatRoughness: 0.05, envMapIntensity: 1.1, emissive: new THREE.Color("#7FB4F2"), emissiveIntensity: 0 }) : M.ballOff)), [k]);
+  balls.forEach((m, i) => { if (i < k) m.emissiveIntensity = 0.12 + 0.3 * lit; });
+  const ballGeo = useMemo(() => new THREE.SphereGeometry(0.048, 24, 16), []);
+  const stripMat = useMemo(() => new THREE.MeshBasicMaterial({ color: "#7FB4F2", toneMapped: false, transparent: true }), []);
+  stripMat.opacity = 0.35 + 0.65 * lit;
+  const sh = !lite;
+  return (
+    <group>
+      <mesh geometry={geo.steel} material={M.steel} castShadow={sh} receiveShadow />
+      <mesh geometry={geo.dark} material={M.dark} castShadow={sh} receiveShadow />
+      {geo.lip && <mesh geometry={geo.lip} material={M.polished} castShadow={sh} receiveShadow />}
+      <mesh geometry={geo.glass} material={M.glass} renderOrder={2} />
+      <mesh geometry={geo.edges} material={M.glassEdge} />
+      <mesh geometry={geo.strips} material={stripMat} />
+      {/* the floor: navy enamel inside the glass */}
+      <mesh position={[0, 0.004, 0]} rotation-x={-Math.PI / 2} material={M.enamel} receiveShadow><planeGeometry args={[w - 0.04, d - 0.04]} /></mesh>
+      {/* the tier plate: the engraved enamel panel and its six enamel balls */}
+      <mesh position={[0, -BASE_H - 0.26, d / 2 + 0.101]}><planeGeometry args={[1.08, 0.37]} /><meshStandardMaterial map={plate} emissiveMap={plate} emissive="#ffffff" emissiveIntensity={0.32 + 0.5 * lit} roughness={0.3} metalness={0.1} /></mesh>
+      {!lite && BALL_NUMS.map((n, i) => <mesh key={n} geometry={ballGeo} material={balls[i]} position={[((i - 2.5) * 262 / 2048) * 1.08, -BASE_H - 0.26 - ((530 - 352) / 704) * 0.37, d / 2 + 0.115]} castShadow={false} />)}
+      {!lite && <instancedMesh ref={rivRef} args={[rivetGeo, M.chrome, 16]} frustumCulled={false} />}
+      {lit > 0.01 && !lite && <Glow position={[0, 0.15, d / 2 + 0.2]} size={1.9} color="#7FB4F2" opacity={0.3 * lit} />}
+    </group>
+  );
+};
+// a polished chute: a half-pipe with rolled lips, a flange where it leaves the column, a saddle under it
+const Chute = ({ L, r = 0.2, sh = true }) => {
+  const M = binMats();
+  const g = useMemo(() => {
+    const hp = halfPipe(L, r);
+    const fl = rbox(0.04, r + 0.12, 2 * r + 0.16, 0.012, 0.02, -r / 2 + 0.02, 0);
+    const strap = rbox(0.06, 0.07, 0.14, 0.012, L * 0.62, -r - 0.05, 0);
+    return mergeGeometries([hp, fl.toNonIndexed(), strap.toNonIndexed()]);
+  }, [L, r]);
+  // a light-blue line along each rolled lip (the house's lit edge; it shows the chute's curve and its run)
+  const lips = useMemo(() => mergeGeometries([cyl(0.006, 0.006, L - 0.04, L / 2, 0.016, r + 0.01, 6, 0, Math.PI / 2).toNonIndexed(), cyl(0.006, 0.006, L - 0.04, L / 2, 0.016, -(r + 0.01), 6, 0, Math.PI / 2).toNonIndexed()]), [L, r]);
+  return (<><mesh geometry={g} material={M.polished} castShadow={sh} receiveShadow /><mesh geometry={lips}><meshBasicMaterial color="#9CC3F2" toneMapped={false} transparent opacity={0.8} /></mesh></>);
+};
+const Tray = ({ tr, lit, lite }) => (
+  <group position={[tr.x, tr.y, 0]}><Bin w={tr.w} d={tr.d} k={tr.k} lit={lit} h={tr.y} open={tr.k > 3} lite={lite} /></group>
+);
 const floorTex = () => canvasTex("rd_floor", 512, 512, (c, w, h) => {
   const g = c.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
   g.addColorStop(0, "rgba(120,170,235,0.55)"); g.addColorStop(0.35, "rgba(60,110,190,0.22)"); g.addColorStop(1, "rgba(0,0,0,0)");
@@ -172,34 +336,9 @@ const heap = (f, { n, cx, cy, cz, w, d, layers, k, seed, t0, t1 }) => {
 const Ring = ({ y, r = R + 0.06, tube = 0.05, m = MAT.steel }) => (
   <mesh position={[0, y, 0]} rotation-x={Math.PI / 2} material={m} castShadow><torusGeometry args={[r, tube, 12, 64]} /></mesh>
 );
-const Tray = ({ tr, lit, f }) => {
-  const plate = useMemo(() => plateTex(tr.k), [tr.k]);
-  const { w, d } = tr;
-  return (
-    <group position={[tr.x, tr.y, 0]}>
-      {/* the base pan: a steel floor, a dark underside, a light strip on its front lip, low glass walls */}
-      <mesh position={[0, -0.04, 0]} material={MAT.steel} castShadow receiveShadow><boxGeometry args={[w, 0.08, d]} /></mesh>
-      <mesh position={[0, -0.13, 0]} material={MAT.dark} castShadow><boxGeometry args={[w - 0.1, 0.1, d - 0.1]} /></mesh>
-      {[[0, d / 2], [0, -d / 2]].map(([x, z], i) => <mesh key={i} position={[x, 0.13, z]} material={MAT.glass}><boxGeometry args={[w, 0.26, 0.02]} /></mesh>)}
-      <mesh position={[-w / 2, 0.13, 0]} material={MAT.glass}><boxGeometry args={[0.02, 0.26, d]} /></mesh>
-      <mesh position={[0, 0.26, d / 2]} material={MAT.steel}><boxGeometry args={[w + 0.02, 0.02, 0.03]} /></mesh>
-      <mesh position={[0, -0.005, d / 2 + 0.016]}><boxGeometry args={[w, 0.016, 0.006]} /><meshBasicMaterial color="#7FB4F2" toneMapped={false} transparent opacity={0.35 + 0.65 * lit} /></mesh>
-      {/* the front plate: k of 6 balls lit */}
-      <group position={[0.05, -0.32, d / 2 - 0.06]}>
-        <mesh material={MAT.dark} castShadow><boxGeometry args={[0.98, 0.32, 0.05]} /></mesh>
-        <mesh position={[0, 0, 0.026]}><planeGeometry args={[0.94, 0.29]} /><meshStandardMaterial map={plate} emissiveMap={plate} emissive="#ffffff" emissiveIntensity={0.5 + 0.7 * lit} roughness={0.35} /></mesh>
-      </group>
-      {/* the post down to the floor and its foot */}
-      <mesh position={[0.2, -tr.y / 2 - 0.1, -0.2]} material={MAT.dark} castShadow><cylinderGeometry args={[0.05, 0.05, tr.y - 0.2, 12]} /></mesh>
-      <mesh position={[0.2, -tr.y + 0.03, -0.2]} material={MAT.plinth} receiveShadow><cylinderGeometry args={[0.28, 0.32, 0.06, 24]} /></mesh>
-      {lit > 0.01 && <Glow position={[0, 0.15, 0.3]} size={1.8} color="#7FB4F2" opacity={0.35 * lit} />}
-    </group>
-  );
-};
 // the machine (drawn twice: once for real, once mirrored in the glossy floor)
 const Machine = ({ f, t, mirror = false }) => {
   const stack = useMemo(() => { const x = stackTex().clone(); x.wrapS = x.wrapT = THREE.RepeatWrapping; x.needsUpdate = true; return x; }, []);
-  const plate6 = useMemo(() => plateTex(6), []);
   const L = level(t, f);
   const hgt = Math.max(0.01, L - BASE);
   stack.repeat.set(3, hgt / 0.6);
@@ -235,15 +374,9 @@ const Machine = ({ f, t, mirror = false }) => {
       {atLine > 0.01 && <Glow position={[0, LINE, R]} size={3.2} color="#7FB4F2" opacity={0.5 * atLine} />}
       {/* the MATCH 6 chute and tray behind its shut gate (the lamp blinks on "nobody won") */}
       <group position={[0, 0, 0]}>
-        <mesh position={[(R + T6.x - T6.w / 2) / 2 + 0.05, TOP - 0.12, 0]} rotation-z={-0.1} material={MAT.steel} castShadow={sh}><boxGeometry args={[T6.x - T6.w / 2 - R + 0.2, 0.05, 0.5]} /></mesh>
+        <group position={[R + 0.01, TOP - 0.08, 0]} rotation-z={-0.1}><Chute L={T6.x - T6.w / 2 - R - 0.04} r={0.2} sh={sh} /></group>
         <group position={[T6.x, T6.y - 0.3, 0]}>
-          <mesh material={MAT.steel} castShadow={sh}><boxGeometry args={[T6.w, 0.08, T6.d]} /></mesh>
-          {[[0, T6.d / 2], [0, -T6.d / 2]].map(([x, z], i) => <mesh key={i} position={[x, 0.13, z]} material={MAT.glass}><boxGeometry args={[T6.w, 0.26, 0.02]} /></mesh>)}
-          <mesh position={[T6.w / 2, 0.13, 0]} material={MAT.glass}><boxGeometry args={[0.02, 0.26, T6.d]} /></mesh>
-          <group position={[0.0, -0.3, T6.d / 2 - 0.06]}>
-            <mesh material={MAT.dark}><boxGeometry args={[0.98, 0.32, 0.05]} /></mesh>
-            <mesh position={[0, 0, 0.026]}><planeGeometry args={[0.94, 0.29]} /><meshStandardMaterial map={plate6} emissiveMap={plate6} emissive="#ffffff" emissiveIntensity={0.55} roughness={0.35} /></mesh>
-          </group>
+          <Bin w={T6.w} d={T6.d} k={6} lit={0.25} h={T6.y - 0.3} gate postX={0.45} lite={mirror} />
           {/* the gate: a frame of bars across the chute's mouth, with a lock and its lamp */}
           <group position={[-T6.w / 2 - 0.02, 0.32, 0]}>
             {/* the frame: posts, rails */}
@@ -260,15 +393,11 @@ const Machine = ({ f, t, mirror = false }) => {
             {blink > 0.02 && <Glow position={[-0.12, 0.28, -0.22]} size={0.7} color="#FF6A6A" opacity={0.8 * blink} />}
           </group>
         </group>
-        <mesh position={[(R + T6.x) / 2 - 0.25, T6.y - 0.3, 0]} material={MAT.dark} castShadow={sh}><boxGeometry args={[0.08, 0.6, 0.08]} /></mesh>
       </group>
       {/* the spout: a short chute from the column into MATCH 5, its door slides up on "rolled down" */}
-      <group position={[R + 0.02, SPOUT, 0]} rotation-z={-0.55}>
-        <mesh position={[0.42, -0.06, 0]} material={MAT.steel} castShadow={sh}><boxGeometry args={[0.9, 0.04, 0.42]} /></mesh>
-        {[-0.21, 0.21].map((z) => <mesh key={z} position={[0.42, 0.04, z]} material={MAT.steel}><boxGeometry args={[0.9, 0.2, 0.02]} /></mesh>)}
-      </group>
+      <group position={[R + 0.02, SPOUT + 0.02, 0]} rotation-z={-0.55}><Chute L={0.8} r={0.21} sh={sh} /></group>
       <mesh position={[R + 0.02, SPOUT + 0.06 + sp * 0.3, 0]} material={MAT.dark} castShadow={sh}><boxGeometry args={[0.05, 0.26, 0.46]} /></mesh>
-      {TRAYS.map((tr, i) => <Tray key={tr.k} tr={tr} lit={lit(i)} f={f} />)}
+      {TRAYS.map((tr, i) => <Tray key={tr.k} tr={tr} lit={lit(i)} lite={mirror} />)}
       {/* the cascade: spout → MATCH 5 → MATCH 4 → MATCH 3, and the heaps they build */}
       <Coins f={f} n={34} shadows={false} list={(ff) => stream(ff, { t0: t.rolled - 6, t1: t.prizes + 6, dt: 1.6, dur: 14, A: [R + 0.1, SPOUT - 0.05, 0], B: [TRAYS[0].x - 0.3, TRAYS[0].y + 0.05, 0], arc: 0.05, jit: 0.6, seed: 100, n: 34 })} />
       <Coins f={f} n={26} shadows={false} list={(ff) => stream(ff, { t0: t.rolled + 8, t1: t.prizesEnd, dt: 2, dur: 14, A: [TRAYS[0].x + TRAYS[0].w / 2, TRAYS[0].y + 0.1, 0], B: [TRAYS[1].x + 0.1, TRAYS[1].y + 0.05, 0], arc: 0.25, jit: 0.6, seed: 200, n: 26 })} />
@@ -371,36 +500,51 @@ const shots = () => {
     // crane to the shut MATCH 6 gate
     { a: t.nobody - 10, b: t.money, pos: W([1.3, 6.25, 4.3]), target: W([1.85, 5.35, 0]), fov: 34 },
     // follow the cascade down the staircase, orbiting to the right
-    { a: t.money - 2, b: t.prizesEnd, pos: W([4.6, 3.8, 9.8]), target: W([3.1, 2.4, 0]), fov: 40 },
+    { a: t.money - 2, b: t.smaller + 2, pos: W([4.6, 3.8, 9.8]), target: W([3.1, 2.4, 0]), fov: 40 },   // rev 2: arrives on "smaller" (the tags' window)
     // travel to the balance in front
-    { a: t.on - 6, b: t.tickets + 4, pos: W([BAL.x - 0.9, 2.9, BAL.z + 5.6]), target: W([BAL.x, 1.45, BAL.z]), fov: 38 },
+    { a: t.on, b: t.tickets + 4, pos: W([BAL.x - 0.9, 2.9, BAL.z + 5.6]), target: W([BAL.x, 1.45, BAL.z]), fov: 38 },
     // ease in as the beam tips
     { a: t.tickets + 4, b: t.sideEnd + 10, pos: W([BAL.x - 0.6, 2.45, BAL.z + 4.4]), target: W([BAL.x, 1.45, BAL.z]), fov: 36 }
   ];
 };
-const Overlay = ({ f, P }) => {
+// the 3-D points the tags point at (world coords, for P) — exported for the tag probe
+export const tagPts = (f) => {
+  const t = T(), a = beamAngle(t, f);
+  return {
+    // the jackpot: on the coin column's face, riding up from the cut's close-up to the coins' top as the camera pulls back
+    top: ((e) => ([lerp(0.02, 0.28, e), lerp(1.5, level(t, f) - 0.05, e), lerp(0.86, 0.82, e)]))(ease(f, t.cut + 2, t.five + 16)), gate: ([T6.x - T6.w / 2 - 0.12, T6.y - 0.03, 0.06]),
+    tray: TRAYS.map((tr) => ([tr.x - 0.3, tr.y + 0.15, tr.d / 2])),
+    panL: (balPt([-BAL.arm * Math.cos(a), BAL.h - BAL.arm * Math.sin(a) - 0.7, 0])), panR: (balPt([BAL.arm * Math.cos(a), BAL.h + BAL.arm * Math.sin(a) - 0.75, 0])),
+    piv: (balPt([0, BAL.h + 0.1, 0]))
+  };
+};
+// ★ rev 2 TAGS (Timur: "the small captions … come up late"): each is fully in (at + 12) by the moment its thing is named or happens,
+//   reads ≥ ~36 f, and is gone before the camera leaves its object. The three tier tags come in together as the camera cranes down the
+//   staircase (rolled down … smaller) and leave before the travel to the balance (now at t.on); the balance tags lead their beats
+//   and still leave on t.sideEnd − 6, before the flight to the kitchen.
+export const TAGS = () => {
   const t = T();
-  const top = P([0.3, level(t, f), 0.6]);
-  const gate = P([T6.x - T6.w / 2 - 0.12, T6.y - 0.03, 0.06]);
-  const trayP = (i) => P([TRAYS[i].x - 0.3, TRAYS[i].y + 0.15, TRAYS[i].d / 2]);
-  const a = beamAngle(t, f);
-  const panL = P(balPt([-BAL.arm * Math.cos(a), BAL.h - BAL.arm * Math.sin(a) - 0.7, 0]));
-  const panR = P(balPt([BAL.arm * Math.cos(a), BAL.h + BAL.arm * Math.sin(a) - 0.75, 0]));
-  const piv = P(balPt([0, BAL.h + 0.1, 0]));
-  const ok = (p) => (p.behind ? null : p);
+  return {
+    jackpot: { at: t.cut, out: t.nobody - 8 },
+    nobody: { at: t.nobody - 12, out: t.money + 7 },
+    tiers: [{ at: t.rolled + 4, out: t.on - 6 }, { at: t.rolled + 6, out: t.on - 5 }, { at: t.rolled + 8, out: t.on - 4 }],
+    tickets: { at: t.tickets - 16, out: t.sideEnd - 6 }, prizes: { at: t.put - 20, out: t.sideEnd - 6 }, math: { at: t.math - 24, out: t.sideEnd - 6 }
+  };
+};
+const TIER_XY = [[320, 500], [600, 840], [850, 1080]];   // MATCH 5 / 4 / 3 chips (px), clear of each other and of the captions
+const Overlay = ({ f, P }) => {
+  const t = T(), g = TAGS(), q = tagPts(f);
+  const ok = (w) => { const p = P(w); return p.behind ? null : p; };
   return (
     <>
       {/* the vignette is global (Main.tsx) */}
-      <Tag text="Jackpot" at={t.jackpot - 2} out={t.nobody - 8} x={110} y={560} to={ok(top)} />
-      <Counter at={t.five - 12} out={t.nobody - 4} x={540} y={300} prefix="$" value={5} unit="MILLION" label="The jackpot hits" size={112} countDur={12} />
-      <Tag text="Nobody matched 6" at={t.nobody} out={t.rolled + 4} x={560} y={440} to={ok(gate)} />
-      {[[t.rolled + 6, "Match 5"], [t.rolled + 18, "Match 4"], [t.smaller, "Match 3"]].map(([at, txt], i) => {
-        const p = trayP(i);
-        return <Tag key={i} text={txt} at={at} out={t.on - 2} x={Math.max(40, Math.min(820, p.x + 70))} y={Math.max(300, Math.min(1080, p.y - 150))} to={ok(p)} />;
-      })}
-      <Tag text="Tickets" at={t.tickets - 2} out={t.sideEnd - 6} x={100} y={520} to={ok(panL)} />
-      <Tag text="Prizes" at={t.put} out={t.sideEnd - 6} x={760} y={520} to={ok(panR)} />
-      <Tag text="Math on your side" at={t.math} out={t.sideEnd - 6} x={300} y={330} to={ok(piv)} />
+      <Tag text="Jackpot" at={g.jackpot.at} out={g.jackpot.out} x={110} y={560} to={ok(q.top)} />
+      <Counter at={t.five - 12} out={t.nobody - 14} x={540} y={300} prefix="$" value={5} unit="MILLION" label="The jackpot hits" size={112} countDur={12} />
+      <Tag text="Nobody matched 6" at={g.nobody.at} out={g.nobody.out} x={560} y={330} to={ok(q.gate)} />
+      {["Match 5", "Match 4", "Match 3"].map((txt, i) => <Tag key={i} text={txt} at={g.tiers[i].at} out={g.tiers[i].out} x={TIER_XY[i][0]} y={TIER_XY[i][1]} to={ok(q.tray[i])} />)}
+      <Tag text="Tickets" at={g.tickets.at} out={g.tickets.out} x={100} y={520} to={ok(q.panL)} />
+      <Tag text="Prizes" at={g.prizes.at} out={g.prizes.out} x={760} y={520} to={ok(q.panR)} />
+      <Tag text="Math on your side" at={g.math.at} out={g.math.out} x={300} y={330} to={ok(q.piv)} />
     </>
   );
 };
@@ -415,8 +559,8 @@ const sfx = () => {
     cueAt("ee_click_click_01", t.rolled - 10, 6, 0.4),            // the spout door
     cueAt("chain", t.rolled - 4, t.prizesEnd - t.rolled + 4, 0.3), // the cascade
     cueAt("coin", t.rolled + 8, 14, 0.35), cueAt("coin", t.rolled + 20, 14, 0.32), cueAt("coin", t.smaller, 14, 0.3),
-    cueAt("airwoosh", (t.money - 2 + t.prizesEnd) / 2, 24, 0.45),
-    cueAt("whooshsoft", (t.on - 6 + t.tickets + 4) / 2, 24, 0.45),
+    cueAt("airwoosh", (t.money - 2 + t.smaller + 2) / 2, 24, 0.45),
+    cueAt("whooshsoft", (t.on + t.tickets + 4) / 2, 24, 0.45),
     cueAt("ee_click_click_01", t.enough + 2, 6, 0.3), cueAt("ee_click_click_01", t.tickets + 6, 6, 0.3),
     cueAt("chainshort", t.tickets + 10, 24, 0.25),
     cueAt("thud", t.math + 8, 12, 0.4)
