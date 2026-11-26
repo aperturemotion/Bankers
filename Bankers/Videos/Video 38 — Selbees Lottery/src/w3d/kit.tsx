@@ -33,7 +33,14 @@ export const makeCam = (shots, drift = 1) => (f) => {
   for (let i = 1; i < shots.length; i++) {
     const s = shots[i];
     if (f <= s.a) break;
-    const e = s.cut ? 1 : ease(f, s.a, s.b);   // cut: a push-through lands on a matching close-up (the reference style's rare hard cut)
+    let e = s.cut ? 1 : ease(f, s.a, s.b);   // cut: a push-through lands on a matching close-up (the reference style's rare hard cut)
+    // ZOOMS EASE IN WHAT THE EYE SEES (Bankers §2.5.1d): a push or pull that changes the distance to the aim by > 2.5× interpolates
+    // that distance GEOMETRICALLY, so the apparent zoom rate is what is eased (a linear one made a close-up balloon in 2–3 frames)
+    if (!s.cut && e > 0 && e < 1 && s.zoom !== false) {
+      const d0 = Math.hypot(pos[0] - target[0], pos[1] - target[1], pos[2] - target[2]);
+      const d1 = Math.hypot(s.pos[0] - s.target[0], s.pos[1] - s.target[1], s.pos[2] - s.target[2]);
+      if (d0 > 1e-6 && d1 > 1e-6 && Math.abs(Math.log(d1 / d0)) > Math.log(2.5)) e = clamp01((d0 * Math.pow(d1 / d0, e) - d0) / (d1 - d0));
+    }
     const lift = (s.arc ?? 0) * Math.sin(Math.PI * e);
     pos = lerp3(pos, s.pos, e); pos = [pos[0], pos[1] + lift, pos[2]];
     target = lerp3(target, s.target, e);

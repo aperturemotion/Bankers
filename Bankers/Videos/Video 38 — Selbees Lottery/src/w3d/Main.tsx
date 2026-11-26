@@ -25,7 +25,10 @@ const lastShot = shotsAll[shotsAll.length - 1];
 const OUTRO = { a: CLOSE_AT - 6, b: CLOSE_AT + 40, pos: [lastShot.pos[0], lastShot.pos[1] + 22, lastShot.pos[2] + 10], target: [lastShot.target[0], lastShot.target[1] + 26, lastShot.target[2] - 6], fov: 40 };
 export const CAM = makeCam([...shotsAll, OUTRO]);
 // the store's push INTO the leaflet's bright diagram cuts to the dark coin wall (measured 159 → 102 mean levels at 480 → 481)
-const CUT_FLASH = [{ at: 481, o: 0.58, dur: 16, color: "#C8DBF4" }];
+const CUT_FLASH = [{ at: 481, o: 0.58, dur: 16, color: "#C8DBF4" }, { at: 883, o: 0.42, dur: 14, color: "#EEF3FA" }];   // 883: the bright bill → the gold seal (186 → 147)
+// a flight between stations crosses the navy HAZE (the reference style's "through a boundary" transition): the fog thickens to full
+// as the camera crosses and clears as it lands, so a fast arrival into a small room never flashes (test: 51 → 81 levels in one frame)
+const HAZE = [{ a: 744, peak: 756, b: 778 }];
 export const SFX = [...STATIONS.flatMap((s) => (s.sfx ? s.sfx() : [])), cueAt("whooshlong", CLOSE_AT + 6, 40, 0.5)];
 
 const AudioLayers = () => (
@@ -62,6 +65,7 @@ export const SelbeesLottery = ({ solo }) => {
       {live.map((s) => s.Overlay && <s.Overlay key={s.id} f={f} P={(p) => projectWith(k, [p[0] + s.origin[0], p[1] + s.origin[1], p[2] + s.origin[2]])} />)}
       {/* a matched cut from a bright surface onto a darker one carries the light across (a soft flash that decays) — flash.py: no one-frame jump */}
       {CUT_FLASH.map((c) => f >= c.at && f < c.at + c.dur && <AbsoluteFill key={c.at} style={{ background: c.color, opacity: c.o * (1 - ease(f, c.at, c.at + c.dur)) }} />)}
+      {HAZE.map((h) => f > h.a && f < h.b && <AbsoluteFill key={h.a} style={{ background: "#0A2A52", opacity: ease(f, h.a, h.peak) * (1 - ease(f, h.peak, h.b)) }} />)}
       <AbsoluteFill style={{ background: "#001C3C", opacity: 0.86 * veil }} />
       <Karaoke chips={CHIPS} hideFrom={CLOSE_AT + 4} />
       {f >= CLOSE_AT && <BrandClose at={CLOSE_AT + 22} y={960} />}
