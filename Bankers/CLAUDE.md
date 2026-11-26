@@ -80,7 +80,7 @@ the other accounts (100bps, offcamcelebs and more).
   V28 https://claude.ai/artifact/4SaBVnRUuG5AaMYfa4LXnK · V29 https://claude.ai/artifact/MT4AF5rsjS2JQkDYadT79Z ·
   V30 https://claude.ai/artifact/2BpnwhEcS3Qd3mm3PSyxTU · V32 https://claude.ai/artifact/Hp4vdxoM2GojKkBCEr92Rz ·
   V33 https://claude.ai/artifact/CVgsqdzcu6h5sBdu6EweSS · V34 https://claude.ai/artifact/S5jow7Rp4xhhUKHECBKzLC ·
-  V35 https://claude.ai/artifact/LAo7r5cN97oHuiMqsPDu8A · V36 Bre-X Gold https://claude.ai/artifact/YDB51b6K1wcmNPX6VxHfd2 (rendered version: vial rebuilt, Me And The Devil, v4; master in the video folder's delivered/). · V37 Theranos https://claude.ai/artifact/TvttwWBRAsneWWnKDt4weY (v5: revision 4 — the whistle scene rebuilt; RENDERED again 2026-11-25 as delivered/…_v2.mp4, v1 superseded). · V38 Selbees Lottery (the first 3-D World film) https://claude.ai/artifact/3Hkw7MMXkcu49YqR6AiRCK (v5: revision 2 on Timur's Nov 26 notes — detailed town/store/print/machinery/car, real $1 notes, the 711 song, smoothCam, the gantry sign relaid, MIT and the State House rebuilt as the real buildings; v1 render delivered/…_v1.mp4 superseded, not handed in). (There is no Video 31.) Each Studio's bundle holds that film's compiled code
+  V35 https://claude.ai/artifact/LAo7r5cN97oHuiMqsPDu8A · V36 Bre-X Gold https://claude.ai/artifact/YDB51b6K1wcmNPX6VxHfd2 (rendered version: vial rebuilt, Me And The Devil, v4; master in the video folder's delivered/). · V37 Theranos https://claude.ai/artifact/TvttwWBRAsneWWnKDt4weY (v5: revision 4 — the whistle scene rebuilt; RENDERED again 2026-11-25 as delivered/…_v2.mp4, v1 superseded). · V38 Selbees Lottery (the first 3-D World film) https://claude.ai/artifact/3Hkw7MMXkcu49YqR6AiRCK (v6: revision 3 — the balance held wide, cross-dissolves at 24 s and 70 s, overlapping shots, the fly-out through the window; v5: revision 2 on Timur's Nov 26 notes — detailed town/store/print/machinery/car, real $1 notes, the 711 song, smoothCam, the gantry sign relaid, MIT and the State House rebuilt as the real buildings; v1 render delivered/…_v1.mp4 superseded, not handed in). (There is no Video 31.) Each Studio's bundle holds that film's compiled code
   — the way to recover a lost film.
 - **The Worker app numbers Bankers per contract:** "Video 2 of 15" = Video 35 (the lottery reel); "Video 3 of 15" (Bre-X, due Nov 24)
   is the next; "Video 4 of 15" = Video 37 (Theranos, due Nov 25 — moved from Nov 26 in the app). The daily 06:00 Moscow routine (CONTENT.md changelog) checks it.
@@ -203,6 +203,23 @@ induction loop. All 720×1280 at 30 fps, 63–98 s, −14.1 LUFS.
     `python3 scratchpad/camjerk.py out/cam_s.json 12` — the image-motion change per frame of a point cloud at the subject (what the
     viewer sees); the published glitches measured 55–403 px/f², the fixed film ≤ 23. `camflow.py` lists slower direction changes
     (judge them by eye); `camsmooth_check.py` counts stop-and-go dips and proves the cut frames unchanged.
+  - **★ Smoother = shots that OVERLAP, not a wider blur (Timur, rev 3: "smoothen the camera move as much as possible … really
+    pleasant").** Start each shot 6–10 f before the previous one ends, so the camera never settles and restarts (V38: 11 stop-and-go
+    dips → 3). Raising smoothCam's sigma 14 → 22 removed one dip but swung the framing up to 27° off the authored shot.
+  - **★ The camera never passes through geometry, and a push never lands on a blank surface.** After smoothing, compare the smoothed
+    path with the raw one (`camdump.sh`, then position deviation > 0.3 m and > 25 % of the aim distance) and LOOK at those frames:
+    V38's fly-out swung 3.9 m wide through the brick beside the display window (8 f of brick), and the 70 s push went through a
+    clear pane onto a blank back wall (8 grey frames). A move that threads an opening is flagged `raw: true` (kept as authored),
+    and it looks where it is going until it is through.
+- **★★ KEEP THE WHOLE VISUAL IN FRAME TO THE END OF ITS SCENE (Timur, V38 rev 3, 23 s: "you zoom in too much … the left part and
+  the right part is cut off … the whole visual is seen throughout").** A construction whose meaning is its parts side by side (a
+  balance's two pans, a pair, a row) is never pushed in on until a part leaves the frame; drift across it at the same distance.
+- **★★ BETWEEN TWO PLACES THAT LOOK DIFFERENT, CROSS-DISSOLVE — never fly through empty haze (Timur, V38 rev 3, 24 s: "it looks a bit
+  weird … a lot of changes at the same time. Make it more aesthetic and more clean and smooth").** The flight showed the empty ground,
+  a light flare, a grid, a wall corner and then the kitchen in one second. `DISSOLVES` in Main.tsx: the incoming station's first shot
+  is a cut at `at`; for 7 f either side a second canvas renders the other station with its own camera (the outgoing one still drifting
+  on its last shot, both drifting the same screen direction) and the pictures cross-fade on a smootherstep. A cut shot at `at` lands on
+  at + 1: key the swap there. Flights stay for places in one continuous world (a street, a plaza).
 - **★★ SIGNS AND PRINT: graphics never overlap text (Timur, 2026-11-26: "the arrows and the Massachusetts title overlap each other").**
   A sign's arrows, icons or rules sit in their own band beside or below the legend — never inside its line; check every sign at full
   size. Real-world signs follow their real layout (US guide sign: destination legend, then the lane arrows under it).
