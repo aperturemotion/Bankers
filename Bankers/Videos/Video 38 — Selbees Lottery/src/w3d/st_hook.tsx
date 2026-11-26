@@ -99,7 +99,11 @@ const ticketPose = (t, f) => {
   const k = ease(f, t.lottery - 34, t.lottery + 6);
   const y = 0.05 + 1.5 * TICKET_S + 13 * (1 - k) * (1 - k);
   const sway = (1 - k) * 0.45 * Math.sin((f - t.lottery) / 5);
-  return { pos: [TICKET_AT[0] + (1 - k) * 2.2 * Math.sin((f - t.lottery) / 9), y, TICKET_AT[2]], rot: [sway * 0.6, -0.35 + (1 - k) * 2.4, sway], vis: f > t.lottery - 36 };
+  // rev 3: as the camera starts its vault toward the store it tips over backward (pivoting on its bottom edge, accelerating like a
+  //   falling card) and lies flat on the road, so the flight passes over it instead of through it (it filled the frame and was gone in
+  //   one frame at 6.8 s)
+  const q = ease(f, t.next - 30, t.next - 12), th = (Math.PI / 2 - 0.02) * q * q, half = 1.5 * TICKET_S;
+  return { pos: [TICKET_AT[0] + (1 - k) * 2.2 * Math.sin((f - t.lottery) / 9), y - half * (1 - Math.cos(th)), TICKET_AT[2] - half * Math.sin(th)], rot: [sway * 0.6 - th, -0.35 + (1 - k) * 2.4, sway], vis: f > t.lottery - 36 };
 };
 const Scene = ({ f }) => {
   const t = useMemo(T, []);

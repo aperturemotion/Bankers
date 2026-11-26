@@ -212,8 +212,9 @@ const shots = () => {
     // to the home: glide right across the lawn, the case passing on the left, the house front with its lit windows
     //   (rev 2: it leaves earlier and lands nearer, so FAMILY is in before its word and reads ~1.1 s before the push)
     { a: t.tax - 10, b: t.theirs + 10, pos: W([PIC[0] - 2.0, 2.5, PIC[2] + 12]), target: W([PIC[0] - 1.0, 2.1, PIC[2]]), fov: 40 },
-    // …and into the picture window: the room's light fills the frame
-    { a: t.family + 2, b: t.next - 2, pos: W([PIC[0], PIC[1] - 0.02, PIC[2] + 0.1]), target: W([PIC[0], PIC[1] - 0.02, PIC[2] - 4]), fov: 34 }
+    // …and in toward the lit picture window (rev 3: it stops outside — through the clear pane it ended on the blank back wall, 8 f
+    //   of grey before the cut); the window CROSS-DISSOLVES into the brochure (Main.tsx DISSOLVES), still drifting in
+    { a: t.theirs + 2, b: t.next + 8, pos: W([PIC[0] - 0.2, PIC[1] + 0.1, PIC[2] + 3.4]), target: W([PIC[0] - 0.1, PIC[1], PIC[2]]), fov: 36 }
   ];
 };
 const Overlay = ({ f, P }) => {
@@ -245,7 +246,7 @@ const sfx = () => {
     cueAt("whooshsoft", t.m8 + 6, 20, 0.4),                     // the slab lifting out
     cueAt("pingshort", t.m8 + 14, 12, 0.35),
     cueAt("airwoosh", t.tax - 10, 30, 0.45),                    // the glide to the house (fastest ≈ 2048; airwoosh peaks 21 f in)
-    cueAt("whooshsoft", t.family + 8, 14, 0.4)                  // the push into the window
+    cueAt("whooshsoft", t.family + 8, 14, 0.3)                  // the push in toward the window
   ];
 };
 export const ST = { id: "total", origin: O_TOTAL, from: wAt("in", 1852) - 22, to: wAt("sometimes", 1852) + 2, light: { target: [2, 0, -4], shadowBox: 22, keyI: 1.7, fillI: 0.34, rimI: 1.8 }, shots, Scene, Overlay, sfx };

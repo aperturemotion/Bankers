@@ -67,10 +67,13 @@ const shots = () => {
     // a slow drift up and back: the whole spread, the leaflet stand at its side, the lit street through the window beyond
     { a: t.cut + 1, b: t.isnt + 6, pos: W(add(bro(0.03, -0.1), [-0.05, 0.6, -0.56])), target: W(bro(0.03, 0.05)), fov: 34 },
     // lean in on the rule as the ticket is gone
-    { a: t.luck + 2, b: t.rules - 8, pos: W(add(r, LEAN)), target: W(add(r, [0, 0, 0.01])), fov: 34 },
+    { a: t.luck + 2, b: t.rules - 2, pos: W(add(r, LEAN)), target: W(add(r, [0, 0, 0.01])), fov: 34 },
     // fly forward over the counter, out through the display window into main street, turning to look down the road (the hook's street);
     // rev 2: a slow 62-f move (it was a 35-f whip from a 0.35-m close-up: Timur, no fast back-and-forth)
-    { a: t.rules - 6, b: t.rules + 74, pos: W([0.4, 2.4, 8.4]), target: W([-30, 2.2, 7.4]), fov: 40 }
+    { a: t.rules - 10, b: t.rules + 34, pos: W([-1.7, 2.0, 2.6]), target: W([-6.5, 1.7, 14]), fov: 40, raw: true },
+    // rev 3: …looking OUT through the window as it passes (turning left while still inside showed the brick beside the window), then,
+    //   outside, the turn down main street
+    { a: t.rules + 26, b: t.rules + 80, pos: W([0.4, 2.4, 8.4]), target: W([-30, 2.2, 7.4]), fov: 40, raw: true }
   ];
 };
 const Overlay = ({ f, P }) => {

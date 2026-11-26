@@ -16,6 +16,8 @@ import { CHIPS, TOTAL, VO_END } from "./take";
 import { BrandClose, Watermark } from "../bnx/close";
 import { SfxLayer, cueAt } from "../bnx/SfxLayer";
 import { STATIONS } from "./stations";
+import { TEST_CUT } from "./st_test";
+import { TOTAL_PUSH_END } from "./st_total";
 
 export const CLOSE_AT = VO_END + 12;          // the close begins after the last line's breath
 // ★ the song (Timur, 2026-11-26: "change the song to the video about Nvidia sold … billion of chips in 3 months" = Video 34 "Nvidia Keeps",
@@ -31,12 +33,26 @@ const lastShot = shotsAll[shotsAll.length - 1];
 const OUTRO = { a: CLOSE_AT + 32, b: CLOSE_AT + 82,   // rev 2: after the slower fly-out
    pos: [lastShot.pos[0], lastShot.pos[1] + 22, lastShot.pos[2] + 10], target: [lastShot.target[0], lastShot.target[1] + 26, lastShot.target[2] - 6], fov: 40 };
 export const CAM_RAW = makeCam([...shotsAll, OUTRO]);
-export const CAM = smoothCam(CAM_RAW, TOTAL, shotsAll.filter((s) => s.cut).map((s) => s.a), 14);   // one continuous glide (kit.smoothCam)
+// one continuous glide (kit.smoothCam). rev 3 (Timur, 2026-11-26: "smoothen the camera move as much as you can … really pleasant"):
+//   SIGMA 14 → CAM_SIGMA; shots flagged `raw` (a move threading an opening) stay as authored
+export const CAM_SIGMA = 14;
+export const CAM = smoothCam(CAM_RAW, TOTAL, shotsAll.filter((s) => s.cut).map((s) => s.a), CAM_SIGMA, 24, shotsAll.filter((s) => s.raw).map((s) => [s.a - 2, s.b + 2]));
+// ★ CROSS-DISSOLVES (rev 3; the reference style's 0.2–0.5 s dissolve, CLAUDE.md 3-D World §B6): Timur on the 24 s flight to the kitchen —
+//   "it looks a bit weird … a lot of changes at the same time. Make it more aesthetic and more clean and smooth". The incoming station
+//   cuts in at `at` (its first shot is cut: true); for HALF frames either side a SECOND canvas renders the other station with its own
+//   camera (the outgoing one still drifting on its own last shot, the incoming one held on its first pose, which it leaves from rest),
+//   and the two pictures cross-fade on a smootherstep. The 70 s window → brochure cut became one too (it pushed through the pane onto
+//   the blank back wall: 8 grey frames).
+const HALF = 7;
+export const DISSOLVES = [{ at: TEST_CUT(), pre: "rolldown", post: "test" }, { at: TOTAL_PUSH_END(), pre: "total", post: "rules" }].map((d) => ({
+  ...d, camPre: makeCam([...shotsAll.filter((s) => s.a < d.at), OUTRO].filter((s) => s.a < d.at)), camPost: makeCam(shotsAll.filter((s) => s.a >= d.at))
+}));
+const dissolveAt = (f) => DISSOLVES.find((d) => f >= d.at + 1 - HALF && f < d.at + 1 + HALF);   // a cut shot at `at` lands on at + 1
 // the store's push INTO the leaflet's bright diagram cuts to the dark coin wall (measured 159 → 102 mean levels at 480 → 481)
 const CUT_FLASH = [{ at: 481, o: 0.58, dur: 16, color: "#C8DBF4" }, { at: 883, o: 0.25, dur: 14, color: "#EEF3FA" }];   // 883: the $1's seal → the gold seal, matched in place (rev 2: 165.6 → 139 without flash; 0.25 evens it, builder E)
 // a flight between stations crosses the navy HAZE (the reference style's "through a boundary" transition): the fog thickens to full
 // as the camera crosses and clears as it lands, so a fast arrival into a small room never flashes (test: 51 → 81 levels in one frame)
-const HAZE = [{ a: 744, peak: 756, b: 778 }];
+const HAZE = [];   // rev 3: the 24 s flight through the haze is a cross-dissolve now (DISSOLVES)
 export const SFX = [...STATIONS.flatMap((s) => (s.sfx ? s.sfx() : [])), cueAt("whooshlong", CLOSE_AT + 6, 40, 0.5)];
 
 const AudioLayers = () => (
@@ -50,7 +66,11 @@ export const SelbeesLottery = ({ solo }) => {
   const f = useCurrentFrame();
   if (solo === "audio") return <AbsoluteFill style={{ background: "#001C3C" }}><AudioLayers /></AbsoluteFill>;   // the render's audio pass (no WebGL)
   const k = CAM(f);
-  const live = STATIONS.filter((s) => f >= s.from && f <= s.to);
+  // around a dissolve the main canvas carries only the station whose camera CAM is on (the other one is on the second canvas)
+  const live = STATIONS.filter((s) => f >= s.from && f <= s.to && !DISSOLVES.some((d) => (f <= d.at && s.id === d.post) || (f > d.at && s.id === d.pre)));
+  const dz = dissolveAt(f);
+  const dzOther = dz && STATIONS.find((s) => s.id === (f <= dz.at ? dz.post : dz.pre));
+  const dzW = dz ? ease(f, dz.at + 1 - HALF, dz.at + 1 + HALF) : 0;   // the incoming picture's weight (smootherstep): 0.5 at the cut
   // the light of overlapping stations CROSS-FADES by how near the camera's aim is to each (it never doubles); one shadow caster
   const near = live.map((s) => { const lt = s.light?.target ?? [0, 0, 0]; const dx = k.target[0] - (s.origin[0] + lt[0]), dz = k.target[2] - (s.origin[2] + lt[2]); return Math.exp(-Math.sqrt(dx * dx + dz * dz) / 25); });
   const nsum = near.reduce((a, b) => a + b, 0) || 1;
@@ -66,6 +86,18 @@ export const SelbeesLottery = ({ solo }) => {
           </group>
         ); })}
       </World3D>
+      {dz && dzOther && (
+        <AbsoluteFill style={{ opacity: f <= dz.at ? dzW : 1 - dzW }}>
+          <World3D cam={f <= dz.at ? dz.camPost : dz.camPre}>
+            {(() => { const { key: keyPos, ...lt } = dzOther.light ?? {}; return (
+              <group position={dzOther.origin}>
+                <HouseLights target={[0, 0, 0]} {...lt} {...(keyPos ? { keyPos } : {})} gain={1} casts />
+                <dzOther.Scene f={f} />
+              </group>
+            ); })()}
+          </World3D>
+        </AbsoluteFill>
+      )}
       {/* the reference look: a strong vignette, the lower quarter pushed dark for the captions (CLAUDE.md 3-D World §B7) */}
       <AbsoluteFill style={{ background: "radial-gradient(ellipse 85% 70% at 50% 42%, rgba(0,0,0,0) 55%, rgba(0,8,22,0.55) 100%)" }} />
       <AbsoluteFill style={{ background: "linear-gradient(180deg, rgba(0,8,22,0) 62%, rgba(0,8,22,0.38) 80%, rgba(0,8,22,0.62) 100%)" }} />

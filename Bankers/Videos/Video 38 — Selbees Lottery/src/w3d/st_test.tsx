@@ -21,7 +21,9 @@ import { SEAL_SCREEN, PUSH_RATE } from "./xfer_seal";
 
 export const TEST_ORIGIN = [600, 0, 0];
 // ARRIVAL: "cut" (rolldown's last ~16 f push INTO its ticket stack; this station lands on a matching macro of a ticket) or "fly"
-export const TEST_ARRIVE = "fly";   // integrator: rolldown ends on its balance (no push), so test arrives by a flight through the haze
+export const TEST_ARRIVE = "dissolve";   // rev 3 (Timur: the 24 s flight through the haze "looks weird … a lot of changes at the same time"): the
+//   balance, held wide, CROSS-DISSOLVES (Main.tsx DISSOLVES, 14 f) into the kitchen, both cameras drifting the same way (screen left)
+export const TEST_CUT = () => T().cut;   // the dissolve's centre (Main.tsx DISSOLVES)
 export const T = () => {
   const jerry = wf("jerry", 2), in36 = wf("$3,600"), inEnd = wEnd("in."), in63 = wf("$6,300"), back = wf("back."), backEnd = wEnd("back.");
   return { jerry, cut: jerry - 2, in36, inEnd, in63, back, backEnd, out: backEnd + 3 };   // out: the frame company's cut lands on
@@ -207,6 +209,9 @@ const shots = () => {
   const arrive = TEST_ARRIVE === "cut"
     ? [{ a: t.cut, b: t.cut + 1, cut: true, pos: W([TKX + 0.05, LINE_Y + 1.25, 0.75]), target: W([TKX, LINE_Y, 0.0]), fov: 40 },   // macro on the top ticket
        { a: t.cut + 2, b: t.in36 + 4, ...wide }]                                                                                      // pull back
+    : TEST_ARRIVE === "dissolve"
+    ? [{ a: t.cut, b: t.cut, cut: true, pos: W([-2.3, 5.1, 9.8]), target: W([-1.1, 0.6, -1]), fov: 40 },   // the dissolve's far side: a step left of the wide…
+       { a: t.cut + 1, b: t.in36 + 4, ...wide }]                                                           // …drifting on to it (the balance's drift direction)
     : [{ a: t.jerry - 6, b: t.jerry + 30, arc: 4, ...wide }];                                                                                // or: the flight lands on the wide
   return [
     ...arrive,
@@ -254,7 +259,7 @@ const Overlay = ({ f, P }) => {
 const sfx = () => {
   const t = T();
   return [
-    TEST_ARRIVE === "cut" ? cueAt("whooshsoft", t.cut + 14, 24, 0.45) : cueAt("whooshlong", t.jerry, 34, 0.5),   // the pull-back off the ticket / the flight in
+    TEST_ARRIVE === "cut" ? cueAt("whooshsoft", t.cut + 14, 24, 0.45) : TEST_ARRIVE === "dissolve" ? cueAt("whooshsoft", t.cut - 8, 20, 0.25) : cueAt("whooshlong", t.jerry, 34, 0.5),   // the pull-back off the ticket / the flight in
     cueAt("pingshort", t.in36, 12, 0.4),                             // the count lands
     cueAt("ee_click_click_01", t.inEnd - 10, 6, 0.35),               // the line is drawn
     cueAt("whooshlong", t.in63 + 4, 34, 0.45),                       // the camera rises with the pour
@@ -263,4 +268,4 @@ const sfx = () => {
     cueAt("ee_whoosh_fast_small_whoosh_01", t.out - 22, 12, 0.5)     // the push onto the bill (rev 2: its fastest frame is ≈ 859, 14 f earlier than the draft's)
   ];
 };
-export const ST = { id: "test", origin: TEST_ORIGIN, from: TEST_ARRIVE === "cut" ? T().cut + 1 : T().jerry - 8, to: T().out - 1, light: { shadowBox: 9, keyI: 0.85, fillI: 0.3, rimI: 0.9 }, shots, Scene, Overlay, sfx };
+export const ST = { id: "test", origin: TEST_ORIGIN, from: TEST_ARRIVE === "fly" ? T().jerry - 8 : T().cut - 8, to: T().out - 1, light: { shadowBox: 9, keyI: 0.85, fillI: 0.3, rimI: 0.9 }, shots, Scene, Overlay, sfx };

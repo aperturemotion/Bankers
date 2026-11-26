@@ -57,7 +57,7 @@ export const makeCam = (shots, drift = 1) => (f) => {
 //   (pos, target, fov, roll) with a Gaussian of SIGMA frames, segment by segment between hard cuts; each segment is padded by POINT
 //   REFLECTION about its end frames, so a cut's two frames (the matched seal at 882/883 etc.) keep their exact pose and velocity.
 //   Short stops melt into one flowing move; holds longer than ~1 s still hold.
-export const smoothCam = (cam, total, cuts, sigma = 10, taper = 24) => {
+export const smoothCam = (cam, total, cuts, sigma = 10, taper = 24, rawRanges = []) => {
   // smoothed in a camera-shaped space: the aim point, the view DIRECTION and log DISTANCE (so a close macro never swings), fov, roll;
   // the Gaussian narrows to nothing over `taper` frames before/after a hard cut (a push into a cut is one designed ease already, and
   // the matched cut's frames must stay exactly where they were authored)
@@ -82,6 +82,9 @@ export const smoothCam = (cam, total, cuts, sigma = 10, taper = 24) => {
     if (tot > 30) for (let k = f - 1; k < g; k++) fast[k] = true;
     f = g;
   }
+  // shots flagged `raw: true` are kept exactly as authored too: a move that threads an opening (V38 73.5 s: out through the store's
+  // display window) — smoothed in aim/direction space its position swung 3.9 m wide, through the brick beside the window
+  for (const [ra, rb] of rawRanges) for (let k = Math.max(0, ra); k <= Math.min(N - 1, rb); k++) fast[k] = true;
   const distFast = new Array(N).fill(1e9);
   for (let f = 0, last = -1e9; f < N; f++) { if (fast[f]) last = f; distFast[f] = f - last; }
   for (let f = N - 1, next = 1e9; f >= 0; f--) { if (fast[f]) next = f; distFast[f] = Math.min(distFast[f], next - f); }

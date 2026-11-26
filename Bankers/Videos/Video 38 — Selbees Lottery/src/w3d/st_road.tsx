@@ -227,12 +227,12 @@ const shots = () => {
   return [
     ...roadArrival(A, t),                                                                                          // arrival (xfer_company_road.ts)
     { a: 1104, b: t.similar + 24, pos: A([-12.5, 3.2, -0.7]), target: A([12, 2.4, -0.5]), fov: 36 },              // crane down behind the car
-    { a: t.mass + 14, b: t.massEnd + 6, pos: A([-11.2, 2.7, -1.0]), target: A([10, 4.3, -0.8]), fov: 38 },         // tilt up as the sign goes over
+    { a: t.similar + 16, b: t.massEnd + 6, pos: A([-11.2, 2.7, -1.0]), target: A([10, 4.3, -0.8]), fov: 38 },         // tilt up as the sign goes over
     // rev 2 (Timur: no back-and-forth): ONE sweep round to the side (the "ahead" swing reversed it), then ONE gentle rise
     { a: t.forW - 4, b: t.miles - 12, pos: A([0.5, 2.6, -8.2]), target: A([0.3, 0.8, 0]), fov: 36 },             // round to the side
     { a: t.miles - 12, b: t.often - 8, pos: A([-6, 12, -3]), target: A([4, 0.5, 0]), fov: 38 },                  // a gentle aerial
     { a: t.often - 8, b: t.betting + 16, pos: A([-7.8, 4.4, -4.6]), target: A([-0.5, 0.75, 0]), fov: 36 },          // in behind the trunk
-    { a: t.cut - 34, b: t.cut - 12, pos: A(heroCam(TRUNK_TUB, 1.4).pos), target: A(close.target), fov: 34 },     // line up on one ticket
+    { a: t.cut - 42, b: t.cut - 12, pos: A(heroCam(TRUNK_TUB, 1.4).pos), target: A(close.target), fov: 34 },     // line up on one ticket
     { a: t.cut - 15, b: t.cut, pos: undrift(A(close.pos), t.cut), target: A(close.target), fov: 34 }              // push straight into it
   ];
 };

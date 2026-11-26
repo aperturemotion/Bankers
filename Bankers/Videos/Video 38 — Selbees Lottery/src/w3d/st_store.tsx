@@ -461,9 +461,9 @@ const shots = () => {
   const d = diagPt(0);
   return [
     // the flight down main street from the hook (over the standing ticket), landing three-quarter on the shop front
-    { a: t.in2003 - 20, b: t.in2003 + 16, pos: W([2.3, 2.6, 13.6]), target: W([6.9, 2.7, 4.2]), fov: 36, arc: 3.2 },
+    { a: t.in2003 - 20, b: t.in2003 + 16, pos: W([2.3, 2.6, 13.6]), target: W([6.9, 2.7, 4.2]), fov: 36, arc: 6.5 },   // rev 3: arc 3.2 → 6.5 (clears the 1.5× ticket)
     // a slow dolly past the lamp post to the window (the counter and the terminal behind the glass) as the tag and photo come up
-    { a: t.in2003 + 16, b: t.read - 4, pos: W([3.3, 1.85, 4.4]), target: W([7.2, 1.7, 1.9]), fov: 34 },
+    { a: t.in2003 + 8, b: t.read - 4, pos: W([3.3, 1.85, 4.4]), target: W([7.2, 1.7, 1.9]), fov: 34 },
     // through the glass to the counter, looking down at the folded leaflet
     { a: t.read - 4, b: t.brochure + 12, pos: W([8.0, 1.86, 2.32]), target: W([8.8, 1.02, 2.22]), fov: 34 },
     // it unfolds: the camera rises over it

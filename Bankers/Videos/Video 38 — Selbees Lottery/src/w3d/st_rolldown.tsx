@@ -502,9 +502,11 @@ const shots = () => {
     // follow the cascade down the staircase, orbiting to the right
     { a: t.money - 2, b: t.smaller + 2, pos: W([4.6, 3.8, 9.8]), target: W([3.1, 2.4, 0]), fov: 40 },   // rev 2: arrives on "smaller" (the tags' window)
     // travel to the balance in front
-    { a: t.on, b: t.tickets + 4, pos: W([BAL.x - 0.9, 2.9, BAL.z + 5.6]), target: W([BAL.x, 1.45, BAL.z]), fov: 38 },
-    // ease in as the beam tips
-    { a: t.tickets + 4, b: t.sideEnd + 10, pos: W([BAL.x - 0.6, 2.45, BAL.z + 4.4]), target: W([BAL.x, 1.45, BAL.z]), fov: 36 }
+    { a: t.on, b: t.tickets + 4, pos: W([BAL.x - 1.25, 2.95, BAL.z + 7.6]), target: W([BAL.x, 1.3, BAL.z]), fov: 40 },
+    // rev 3 (Timur: "on second 23 … you zoom in too much … the left part and the right part is cut off … the whole visual is seen
+    //   throughout"): NO push in — the whole balance stays in frame, a slow drift to the right at the same distance, on through the
+    //   dissolve into the kitchen (b past TEST_CUT + 7)
+    { a: t.tickets - 6, b: t.sideEnd + 16, pos: W([BAL.x - 0.45, 2.9, BAL.z + 7.5]), target: W([BAL.x + 0.15, 1.3, BAL.z]), fov: 40 }
   ];
 };
 // the 3-D points the tags point at (world coords, for P) — exported for the tag probe
