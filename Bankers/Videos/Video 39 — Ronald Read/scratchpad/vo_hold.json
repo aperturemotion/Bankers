@@ -1,0 +1,6 @@
+{
+  "source": "ElevenLabs_2026-11-25_Jon - Calm Presence_v4_take38B_raw.mp3",
+  "_doc": "V38 take B (2026-11-25, generated at Timur's standing order for this build: 'fully continue till the end'). One declared hold: after the hook ('…For nine years.' -> 'In two thousand three'), kept 0.60 s, the breath between the hook and the story. Every other pause keeps vo_trim's 0.30 s (the 3-D world style is a continuous talk-track; scene changes ride the camera, not pauses).",
+  "rawGapStarts": [7.32615],
+  "holdPads": { "7.32615": 0.6 }
+}

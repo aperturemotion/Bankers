@@ -1,0 +1,11 @@
+# V39 sources
+- The Wall Street Journal, Anne Tergesen/J. Prior, "Ronald Read: The Janitor Investor" (19 Mar 2015) — 95 stocks, five-inch stack, blue chips held for decades (via Wikipedia's citations; the paywalled original was not opened).
+- The Boston Globe, 4 Feb 2015 ("Man who lived modestly leaves millions in surprise donations") and 15 Feb 2015 (DeCosta-Klipa: used 2007 Toyota Yaris; Friendly's meal).
+- NBC News, 6 Feb 2015 — first high-school graduate in his family; $4.8M hospital, $1.2M library, largest gifts each had received.
+- Rutland Herald (Smallheer), 4 Feb 2015 — poor farming family; estate nearly $8M; library's $600,000 budget.
+- Brattleboro Reformer (Weiss-Tisman), 5 Feb 2015 — WWII service; jobs. Reformer, 29 Mar 2022 — pavilion still under construction, planned for July 2022.
+- CNBC, 29 Aug 2016 — safety pins on his coat, firewood well into his 90s. Christian Science Monitor, 4 Feb 2015 — firewood into his 90s.
+- Ritholtz, Washington Post, 24 Apr 2015 — safe deposit box; Lehman Brothers in 2008.
+- Brattleboro Memorial Hospital, bmhvt.org (General Surgery services) — "the Ronald Read Pavilion, which was opened in 2023".
+- VTDigger, 11 Oct 2017 — state approval of the $22.7M expansion.
+- Wikipedia, "Ronald Read (philanthropist)" (rev. 14 Oct 2026) — used as an index to the sources above.
