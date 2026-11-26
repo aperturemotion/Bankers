@@ -161,7 +161,9 @@ def _texture_patch():
         im = load(names[k * len(names) // 6])
         for y in range(80, im.shape[0] - 160, 40):
             for x in range(20, im.shape[1] - 180, 40):
-                s = float(im[y:y + 80, x:x + 160].std())
+                q = im[y:y + 80, x:x + 160]   # V38 rev 4f: texture in EVERY quarter (the max-std patch was a flat black counter card with
+                #   big white figures — flat areas can't be tracked by shape, so the slide canary fired on its own patch, not on a flaw)
+                s = min(float(q[a0:a0 + 40, b0:b0 + 80].std()) for a0 in (0, 40) for b0 in (0, 80))
                 if best is None or s > best[0]: best = (s, k, y, x)
     s, k, y, x = best
     return load(names[k * len(names) // 6])[y:y + 80, x:x + 160]
