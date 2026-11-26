@@ -1341,3 +1341,12 @@ loitering.
   - A figure printed on an object EASES in (≈20+ frames, a slight settle in scale), never snaps, and sits CENTRED in its box.
   - A counter that counts down only ever shows falling values (drive every drum from one number, like a real odometer).
 
+- **★ Timur on Video 38 rev 2 (2026-11-26, the first 3-D World film):**
+  - **NO GREY PLACEHOLDER LINES.** Every printed surface (brochure, newspaper, report, certificate, labels, screens) carries real,
+    legible text in real typography — never bars or blurred strips standing in for text ("let's add some rule to the bankers").
+  - Objects "a lot more detailed, more realistic, more eye-catching": houses, shop goods, registers, machines, cars (with seats and a
+    steering wheel inside), storage tubs. A detail fix applies to every scene where the object comes back.
+  - Money is the real US note: `bill1.jpg` (the public-domain $1 scan) on every bill.
+  - A matched cut between two round things puts both on the SAME screen point at the same size, the push carrying through.
+  - Labels (tags) are fully in by their word and readable; never so late they are missed.
+  - The song is the one from the video he names, played as the file at one volume (11.3), its drop on the line after the hook.

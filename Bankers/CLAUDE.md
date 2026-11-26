@@ -188,6 +188,16 @@ induction loop. All 720×1280 at 30 fps, 63–98 s, −14.1 LUFS.
 - **Render: `scratchpad/render38.mjs`** (60-f muted h264 chunks, resumable, then an audio-only wav pass and a mux). Measured ~2–4 s/frame at
   concurrency 2 (≈ 1.5–2 h for 77 s). ⚠ The audio pass must pass `composition.props.solo = "audio"`: `inputProps` alone left the
   composition's resolved props on "picture", so it rendered the WebGL picture for 30 min and would have written silence.
+- **★★★ NO GREY PLACEHOLDER LINES — REAL TEXT ON EVERY PRINTED SURFACE (Timur, 2026-11-26, V38 rev 2: "Again, gray lines appear.
+  Please don't do that … let's add some rule to the bankers … to not use basically the gray lines. You use actual text when filling up").**
+  Brochures, newspapers, reports, certificates, labels, receipts, screens: real, legible, plausible text in real typography (headings,
+  body columns, small print, tables) drawn with `canvasTex` at ≥ 2048 px on the long side where the camera gets close — never bars,
+  blurred strips or lines standing in for text. The words are facts from FACTCHECK.md, generic rules text or neutral description
+  (no invented quotes, no invented figures).
+- **★★ DETAIL, EVERYWHERE IT RECURS (Timur, same note):** every object is built "a lot more detailed … more realistic … more
+  eye-catching" (houses, shop interiors, machines, cars, tubs, paper); and a detail fix applies to EVERY scene where that object
+  appears again ("if the visuals come up again in the video … do them also the same exact"). Money is the real US note
+  (`public/bill1.jpg`, the public-domain $1 scan) on every bill in the film.
 - **Tags pinned to a station must leave BEFORE the camera flies off it** (V38: the balance's tags and RIGGED? hung over an empty floor,
   leader lines to nothing, for ~10 f). Key a tag's `out` to the next station's flight start, not to the word's end.
 

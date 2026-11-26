@@ -18,7 +18,13 @@ import { SfxLayer, cueAt } from "../bnx/SfxLayer";
 import { STATIONS } from "./stations";
 
 export const CLOSE_AT = VO_END + 12;          // the close begins after the last line's breath
-const BED_FILE = "bed_focus.mp3";
+// ★ the song (Timur, 2026-11-26: "change the song to the video about Nvidia sold … billion of chips in 3 months" = Video 34 "Nvidia Keeps",
+//   whose bed was 711): the file as he gave it (public/711.mp3, the copy Videos 11–16 used), ONE volume for the whole film (STYLE 11.3,
+//   2026-10-15 / 10-22), started so its big drop (117.38 s in the source) lands on "In 2003," (frame 212); the volume matches the FOCUS
+//   bed it replaces as heard (both −24.8 LUFS over the body: the 711 body is −10.1 LUFS at 1.0 → 0.18)
+const BED_FILE = "711.mp3";
+const BED_START = 3308;     // frames into the source: 110.27 s → the drop at 117.38 s plays at 7.11 s (frame 213), on "In" (212)
+const BED_VOL = 0.18;
 const shotsAll = STATIONS.flatMap((s) => s.shots()).sort((p, q) => p.a - q.a);
 // the camera's final move: up and away into the navy sky as the close comes in (the world falls away under BANKER$)
 const lastShot = shotsAll[shotsAll.length - 1];
@@ -34,7 +40,7 @@ export const SFX = [...STATIONS.flatMap((s) => (s.sfx ? s.sfx() : [])), cueAt("w
 const AudioLayers = () => (
   <>
     <Sequence from={0}><Audio src={aud("vo_trimmed.mp3")} volume={1} /></Sequence>
-    <Audio src={aud(BED_FILE)} volume={1} />
+    <Audio src={aud(BED_FILE)} startFrom={BED_START} volume={BED_VOL} />
     <SfxLayer cues={SFX} total={TOTAL} />
   </>
 );

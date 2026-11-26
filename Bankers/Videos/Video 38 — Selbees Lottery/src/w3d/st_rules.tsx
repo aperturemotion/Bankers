@@ -78,8 +78,8 @@ const Overlay = ({ f, P }) => {
   const rl = P(RULE_PT());
   return (
     <>
-      <Tag text="Luck" at={t.luck - 6} out={t.its - 2} x={600} y={520} to={tk.behind ? null : tk} size={32} />
-      <Tag text="The roll-down rule" at={t.reading + 2} out={t.rules + 8} x={90} y={520} to={rl.behind ? null : rl} size={30} />
+      <Tag text="Luck" at={t.luck - 14} out={t.reading + 14} x={600} y={520} to={tk.behind ? null : tk} size={32} />
+      <Tag text="The roll-down rule" at={t.reading - 16} out={t.rulesE - 6} x={90} y={520} to={rl.behind ? null : rl} size={30} />
     </>
   );
 };

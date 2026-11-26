@@ -13,6 +13,7 @@
 //         tickets, which glow in the house light blue (tag TUBS OF TICKETS); "$600,000+" lands on its word (label OFTEN, A ROUND).
 //   1336  DEPARTURE: the shell dissolves and the camera pushes into one ticket in the trunk until it fills the frame (1356); the
 //         globe station cuts (cut: true) to the identical ticket on the MIT group's stack and pulls back.
+import { roadArrival, ROAD_FROM } from "./xfer_company_road";
 import React, { useMemo } from "react";
 import * as THREE from "three";
 import { useCurrentFrame } from "remotion";
@@ -220,7 +221,7 @@ const shots = () => {
   const t = T();
   const close = heroCam(TRUNK_TUB, 0.19);
   return [
-    { a: 1068, b: 1106, pos: A([-15, 11, -0.8]), target: A([9, -0.5, 0.3]), fov: 40, arc: 10 },                   // arrival (flight)
+    ...roadArrival(A, t),                                                                                          // arrival (xfer_company_road.ts)
     { a: 1104, b: t.similar + 24, pos: A([-12.5, 3.2, -0.7]), target: A([12, 2.4, -0.5]), fov: 36 },              // crane down behind the car
     { a: t.mass + 14, b: t.massEnd + 6, pos: A([-11.2, 2.7, -1.0]), target: A([10, 4.3, -0.8]), fov: 38 },         // tilt up as the sign goes over
     { a: t.forW - 4, b: t.forW + 22, pos: A([0.5, 2.6, -8.2]), target: A([0.3, 0.8, 0]), fov: 36 },              // round to the side …
@@ -295,4 +296,4 @@ const sfx = () => {
     cueAt("ee_whoosh_fast_small_whoosh_01", t.cut - 11, 20, 0.5) // the push into the ticket
   ];
 };
-export const ST = { id: "road", origin: ROAD_O, from: 1066, to: ROAD_CUT, light: { keyI: 1.25, rimI: 1.1, shadowBox: 10, fillI: 0.32 }, shots, Scene, Overlay, sfx };
+export const ST = { id: "road", origin: ROAD_O, from: ROAD_FROM, to: ROAD_CUT, light: { keyI: 1.25, rimI: 1.1, shadowBox: 10, fillI: 0.32 }, shots, Scene, Overlay, sfx };
