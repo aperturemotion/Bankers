@@ -597,14 +597,18 @@ const legState = (S, phi, stride) => {
   return { y: lerp(a.y, b.y, s) + 0.04 * Math.sin(PI * Math.pow(s, 0.8)), z: lerp(a.z, b.z, e), p: lerp(-TH_T, TH_H, sm(s)), lat: 0.012 * Math.sin(PI * s), stance: false };
 };
 // the most the pelvis must sit lower (than hipY − offset + bob) at any phase of the stride for both legs to reach — computed once per person
+// rev 4c review (Timur: "their body is fully static, in real world that doesn't happen"): real-world upper-body motion in walking —
+//   pelvis rotation ±5.4°, list ±2.9°, lateral shift ±3 cm; the thorax counter-rotates ±7° and leans over the stance leg; a small
+//   forward pitch at each push-off; the head nods and follows the shoulders a little
+const G_YAW = 0.095, G_ROLL = 0.05, G_SWAY_M = 0.028, G_SWAY_W = 0.032;
 const DROP_CACHE = new Map();
 const reachDrop = (S, stride, ph0) => {
   const key = S.cad + "_" + stride.toFixed(4); if (DROP_CACHE.has(key)) return DROP_CACHE.get(key);
   let worst = 0; const Lmax = (S.thigh + S.shin) * 0.97;
   for (let i = 0; i < 240; i++) {
     const phi = i / 240, s2 = Math.sin(TAU * phi), c2 = Math.cos(TAU * phi);
-    const Qp = qm(qa("y", -0.075 * c2), qa("z", 0.045 * s2), qa("x", S.fem ? 0.05 : 0.07));
-    const sway = (S.fem ? 0.026 : 0.022) * s2, hy = S.hipY - (S.fem ? 0.032 : 0.038) + 0.011 * Math.cos(4 * PI * (phi - 0.3));
+    const Qp = qm(qa("y", -G_YAW * c2), qa("z", G_ROLL * s2), qa("x", S.fem ? 0.05 : 0.07));
+    const sway = (S.fem ? G_SWAY_W : G_SWAY_M) * s2, hy = S.hipY - (S.fem ? 0.032 : 0.038) + 0.011 * Math.cos(4 * PI * (phi - 0.3));
     for (const [s, ph] of [[1, phi], [-1, (phi + 0.5) % 1]]) {
       const L = legState(S, ph, stride), H = v3(sway, hy, 0).add(v3(s * S.hipX, 0, 0).applyQuaternion(Qp));
       const A = v3(s * (S.stepW / 2 + L.lat), L.y, L.z), hd = Math.hypot(A.x - H.x, A.z - H.z);
@@ -619,7 +623,7 @@ const solvePose = (S, t, opt) => {
   const phi = ((u % 1) + 1) % 1;
   const legs = [[1, phi], [-1, (phi + 0.5) % 1]].map(([s, ph]) => ({ s, ph, ...legState(S, ph, stride) }));
   const c2 = Math.cos(TAU * phi), s2 = Math.sin(TAU * phi);
-  const yaw = -0.075 * c2, roll = 0.045 * s2, sway = (S.fem ? 0.026 : 0.022) * s2;
+  const yaw = -G_YAW * c2, roll = G_ROLL * s2, sway = (S.fem ? G_SWAY_W : G_SWAY_M) * s2;
   const pitch = S.fem ? 0.05 : 0.07;
   const Qp = qm(qa("y", yaw), qa("z", roll), qa("x", pitch));
   // rev 4c review (Timur: "they bump up and down … should be a lot more realistic and smooth"): the pelvis height is a CONSTANT
@@ -650,14 +654,15 @@ const solvePose = (S, t, opt) => {
     out[L.s > 0 ? "ankL" : "ankR"] = A;
   }
   // the spine counter-rotates the shoulders; the chest levels the pelvic list; an older posture leans a little forward
-  const cyaw = 0.06 * c2, rel = cyaw - yaw;
+  const cyaw = 0.12 * c2, rel = cyaw - yaw;   // the thorax counter-rotates ±7°
   const lean = S.fem ? 0.04 : 0.07;
-  const Qs = qm(Qp, qa("y", rel * 0.5), qa("x", lean - pitch * 0.6));
-  const Qc = qm(Qs, qa("y", rel * 0.5), qa("z", -roll * 0.8), qa("x", lean * 0.8));
+  const push = 0.022 * Math.cos(4 * PI * (phi - 0.55));   // a small forward pitch at each push-off
+  const Qs = qm(Qp, qa("y", rel * 0.5), qa("x", lean - pitch * 0.6 + push));
+  const Qc = qm(Qs, qa("y", rel * 0.5), qa("z", -roll * 0.55 - 0.022 * s2), qa("x", lean * 0.8 + push * 0.5));   // the trunk leans a little over the stance leg
   out.Q[B.spine] = Qs; out.Q[B.chest] = Qc;
   const Qn = qm(Qc, qa("x", S.fem ? 0.1 : 0.16));
   out.Q[B.neck] = Qn;
-  out.Q[B.head] = qm(qa("y", opt.look ?? 0), qa("x", 0.06), qa("z", 0.012 * s2));   // the head is held steady in the world
+  out.Q[B.head] = qm(qa("y", (opt.look ?? 0) + 0.035 * c2), qa("x", 0.06 + 0.014 * Math.cos(4 * PI * (phi - 0.35))), qa("z", 0.016 * s2));   // the head steadies itself but nods and follows the shoulders a little
   // FK to the shoulders (world, person space)
   const P = bindPos(S);
   const at = (b, q, p) => p.clone().add(v3(P[b][0] - P[PARENT[b]][0], P[b][1] - P[PARENT[b]][1], P[b][2] - P[PARENT[b]][2]).applyQuaternion(q));
@@ -732,7 +737,7 @@ const poseAt = (R, f, prm) => {
   freeArm(ow, R.wom.S, 1, ow.phi, 0.1, 0.27, 1);
   // the held hands: a shared grip between them that sways gently with both gaits
   const sM = om.shL.clone().add(gm), sW = ow.shR.clone().add(gw);
-  const sway = 0.03 * Math.sin(TAU * (om.phi + 0.25)) + 0.02 * Math.sin(TAU * (ow.phi + 0.25));
+  const sway = 0.045 * Math.sin(TAU * (om.phi + 0.25)) + 0.03 * Math.sin(TAU * (ow.phi + 0.25));   // the joined hands swing a little more
   const G = v3((sM.x + sW.x) / 2, (sM.y + sW.y) / 2 - 0.57, (sM.z + sW.z) / 2 + 0.15 + sway);
   heldArm(om, R.man.S, 1, om.shL, G.clone().add(v3(-0.012, 0.075, 0.016)).sub(gm), v3(0.1, -0.15, -1).normalize());
   heldArm(ow, R.wom.S, -1, ow.shR, G.clone().add(v3(0.012, 0.068, -0.016)).sub(gw), v3(-0.1, -0.15, -1).normalize());
