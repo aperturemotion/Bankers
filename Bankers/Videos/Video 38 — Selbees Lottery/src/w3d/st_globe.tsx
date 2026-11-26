@@ -151,7 +151,7 @@ const Overlay = ({ f, P: P0 }) => {
     <>
       <Tag text="MIT group" at={t.mit} out={t.y2011 - 6} x={110} y={420} to={stack.behind ? null : stack} />
       <Tag text="July 2011" at={t.story} out={t.many + 14} x={600} y={330} to={date.behind ? null : date} />
-      <RedTag text="RIGGED?" at={t.rigged - 2} dimAt={t.rigged + 12} out={t.rigged + 24} x={150} y={360} to={stack.behind ? null : stack} />
+      <RedTag text="RIGGED?" at={t.rigged - 2} dimAt={t.rigged + 12} out={t.gameEnd - 10} x={150} y={360} to={stack.behind ? null : stack} />
     </>
   );
 };

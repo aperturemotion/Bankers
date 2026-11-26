@@ -38,7 +38,7 @@ for (let a = 0; a < N; a += CHUNK) {
 }
 if (ONLY) process.exit(0);
 const wav = `${D}/audio.wav`;
-await renderMedia({ serveUrl, composition: { ...comp }, codec: "wav", outputLocation: wav, port: PORT, inputProps: { solo: "audio" }, concurrency: 1 });
+await renderMedia({ serveUrl, composition: { ...comp, props: { ...comp.props, solo: "audio" } }, codec: "wav", outputLocation: wav, port: PORT, inputProps: { solo: "audio" }, concurrency: 1 });
 const segs = fs.readdirSync(D).filter((f) => /^seg_\d+\.mp4$/.test(f)).sort();
 fs.writeFileSync(`${D}/list.txt`, segs.map((f) => `file '${f}'`).join("\n") + "\n");
 const master = "out/selbees_lottery.mp4";

@@ -221,7 +221,7 @@ const Scene = ({ f }) => {
   const lawn = useMemo(() => { const p = lawnTex(); p.wrapS = p.wrapT = THREE.RepeatWrapping; p.repeat.set(4, 8); return p; }, []);
   const domeK = ease(f, t.m120 - 6, t.it);
   const doorK = ease(f, t.made - 18, t.made + 4);
-  const moonK = ease(f, t.s0 - 22, t.s0 - 8) * (1 - ease(f, t.it - 18, t.it - 4));
+  const moonK = ease(f, t.s0 - 12, t.s0 + 2) * (1 - ease(f, t.it - 18, t.it - 4));
   return (
     <group>
       <Sky />
@@ -264,9 +264,9 @@ const W = (p) => [p[0] + O_STATE[0], p[1] + O_STATE[1], p[2] + O_STATE[2]];
 const shots = () => {
   const t = T();
   return [
-    // arrival: a flight out of the haze, high and craning down the plaza toward the dome
-    { a: t.s0 - 22, b: t.s0 + 6, pos: W([5, 17, 75]), target: W([0, 9, -22]), fov: 36, arc: 12 },
-    { a: t.s0 - 6, b: t.state + 16, pos: W([1.5, 9.5, 24]), target: W([0, 8.5, -22]), fov: 36 },
+    // arrival (held 10 f so RIGGED? reads to the end of "game."): a flight out of the haze, high and craning down the plaza toward the dome
+    { a: t.s0 - 12, b: t.s0 + 12, pos: W([5, 17, 75]), target: W([0, 9, -22]), fov: 36, arc: 12 },
+    { a: t.s0, b: t.state + 18, pos: W([1.5, 9.5, 24]), target: W([0, 8.5, -22]), fov: 36 },
     // the report drops: the camera eases down and in, tilting with it
     { a: t.state + 14, b: t.inv + 30, pos: W([1.2, 6.2, 6.5]), target: W([0, 2.2, -14]), fov: 36 },
     // the findings: above the open report, the lit arcade and door at the top of frame; a slow orbit while the checks land
@@ -293,7 +293,7 @@ const Overlay = ({ f, P }) => {
 const sfx = () => {
   const t = T();
   return [
-    cueAt("whooshlong", t.s0 - 6, 30, 0.55),                      // the arrival flight (fastest ≈ its middle)
+    cueAt("whooshlong", t.s0 + 2, 30, 0.55),                      // the arrival flight (fastest ≈ its middle)
     cueAt("ee_whoosh_fast_small_whoosh_01", t.inv + 10, 14, 0.35), // the report falling
     cueAt("thud", t.inv + 20, 14, 0.55),                          // …and landing
     cueAt("ee_paper_paper_tear_01", t.betting + 2, 12, 0.18),     // the cover swinging open (a soft paper sound)
