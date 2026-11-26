@@ -8,13 +8,17 @@ import React, { useMemo } from "react";
 import * as THREE from "three";
 import { canvasTex, std, PAL, ease, easeOut, rnd, clamp01, Sky, Glow } from "./kit";
 import { Tag, Counter } from "./overlays";
-import { wf } from "./take";
+import { wf } from "./take_rt";   // rev 4c: the hook runs in REAL time (shift.ts)
+import { Couple, coupleZ } from "./i_couple";
 import { cueAt } from "../bnx/SfxLayer";
 import { BODY, FIGURE } from "./fonts3d";
 import { drawTicket } from "./ticket_art";
 import { Town, addBuilding, addProps } from "./town_parts";
 
-const T = () => ({ town: wf("town"), lottery: wf("lottery."), legally: wf("legally."), years: wf("9"), next: wf("in") });
+const T = () => ({ town: wf("town"), retired: wf("retired"), couple: wf("couple"), lottery: wf("lottery."), legally: wf("legally."), years: wf("9"), next: wf("in", 2) });
+// rev 4c (builder I): the retired couple walks toward the camera on the right-hand sidewalk, from just in front of the Evart sign
+//   (frame 0) on, the shop fronts across the road behind them; COUPLE_X = his line (curb side), she walks 0.58 m to his left (hands held)
+const COUPLE_X = 5.62, COUPLE_Z0 = -10.7;
 // ── the street ───────────────────────────────────────────────────────────────────────────────────────────────────────────
 const ROAD_W = 9, BLOCKS = 9;
 const asphaltTex = () => canvasTex("asphalt", 512, 512, (c, w, h) => {
@@ -122,6 +126,8 @@ const Scene = ({ f }) => {
       <mesh rotation-x={-Math.PI / 2} position={[0, -0.02, -60]} receiveShadow><planeGeometry args={[400, 400]} /><meshStandardMaterial color="#0d2238" roughness={0.95} /></mesh>
       <Town build={(m) => buildHookStreet(m, blds)} />
       {Array.from({ length: 6 }, (_, i) => <Lamp key={i} x={(i % 2 ? 1 : -1) * (ROAD_W / 2 + 0.6)} z={-8 - i * 9} />)}
+      {/* rev 4c: the retired couple, walking toward the camera from the Evart sign; she glances at him on "retired couple" */}
+      <Couple f={f} x={COUPLE_X} y={0.16} z0={COUPLE_Z0} look={[t.retired - 4, t.couple + 10]} />
       {/* the town-limit sign, right verge */}
       <group position={[ROAD_W / 2 + 0.9, 0, -12]} rotation-y={-0.32}>
         {[-0.9, 0.9].map((x) => <mesh key={x} position={[x, 1.4, -0.05]} castShadow><cylinderGeometry args={[0.07, 0.07, 2.8, 10]} /><meshStandardMaterial color="#9aa7b8" metalness={0.7} roughness={0.35} /></mesh>)}
@@ -141,9 +147,17 @@ const Scene = ({ f }) => {
 // ── the camera: low up the road from frame 0, easing toward the ticket; then lifting along main street toward the store ─────
 const shots = () => {
   const t = T();
+  const cz = (fr) => coupleZ(fr, COUPLE_Z0);   // where the couple is (they walk toward +z)
+  // rev 4c (Timur: "a small focus on them first … the buildings and the Evart sign are seen when they're walking … focus on them when
+  //   the voiceover says 'a retired couple' … then back on the lottery ticket"): ONE framing from frame 0 — the couple walking toward us
+  //   with the EVART sign right behind them and the lit shop fronts beyond — the camera drifting back with them; on "retired couple" it
+  //   closes in on the pair (narrower lens as they come nearer); then one sweep left onto the road to see the ticket fall. The camera
+  //   moves only back (+z) and left (−x) until the kept rev 2 shot takes over: no reversal. Every key is a word (take_rt.ts).
   return [
-    { a: 0, b: 0, pos: [-1.0, 1.25, 15], target: [2.6, 2.0, -12], fov: 40 },
-    { a: 0, b: t.lottery - 10, pos: [-0.9, 1.7, 5], target: [1.2, 1.6, -15], fov: 38 },
+    { a: 0, b: 0, pos: [8.4, 1.66, -3.2], target: [5.55, 1.36, -12.6], fov: 34 },
+    { a: 0, b: t.retired - 4, pos: [8.15, 1.62, -1.5], target: [5.6, 1.16, cz(t.retired - 4) - 1.6], fov: 31 },
+    { a: t.retired - 14, b: t.couple + 10, pos: [7.8, 1.52, -0.4], target: [5.75, 0.98, cz(t.couple + 10) - 0.4], fov: 24 },
+    { a: t.couple + 8, b: t.lottery - 4, pos: [-0.7, 1.8, 4.8], target: [-0.3, 2.8, -15], fov: 40 },   // the sweep onto the road: framed for the ticket's fall (it appears lottery − 34 high over the road)
     { a: t.lottery - 10, b: t.years + 26, pos: [-2.0, 2.5, 1.2], target: [-1.3, 1.15, -16], fov: 34 }   // rev 2 (restored in rev 4b): aimed 1.4 m left, so the standing ticket stands right of centre and 9 YEARS has the upper left
   ];
 };
@@ -157,7 +171,7 @@ const Overlay = ({ f, P }) => {
     <>
       {/* rev 2 tag audit: each is fully in (at + 12/14) by its word, reads ≥ 36 f, and the pinned ones leave before the flight to
           the store (t.next − 20 = the store's first travel) */}
-      <Tag text="Evart, Michigan" at={t.town - 14} out={t.lottery - 10} x={80} y={420} to={sign.behind ? null : sign} />
+      <Tag text="Evart, Michigan" at={t.town - 14} out={t.retired - 10} x={80} y={420} to={sign.behind ? null : sign} />
       <Tag text="Legal" at={t.legally - 14} out={t.next - 32} x={70} y={640} to={tick} />
       <Counter at={t.years - 14} out={t.next - 11} x={COUNTER_X} y={330} value={9} unit="YEARS" label="2003 – 2012" size={112} countDur={14} />
     </>
