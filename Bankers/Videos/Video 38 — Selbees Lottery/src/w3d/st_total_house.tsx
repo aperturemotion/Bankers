@@ -14,6 +14,7 @@ import React, { useMemo } from "react";
 import * as THREE from "three";
 import { canvasTex, rnd, Glow } from "./kit";
 import { Town, winRect } from "./town_parts";
+import { HomeRooms } from "./h_home_room";
 
 export const PICTURE = [1.6, 1.75, 3.5];
 // a lit room seen through the front window: a warm wall with a lamp, a framed picture, a bookcase, a sofa back, curtains drawn aside
@@ -64,13 +65,23 @@ const garageE = () => canvasTex("hs_garage2E", 1024, 600, (c, w, h) => { c.fillS
 const gable = (w, h, d) => { const s = new THREE.Shape(); s.moveTo(-w / 2, 0); s.lineTo(w / 2, 0); s.lineTo(0, h); s.closePath(); const g = new THREE.ExtrudeGeometry(s, { depth: d, bevelEnabled: false }); g.translate(0, 0, -d / 2); return g; };
 const TRIM = "#E9EDF2";
 // the merged house: the main block (10 × 7), its roof (ridge along x), the porch, the garage at x 7.6
-const buildHouse = (m, siding, sideLit) => {
+const buildHouse = (m, siding, sideLit, open = false) => {
   const MT = { metric: true };
   // foundation: a poured base with block coursing (the trim's noise) and two crawl-space vents
   m.box("trim", [0, 0.18, 0], [10.2, 0.36, 7.2], "#6C7482", MT);
   for (const x of [-3.9, 3.0]) { m.box("metal", [x, 0.2, 3.605], [0.4, 0.16, 0.02], "#2A3240"); for (let k = 0; k < 4; k++) m.box("metal", [x, 0.14 + k * 0.04, 3.617], [0.36, 0.012, 0.01], "#8C97A8"); }
   // walls: lap siding (tinted), corner boards, the frieze under the eaves
-  m.box("siding", [0, 1.83, 0], [10, 2.94, 7], siding, MT);
+  if (!open) m.box("siding", [0, 1.83, 0], [10, 2.94, 7], siding, MT);
+  else {
+    // (rev 4, builder H) the hero house is hollow behind its two front windows: the back block, the side walls, and the front wall in
+    //   pieces round the window openings (0.12 thick: z 3.38…3.5); the rooms themselves are h_home_room's
+    const fw = (x0, x1, y0, y1) => m.box("siding", [(x0 + x1) / 2, (y0 + y1) / 2, 3.44], [x1 - x0, y1 - y0, 0.12], siding, MT);
+    const Y0 = 0.36, Y1 = 3.3, [px, py] = PICTURE, pw = 1.3, ph = 0.725;
+    fw(-5, -3.75, Y0, Y1); fw(-3.75, -2.25, Y0, 1.1); fw(-3.75, -2.25, 2.4, Y1); fw(-2.25, px - pw, Y0, Y1);
+    fw(px - pw, px + pw, Y0, py - ph); fw(px - pw, px + pw, py + ph, Y1); fw(px + pw, 5, Y0, Y1);
+    m.box("siding", [0, 1.83, -2.74], [10, 2.94, 1.52], siding, MT);
+    for (const sd of [-1, 1]) m.box("siding", [sd * 4.94, 1.83, 0.8], [0.12, 2.94, 5.4], siding, MT);
+  }
   for (const x of [-4.95, 4.95]) for (const z of [-3.51, 3.51]) { m.box("trim", [x, 1.83, z], [0.16, 2.94, 0.04], TRIM); m.box("trim", [x + (x < 0 ? -0.02 : 0.02), 1.83, z - Math.sign(z) * 0.08], [0.04, 2.94, 0.16], TRIM); }
   m.box("trim", [0, 3.17, 3.52], [10, 0.22, 0.04], TRIM); m.box("trim", [0, 3.17, -3.52], [10, 0.22, 0.04], TRIM);
   // the gable ends (siding), their rake boards and louvered vents
@@ -158,17 +169,19 @@ const buildHouse = (m, siding, sideLit) => {
   [-4.1, -2.0, 0.6, 2.4, 3.9].forEach((x, i) => { for (let k = 0; k < 3; k++) m.ico("plant", [x + (k - 1) * 0.32, 0.38 + (k % 2) * 0.12, 4.1 + (rnd(i * 3 + k) - 0.5) * 0.2], [0.42, 0.36 + rnd(i + k) * 0.1, 0.38], ["#1F3A4E", "#24424C", "#2A4650"][k]); });
 };
 export const House = ({ lit = 1, siding = "#6C7B92" }) => {
+  const open = lit > 0.8;                     // the hero house (lit 1) shows its real rooms; the neighbours in the haze keep the painted ones
   const room1 = useMemo(() => roomTex("a", true), []), room2 = useMemo(() => roomTex("b", false), []);
   const gdoor = useMemo(garageTex, []), gE = useMemo(garageE, []);
   const k = 0.55 + 0.45 * lit;
   return (
     <group>
-      <Town build={(m) => buildHouse(m, siding, lit > 0.8)} deps={[siding, lit > 0.8]} />
+      <Town build={(m) => buildHouse(m, siding, lit > 0.8, open)} deps={[siding, lit > 0.8, open]} />
+      {open && <HomeRooms lit={lit} />}
       {/* the lit rooms behind the two front windows, and their glass */}
       {[[-3.0, 1.75, 1.5, 1.3, room2], [PICTURE[0], PICTURE[1], 2.6, 1.45, room1]].map(([x, y, w, h, tex], i) => (
         <group key={i} position={[x, y, 3.52]}>
-          <mesh><planeGeometry args={[w, h]} /><meshBasicMaterial map={tex} color={new THREE.Color("#FFFFFF").multiplyScalar(k)} /></mesh>
-          <mesh position={[0, 0, 0.012]}><planeGeometry args={[w, h]} /><meshStandardMaterial color="#9DB8DC" transparent opacity={0.08} roughness={0.05} metalness={0.6} depthWrite={false} /></mesh>
+          {!open && <mesh><planeGeometry args={[w, h]} /><meshBasicMaterial map={tex} color={new THREE.Color("#FFFFFF").multiplyScalar(k)} /></mesh>}
+          <mesh position={[0, 0, 0.012]}><planeGeometry args={[w, h]} /><meshStandardMaterial color="#9DB8DC" transparent opacity={open ? 0.1 : 0.08} roughness={0.05} metalness={0.6} depthWrite={false} /></mesh>
         </group>
       ))}
       <Glow position={[0.12, 2.3, 3.85]} size={1.6} color="#FFC27A" opacity={0.75} />

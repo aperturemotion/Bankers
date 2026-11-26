@@ -293,7 +293,7 @@ const Scene = ({ f }) => {
       <pointLight position={[0, 15, -12]} intensity={10 + 40 * domeK} distance={16} decay={1.4} color="#FFE0A8" />
       <Glow position={[DOME[0], DOME[1] + 0.3, DOME[2]]} size={9 + 7 * domeK} color="#FFD796" opacity={0.14 + 0.45 * domeK} />
       <Glow position={[DOME[0], DOME[1] + 2.9, DOME[2]]} size={2.6 + 2 * domeK} color="#FFE2B0" opacity={0.6 + 0.3 * domeK} />
-      <Glow position={[DOOR[0], DOOR[1], DOOR[2] + 0.2]} size={3 + 4 * doorK} color="#FFC27A" opacity={0.25 + 0.5 * doorK} />
+      <Glow position={[DOOR[0], DOOR[1], DOOR[2] + 0.2]} size={2 + 1.2 * doorK} color="#FFC27A" opacity={0.1 + 0.14 * doorK} />
       {/* the fence, lamps and trees */}
       <Fence x0={-22} x1={-5.6} z={-15.2} />
       <Fence x0={5.6} x1={22} z={-15.2} />

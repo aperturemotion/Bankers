@@ -16,6 +16,7 @@
 import React, { useMemo } from "react";
 import * as THREE from "three";
 import { Glow, rnd } from "./kit";
+import { StateHall, HALL } from "./h_state_hall";
 import { Kit, kitMat, srgbTex, linTex, flatTex, blackTex, mould, arcPts, cymaPts, lathe, volute, baluster, leaf, archPath, archRing, smoothstep } from "./bld_kit";
 
 // ── textures ───────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -83,13 +84,6 @@ const glassTex = () => srgbTex("sh_glass", 128, 256, (c, w, h) => {
   c.fillStyle = g; c.fillRect(0, 0, w, h);
   c.fillStyle = "rgba(180,210,250,0.10)"; c.beginPath(); c.moveTo(0, h * 0.7); c.lineTo(w * 0.6, 0); c.lineTo(w, 0); c.lineTo(0, h); c.fill();
 });
-const hallTex = () => srgbTex("sh_hall2", 256, 288, (c, w, h) => {
-  const g = c.createRadialGradient(w / 2, 40, 10, w / 2, 120, 260); g.addColorStop(0, "#FFE3B4"); g.addColorStop(0.35, "#B9844C"); g.addColorStop(1, "#3A2A1A");
-  c.fillStyle = g; c.fillRect(0, 0, w, h);
-  c.strokeStyle = "rgba(40,24,10,0.55)"; c.lineWidth = 4;
-  for (let k = 0; k < 3; k++) { c.strokeRect(18 + k * 78, 130, 64, 70); c.strokeRect(18 + k * 78, 210, 64, 66); }
-  c.fillStyle = "rgba(255,240,210,0.9)"; c.beginPath(); c.arc(w / 2, 36, 10, 0, Math.PI * 2); c.fill();
-});
 
 // ── the plan ───────────────────────────────────────────────────────────────────────────────────────────────────────────
 const G = 1.2;                                     // the terrace top (ground floor level)
@@ -107,7 +101,16 @@ const buildHouse = () => {
   const TC = { tag: 1 }, TP = { tag: 2 }, TD = { tag: 3 }, TG = { tag: 5 };
 
   // ── the terrace, its coping, the steps and cheek walls ───────────────────────────────────────────────────────────────
-  box("granite", 64, G, 28, 0, G / 2, -6);
+  // (rev 4, builder H) the terrace is cut open under the entrance hall: the hall's reflection sits in that pit, under its glossy floor
+  {
+    const { HX, VX, VZ, ZF, SZ } = HALL, T0 = -20, T1 = 8;
+    [-1, 1].forEach((s) => {
+      box("granite", 32 - HX, G, T1 - T0, s * (32 + HX) / 2, G / 2, (T0 + T1) / 2);
+      box("granite", HX - VX, G, T1 - ZF, s * (HX + VX) / 2, G / 2, (ZF + T1) / 2);
+    });
+    box("granite", VX * 2, G, T1 - VZ, 0, G / 2, (VZ + T1) / 2);
+    box("granite", HX * 2, G, SZ - T0, 0, G / 2, (T0 + SZ) / 2);
+  }
   box("trim", 64.3, 0.12, 0.5, 0, G + 0.02, 7.95);
   for (let i = 0; i < 6; i++) {
     const zf = 12 - i * 0.7;
@@ -151,7 +154,11 @@ const buildHouse = () => {
     [-3.0, -7.0].forEach((zc, k) => ROWS.forEach((r, ri) => sashSide(K, s, zc, r, rnd(k * 9 + ri * 3 + (s > 0 ? 5 : 1)) < 0.3)));
   });
   // the centre face behind the arcade and the loggia: brick, the porch doors, the loggia's tall windows and pilasters
-  box("brick", PAV * 2, 5.5 - G, FD, 0, (5.5 + G) / 2, FZ);
+  // (rev 4) the centre face is pierced behind the open door: the vestibule leads through it into the entrance hall (h_state_hall)
+  [-1, 1].forEach((s) => box("brick", PAV - HALL.VX, 5.5 - G, FD, s * (PAV + HALL.VX) / 2, (5.5 + G) / 2, FZ));
+  box("brick", HALL.VX * 2, 5.5 - HALL.VTOP, FD, 0, (5.5 + HALL.VTOP) / 2, FZ);
+  [-1, 1].forEach((s) => box("brick", 0.36, HALL.VTOP - G, 3.3, s * (HALL.VX + 0.18), (HALL.VTOP + G) / 2, 1.65));   // the vestibule's walls (porch side)
+  box("trim", HALL.VX * 2, 0.04, 0.7, 0, G + 0.005, 3.65);                                                             // the threshold
   box("brick", PAV * 2, TOPB - 10.2, FD, 0, (10.2 + TOPB) / 2, FZ);
   const LB = [0, -2.06, 2.06, -4.12, 4.12, -6.17, 6.17];
   const bounds = [-PAV, ...LB.flatMap((x) => [x - 0.6, x + 0.6]).sort((a, b) => a - b), PAV];
@@ -441,17 +448,14 @@ const useHouse = () => useMemo(() => {
 /** The State House. `dome` 0..1 brightens the dome, drum and lantern (the money arriving); `door` 0..1 lights the centre hall. */
 export const StateHouse = ({ dome = 0, door = 0 }) => {
   const { meshes, mats } = useHouse();
-  const hall = useMemo(hallTex, []);
   mats.gold.emissiveIntensity = 0.04 + 0.42 * dome; mats.cone.emissiveIntensity = 0.05 + 0.4 * dome;
   mats.drumLit.emissiveIntensity = 0.9 + 0.6 * dome;
   const LY = 18.8 + 5.4 * 0.92 - 0.2;
   return (
     <group>
       {meshes.map((m, i) => <primitive key={i} object={m} />)}
-      {/* the hall behind the open centre door: floor, panelled walls, a chandelier's warm light, the two leaves swung in */}
-      <mesh position={[0, G + 0.01, 2.15]} rotation-x={-Math.PI / 2}><planeGeometry args={[3.2, 3.7]} /><meshStandardMaterial color="#4A3A28" roughness={0.35} metalness={0.1} emissive="#FFB15A" emissiveIntensity={0.08 + 0.35 * door} /></mesh>
-      <mesh position={[0, 3.2, 0.3]}><planeGeometry args={[3.2, 4.0]} /><meshBasicMaterial map={hall} color={new THREE.Color("#FFFFFF").multiplyScalar(0.32 + 0.75 * door)} /></mesh>
-      {[-1.6, 1.6].map((x) => <mesh key={x} position={[x * 0.99, 3.1, 2.15]} rotation-y={x < 0 ? Math.PI / 2 : -Math.PI / 2}><planeGeometry args={[3.7, 3.8]} /><meshStandardMaterial map={hall} color="#9A8266" roughness={0.6} emissive="#FFB15A" emissiveIntensity={0.05 + 0.25 * door} /></mesh>)}
+      {/* the entrance hall behind the open centre door (rev 4: h_state_hall), the two leaves swung in */}
+      <StateHall door={door} />
       {[-1, 1].map((sd) => (
         <group key={sd} position={[sd * 1.55, 0, 3.25]} rotation-y={sd * 1.25}>
           <mesh position={[0, 2.95, 0]} castShadow><boxGeometry args={[0.08, 3.4, 1.5]} /><meshStandardMaterial color="#232C3A" roughness={0.45} metalness={0.2} /></mesh>
