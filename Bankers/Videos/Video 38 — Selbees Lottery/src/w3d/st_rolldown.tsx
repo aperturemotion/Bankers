@@ -17,6 +17,7 @@ import { Tag, Counter } from "./overlays";
 import { wf, wEnd } from "./take";
 import { cueAt } from "../bnx/SfxLayer";
 import { BODY, FIGURE } from "./fonts3d";
+import { drawTicket } from "./ticket_art";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 
@@ -241,12 +242,8 @@ const gridTex = () => canvasTex("rd_grid", 512, 512, (c, w, h) => {
   c.strokeStyle = "rgba(127,180,242,0.55)"; c.lineWidth = 2;
   for (let i = 0; i <= 8; i++) { c.beginPath(); c.moveTo(i * 64, 0); c.lineTo(i * 64, h); c.stroke(); c.beginPath(); c.moveTo(0, i * 64); c.lineTo(w, i * 64); c.stroke(); }
 });
-const ticketFace = () => canvasTex("rd_ticket", 256, 128, (c, w, h) => {
-  c.fillStyle = "#F4F7FB"; c.fillRect(0, 0, w, h);
-  c.fillStyle = "#0B3F7A"; c.fillRect(0, 0, w, 30); c.fillStyle = "#4D8ED9"; c.fillRect(0, 30, w, 4);
-  c.fillStyle = "#FFFFFF"; c.font = `800 22px ${BODY}`; c.textAlign = "center"; c.fillText("WINFALL", w / 2, 23);
-  c.fillStyle = "rgba(11,37,71,0.55)"; for (let r = 0; r < 4; r++) for (let k = 0; k < 6; k++) c.fillRect(20 + k * 36, 46 + r * 18, 24, 8);
-});
+// the small tickets on the pan: the compact (landscape) house WINFALL ticket — real printed numbers, no bars (ticket_art.ts)
+const ticketFace = () => canvasTex("rd_ticket_v4", 256, 128, (c, w, h) => drawTicket(c, w, h, { seed: 5, compact: true }));
 // ── materials ────────────────────────────────────────────────────────────────────────────────────────────────────────────
 const MAT = {
   steel: std("#9DB4D2", 0.28, 0.85), dark: std("#1A2A40", 0.35, 0.7), plinth: std("#14243A", 0.3, 0.6), rim: new THREE.MeshBasicMaterial({ color: "#7FB4F2", toneMapped: false }),

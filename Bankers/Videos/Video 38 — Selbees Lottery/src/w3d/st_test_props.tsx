@@ -9,6 +9,7 @@ import React, { useMemo } from "react";
 import * as THREE from "three";
 import { canvasTex, rnd, Glow } from "./kit";
 import { BODY, FIGURE } from "./fonts3d";
+import { drawTicket } from "./ticket_art";
 
 // ── textures ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
 export const noiseTex = (key, base, amt = 18, n = 6000, w = 256, h = 256) => canvasTex("stt_noise_" + key, w, h, (c) => {
@@ -28,22 +29,7 @@ export const formicaTex = () => {
   t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(3, 2); return t;
 };
 // a lottery ticket (thermal slip, portrait): the same house design as the hook's ticket, at slip scale
-export const ticketFaceTex = () => canvasTex("stt_ticketface", 320, 760, (c, w, h) => {
-  c.fillStyle = "#F3F6FA"; c.fillRect(0, 0, w, h);
-  c.fillStyle = "#0B3F7A"; c.fillRect(0, 0, w, 120);
-  c.fillStyle = "#FFFFFF"; c.textAlign = "center"; c.font = `800 62px ${BODY}`; c.fillText("LOTTERY", w / 2, 82);
-  c.fillStyle = "#4D8ED9"; c.fillRect(0, 120, w, 10);
-  c.fillStyle = "#0B2547"; c.font = `800 34px ${BODY}`; c.fillText("WINFALL", w / 2, 178);
-  c.font = `600 25px ${BODY}`;
-  ["A", "B", "C", "D", "E"].forEach((r, i) => {
-    const y = 240 + i * 62;
-    c.textAlign = "left"; c.fillText(r + ".", 18, y);
-    for (let k = 0; k < 6; k++) { c.textAlign = "center"; c.fillText(String(1 + Math.floor(rnd(i * 6 + k + 41) * 46)).padStart(2, "0"), 76 + k * 42, y); }
-  });
-  c.fillStyle = "rgba(11,37,71,0.5)"; c.fillRect(18, 560, w - 36, 2);
-  c.fillStyle = "#0B2547"; for (let k = 0; k < 46; k++) { const bw = 2 + Math.floor(rnd(k + 190) * 3); c.fillRect(24 + k * 5.9, 590, bw, 100); }
-  c.font = `500 20px ${BODY}`; c.textAlign = "center"; c.fillText("1 DRAW", w / 2, 726);
-});
+export const ticketFaceTex = () => canvasTex("stt_ticketface_v4", 320, 760, (c, w, h) => drawTicket(c, w, h, { seed: 4 }));
 // paper-stack edges: fine horizontal sheets (white thermal paper or bill paper), seen on a bundle's sides
 export const edgeTex = (key, base, line) => canvasTex("stt_edge_" + key, 64, 256, (c, w, h) => {
   c.fillStyle = base; c.fillRect(0, 0, w, h);

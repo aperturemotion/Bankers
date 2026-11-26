@@ -14,6 +14,7 @@ import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeom
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { canvasTex, rnd, ease, clamp01, Glow } from "./kit";
 import { BODY, FIGURE } from "./fonts3d";
+import { drawTicket } from "./ticket_art";
 
 // ── the road's frame (must equal st_road.tsx: ROAD_O, V and S(f) = V·(f − 1000)) ─────────────────────────────────────────────
 export const ROAD_WORLD = [1200, 0, 0];
@@ -110,25 +111,8 @@ const signTex = () => canvasTex("c2_lotsign", 1024, 300, (c, w, h) => {
   let x = w / 2 - (c.measureText("LOTTERY").width + 6 * 14) / 2; c.textAlign = "left"; [..."LOTTERY"].forEach((ch) => { c.fillText(ch, x, 178); x += c.measureText(ch).width + 14; });
   c.textAlign = "center"; c.fillStyle = "#CFE2FA"; c.font = `700 44px ${BODY}`; c.fillText("PLAY HERE", w / 2, 252);
 });
-const ticketTex = () => canvasTex("c2_slipticket", 384, 900, (c, w, h) => {
-  c.fillStyle = "#F6F8FB"; c.fillRect(0, 0, w, h);
-  c.fillStyle = "#0E1724"; c.textAlign = "center";
-  c.font = `800 46px ${BODY}`; c.fillText("LOTTERY", w / 2, 64);
-  c.fillRect(24, 82, w - 48, 3);
-  c.font = `800 58px ${BODY}`; c.fillText("WINFALL", w / 2, 150);
-  c.font = `600 24px ${BODY}`; c.fillText("QUICK PICK", w / 2, 188);
-  c.font = `500 28px "Liberation Mono", monospace`;
-  ["A", "B", "C", "D", "E"].forEach((r, i) => {
-    const y = 250 + i * 50; c.textAlign = "left"; c.fillText(r + ".", 26, y);
-    const nums = Array.from({ length: 6 }, (_, k) => 1 + Math.floor(rnd(i * 6 + k + 501) * 46)).sort((a, b) => a - b);
-    c.fillText(nums.map((n) => String(n).padStart(2, "0")).join(" "), 74, y);
-  });
-  c.textAlign = "center"; c.font = `600 24px ${BODY}`; c.fillText("5 PLAYS  •  1 DRAW", w / 2, 530);
-  c.fillRect(24, 552, w - 48, 2);
-  for (let k = 0; k < 60; k++) { const bw = 1 + Math.floor(rnd(k + 77) * 4); c.fillRect(30 + k * 5.4, 580, bw, 120); }
-  c.font = `500 20px "Liberation Mono", monospace`; c.fillText("0417-28531-09 004126", w / 2, 730);
-  c.font = `500 20px ${BODY}`; c.fillText("KEEP YOUR TICKET", w / 2, 780);
-});
+// the slip the terminal prints: the house WINFALL draw ticket (ticket_art.ts)
+const ticketTex = () => canvasTex("c2_slipticket_v4", 384, 900, (c, w, h) => drawTicket(c, w, h, { seed: 2 }));
 const keyAtlas = () => canvasTex("c2_keyatlas", 512, 512, (c, w, h) => {
   const labs = ["7", "8", "9", "CLR", "4", "5", "6", "CNCL", "1", "2", "3", "CHK", "0", "00", "QP", "ENTER"];
   c.fillStyle = "#3B4656"; c.fillRect(0, 0, w, h);

@@ -11,6 +11,7 @@ import { Tag, Counter } from "./overlays";
 import { wf } from "./take";
 import { cueAt } from "../bnx/SfxLayer";
 import { BODY, FIGURE } from "./fonts3d";
+import { drawTicket } from "./ticket_art";
 import { Town, addBuilding, addProps } from "./town_parts";
 
 const T = () => ({ town: wf("town"), lottery: wf("lottery."), legally: wf("legally."), years: wf("9"), next: wf("in") });
@@ -64,25 +65,9 @@ const signTex = () => canvasTex("evartSign", 512, 320, (c, w, h) => {
   c.font = `700 112px ${BODY}`; c.fillText("EVART", w / 2, 150);
   c.font = `600 64px ${BODY}`; c.fillText("POP. 1,903", w / 2, 250);
 });
-// the ticket: a generic lottery ticket (no real game's artwork): header band, six-number rows, a barcode
-const ticketTex = () => canvasTex("ticket", 1024, 1800, (c) => {
-  c.scale(2, 2); const w = 512, h = 900;   // drawn at 2× (rev 2: the ticket lands 1.5× bigger, and the rules close-up reads it too)
-  c.fillStyle = "#F4F7FB"; c.fillRect(0, 0, w, h);
-  c.fillStyle = "#0B3F7A"; c.fillRect(0, 0, w, 150);
-  c.fillStyle = "#FFFFFF"; c.textAlign = "center"; c.font = `800 86px ${BODY}`; c.fillText("LOTTERY", w / 2, 108);
-  c.fillStyle = "#4D8ED9"; c.fillRect(0, 150, w, 14);
-  c.fillStyle = "#0B2547"; c.font = `600 34px ${BODY}`;
-  const rows = ["A", "B", "C", "D", "E"];
-  rows.forEach((r, i) => {
-    const y = 240 + i * 92;
-    c.textAlign = "left"; c.fillText(r + ".", 36, y);
-    const nums = Array.from({ length: 6 }, (_, k) => String(1 + Math.floor(rnd(i * 6 + k + 3) * 49)).padStart(2, "0"));
-    nums.forEach((n, k) => { c.textAlign = "center"; c.fillText(n, 120 + k * 66, y); });
-  });
-  c.fillStyle = "#0B2547"; for (let k = 0; k < 64; k++) { const bw = 2 + Math.floor(rnd(k + 90) * 4); c.fillRect(48 + k * 6.6, 730, bw, 110); }
-  c.font = `500 26px ${BODY}`; c.textAlign = "center"; c.fillText("DRAW 2003", w / 2, 880);
-  c.font = `600 22px ${BODY}`; c.fillText("KEEP THIS TICKET · CHECK YOUR NUMBERS", w / 2, 708);
-});
+// the ticket: the house WINFALL draw ticket (ticket_art.ts — security field, logo header with balls, thermal-printed Quick Picks,
+//   barcodes, small print), drawn at 1160×2048 (rev 2: it lands 1.5× bigger, and the rules close-up reads it too)
+const ticketTex = () => canvasTex("ticket_v4", 1160, 2048, (c, w, h) => drawTicket(c, w, h, { seed: 1, drawLine: "DRAW 2003" }));
 export const Ticket = ({ pos = [0, 0, 0], rot = [0, 0, 0], s = 1 }) => {
   const tex = useMemo(ticketTex, []);
   return (
@@ -150,7 +135,7 @@ const shots = () => {
   return [
     { a: 0, b: 0, pos: [-1.0, 1.25, 15], target: [2.6, 2.0, -12], fov: 40 },
     { a: 0, b: t.lottery - 10, pos: [-0.9, 1.7, 5], target: [1.2, 1.6, -15], fov: 38 },
-    { a: t.lottery - 22, b: t.years + 26, pos: [-1.6, 6.4, -2.6], target: [-0.1, 0.9, -19.5], fov: 36 }   // rev 4: rises as the ticket comes down and looks DOWN on it lying flat on the road (the street and its lit fronts still beyond)
+    { a: t.lottery - 22, b: t.years + 26, pos: [-1.3, 5.9, -6.9], target: [0.1, -0.4, -17.3], fov: 36 }   // rev 4: rises as the ticket comes down and looks DOWN on it lying flat on the road (the street and its lit fronts still beyond)
   ];
 };
 const COUNTER_X = 290;

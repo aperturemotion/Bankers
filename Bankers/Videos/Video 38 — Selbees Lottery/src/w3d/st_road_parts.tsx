@@ -9,6 +9,7 @@ import * as THREE from "three";
 import { canvasTex, rnd } from "./kit";
 import { WORDS } from "./take";
 import { BODY } from "./fonts3d";
+import { drawTicket } from "./ticket_art";
 import { toteGeometry, toteMats } from "./road_tote";
 
 // ── the take: the first word equal to t at or after frame `after` (exact match, so "for" never finds "formed") ─────────────────
@@ -22,24 +23,7 @@ export const undrift = (p, f) => { const d = drift(f); return [p[0] - d[0], p[1]
 
 // ── the ticket: a generic $2 lottery slip (no real game's artwork), the same in the trunk and on the MIT stack ─────────────────
 export const TICKET_W = 0.068, TICKET_H = 0.12;
-export const ticketTexMA = () => canvasTex("ticketMA", 512, 904, (c, w, h) => {
-  c.fillStyle = "#F4F7FB"; c.fillRect(0, 0, w, h);
-  // a faint security guilloche in the paper
-  c.strokeStyle = "rgba(77,142,217,0.10)"; c.lineWidth = 1.2;
-  for (let k = 0; k < 26; k++) { c.beginPath(); for (let x = 0; x <= w; x += 8) { const y = 180 + k * 26 + 7 * Math.sin(x / 23 + k); x ? c.lineTo(x, y) : c.moveTo(x, y); } c.stroke(); }
-  c.fillStyle = "#0B3F7A"; c.fillRect(0, 0, w, 150);
-  c.fillStyle = "#FFFFFF"; c.textAlign = "center"; c.font = `800 86px ${BODY}`; c.fillText("LOTTERY", w / 2, 106);
-  c.fillStyle = "#4D8ED9"; c.fillRect(0, 150, w, 14);
-  c.fillStyle = "#0B2547"; c.font = `600 34px ${BODY}`;
-  ["A", "B", "C", "D", "E"].forEach((r, i) => {
-    const y = 236 + i * 88;
-    c.textAlign = "left"; c.fillText(r + ".", 36, y);
-    for (let k = 0; k < 6; k++) { c.textAlign = "center"; c.fillText(String(1 + Math.floor(rnd(i * 6 + k + 41) * 46)).padStart(2, "0"), 120 + k * 66, y); }
-  });
-  c.fillStyle = "#0B2547"; c.font = `700 40px ${BODY}`; c.textAlign = "left"; c.fillText("$2.00", 36, 700);
-  c.font = `500 26px ${BODY}`; c.textAlign = "right"; c.fillText("QUICK PICK", w - 36, 700);
-  for (let k = 0; k < 64; k++) { const bw = 2 + Math.floor(rnd(k + 190) * 4); c.fillRect(48 + k * 6.6, 740, bw, 110); }
-});
+export const ticketTexMA = () => canvasTex("ticketMA_v4", 512, 904, (c, w, h) => drawTicket(c, w, h, { seed: 3, each: 2 }));   // the house WINFALL ticket (ticket_art.ts)
 // the paper edge of a bundle (many slips, seen from the side)
 const edgeTex = () => canvasTex("ticketEdge", 64, 256, (c, w, h) => {
   c.fillStyle = "#E9EEF5"; c.fillRect(0, 0, w, h);
