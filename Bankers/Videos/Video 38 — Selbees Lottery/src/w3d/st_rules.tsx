@@ -70,10 +70,10 @@ const shots = () => {
     { a: t.luck + 2, b: t.rules - 2, pos: W(add(r, LEAN)), target: W(add(r, [0, 0, 0.01])), fov: 34 },
     // fly forward over the counter, out through the display window into main street, turning to look down the road (the hook's street);
     // rev 2: a slow 62-f move (it was a 35-f whip from a 0.35-m close-up: Timur, no fast back-and-forth)
-    { a: t.rules - 10, b: t.rules + 34, pos: W([-1.7, 2.0, 2.6]), target: W([-6.5, 1.7, 14]), fov: 40, raw: true },
+    { a: t.rules - 4, b: t.rules + 40, pos: W([-1.7, 2.0, 2.6]), target: W([-6.5, 1.7, 14]), fov: 40, raw: true },   // rev 4f: starts 6 f later, after the tags have gone
     // rev 3: …looking OUT through the window as it passes (turning left while still inside showed the brick beside the window), then,
     //   outside, the turn down main street
-    { a: t.rules + 26, b: t.rules + 80, pos: W([0.4, 2.4, 8.4]), target: W([-30, 2.2, 7.4]), fov: 40, raw: true }
+    { a: t.rules + 34, b: t.rules + 80, pos: W([0.4, 2.4, 8.4]), target: W([-30, 2.2, 7.4]), fov: 40, raw: true }
   ];
 };
 const Overlay = ({ f, P }) => {
@@ -83,8 +83,8 @@ const Overlay = ({ f, P }) => {
   const rl = P(RULE_PT());
   return (
     <>
-      <Tag text="Luck" at={t.luck - 14} out={t.reading + 14} x={600} y={520} to={tk.behind ? null : tk} size={32} />
-      <Tag text="The roll-down rule" at={t.reading - 16} out={t.rules + 2} x={90} y={520} to={rl.behind ? null : rl} size={30} />
+      <Tag text="Luck" at={t.luck - 14} out={t.rules - 24} x={600} y={520} to={tk.behind ? null : tk} size={32} />
+      <Tag text="The roll-down rule" at={t.its - 14} out={t.rules - 14} x={90} y={520} to={rl.behind ? null : rl} size={30} />
     </>
   );
 };
