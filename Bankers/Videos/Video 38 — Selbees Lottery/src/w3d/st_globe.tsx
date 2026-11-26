@@ -38,13 +38,46 @@ const PALLET_Y = 0.14, LAYER = TUB.y + 0.02;
 const slot = (i, j, layer) => [i * 0.24, PALLET_Y + layer * LAYER, j * 0.25];
 export const G_TUB = slot(-1, -1, 2);
 const PAPER_AT = [-1.15, 0, -0.2];
-const pavingTex = () => canvasTex("g_paving", 512, 512, (c, w, h) => {
-  c.fillStyle = "#3A4A60"; c.fillRect(0, 0, w, h);
-  for (let i = 0; i < 9000; i++) { const g = 50 + rnd(i) * 40; c.fillStyle = `rgba(${g},${g + 10},${g + 26},0.35)`; c.fillRect(rnd(i + 1) * w, rnd(i + 2) * h, 2, 2); }
-  c.strokeStyle = "rgba(10,18,30,0.75)"; c.lineWidth = 3;
-  for (let k = 0; k <= 4; k++) { c.beginPath(); c.moveTo(0, k * 128); c.lineTo(w, k * 128); c.stroke(); }
-  for (let r = 0; r < 4; r++) for (let k = 0; k <= 2; k++) { const x = k * 256 + (r % 2) * 128; c.beginPath(); c.moveTo(x, r * 128); c.lineTo(x, r * 128 + 128); c.stroke(); }
+// rev 4 (Timur: "add some texture to the ground … right now it's just a gray plain floor"): Killian Court's granite paving — slabs of
+//   1 m × 0.5 m in running bond, each its own tone of blue-grey granite with mica speckle, crisp dark joints with a lit upper arris;
+//   one tile = 4 m × 4 m (repeat 50 over the 200-m ground), the same canvas drives a bump map
+const pavingTex = () => canvasTex("g_paving2", 1024, 1024, (c, w, h) => {
+  c.fillStyle = "#1C2636"; c.fillRect(0, 0, w, h);
+  const RH = 128, SW = 256;
+  for (let r = 0; r < 8; r++) for (let k = -1; k < 4; k++) {
+    const x0 = k * SW + (r % 2) * (SW / 2), y0 = r * RH, id = r * 7 + k + 9;
+    const g = 92 + Math.floor(rnd(id) * 34), b = 14 + Math.floor(rnd(id + 3) * 10);
+    c.fillStyle = `rgb(${g - 6},${g + 2},${g + b})`; c.fillRect(x0 + 3, y0 + 3, SW - 6, RH - 6);
+    // a soft tonal drift across the slab (the stone's own cloud)
+    const gr = c.createLinearGradient(x0, y0, x0 + SW, y0 + RH); gr.addColorStop(0, `rgba(255,255,255,${0.03 + rnd(id + 5) * 0.05})`); gr.addColorStop(1, `rgba(0,0,0,${0.04 + rnd(id + 6) * 0.06})`);
+    c.fillStyle = gr; c.fillRect(x0 + 3, y0 + 3, SW - 6, RH - 6);
+    c.fillStyle = "rgba(220,232,250,0.22)"; c.fillRect(x0 + 3, y0 + 3, SW - 6, 2);           // the lit upper arris
+    c.fillStyle = "rgba(0,0,0,0.25)"; c.fillRect(x0 + 3, y0 + RH - 5, SW - 6, 2);
+  }
+  for (let i = 0; i < 60000; i++) {                                                         // granite speckle: dark grains and mica glints
+    const x = rnd(i * 3 + 1) * w, y = rnd(i * 3 + 2) * h, q = rnd(i * 3 + 3);
+    c.fillStyle = q < 0.55 ? "rgba(20,28,42,0.35)" : q < 0.93 ? "rgba(170,182,200,0.25)" : "rgba(235,242,255,0.55)";
+    c.fillRect(x, y, q < 0.55 ? 2 : 1.5, q < 0.55 ? 2 : 1.5);
+  }
 });
+const WOOD = ["#B49A76", "#A88E6A", "#BFA582", "#9E8562", "#B39773", "#AA9070", "#B8A07C"];
+const Pallet = () => {
+  const H = PALLET_Y, top = 0.022, blk = H - 2 * top - 0.018;
+  return (
+    <group>
+      {Array.from({ length: 7 }, (_, i) => (
+        <mesh key={"d" + i} position={[-0.45 + i * 0.15, H - top / 2, 0]} castShadow receiveShadow><boxGeometry args={[0.12, top, 1.1]} /><meshStandardMaterial color={WOOD[i]} roughness={0.85} /></mesh>
+      ))}
+      {[-0.47, 0, 0.47].map((z, j) => (
+        <group key={"s" + j}>
+          <mesh position={[0, H - top - 0.009, z]} castShadow receiveShadow><boxGeometry args={[1.0, 0.018, 0.1]} /><meshStandardMaterial color="#9A8160" roughness={0.85} /></mesh>
+          {[-0.44, 0, 0.44].map((x) => <mesh key={x} position={[x, top + blk / 2, z]} castShadow receiveShadow><boxGeometry args={[0.12, blk, 0.1]} /><meshStandardMaterial color="#8E7656" roughness={0.9} /></mesh>)}
+        </group>
+      ))}
+      {[-0.44, 0, 0.44].map((x, i) => <mesh key={"b" + i} position={[x, top / 2, 0]} castShadow receiveShadow><boxGeometry args={[0.12, top, 1.1]} /><meshStandardMaterial color={WOOD[i + 2]} roughness={0.85} /></mesh>)}
+    </group>
+  );
+};
 const Lamp = ({ p }) => (
   <group position={p}>
     <mesh position={[0, 2.1, 0]} castShadow><cylinderGeometry args={[0.06, 0.1, 4.2, 10]} /><meshStandardMaterial color="#1B2636" metalness={0.6} roughness={0.4} /></mesh>
@@ -65,7 +98,7 @@ const paperPose = (f, t) => {
 const Scene = ({ f }) => {
   const t = useMemo(T, []);
   const paving = useMemo(pavingTex, []);
-  paving.wrapS = paving.wrapT = THREE.RepeatWrapping; paving.repeat.set(40, 40);
+  paving.wrapS = paving.wrapT = THREE.RepeatWrapping; paving.repeat.set(50, 50); paving.anisotropy = 8;
   const floods = useMemo(() => [0].map(() => { const o = new THREE.Object3D(); o.position.set(25, 6, 0); return o; }), []);
   const pp = paperPose(f, t);
   const red = ease(f, t.rigged - 2, t.rigged + 6) * (1 - 0.75 * ease(f, t.gameEnd - 4, t.gameEnd + 10));
@@ -74,7 +107,7 @@ const Scene = ({ f }) => {
     <group rotation-y={Math.PI / 2}>
       <Sky zenith="#020A1A" mid="#06193A" horizon="#24508A" glowAt={0.5} />
       <Stars />
-      <mesh rotation-x={-Math.PI / 2} position={[10, 0, 0]} receiveShadow><planeGeometry args={[200, 200]} /><meshStandardMaterial map={paving} roughness={0.55} metalness={0.1} envMapIntensity={0.3} color="#8C9BB2" /></mesh>
+      <mesh rotation-x={-Math.PI / 2} position={[10, 0, 0]} receiveShadow><planeGeometry args={[200, 200]} /><meshStandardMaterial map={paving} bumpMap={paving} bumpScale={0.6} roughness={0.62} metalness={0.05} envMapIntensity={0.35} color="#C4CFDE" /></mesh>
       {/* a long reflecting band of darker stone leading to the steps */}
       <mesh rotation-x={-Math.PI / 2} position={[14, 0.004, 0]} receiveShadow><planeGeometry args={[30, 7]} /><meshStandardMaterial color="#1D2A3E" roughness={0.3} metalness={0.2} /></mesh>
       <group position={[26, 0, 0]} scale={0.6}><DomeBuilding /></group>
@@ -90,8 +123,9 @@ const Scene = ({ f }) => {
         </group>
       ))}
       {/* the MIT group's stack */}
-      <mesh position={[0, PALLET_Y / 2, 0]} castShadow receiveShadow><boxGeometry args={[1.0, PALLET_Y, 1.1]} /><meshStandardMaterial color="#1F3556" roughness={0.6} /></mesh>
-      {[-0.42, 0, 0.42].map((z) => <mesh key={z} position={[0, 0.03, z]}><boxGeometry args={[1.02, 0.06, 0.12]} /><meshStandardMaterial color="#162843" roughness={0.6} /></mesh>)}
+      {/* rev 4 (Timur: the stand under the stack "is fully the same as the floor … change the color"): a real WOODEN pallet — seven
+          pale pine deck boards, three stringers on nine blocks, bottom boards — warm and light against the blue granite */}
+      <Pallet />
       {[0, 1].map((L) => [-1, 1].map((i) => [-1, 1].map((j) => <Tub key={L + "_" + i + "_" + j} position={slot(i, j, L)} rotY={(rnd(L * 9 + i * 3 + j) - 0.5) * 0.06} glow={0} seed={L * 4 + (i + 1) + (j + 1) * 2} num={31 + L * 4 + (i + 1) + (j + 1) / 2} />)))}
       <Tub position={G_TUB} open hero glow={0} seed={3} num={42} />
       <Tub position={slot(1, 1, 2)} rotY={0.04} seed={2} num={41} />

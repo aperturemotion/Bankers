@@ -138,22 +138,41 @@ const buildMIT = () => {
     box("ashlar", b - a, TOP - PODIUM, 0.36, (a + b) / 2, (TOP + PODIUM) / 2, -0.18);
   }
   BAYS.forEach((bx, bi) => {
-    box("ashlar", WIN_W, Y0 - PODIUM, 0.36, bx, (Y0 + PODIUM) / 2, -0.18);
+    // rev 4 (Timur: the door "is just like a cutoff window"): the middle bay's opening runs DOWN TO THE PODIUM FLOOR — it started 0.7 m
+    //   up on a window sill — and holds real glazed bronze double doors with a threshold, pulls and a lit transom
+    const isDoor = bi === 4, yLow = isDoor ? PODIUM : Y0;
+    if (!isDoor) box("ashlar", WIN_W, Y0 - PODIUM, 0.36, bx, (Y0 + PODIUM) / 2, -0.18);
     box("ashlar", WIN_W, TOP - Y1, 0.36, bx, (TOP + Y1) / 2, -0.18);
-    // a moulded stone surround and a sill
-    box("smooth", WIN_W + 0.3, 0.16, 0.12, bx, Y1 + 0.08, 0.06); box("smooth", WIN_W + 0.36, 0.12, 0.22, bx, Y0 - 0.06, 0.08);
-    [-1, 1].forEach((s) => box("smooth", 0.15, Y1 - Y0, 0.1, bx + s * (WIN_W / 2 + 0.075), (Y0 + Y1) / 2, 0.05));
+    // a moulded stone surround and a sill (the door: a granite threshold instead)
+    box("smooth", WIN_W + 0.3, 0.16, 0.12, bx, Y1 + 0.08, 0.06);
+    if (isDoor) box("smooth", WIN_W + 0.2, 0.05, 0.5, bx, PODIUM + 0.025, -0.05);
+    else box("smooth", WIN_W + 0.36, 0.12, 0.22, bx, Y0 - 0.06, 0.08);
+    [-1, 1].forEach((s) => box("smooth", 0.15, Y1 - yLow, 0.1, bx + s * (WIN_W / 2 + 0.075), (yLow + Y1) / 2, 0.05));
     // three tiers of glass in bronze: tier 1 (the doors in the middle bay), spandrel, tier 2, spandrel, tier 3
-    const tiers = [[Y0, 5.4], [6.1, 8.8], [9.5, Y1]];
+    const tiers = [[yLow, 5.4], [6.1, 8.8], [9.5, Y1]];
     tiers.forEach(([ya, yb], ti) => {
       const door = bi === 4 && ti === 0;
       if (door) {
-        // bronze double doors with panels, a lit transom over them
-        box("bronze", WIN_W, 2.5, 0.12, bx, Y0 + 1.25, -0.3);
-        [-1, 1].forEach((s) => { for (let r = 0; r < 3; r++) box("bronze", 0.62, 0.62, 0.05, bx + s * 0.42, Y0 + 0.45 + r * 0.75, -0.22); });
-        box("bronze", 0.04, 2.5, 0.05, bx, Y0 + 1.25, -0.22);
-        K.add("glassLit", new THREE.PlaneGeometry(WIN_W, yb - (Y0 + 2.6)), [bx, (Y0 + 2.6 + yb) / 2, -0.32], [0, 0, 0], [1, 1, 1], { keepUV: true });
-        box("bronze", WIN_W, 0.1, 0.1, bx, Y0 + 2.55, -0.27);
+        // two glazed bronze door leaves (each: stiles, a top rail, a tall lit glass light, a mid rail with a push plate, a solid kick
+        //   panel), a meeting stile, vertical pulls, then a transom bar and a lit transom light with two mullions
+        const DH = 3.45, LW = WIN_W / 2 - 0.05, d0 = ya + 0.02;
+        [-1, 1].forEach((s) => {
+          const cx = bx + s * (LW / 2 + 0.025);
+          box("bronze", 0.13, DH, 0.1, cx - LW / 2 + 0.065, d0 + DH / 2, -0.26); box("bronze", 0.13, DH, 0.1, cx + LW / 2 - 0.065, d0 + DH / 2, -0.26);
+          box("bronze", LW, 0.16, 0.1, cx, d0 + DH - 0.08, -0.26);                       // top rail
+          box("bronze", LW, 0.62, 0.1, cx, d0 + 0.31, -0.26);                            // kick panel
+          box("bronze", LW - 0.18, 0.44, 0.03, cx, d0 + 0.31, -0.2);                     // its raised field
+          box("bronze", LW, 0.12, 0.1, cx, d0 + 1.05, -0.26);                            // mid rail
+          K.add("glassLit", new THREE.PlaneGeometry(LW - 0.24, DH - 1.3), [cx, d0 + 1.11 + (DH - 1.3) / 2, -0.3], [0, 0, 0], [1, 1, 1], { keepUV: true });
+          K.add("glassLit", new THREE.PlaneGeometry(LW - 0.24, 0.3), [cx, d0 + 0.8, -0.3], [0, 0, 0], [1, 1, 1], { keepUV: true });
+          box("bronze", 0.05, 0.9, 0.05, bx + s * 0.1, d0 + 1.45, -0.17);               // the vertical pull
+          [0, 1].forEach((q) => box("bronze", 0.05, 0.05, 0.09, bx + s * 0.1, d0 + 1.05 + q * 0.8, -0.2));   // its standoffs
+        });
+        box("bronze", 0.05, DH, 0.12, bx, d0 + DH / 2, -0.25);                           // the meeting stile
+        box("bronze", WIN_W, 0.16, 0.14, bx, d0 + DH + 0.08, -0.27);                     // the transom bar
+        const t0 = d0 + DH + 0.16;
+        K.add("glassLit", new THREE.PlaneGeometry(WIN_W, yb - t0), [bx, (t0 + yb) / 2, -0.32], [0, 0, 0], [1, 1, 1], { keepUV: true });
+        [-1, 1].forEach((s) => box("bronze", 0.05, yb - t0, 0.08, bx + s * WIN_W / 6, (t0 + yb) / 2, -0.27));
       } else {
         const lit = rnd(bi * 7 + ti * 3 + 1) < 0.22;
         K.add(lit ? "glassLit" : "glass", new THREE.PlaneGeometry(WIN_W, yb - ya), [bx, (ya + yb) / 2, -0.32], [0, 0, 0], [1, 1, 1], { keepUV: true });

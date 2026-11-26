@@ -96,14 +96,18 @@ export const Ticket = ({ pos = [0, 0, 0], rot = [0, 0, 0], s = 1 }) => {
 const TICKET_AT = [0, 0, -16];
 export const TICKET_S = 1.5;   // Timur, 2026-11-26: "make it a bit bigger when it lands on the street"
 const ticketPose = (t, f) => {
+  // rev 4 (Timur: "when the lottery ticket falls, it goes underground … it should just lay down on the ground and stay there"): it
+  //   drifts down like a leaf (spinning, rocking), its face turning up as it comes, and SETTLES FLAT, face up, on the road at
+  //   "lottery" + 6 — and stays. The pose is nested (yaw outside, then the tilt about the ticket's own width axis, then the rock), and
+  //   its height is never less than what keeps every corner above the asphalt (the old tip-over, tilted about the world x axis after
+  //   the yaw, buried a corner 0.4 m)
   const k = ease(f, t.lottery - 34, t.lottery + 6);
-  const y = 0.05 + 1.5 * TICKET_S + 13 * (1 - k) * (1 - k);
-  const sway = (1 - k) * 0.45 * Math.sin((f - t.lottery) / 5);
-  // rev 3: as the camera starts its vault toward the store it tips over backward (pivoting on its bottom edge, accelerating like a
-  //   falling card) and lies flat on the road, so the flight passes over it instead of through it (it filled the frame and was gone in
-  //   one frame at 6.8 s)
-  const q = ease(f, t.next - 30, t.next - 12), th = (Math.PI / 2 - 0.02) * q * q, half = 1.5 * TICKET_S;
-  return { pos: [TICKET_AT[0] + (1 - k) * 2.2 * Math.sin((f - t.lottery) / 9), y - half * (1 - Math.cos(th)), TICKET_AT[2] - half * Math.sin(th)], rot: [sway * 0.6 - th, -0.35 + (1 - k) * 2.4, sway], vis: f > t.lottery - 36 };
+  const rock = (1 - k) * 0.45 * Math.sin((f - t.lottery) / 5);
+  const tilt = -(Math.PI / 2) * (0.25 + 0.75 * k * k) + (1 - k) * 0.5 * Math.sin((f - t.lottery) / 7);
+  const half = 1.5 * TICKET_S, halfW = 0.85 * TICKET_S, REST = 0.03;
+  const clear = half * Math.abs(Math.cos(tilt)) * Math.cos(rock) + halfW * Math.abs(Math.sin(rock));
+  const y = REST + clear + 13 * (1 - k) * (1 - k);
+  return { pos: [TICKET_AT[0] + (1 - k) * 2.2 * Math.sin((f - t.lottery) / 9), y, TICKET_AT[2]], yaw: -0.35 + (1 - k) * 2.4, tilt, rock, vis: f > t.lottery - 36 };
 };
 const Scene = ({ f }) => {
   const t = useMemo(T, []);
@@ -131,7 +135,7 @@ const Scene = ({ f }) => {
         <mesh position={[0, 2.5, 0.032]}><planeGeometry args={[2.6, 1.62]} /><meshStandardMaterial map={sign} roughness={0.35} emissiveMap={sign} emissive="#ffffff" emissiveIntensity={0.18} /></mesh>
       </group>
       {/* the ticket, falling then standing on the road, with its contact shadow under the lamps */}
-      {tp.vis && <Ticket pos={tp.pos} rot={tp.rot} s={TICKET_S} />}
+      {tp.vis && <group position={tp.pos} rotation-y={tp.yaw}><group rotation-x={tp.tilt}><group rotation-z={tp.rock}><Ticket s={TICKET_S} /></group></group></group>}
       {/* far hills and a water tower on the skyline (the town's silhouette) */}
       <group position={[-14, 0, -118]}>
         <mesh position={[0, 9, 0]}><sphereGeometry args={[3.2, 24, 16]} /><meshStandardMaterial color="#5b7392" roughness={0.6} metalness={0.3} /></mesh>
@@ -146,7 +150,7 @@ const shots = () => {
   return [
     { a: 0, b: 0, pos: [-1.0, 1.25, 15], target: [2.6, 2.0, -12], fov: 40 },
     { a: 0, b: t.lottery - 10, pos: [-0.9, 1.7, 5], target: [1.2, 1.6, -15], fov: 38 },
-    { a: t.lottery - 10, b: t.years + 26, pos: [-2.0, 2.5, 1.2], target: [-1.3, 1.15, -16], fov: 34 }   // rev 2: aimed 1.4 m left, so the bigger ticket stands right of centre and 9 YEARS has the upper left
+    { a: t.lottery - 22, b: t.years + 26, pos: [-1.6, 6.4, -2.6], target: [-0.1, 0.9, -19.5], fov: 36 }   // rev 4: rises as the ticket comes down and looks DOWN on it lying flat on the road (the street and its lit fronts still beyond)
   ];
 };
 const COUNTER_X = 290;
@@ -154,7 +158,7 @@ const Overlay = ({ f, P }) => {
   const t = T();
   const sign = P([ROAD_W / 2 + 0.9, 2.6, -12]);
   const tk = ticketPose(t, f);
-  const tick = P([tk.pos[0] - 0.8 * TICKET_S, tk.pos[1] + 0.2 * TICKET_S, tk.pos[2]]);
+  const tick = P([tk.pos[0] - 0.55 * TICKET_S, tk.pos[1] + 0.02, tk.pos[2] - 0.6 * TICKET_S]);   // the ticket's upper-left, lying flat
   return (
     <>
       {/* rev 2 tag audit: each is fully in (at + 12/14) by its word, reads ≥ 36 f, and the pinned ones leave before the flight to
