@@ -80,7 +80,7 @@ the other accounts (100bps, offcamcelebs and more).
   V28 https://claude.ai/artifact/4SaBVnRUuG5AaMYfa4LXnK · V29 https://claude.ai/artifact/MT4AF5rsjS2JQkDYadT79Z ·
   V30 https://claude.ai/artifact/2BpnwhEcS3Qd3mm3PSyxTU · V32 https://claude.ai/artifact/Hp4vdxoM2GojKkBCEr92Rz ·
   V33 https://claude.ai/artifact/CVgsqdzcu6h5sBdu6EweSS · V34 https://claude.ai/artifact/S5jow7Rp4xhhUKHECBKzLC ·
-  V35 https://claude.ai/artifact/LAo7r5cN97oHuiMqsPDu8A · V36 Bre-X Gold https://claude.ai/artifact/YDB51b6K1wcmNPX6VxHfd2 (rendered version: vial rebuilt, Me And The Devil, v4; master in the video folder's delivered/). · V37 Theranos https://claude.ai/artifact/TvttwWBRAsneWWnKDt4weY (v5: revision 4 — the whistle scene rebuilt; RENDERED again 2026-11-25 as delivered/…_v2.mp4, v1 superseded). · V38 Selbees Lottery (the first 3-D World film) https://claude.ai/artifact/3Hkw7MMXkcu49YqR6AiRCK (v6: revision 3 — the balance held wide, cross-dissolves at 24 s and 70 s, overlapping shots, the fly-out through the window; v5: revision 2 on Timur's Nov 26 notes — detailed town/store/print/machinery/car, real $1 notes, the 711 song, smoothCam, the gantry sign relaid, MIT and the State House rebuilt as the real buildings; v1 render delivered/…_v1.mp4 superseded, not handed in). (There is no Video 31.) Each Studio's bundle holds that film's compiled code
+  V35 https://claude.ai/artifact/LAo7r5cN97oHuiMqsPDu8A · V36 Bre-X Gold https://claude.ai/artifact/YDB51b6K1wcmNPX6VxHfd2 (rendered version: vial rebuilt, Me And The Devil, v4; master in the video folder's delivered/). · V37 Theranos https://claude.ai/artifact/TvttwWBRAsneWWnKDt4weY (v5: revision 4 — the whistle scene rebuilt; RENDERED again 2026-11-25 as delivered/…_v2.mp4, v1 superseded). · V38 Selbees Lottery (the first 3-D World film) https://claude.ai/artifact/3Hkw7MMXkcu49YqR6AiRCK (v7: revision 4 — one detailed lottery ticket for every scene (ticket_art.ts; Michigan $1 / Massachusetts $2 a play), the hook ticket lying flat on the road, MIT's real doors and granite paving, the wooden pallet, the State House hall, the furnished home; v6: revision 3 — the balance held wide, cross-dissolves at 24 s and 70 s, overlapping shots, the fly-out through the window; v5: revision 2 on Timur's Nov 26 notes — detailed town/store/print/machinery/car, real $1 notes, the 711 song, smoothCam, the gantry sign relaid, MIT and the State House rebuilt as the real buildings; v1 render delivered/…_v1.mp4 superseded, not handed in). (There is no Video 31.) Each Studio's bundle holds that film's compiled code
   — the way to recover a lost film.
 - **The Worker app numbers Bankers per contract:** "Video 2 of 15" = Video 35 (the lottery reel); "Video 3 of 15" (Bre-X, due Nov 24)
   is the next; "Video 4 of 15" = Video 37 (Theranos, due Nov 25 — moved from Nov 26 in the app). The daily 06:00 Moscow routine (CONTENT.md changelog) checks it.
@@ -220,6 +220,15 @@ induction loop. All 720×1280 at 30 fps, 63–98 s, −14.1 LUFS.
   is a cut at `at`; for 7 f either side a second canvas renders the other station with its own camera (the outgoing one still drifting
   on its last shot, both drifting the same screen direction) and the pictures cross-fade on a smootherstep. A cut shot at `at` lands on
   at + 1: key the swap there. Flights stay for places in one continuous world (a street, a plaza).
+- **★★ A PROP IS THE REAL THING AT A GLANCE (Timur, V38 rev 4: the ticket "looks like a calendar … make it look like a lottery ticket …
+  eye catching"; MIT's door "is just like a cutoff window"; the State House's open door showed "brown boxes").** Draw the details that
+  make the real object recognisable: a draw ticket has a pre-printed security field, a game logo, balls, thermal QUICK PICK lines with
+  QP, price/total, serials, barcodes, small print; a door reaches the floor with a threshold, leaves and pulls; an open door shows the
+  room that is really behind it. A prop used in several scenes is ONE shared drawing (ticket_art.ts), and its printed figures follow
+  FACTCHECK (Michigan Winfall $1 a play, Massachusetts Cash WinFall $2).
+- **★ Things that fall come to rest ON the surface (Timur: the ticket "sinks into the ground … it should just lay down on the ground and
+  stay there").** Compute the lowest corner of a falling/tipping object every frame (nest yaw → tilt → rock so a tip turns about the
+  object's own edge) and keep it ≥ 0; check it numerically, not by eye.
 - **★★ SIGNS AND PRINT: graphics never overlap text (Timur, 2026-11-26: "the arrows and the Massachusetts title overlap each other").**
   A sign's arrows, icons or rules sit in their own band beside or below the legend — never inside its line; check every sign at full
   size. Real-world signs follow their real layout (US guide sign: destination legend, then the lane arrows under it).
