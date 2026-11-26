@@ -11,7 +11,9 @@ const arg = (k, d) => { const i = process.argv.indexOf(k); return i > 0 ? proces
 const CHUNK = Number(arg("--chunk", 120)), CONC = Number(arg("--conc", 1)), PORT = Number(arg("--port", 5900));
 const ONLY = arg("--only", null);
 const FFPROBE = process.env.FFPROBE ?? "ffprobe", FFMPEG = process.env.FFMPEG ?? "ffmpeg";
-const D = "out/r38"; fs.mkdirSync(D, { recursive: true });
+const CHECK = process.argv.includes("--check");   // a half-size, picture-only CHECK render (out/rchk/check.mp4) — never the master
+const D = CHECK ? "out/rchk" : "out/r38"; fs.mkdirSync(D, { recursive: true });
+const SCALE = CHECK ? 0.5 : 1;
 const chromiumOptions = { gl: "swangle" };
 const serveUrl = await bundle({ entryPoint: path.resolve("src/index.ts") });
 process.on("exit", () => { try { fs.rmSync(serveUrl, { recursive: true, force: true }); } catch {} });
@@ -27,7 +29,7 @@ for (let a = 0; a < N; a += CHUNK) {
   if (fs.existsSync(out) && frames(out) === b - a + 1) { console.log(`skip ${a}-${b}`); continue; }
   const tmp = out.replace(".mp4", ".part.mp4");
   const ts = Date.now();
-  await renderMedia({ serveUrl, composition: comp, codec: "h264", crf: 16, muted: true, frameRange: [a, b], outputLocation: tmp, concurrency: CONC, port: PORT,
+  await renderMedia({ serveUrl, composition: comp, codec: "h264", crf: 16, muted: true, frameRange: [a, b], outputLocation: tmp, concurrency: CONC, port: PORT, scale: SCALE,
     chromiumOptions, inputProps: { solo: "picture" }, timeoutInMilliseconds: 240000,
     onBrowserLog: (l) => { if (l.type === "error") console.log("BROWSER", l.text.slice(0, 200)); } });
   const n = frames(tmp);
@@ -37,6 +39,13 @@ for (let a = 0; a < N; a += CHUNK) {
   console.log(`seg ${a}-${b} ${s.toFixed(0)}s (${(s / (b - a + 1)).toFixed(1)} s/f) elapsed ${((Date.now() - t0) / 60000).toFixed(1)} min`);
 }
 if (ONLY) process.exit(0);
+if (CHECK) {
+  const segs = fs.readdirSync(D).filter((f) => /^seg_\d+\.mp4$/.test(f)).sort();
+  fs.writeFileSync(`${D}/list.txt`, segs.map((f) => `file '${f}'`).join("\n") + "\n");
+  execFileSync(FFMPEG, ["-y", "-v", "error", "-f", "concat", "-safe", "0", "-i", `${D}/list.txt`, "-c", "copy", `${D}/check.mp4`]);
+  console.log(`CHECK ${D}/check.mp4: ${frames(`${D}/check.mp4`)} frames (expected ${N})`);
+  process.exit(0);
+}
 const wav = `${D}/audio.wav`;
 await renderMedia({ serveUrl, composition: { ...comp, props: { ...comp.props, solo: "audio" } }, codec: "wav", outputLocation: wav, port: PORT, inputProps: { solo: "audio" }, concurrency: 1 });
 const segs = fs.readdirSync(D).filter((f) => /^seg_\d+\.mp4$/.test(f)).sort();
