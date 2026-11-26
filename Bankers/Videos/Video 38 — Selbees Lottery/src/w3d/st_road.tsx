@@ -56,14 +56,18 @@ const roadTex = () => canvasTex("c_interstate", 512, 1024, (c, w, h) => {
   // rumble strips on the shoulders
   c.fillStyle = "rgba(10,16,26,0.5)"; for (let x = 0; x < w; x += 12) { c.fillRect(x, zRow(2.1), 5, zRow(2.6) - zRow(2.1)); c.fillRect(x, zRow(-6.3), 5, zRow(-5.8) - zRow(-6.3)); }
 });
-const signTex = () => canvasTex("c_massSign", 1024, 360, (c, w, h) => {
+// rev 2 (Timur: "the arrows and the Massachusetts title overlap each other"): a guide-sign layout — EAST on top, the legend in the
+// middle, the down-arrows in their OWN band under it (never inside the legend's line), drawn at 2× (2048 × 720, same 2.84:1 aspect)
+const signTex = () => canvasTex("c_massSign2", 2048, 720, (c, w, h) => {
   c.fillStyle = "#0B3F7A"; c.fillRect(0, 0, w, h);
-  c.strokeStyle = "#FFFFFF"; c.lineWidth = 12; c.beginPath(); c.roundRect(16, 16, w - 32, h - 32, 26); c.stroke();
-  c.fillStyle = "#FFFFFF"; c.textAlign = "center";
-  c.font = `700 62px ${BODY}`; c.fillText("EAST", w / 2, 102);
-  c.font = `800 150px ${BODY}`; c.fillText("MASSACHUSETTS", w / 2, 262, w - 90);
-  // an arrow down to the lane, either side
-  [130, w - 130].forEach((x) => { c.beginPath(); c.moveTo(x, 300); c.lineTo(x - 26, 262); c.lineTo(x - 9, 262); c.lineTo(x - 9, 220); c.lineTo(x + 9, 220); c.lineTo(x + 9, 262); c.lineTo(x + 26, 262); c.closePath(); c.fill(); });
+  c.strokeStyle = "#FFFFFF"; c.lineWidth = 22; c.beginPath(); c.roundRect(30, 30, w - 60, h - 60, 50); c.stroke();
+  c.fillStyle = "#FFFFFF"; c.textAlign = "center"; c.textBaseline = "alphabetic";
+  c.font = `700 112px ${BODY}`; c.fillText("EAST", w / 2, 178);
+  c.font = `800 236px ${BODY}`; c.fillText("MASSACHUSETTS", w / 2, 438, w - 200);
+  // the lane arrows: a band below the legend (legend baseline 438, no descenders; arrows 478 → 640)
+  c.fillStyle = "rgba(255,255,255,0.18)"; c.fillRect(110, 468, w - 220, 4);
+  c.fillStyle = "#FFFFFF";
+  [w * 0.28, w * 0.72].forEach((x) => { c.beginPath(); c.moveTo(x, 640); c.lineTo(x - 64, 560); c.lineTo(x - 22, 560); c.lineTo(x - 22, 488); c.lineTo(x + 22, 488); c.lineTo(x + 22, 560); c.lineTo(x + 64, 560); c.closePath(); c.fill(); });
 });
 // the gantry passes over the camera (chase cam at x −8.5) 10 f after "Massachusetts." ends
 const gantryX = (f, t) => -8.5 + (S(t.massEnd + 10) - S(f));

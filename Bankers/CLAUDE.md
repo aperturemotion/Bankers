@@ -188,6 +188,30 @@ induction loop. All 720×1280 at 30 fps, 63–98 s, −14.1 LUFS.
 - **Render: `scratchpad/render38.mjs`** (60-f muted h264 chunks, resumable, then an audio-only wav pass and a mux). Measured ~2–4 s/frame at
   concurrency 2 (≈ 1.5–2 h for 77 s). ⚠ The audio pass must pass `composition.props.solo = "audio"`: `inputProps` alone left the
   composition's resolved props on "picture", so it rendered the WebGL picture for 30 min and would have written silence.
+- **★★★ THE CAMERA IS ONE SMOOTH GLIDE — NO STOP-AND-GO, NO BACK-AND-FORTH (Timur, 2026-11-26, V38 rev 2: "the camera movement …
+  is not smooth … it just moves a bit, like each several shots … it shakes"; then "it goes a bit more to the right and then glitches
+  back … it happens throughout the whole video … no fast movements back and forth").**
+  - `CAM = smoothCam(makeCam(shots), TOTAL, cutFrames, 14)` (kit.tsx): a 14-f Gaussian over the whole path in camera space (aim point,
+    view direction, log distance, fov, roll), segment by segment between hard cuts (point-reflected ends: cut frames stay exact).
+    Its three guards, each from a glitch Timur saw: the window NEVER reaches into a flight between places (> 30 m runs stay raw —
+    a window that did pulled every hold toward the next place and snapped back: 22 s, 26 s, 35 s, 52 s, 72 s); the 30 f either side of
+    a hard cut stay raw (a push into / pull-back out of a cut is one designed ease); the strength is a PRODUCT of eased ramps (a
+    min() of linear ramps kinked mid-segment and jolted the camera).
+  - **Author shots without reversals:** never chain "round to the side → ahead → back behind" swings; one sweep per sentence.
+    A move out of a close-up < 0.5 m whips — frame close-ups from ≥ ~1 m when the camera must leave them; a 50× zoom-out needs ≥ 40 f.
+  - **Checks before every handback** (on the camera dump `scratchpad/camdump2_entry.ts` → out/cam_s.json):
+    `python3 scratchpad/camjerk.py out/cam_s.json 12` — the image-motion change per frame of a point cloud at the subject (what the
+    viewer sees); the published glitches measured 55–403 px/f², the fixed film ≤ 23. `camflow.py` lists slower direction changes
+    (judge them by eye); `camsmooth_check.py` counts stop-and-go dips and proves the cut frames unchanged.
+- **★★ SIGNS AND PRINT: graphics never overlap text (Timur, 2026-11-26: "the arrows and the Massachusetts title overlap each other").**
+  A sign's arrows, icons or rules sit in their own band beside or below the legend — never inside its line; check every sign at full
+  size. Real-world signs follow their real layout (US guide sign: destination legend, then the lane arrows under it).
+- **★★ LANDMARK BUILDINGS ARE BUILT AS THE REAL BUILDING, IN DETAIL (Timur, 2026-11-26: MIT and the Massachusetts State House "a lot
+  more detailed … a lot more eye-catching and just better overall").** A named building (MIT's Great Dome, the State House) carries
+  its real architecture — colonnades, capitals, cornices, domes, drums, lanterns, steps, fences, windows, real inscriptions — not a
+  generic dome on a box.
+- **★ The song: "change the song to the video about …" = take that video's bed** (log.md lists each video's song); played as the file
+  at ONE volume (STYLE 11.3), the drop on the line after the hook, the volume matched as heard to the bed it replaces.
 - **★★★ NO GREY PLACEHOLDER LINES — REAL TEXT ON EVERY PRINTED SURFACE (Timur, 2026-11-26, V38 rev 2: "Again, gray lines appear.
   Please don't do that … let's add some rule to the bankers … to not use basically the gray lines. You use actual text when filling up").**
   Brochures, newspapers, reports, certificates, labels, receipts, screens: real, legible, plausible text in real typography (headings,

@@ -1350,3 +1350,7 @@ loitering.
   - A matched cut between two round things puts both on the SAME screen point at the same size, the push carrying through.
   - Labels (tags) are fully in by their word and readable; never so late they are missed.
   - The song is the one from the video he names, played as the file at one volume (11.3), its drop on the line after the hook.
+  - **The camera is one smooth glide** (kit.smoothCam, Bankers CLAUDE.md F): no stop-and-go between shots, and NO back-and-forth —
+    nothing overshoots a framing and swings back; no fast whip out of a close-up. Checked by camjerk.py (image motion, ≤ ~25 px/f²).
+  - Graphics never overlap text on signs and print (the gantry's arrows sit in their own band under MASSACHUSETTS).
+  - Named landmark buildings (MIT, the State House) are built as the real architecture, in detail.
