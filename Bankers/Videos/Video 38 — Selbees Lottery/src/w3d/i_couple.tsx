@@ -258,13 +258,13 @@ const faceTex = (fem) => canvasTex(fem ? "cpl_face_f" : "cpl_face_m", 1024, 512,
     blob(s * 0.4, -0.06, 30, 14, "rgba(120,70,70,0.22)");                                          // under the eyes
     blob(s * 0.4, 0.04, 34, 16, "rgba(110,70,60,0.25)");                                           // the socket's shade
     // the eye: white, iris, pupil, lids and lashes
-    const ex = X(s * 0.4), ey = Y(0.035), ew = 27, eh = 9;
+    const ex = X(s * 0.4), ey = Y(0.035), ew = 25, eh = 6.2;   // rev 4c review: a relaxed, slightly hooded eye (it stared)
     c.save(); c.beginPath(); c.ellipse(ex, ey, ew, eh, 0, 0, TAU); c.clip();
-    c.fillStyle = "rgb(236,230,224)"; c.fillRect(ex - ew, ey - eh, 2 * ew, 2 * eh);
+    c.fillStyle = "rgb(206,196,188)"; c.fillRect(ex - ew, ey - eh, 2 * ew, 2 * eh);
     c.fillStyle = fem ? "rgb(86,112,132)" : "rgb(92,78,62)"; c.beginPath(); c.arc(ex - s * 2, ey + 1, 8.5, 0, TAU); c.fill();
     c.fillStyle = "rgb(20,16,14)"; c.beginPath(); c.arc(ex - s * 2, ey + 1, 3.6, 0, TAU); c.fill();
     c.fillStyle = "rgba(255,255,255,0.85)"; c.beginPath(); c.arc(ex - s * 2 - 3, ey - 2, 1.6, 0, TAU); c.fill();
-    c.fillStyle = "rgba(90,50,40,0.35)"; c.fillRect(ex - ew, ey - eh, 2 * ew, 4);    // the upper lid's shadow
+    c.fillStyle = "rgba(90,50,40,0.5)"; c.fillRect(ex - ew, ey - eh, 2 * ew, 5.5);    // the upper lid's shadow (heavier: the lid covers the iris top)
     c.restore();
     c.strokeStyle = fem ? "rgba(50,34,30,0.85)" : "rgba(70,46,36,0.7)"; c.lineWidth = fem ? 3 : 2.2;
     c.beginPath(); c.ellipse(ex, ey, ew, eh, 0, PI * 1.05, PI * 1.95); c.stroke();
@@ -285,8 +285,8 @@ const faceTex = (fem) => canvasTex(fem ? "cpl_face_f" : "cpl_face_m", 1024, 512,
   blob(0, -0.38, 22, 10, "rgba(90,50,40,0.45)");
   for (const s of [-1, 1]) { blob(s * 1.0, 0.1, 110, 160, "rgba(110,60,50,0.22)"); blob(s * 0.55, -0.85, 90, 50, "rgba(100,60,50,0.2)"); }
   // the mouth: muted lips, a darker parting line
-  c.fillStyle = fem ? "rgba(160,74,84,0.95)" : "rgba(150,82,78,0.85)";
-  c.beginPath(); c.ellipse(X(0), Y(-0.6), 44, fem ? 10 : 8, 0, 0, TAU); c.fill();
+  c.fillStyle = fem ? "rgba(178,106,110,0.8)" : "rgba(160,100,92,0.6)";   // rev 4c review: closed, thinner lips
+  c.beginPath(); c.ellipse(X(0), Y(-0.6), 40, fem ? 6.5 : 5.5, 0, 0, TAU); c.fill();
   c.strokeStyle = "rgba(80,36,36,0.8)"; c.lineWidth = 2.4; c.beginPath(); c.moveTo(X(-0.17), Y(-0.6)); c.quadraticCurveTo(X(0), Y(-0.585), X(0.17), Y(-0.6)); c.stroke();
   blob(0, -0.78, 40, 18, "rgba(110,70,60,0.18)");   // under the lower lip
   if (!fem) { c.fillStyle = "rgba(90,80,80,0.10)"; c.fillRect(X(-0.5), Y(-0.55), X(0.5) - X(-0.5), Y(-1.3) - Y(-0.55)); }   // a shaved jaw's shadow
@@ -643,7 +643,7 @@ const freeArm = (out, S, side, phi, amp, abd, carry = 0) => {
   const lag = (side > 0 ? -1 : 1) * Math.cos(TAU * (ph - 0.09));
   const Qu = qm(out.chestQ, qa("z", side * abd), qa("x", -swing));
   const Qf = qm(Qu, qa("x", -flex), qa("y", -side * 0.35));
-  const Qh = qm(Qf, qa("x", (carry ? 0.05 : -0.08) - 0.07 * lag * amp / 0.2), qa("z", -side * 0.06));
+  const Qh = qm(Qf, qa("x", (carry ? 0.05 : 0.06) - 0.05 * lag * amp / 0.2), qa("z", side * 0.1));   // rev 4c review: wrist neutral, the hand hanging slightly in toward the thigh
   out.Q[up] = Qu; out.Q[up + 1] = Qf; out.Q[up + 2] = Qh;
   void sw;
 };
@@ -695,7 +695,7 @@ const poseAt = (R, f, prm) => {
   const om = solvePose(R.man.S, t, mOpt), ow = solvePose(R.wom.S, t, wOpt);
   const gm = v3(prm.x, prm.y, z), gw = v3(prm.x + GAP, prm.y, z - 0.04);
   // the free arms: his right swings freely; her left carries the bag (a smaller swing, abducted to clear the coat)
-  freeArm(om, R.man.S, -1, om.phi, 0.2, 0.1);
+  freeArm(om, R.man.S, -1, om.phi, 0.26, 0.08);   // rev 4c review: ±15° (it was ±11.5°)
   freeArm(ow, R.wom.S, 1, ow.phi, 0.1, 0.27, 1);
   // the held hands: a shared grip between them that sways gently with both gaits
   const sM = om.shL.clone().add(gm), sW = ow.shR.clone().add(gw);
