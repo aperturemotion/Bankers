@@ -18,3 +18,13 @@
 
 Each was trimmed (from its first onset, or around its loudest hit), faded out over 0.15 s, peak-normalised to −3 dBFS, mono 48 kHz,
 and its SfxLayer EVEN set so its active mean level matches the film's existing effects (≈ −38 dB effective).
+
+## rev 8 (2026-11-27) — more Openverse CC0
+| file | original title | creator | licence | source |
+|---|---|---|---|---|
+| ov_night_street.wav | Night city atmosphere | Soundkrampf | CC0 | https://freesound.org/people/Soundkrampf/sounds/237329 |
+| ov_highway.wav | Highway drive interior | gecop | CC0 | https://freesound.org/people/gecop/sounds/521766 |
+| ov_typewriter.wav | Long Sound Typewriter | fellwell5 | CC0 | https://freesound.org/people/fellwell5/sounds/170547 |
+| ov_car_pass.wav | Car passing by.wav | hinzebeat | CC0 | https://freesound.org/people/hinzebeat/sounds/171447 |
+
+Plus 19 more sounds from the Earn Edits pack (ee_*, from 100bps Style 3 V46's public/sfx in 100bps-reference.zip).

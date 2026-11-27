@@ -5,17 +5,37 @@ import * as jsx_runtime from "react/jsx-runtime";
 import { aud } from "./aud";
 
 const EVEN = {
+  // rev 8: Earn Edits pack + Openverse, active mean set to −39 dB
+  ee_amb_press_conference_busy_camera_shutters: 0.2968,
+  ee_click_designed_click_01: 0.0527,
+  ee_click_keyboard_typing_02: 0.164,   // rev 8: peak-capped at −6 dBFS
+  ee_impact_creepy_impact: 0.0640,
+  ee_money_coin_drop_01: 0.0814,
+  ee_money_coin_drop_02: 0.1300,
+  ee_money_coins_tossed_on_table: 0.1698,
+  ee_paper_page_turn_02: 0.3000,
+  ee_pen_marker_stroke_01: 0.1218,
+  ee_pen_pen_stroke_01: 0.1026,
+  ee_pen_pencil_stroke_01: 0.1108,
+  ee_whoosh_designed_medium_whoosh_01: 0.0521,
+  ee_whoosh_large_whoosh_02: 0.0524,
+  ee_whoosh_medium_whoosh_02: 0.0591,
+  ee_whoosh_whoosh_02: 0.0408,
+  ov_car_pass: 0.1437,
+  ov_highway: 0.3055,
+  ov_night_street: 0.2968,
+  ov_typewriter: 0.0834,
   ov_stamp: 0.2061,
   ov_money_drop: 0.1062,
-  ov_coins: 0.3308,
-  ov_paper_flutter: 0.4548,
+  ov_coins: 0.168,   // rev 8: peak-capped at −6 dBFS
+  ov_paper_flutter: 0.208,   // rev 8: peak-capped at −6 dBFS
   ov_steps: 0.4767,
-  ov_chalk: 0.4704,
+  ov_chalk: 0.330,   // rev 8: peak-capped at −6 dBFS
   ov_clank: 0.0721,
   ov_newspaper: 0.4052,
   ov_paper_unfold: 0.2287,
   ov_printer: 0.1666,
-  ov_drawer: 0.359,
+  ov_drawer: 0.151,   // rev 8: peak-capped at −6 dBFS
   ov_car_away: 0.2633,
   ov_car_start: 0.0842,
   coin: 0.1,
@@ -51,7 +71,7 @@ const EVEN = {
   // 2.28s · measured -31.1 dB · equal-mean 0.403 x 0.71
   airwoosh: 0.101,
   // 1.78s · measured -22.1 dB · equal-mean 0.143 x 0.71
-  chain: 0.947,
+  chain: 0.6460,
   // 3.00s · measured -41.5 dB · equal-mean 1.334 x 0.71
   lowwoosh: 0.283,
   // 2.50s · measured -31.0 dB · equal-mean 0.398 x 0.71
@@ -59,7 +79,7 @@ const EVEN = {
   // 1.33s · measured -18.2 dB · equal-mean 0.091 x 0.71
   pingshort: 0.85,
   // same source as ping, less tail → less energy, so a touch hotter
-  chainshort: 0.7,
+  chainshort: 0.2480,
   datashort: 0.34,
   datamid: 0.31,
   gavel: 0.195,
@@ -125,17 +145,88 @@ const EVEN = {
   // 0.32s · active -12.1 dB · peak 2.0 dBFS · equal-mean
   ee_click_marimba_click_01: 0.0841,
   // 0.84s · active -12.8 dB · peak 1.8 dBFS · equal-mean
-  ee_clock_clock_ticking_01: 0.3245,
+  ee_clock_clock_ticking_01: 0.4103,
   // 5.80s · active -26.4 dB · peak -2.5 dBFS · equal-mean x 0.71
   ee_amb_press_conference_busy_camera_shutters: 0.3135
   // 9.76s · active -27.7 dB · peak -0.6 dBFS · equal-mean x 0.71
 };
 const PRESENCE = 1.25;
+// rev 8 (Timur: "I don't hear any sound effects"): measured offline (scratchpad/sfxaudit.py, loudest 100 ms of each cue against the bed + voice
+// at that moment), the score sat 20–35 dB under — inaudible — and only the tonal pings cut through. LEVEL lifts each family's median to its
+// target: whooshes −10, impacts −9, foley −10, clicks −12, ticks/chain −14, pings −15, ambiences −16 dB under the bed + voice.
+const LEVEL = {
+  airwoosh: 2.917,   // -19.3 → -10 dB vs bed+voice
+  chain: 3.715,   // -25.4 → -14 dB vs bed+voice
+  chainshort: 11.614,   // -35.3 → -14 dB vs bed+voice
+  coin: 9.120,   // -29.2 → -10 dB vs bed+voice
+  data: 9.120,   // -34.2 → -15 dB vs bed+voice
+  ee_amb_press_conference_busy_camera_shutters: 1.905,   // -15.6 → -10 dB vs bed+voice
+  ee_click_click_01: 3.311,   // -22.4 → -12 dB vs bed+voice
+  ee_click_designed_click_01: 2.600,   // -20.3 → -12 dB vs bed+voice
+  ee_click_keyboard_typing_02: 3.428,   // -20.7 → -10 dB vs bed+voice
+  ee_clock_clock_ticking_01: 4.630,   // -30.3 → -17 dB vs bed+voice (capped: its file is peaky, gain stays ≤ 0.9)
+  ee_impact_creepy_impact: 2.630,   // -17.4 → -9 dB vs bed+voice
+  ee_impact_low_hit_01: 1.135,   // -10.1 → -9 dB vs bed+voice
+  ee_money_coin_drop_01: 2.818,   // -19.0 → -10 dB vs bed+voice
+  ee_money_coins_tossed_on_table: 1.303,   // -12.3 → -10 dB vs bed+voice
+  ee_money_counting_banknotes: 1.148,   // -11.2 → -10 dB vs bed+voice
+  ee_paper_fast_page_turn_01: 1.109,   // -10.9 → -10 dB vs bed+voice
+  ee_paper_page_turn_02: 1.175,   // -11.4 → -10 dB vs bed+voice
+  ee_paper_paper_tear_01: 8.222,   // -28.3 → -10 dB vs bed+voice
+  ee_pen_marker_stroke_01: 1.995,   // -16.0 → -10 dB vs bed+voice
+  ee_pen_pen_stroke_01: 4.955,   // -23.9 → -10 dB vs bed+voice
+  ee_pen_pencil_stroke_01: 3.273,   // -20.3 → -10 dB vs bed+voice
+  ee_whoosh_cinematic_whoosh_hit: 0.861,   // -8.7 → -10 dB vs bed+voice
+  ee_whoosh_designed_medium_whoosh_01: 1.799,   // -15.1 → -10 dB vs bed+voice
+  ee_whoosh_fast_small_whoosh_01: 1.905,   // -15.6 → -10 dB vs bed+voice
+  ee_whoosh_medium_whoosh_02: 2.188,   // -16.8 → -10 dB vs bed+voice
+  ov_car_away: 1.928,   // -15.7 → -10 dB vs bed+voice
+  ov_car_pass: 1.072,   // -10.6 → -10 dB vs bed+voice
+  ov_car_start: 4.217,   // -22.5 → -10 dB vs bed+voice
+  ov_chalk: 4.624,   // -23.3 → -10 dB vs bed+voice
+  ov_clank: 9.441,   // -29.5 → -10 dB vs bed+voice
+  ov_coins: 9.016,   // -29.1 → -10 dB vs bed+voice
+  ov_drawer: 8.511,   // -28.6 → -10 dB vs bed+voice
+  ov_highway: 1.175,   // -17.4 → -16 dB vs bed+voice
+  ov_money_drop: 5.370,   // -24.6 → -10 dB vs bed+voice
+  ov_newspaper: 5.188,   // -24.3 → -10 dB vs bed+voice
+  ov_night_street: 0.977,   // -15.8 → -16 dB vs bed+voice
+  ov_paper_flutter: 7.244,   // -27.2 → -10 dB vs bed+voice
+  ov_paper_unfold: 4.732,   // -23.5 → -10 dB vs bed+voice
+  ov_printer: 11.220,   // -31.0 → -10 dB vs bed+voice
+  ov_stamp: 9.333,   // -29.4 → -10 dB vs bed+voice
+  ov_steps: 6.026,   // -25.6 → -10 dB vs bed+voice
+  ov_typewriter: 2.512,   // -18.0 → -10 dB vs bed+voice
+  pingshort: 1.303,   // -17.3 → -15 dB vs bed+voice
+  sub: 3.981,   // -21.0 → -9 dB vs bed+voice
+  thud: 6.457,   // -27.2 → -11 dB vs bed+voice
+  whooshlong: 4.955,   // -23.9 → -10 dB vs bed+voice
+  whooshsoft: 3.090,   // -19.8 → -10 dB vs bed+voice
+};
 const GAIN = Object.fromEntries(
-  Object.entries(EVEN).map(([k, v]) => [k, v * PRESENCE])
+  Object.entries(EVEN).map(([k, v]) => [k, v * PRESENCE * (LEVEL[k] ?? 1)])
 );
 const AUDIO_LEAD = 1;
 const LEN = {
+  ee_amb_press_conference_busy_camera_shutters: 293,
+  ee_click_designed_click_01: 6,
+  ee_click_keyboard_typing_02: 933,
+  ee_impact_creepy_impact: 167,
+  ee_money_coin_drop_01: 125,
+  ee_money_coin_drop_02: 88,
+  ee_money_coins_tossed_on_table: 104,
+  ee_paper_page_turn_02: 39,
+  ee_pen_marker_stroke_01: 71,
+  ee_pen_pen_stroke_01: 99,
+  ee_pen_pencil_stroke_01: 169,
+  ee_whoosh_designed_medium_whoosh_01: 47,
+  ee_whoosh_large_whoosh_02: 48,
+  ee_whoosh_medium_whoosh_02: 56,
+  ee_whoosh_whoosh_02: 65,
+  ov_car_pass: 162,
+  ov_highway: 420,
+  ov_night_street: 780,
+  ov_typewriter: 96,
   ov_stamp: 24,
   ov_money_drop: 16,
   ov_coins: 54,
@@ -207,6 +298,25 @@ const LEN = {
   ee_amb_press_conference_busy_camera_shutters: 293
 };
 const ONSET = {
+  ee_amb_press_conference_busy_camera_shutters: 5,
+  ee_click_designed_click_01: 0,
+  ee_click_keyboard_typing_02: 0,
+  ee_impact_creepy_impact: 0,
+  ee_money_coin_drop_01: 5,
+  ee_money_coin_drop_02: 3,
+  ee_money_coins_tossed_on_table: 16,
+  ee_paper_page_turn_02: 2,
+  ee_pen_marker_stroke_01: 2,
+  ee_pen_pen_stroke_01: 3,
+  ee_pen_pencil_stroke_01: 2,
+  ee_whoosh_designed_medium_whoosh_01: 9,
+  ee_whoosh_large_whoosh_02: 7,
+  ee_whoosh_medium_whoosh_02: 11,
+  ee_whoosh_whoosh_02: 3,
+  ov_car_pass: 4,
+  ov_highway: 2,
+  ov_night_street: 2,
+  ov_typewriter: 0,
   ov_stamp: 2,
   ov_money_drop: 1,
   ov_coins: 1,

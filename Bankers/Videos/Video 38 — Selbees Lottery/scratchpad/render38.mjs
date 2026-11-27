@@ -11,9 +11,10 @@ const arg = (k, d) => { const i = process.argv.indexOf(k); return i > 0 ? proces
 const CHUNK = Number(arg("--chunk", 120)), CONC = Number(arg("--conc", 1)), PORT = Number(arg("--port", 5900));
 const ONLY = arg("--only", null);
 const FFPROBE = process.env.FFPROBE ?? "ffprobe", FFMPEG = process.env.FFMPEG ?? "ffmpeg";
-const CHECK = process.argv.includes("--check");   // a half-size, picture-only CHECK render (out/rchk/check.mp4) — never the master
-const D = CHECK ? "out/rchk" : "out/r38"; fs.mkdirSync(D, { recursive: true });
-const SCALE = CHECK ? 0.5 : 1;
+const PREVIEW = process.argv.includes("--preview");   // a quick low-res picture-only PREVIEW (out/rprev), muxed later with the audio pass
+const CHECK = PREVIEW || process.argv.includes("--check");   // a half-size, picture-only CHECK render (out/rchk/check.mp4) — never the master
+const D = PREVIEW ? "out/rprev" : CHECK ? "out/rchk" : "out/r38"; fs.mkdirSync(D, { recursive: true });
+const SCALE = PREVIEW ? 0.4 : CHECK ? 0.5 : 1;
 const chromiumOptions = { gl: "swangle" };
 const serveUrl = await bundle({ entryPoint: path.resolve("src/index.ts") });
 process.on("exit", () => { try { fs.rmSync(serveUrl, { recursive: true, force: true }); } catch {} });
@@ -29,7 +30,7 @@ for (let a = 0; a < N; a += CHUNK) {
   if (fs.existsSync(out) && frames(out) === b - a + 1) { console.log(`skip ${a}-${b}`); continue; }
   const tmp = out.replace(".mp4", ".part.mp4");
   const ts = Date.now();
-  await renderMedia({ serveUrl, composition: comp, codec: "h264", crf: 16, muted: true, frameRange: [a, b], outputLocation: tmp, concurrency: CONC, port: PORT, scale: SCALE,
+  await renderMedia({ serveUrl, composition: comp, codec: "h264", crf: PREVIEW ? 26 : 16, muted: true, frameRange: [a, b], outputLocation: tmp, concurrency: CONC, port: PORT, scale: SCALE,
     chromiumOptions, inputProps: { solo: "picture" }, timeoutInMilliseconds: 240000,
     onBrowserLog: (l) => { if (l.type === "error") console.log("BROWSER", l.text.slice(0, 200)); } });
   const n = frames(tmp);
