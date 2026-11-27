@@ -30,6 +30,17 @@ const gRing = (key, w, d, t, rad, h) => GC[key] ??= (() => {
   g.rotateX(-Math.PI / 2); return g;
 })();
 
+/** a microfibre rag hanging over an edge: it rolls over the lip, then hangs down the panel with soft ripples and a slanted hem */
+const ragGeo = (v) => GC["rag" + v] ??= (() => {
+  const g = new THREE.BoxGeometry(0.11, 0.2, 0.004, 4, 16, 1); g.translate(0, -0.1, 0);
+  const p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), y = p.getY(i), z = p.getZ(i), t = -y / 0.2;
+    const roll = t < 0.12 ? (1 - t / 0.12) : 0;   // the rounded fold over the lip
+    p.setXYZ(i, x * (1 + 0.08 * t), y + (t > 0.9 ? x * (v ? 0.25 : -0.2) : 0), z + 0.008 * Math.sin(x * 70 + v) * t + 0.004 * Math.sin(y * 45 + v * 2) - 0.012 * roll * roll);
+  }
+  g.computeVertexNormals(); return g;
+})();
 // ── materials ────────────────────────────────────────────────────────────────────────────────────────────────────────────
 let CM = null;
 const cartMats = () => {
@@ -73,9 +84,11 @@ const buildCart = (m) => {
   for (let k = 0; k < 6; k++) m.box("plastic", [DECK.x0 + 0.1 + k * 0.19, DECK.y0 - 0.006, 0], [0.03, 0.012, DECK.z * 2 - 0.06], GREY_D);   // the ribs under the deck
   // ── the rear wheels (8 in, on an axle) and the front swivel casters (4 in) ──
   for (const s of [-1, 1]) {
-    m.cyl("rubber", [-0.46, 0.1, s * 0.305], 0.1, 0.045, "#16191D", { r: [Math.PI / 2, 0, 0], seg: 22 });
-    m.cyl("plastic", [-0.46, 0.1, s * 0.33], 0.055, 0.008, GREY_D, { r: [Math.PI / 2, 0, 0], seg: 16 });
-    m.cyl("metal", [-0.46, 0.1, s * 0.336], 0.018, 0.006, "#C9D1DA", { r: [Math.PI / 2, 0, 0], seg: 10 });
+    m.add("rubber", torus("tyre", 0.078, 0.022, 28), Lm([-0.46, 0.1, s * 0.305], [1, 1, 1.15]), "#16191D");
+    for (let k = 0; k < 16; k++) { const a = (k / 16) * Math.PI * 2; m.box("rubber", [-0.46 + Math.cos(a) * 0.099, 0.1 + Math.sin(a) * 0.099, s * 0.305], [0.012, 0.012, 0.046], "#0F1114", { r: [0, 0, a] }); }   // the tread blocks
+    m.cyl("plastic", [-0.46, 0.1, s * 0.305], 0.06, 0.036, GREY_D, { r: [Math.PI / 2, 0, 0], seg: 18 });
+    for (let k = 0; k < 5; k++) { const a = (k / 5) * Math.PI * 2; m.box("plastic", [-0.46 + Math.cos(a) * 0.03, 0.1 + Math.sin(a) * 0.03, s * 0.326], [0.05, 0.012, 0.01], "#3E444C", { r: [0, 0, a] }); }   // the hub's spokes
+    m.cyl("metal", [-0.46, 0.1, s * 0.33], 0.016, 0.012, "#C9D1DA", { r: [Math.PI / 2, 0, 0], seg: 10 });
     m.box("plastic", [-0.46, 0.15, s * 0.27], [0.12, 0.08, 0.03], GREY_D);
     // the swivel caster: top plate, the swivel race, fork legs, the wheel
     m.box("metal", [0.47, DECK.y0 - 0.008, s * 0.2], [0.09, 0.008, 0.08], "#9AA4B0");
@@ -105,7 +118,7 @@ const buildCart = (m) => {
   m.cyl("plastic", [bx0 - 0.075, 1.0, 0], 0.024, 0.52, GREY_D, { r: [Math.PI / 2, 0, 0], seg: 14 });
   // ── on the tray: three trigger spray bottles (labels), a pair of blue gloves over the lip, a stack of microfibre cloths ──
   const bottle = (x, z, k, tint) => {
-    m.push([x, 0.983, z], rnd(k + 40) * 0.6 - 0.3);
+    m.push([x, 1.007, z], rnd(k + 40) * 0.6 - 0.3);
     m.add("bottle", lathe("bottle", [[0.0, 0], [0.036, 0.0], [0.041, 0.012], [0.042, 0.15], [0.036, 0.185], [0.017, 0.205], [0.016, 0.225], [0.0, 0.225]], 20), Lm([0, 0, 0]), tint);
     m.add("label", GC.lab ??= new THREE.CylinderGeometry(1, 1, 1, 20, 1, true), Lm([0, 0.09, 0], [0.0432, 0.095, 0.0432]), "#FFFFFF", { rect: labelCell(k) });
     m.cyl("plastic", [0, 0.233, 0], 0.019, 0.02, "#EDEFF2", { seg: 14 });          // the cap ring
@@ -114,8 +127,20 @@ const buildCart = (m) => {
     m.box("plastic", [0.028, 0.226, 0], [0.012, 0.05, 0.02], ["#1F5FB4", "#EDEFF2", "#2A2F38"][k], { r: [0, 0, 0.35] });   // the trigger
     m.pop();
   };
-  bottle(-0.47, -0.14, 0, "#5FA8F0"); bottle(-0.36, -0.17, 1, "#9EE0D6"); bottle(-0.25, -0.12, 2, "#C9D8EE");
-  for (let k = 0; k < 4; k++) m.box("cloth", [-0.13, 1.0 + k * 0.014, -0.15], [0.16, 0.013, 0.15], k % 2 ? "#3F7FD0" : "#2F68B8", { ry: k * 0.06 });
+  // the carry caddy: a moulded tray with end walls, dividers and a centre handle (the bottles stand in it)
+  m.push([-0.36, 0.983, -0.13], 0);
+  m.box("plastic", [0, 0.012, 0], [0.36, 0.024, 0.2], "#3E5F8A");
+  for (const s of [-1, 1]) { m.box("plastic", [s * 0.175, 0.06, 0], [0.012, 0.11, 0.2], "#3E5F8A"); m.box("plastic", [0, 0.045, s * 0.096], [0.36, 0.08, 0.01], "#3E5F8A"); }
+  m.box("plastic", [0, 0.11, 0], [0.34, 0.2, 0.012], "#35547C");   // the centre wall
+  m.box("plastic", [0, 0.2, 0], [0.12, 0.03, 0.03], "#35547C"); m.box("plastic", [0, 0.205, 0], [0.09, 0.012, 0.034], "#26405F");   // the grip
+  m.pop();
+  bottle(-0.47, -0.185, 0, "#5FA8F0"); bottle(-0.36, -0.075, 1, "#9EE0D6"); bottle(-0.25, -0.185, 2, "#C9D8EE");
+  // two microfibre rags hung over the side lip (folded over, hanging down the panel, a soft wave in the hem)
+  for (const [x, col] of [[-0.12, "#E0B83A"], [-0.02, "#3F7FD0"]]) {
+    m.box("cloth", [x, 1.033, 0.27], [0.11, 0.006, 0.06], col);
+    m.add("cloth", ragGeo(x > -0.05 ? 1 : 0), Lm([x, 1.035, 0.298]), col);
+  }
+  for (let k = 0; k < 4; k++) m.box("cloth", [-0.1, 1.0 + k * 0.014, -0.15], [0.16, 0.013, 0.15], k % 2 ? "#3F7FD0" : "#2F68B8", { ry: k * 0.06 });
   m.box("cloth", [-0.42, 1.03, 0.14], [0.2, 0.012, 0.11], "#3F7FD0", { ry: 0.3 });   // the gloves: a palm on the tray …
   m.box("cloth", [-0.42, 0.99, 0.285], [0.09, 0.012, 0.07], "#3F7FD0", { r: [Math.PI / 2 - 0.2, 0.3, 0] });   // … the cuff over the lip
   // a roll of trash liners and a clipboard of the cleaning schedule (lying flat)
@@ -163,6 +188,11 @@ const buildCart = (m) => {
   m.add("yellow", gRing("bucketLip", BW + 0.02, BD + 0.02, 0.022, 0.08, 0.018), Lm([0, BY + BH - 0.012, 0]), "#F5C83A");
   m.add("water", gRing("bucketWater", BW - 0.026, BD - 0.026, 0, 0.06, 0.002), Lm([0, BY + 0.2, 0]), "#5E7894");
   m.quad("misc", [0.05, BY + 0.15, BD / 2 + 0.002], 0.24, 0.12, "#FFFFFF", miscCell(2));
+  m.add("rubber", gRing("bucketBump", BW + 0.035, BD + 0.035, 0.012, 0.09, 0.03), Lm([0, BY + 0.02, 0]), "#2A2E33");   // the bumper ring at the foot
+  m.cyl("rubber", [BW / 2 - 0.005, BY + 0.04, 0.1], 0.016, 0.02, "#1A1D22", { r: [0, 0, Math.PI / 2], seg: 10 });   // the drain plug
+  for (const s of [-1, 1]) m.cyl("yellow", [0.08, BY + BH - 0.03, s * (BD / 2 + 0.008)], 0.018, 0.012, "#C99A1C", { r: [Math.PI / 2, 0, 0], seg: 10 });   // the bail pivots
+  m.add("metal", GC.bail ??= new THREE.TorusGeometry(BD / 2 + 0.01, 0.005, 5, 20, Math.PI), Lm([0.08, BY + BH - 0.03, 0], [1, 0.55, 1], [0, Math.PI / 2, 0.55]), "#AEB8C4");   // the bail handle, folded back
+  m.add("yellow", gRing("bucketInsert", 0.17, BD - 0.05, 0.008, 0.03, 0.16), Lm([BW / 2 - 0.11, BY + BH - 0.15, 0]), "#E6B62C");   // the dirty-water insert
   for (const [a, b] of [[-1, -1], [-1, 1], [1, -1], [1, 1]]) { m.cyl("rubber", [a * (BW / 2 - 0.05), 0.032, b * (BD / 2 - 0.05)], 0.032, 0.024, "#16191D", { r: [Math.PI / 2, 0, 0], seg: 14 }); m.box("yellow", [a * (BW / 2 - 0.05), 0.066, b * (BD / 2 - 0.05)], [0.05, 0.012, 0.04], "#C99A1C"); }
   // the wringer on the −x end: its housing clipped over the rim, the press plate, the lever up and back
   const wx = -BW / 2 + 0.12;
@@ -171,6 +201,9 @@ const buildCart = (m) => {
   m.box("plastic", [wx + 0.09, BY + BH + 0.06, 0], [0.04, 0.16, BD - 0.06], "#6E757E");
   m.box("yellow", [wx - 0.02, BY + BH + 0.215, 0], [0.24, 0.025, BD + 0.02], "#F2C230");
   m.cyl("metal", [wx - 0.13, BY + BH + 0.2, 0], 0.012, BD + 0.04, "#AEB8C4", { r: [Math.PI / 2, 0, 0], seg: 10 });
+  for (const s of [-1, 1]) { m.cyl("plastic", [wx - 0.13, BY + BH + 0.2, s * (BD / 2 + 0.025)], 0.035, 0.03, "#2A2F38", { r: [Math.PI / 2, 0, 0], seg: 14 }); m.box("plastic", [wx - 0.02, BY + BH + 0.14, s * (BD / 2 + 0.02)], [0.2, 0.03, 0.012], "#3A4048", { r: [0, 0, 0.5] }); }   // the gear housings and links
+  m.box("plastic", [wx + 0.05, BY + BH + 0.1, 0], [0.012, 0.17, BD - 0.09], "#8A929C");   // the press plate (perforated face)
+  for (let r = 0; r < 4; r++) for (let k = 0; k < 7; k++) m.cyl("rubber", [wx + 0.043, BY + BH + 0.04 + r * 0.04, -0.13 + k * 0.043], 0.007, 0.004, "#2A2F38", { r: [0, 0, Math.PI / 2], seg: 6 });
   m.cyl("metal", [wx - 0.2, BY + BH + 0.42, 0], 0.014, 0.48, "#AEB8C4", { r: [0, 0, 0.32], seg: 10 });
   m.cyl("rubber", [wx - 0.27, BY + BH + 0.64, 0], 0.02, 0.14, "#1A1D22", { r: [0, 0, 0.32], seg: 10 });
   // the mop: its head in the wringer (cotton strands down into the water), the handle standing a little out of true
@@ -221,20 +254,40 @@ const rimShader = () => new THREE.ShaderMaterial({
   vertexShader: "varying vec3 vN; varying vec3 vV; void main(){ vec4 mv = modelViewMatrix * vec4(position, 1.0); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }",
   fragmentShader: "uniform float k;\nuniform vec3 col;\nvarying vec3 vN;\nvarying vec3 vV;\nvoid main(){\n float f = pow(1.0 - abs(dot(normalize(vN), normalize(vV))), 2.4);\n gl_FragColor = vec4(col * f * k, 1.0);\n#include <tonemapping_fragment>\n#include <colorspace_fragment>\n}"
 });
-// the stack: sheets of three engraving colours, each a hair off square (no two edges line up), the P&G sheet on top
+// the stack (V39 detail pass): the certificates lie in BUNDLES, the way a holder keeps them — each bundle one company's sheets, its own
+// size (certificates of different issuers differ by a few millimetres), squared up roughly together and turned a little against the
+// bundles around it; a few plain manila envelopes between bundles. Every sheet's EDGES show paper (cream, toned, never squashed print):
+// the side faces map to the sheet's blank margin; the faces show the engraving where a sheet sticks out from under the next.
+const EDGE = [0.004, 0.35, 0.013, 0.65];   // a strip of the sheet's blank margin (all three cert textures share the layout)
 const buildStack = (m) => {
   const { n, t, w, d, y0 } = STACK;
-  for (let i = 0; i < n; i++) {
-    const k = i % 7 === 3 ? 1 : i % 5 === 2 ? 2 : 0;
-    const jx = (rnd(i + 11) - 0.5) * 0.02, jz = (rnd(i + 12) - 0.5) * 0.016, ry = (rnd(i + 13) - 0.5) * 0.12 + (i % 17 === 0 ? 0.16 : 0);
-    m.box("cert" + k, [BIN.x + jx, y0 + t * (i + 0.5), BIN.z + jz], [w, t * 0.92, d], i % 3 ? "#F3E9D2" : "#E9DCC0", { ry });
+  let i = 0, b = 0;
+  while (i < n) {
+    const size = 8 + Math.floor(rnd(b * 7 + 1) * 18), k = [0, 1, 2, 0, 2, 1, 0, 0, 1][b % 9];
+    const bw = w * (0.94 + rnd(b * 7 + 2) * 0.08), bd = d * (0.93 + rnd(b * 7 + 3) * 0.1);
+    const bx = (rnd(b * 7 + 4) - 0.5) * 0.022, bz = (rnd(b * 7 + 5) - 0.5) * 0.018, bry = (rnd(b * 7 + 6) - 0.5) * 0.16;
+    const env = b % 4 === 2 && i + 2 < n;   // a manila envelope under this bundle (two sheet-thicknesses)
+    if (env) { m.box("env", [BIN.x + bx * 0.5, y0 + t * (i + 1), BIN.z + bz * 0.5], [w * 1.04, t * 1.9, d * 1.06], "#C9B184", { ry: bry * 0.4, rectFn: () => [0.1, 0.1, 0.9, 0.9] }); i += 2; }
+    for (let q = 0; q < size && i < n; q++, i++) {
+      const jx = (rnd(i + 11) - 0.5) * 0.006, jz = (rnd(i + 12) - 0.5) * 0.005, ry = bry + (rnd(i + 13) - 0.5) * 0.03;
+      const tone = rnd(i + 14), col = tone < 0.3 ? "#E9DCC0" : tone < 0.7 ? "#F3E9D2" : "#EFE3C8";
+      m.box("cert" + k, [BIN.x + bx + jx, y0 + t * (i + 0.5), BIN.z + bz + jz], [bw, t * 0.9, bd], col, { ry, rectFn: (j) => { const f = Math.floor(j / 4); return f === 2 || f === 3 ? [0, 0, 1, 1] : EDGE; } });
+    }
+    b++;
   }
 };
+// the top sheet's paper: a plane with a soft curl (the corners lift a few millimetres, the long edges sag over the sheet below)
+const curlGeo = () => GC.curl ??= (() => {
+  const g = new THREE.PlaneGeometry(STACK.w, STACK.d, 24, 16), p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) { const x = p.getX(i) / (STACK.w / 2), y = p.getY(i) / (STACK.d / 2); p.setZ(i, 0.0035 * Math.pow(Math.abs(x * y), 2.2) + 0.0012 * x * x - 0.0006); }
+  g.computeVertexNormals(); return g;
+})();
 let SM = null;
 const stackMats = () => {
   if (SM) return SM;
   const mk = (map) => new THREE.MeshStandardMaterial({ map, vertexColors: true, roughness: 0.78, metalness: 0, emissive: new THREE.Color("#4D8ED9"), emissiveMap: map, emissiveIntensity: 0 });
-  SM = { cert0: mk(certTex2(0)), cert1: mk(certTex2(1)), cert2: mk(certTex2(2)), top: mk(certTopTex()) };
+  SM = { cert0: mk(certTex2(0)), cert1: mk(certTex2(1)), cert2: mk(certTex2(2)), top: mk(certTopTex()), env: mk(null) };
+  SM.top.side = THREE.DoubleSide; SM.env.roughness = 0.9;
   return SM;
 };
 
@@ -261,7 +314,7 @@ export const JanitorCart = ({ xray = 0, flash = 0, glow = 0, leak = 0 }) => {
   B.liner.transparent = glass; B.liner.opacity = 1 - x; B.liner.depthWrite = !glass; B.liner.visible = x < 0.995;
   B.rim.uniforms.k.value = clamp01(0.3 * x + 0.9 * flash); B.rim2.uniforms.k.value = clamp01(0.2 * x + 0.6 * flash);
   B.ring.opacity = clamp01(0.4 * x + 0.6 * flash);
-  for (const k of ["cert0", "cert1", "cert2", "top"]) stackMats()[k].emissiveIntensity = (k === "top" ? 0.3 : 0.22) * gl;
+  for (const k of ["cert0", "cert1", "cert2", "top", "env"]) stackMats()[k].emissiveIntensity = (k === "top" ? 0.3 : k === "env" ? 0.07 : 0.22) * gl;
   const cast = x < 0.3;
   return (
     <group>
@@ -277,7 +330,7 @@ export const JanitorCart = ({ xray = 0, flash = 0, glow = 0, leak = 0 }) => {
       </group>
       <primitive object={stack} />
       {/* the top certificate (the hero sheet, full print) */}
-      <mesh position={[BIN.x, STACK_TOP + 0.0006, BIN.z]} rotation={[-Math.PI / 2, 0, 0.05]} material={stackMats().top}><planeGeometry args={[STACK.w, STACK.d]} /></mesh>
+      <mesh position={[BIN.x, STACK_TOP + 0.0012, BIN.z]} rotation={[-Math.PI / 2, 0, 0.05]} geometry={curlGeo()} material={stackMats().top} />
       {leak > 0.002 && <>
         <Glow position={[BIN.x, BIN_TOP + 0.05, BIN.z]} size={0.85} color="#7FB4F2" opacity={0.34 * leak} />
         <Glow position={[BIN.x, BIN_TOP + 0.22, BIN.z]} size={1.7} color="#4D8ED9" opacity={0.12 * leak} />

@@ -19,13 +19,15 @@ import { Mesher, Lm, townMats } from "./town_parts";
 import { Sky, Glow, rnd, clamp01, canvasTex } from "./kit";
 import * as T from "./a_tex";
 import { JanitorCart } from "./a_cart";
+import { hang, divider, foldPiece, printTex, wallCell, notice, bagCell, doorNoCell, WALLWORDS } from "./a_fixtures";
+import { LotGround, LotLamps, buildFront, StoreTrees, LOTY } from "./a_lot";
+import { barkMat } from "./a_trees";
 
 export const X0 = -18, X1 = 18, ZB = -70, CEIL = 4.2, AISLE = 1.25;
 export const CART = { p: [0.1, 0, -22], ry: Math.PI / 2 + 0.38 };   // the cart's local +x (the bin end) points back down the aisle
 /** a cart-local point → station-local */
 export const cartPt = (p) => { const c = Math.cos(CART.ry), s = Math.sin(CART.ry); return [CART.p[0] + p[0] * c + p[2] * s, CART.p[1] + p[1], CART.p[2] - p[0] * s + p[2] * c]; };
 const ENT = { x: 3.3, h: 3.3 }, DW = { x0: 5.0, x1: 15.6, y0: 0.55, y1: 3.3, back: -2.2 };
-const LOTY = -0.15;
 const pick = (a, r) => a[Math.floor(r * a.length) % a.length];
 // muted department palettes (they sit in the blue-hour world; a few warm accents)
 const MENS = ["#E9EEF5", "#B9CDE6", "#6F8FB8", "#2C3E5C", "#8A939E", "#D8D2C4", "#4A5A6E", "#7B3B42", "#3B4C66"];
@@ -64,7 +66,12 @@ export const storeMats = () => {
     news: S({ map: T.newsTex(), roughness: 0.4, emissiveMap: T.newsTex(), emissive: new THREE.Color("#FFFFFF"), emissiveIntensity: 0.06 }),
     warm: S({ color: "#FFE6C4", emissive: new THREE.Color("#FFC98A"), emissiveIntensity: 2.2, roughness: 0.4 }),
     cool: S({ color: "#EAF3FF", emissive: new THREE.Color("#CFE2FF"), emissiveIntensity: 1.6, roughness: 0.4 }),
-    screen: S({ color: "#0A1628", emissive: new THREE.Color("#173C6E"), emissiveIntensity: 0.5, roughness: 0.2, metalness: 0.3 })
+    screen: S({ color: "#0A1628", emissive: new THREE.Color("#173C6E"), emissiveIntensity: 0.5, roughness: 0.2, metalness: 0.3 }),
+    tag: S({ map: printTex(), roughness: 0.7 }),
+    print: S({ map: printTex(), roughness: 0.55, emissiveMap: printTex(), emissive: new THREE.Color("#FFFFFF"), emissiveIntensity: 0.12 }),
+    snow: S({ map: T.rep(T.snowTex(), 0.6), bumpMap: T.rep(T.snowBumpTex(), 0.6), bumpScale: 1.2, roughness: 0.82, envMapIntensity: 0.3 }),
+    dome: S({ map: T.rep(T.domeTex(), 1.5 / 0.3, 0.5 / 0.3), roughness: 0.6 }),
+    bark: barkMat()
   };
   for (const k of ["glassIn", "decal", "caseLit", "warm", "cool"]) SMATS[k].userData = { cast: false, ...(k === "glassIn" || k === "decal" ? { order: 3 } : {}) };
   return SMATS;
@@ -86,9 +93,11 @@ const ceilMats = () => {
 };
 
 // ── the fixtures ────────────────────────────────────────────────────────────────────────────────────────────────────────────
-const garment = (m, p, ry, w, len, col, cell, thick = 0.034) => {
-  m.box("fab", [p[0], p[1] - len / 2, p[2]], [w, len, thick], col, { ry, rect: T.garCell(cell) });
-  m.box("dark", [p[0], p[1] + 0.008, p[2]], [w * 0.88, 0.012, 0.012], "#1A1E24", { ry });   // the hanger's shoulder bar
+// a garment on its hanger (a_fixtures.hang): the atlas cell decides the cut — 2 jeans / 7 slacks hang folded over the bar, 5 a dress
+let _gs = 0;
+const garment = (m, p, ry, w, len, col, cell, thick = 0.045) => {
+  const kind = cell === 2 || cell === 7 ? "pants" : cell === 5 ? "dress" : "top";
+  hang(m, p, ry, w, len, col, T.garCell(cell), _gs++, kind, kind === "top" && (cell === 3 || cell === 1) ? thick * 1.4 : thick);
 };
 // a round rack: a cross base, the upright, a chrome ring of garments hanging radially, a topper sign
 const roundRack = (m, x, z, seed, pal, cells, topper) => {
@@ -104,6 +113,7 @@ const roundRack = (m, x, z, seed, pal, cells, topper) => {
     const a = (i / n) * Math.PI * 2 + rnd(seed * 31 + i) * 0.05;
     const c = rnd(seed * 17 + i) < 0.55 ? col : rnd(seed * 19 + i) < 0.6 ? col2 : pick(pal, rnd(seed * 23 + i));
     garment(m, [Math.cos(a) * R, H - 0.012, Math.sin(a) * R], -a, 0.46, 0.68 + rnd(i + seed) * 0.05, c, cell);
+    if (i % 8 === 4) { const a2 = a + Math.PI / n; divider(m, [Math.cos(a2) * R, H, Math.sin(a2) * R], -a2 + Math.PI / 2, (i / 8) | 0); }
   }
   if (topper != null) { m.cyl("chrome", [0, H + 0.12, 0], 0.008, 0.24, "#C9D1DA", { seg: 6 }); m.box("topper", [0, H + 0.33, 0], [0.42, 0.14, 0.006], "#FFFFFF", { rect: T.topperCell(topper) }); }
   m.pop();
@@ -121,6 +131,8 @@ const fourWay = (m, x, z, seed, pal, cells, ry = 0) => {
     m.box("chrome", [ca * 0.62, H + 0.02, sa * 0.62], [0.02, 0.05, 0.02], "#C9D1DA");
     const col = pick(pal, rnd(seed + k)), cell = pick(cells, rnd(seed + k * 3 + 1));
     for (let i = 0; i < 8; i++) { const r = 0.14 + i * 0.062; garment(m, [ca * r, H - 0.012, sa * r], a + Math.PI / 2, 0.46, 0.72, i % 4 === 3 ? pick(pal, rnd(seed + k + 9)) : col, cell); }
+    divider(m, [ca * 0.39, H, sa * 0.39], a, k + (seed % 3));
+    m.box("chrome", [ca * 0.64, H, sa * 0.64], [0.03, 0.03, 0.03], "#C9D1DA");   // the arm's ball end stop
   }
   m.pop();
 };
@@ -139,7 +151,7 @@ const foldTable = (m, x, z, seed, pal, kind, ry = 0, topper = null) => {
       const n = 3 + Math.floor(rnd(seed * 7 + r * 5 + c) * (nMax - 2)), col = pick(pal, rnd(seed * 3 + r * 9 + c * 4));
       for (let i = 0; i < n; i++) {
         const jit = (rnd(seed + r * 40 + c * 7 + i) - 0.5) * 0.012;
-        m.box("fold", [sx + jit, y0 + piece.h * (i + 0.5), sz - jit], [piece.w, piece.h * 0.96, piece.d], col, { ry: jit * 2, rectFn: (j) => T.foldCell(Math.floor(j / 4) === 2 ? piece.top : 3) });
+        foldPiece(m, "fold", [sx + jit, y0 + piece.h * (i + 0.5), sz - jit], [piece.w, piece.h, piece.d], i % 5 === 4 ? pick(pal, rnd(seed + i + r)) : col, (j) => T.foldCell(Math.floor(j / 4) === 2 ? piece.top : 3), jit * 2);
       }
     }
   };
@@ -266,7 +278,7 @@ const buildStore = (m) => {
     for (let k = 0; k < 5; k++) m.cyl("warm", [xc - ww / 2 + 1 + k * (ww - 2) / 4, 3.24, -0.5], 0.05, 0.05, "#FFFFFF", { seg: 10 });
   }
   // two concrete planters of clipped yews flanking the entrance
-  for (const s2 of [-1, 1]) { const px = s2 * 5.9; m.box("trim", [px, 0.3, 1.0], [1.6, 0.6, 0.9], "#8C929C"); m.box("trim", [px, 0.62, 1.0], [1.7, 0.05, 1.0], "#A3ABB6"); m.box("roof", [px, 0.63, 1.0], [1.5, 0.02, 0.8], "#3A3028"); for (let k = 0; k < 7; k++) m.ico("plant", [px - 0.6 + k * 0.2, 0.82 + rnd(k + px) * 0.12, 1.0 + (rnd(k * 3 + px) - 0.5) * 0.3], [0.24, 0.26, 0.24], pick(["#1F3A36", "#28463F", "#22403A"], rnd(k + 9))); }
+  for (const s2 of [-1, 1]) { const px = s2 * 5.9; m.box("trim", [px, 0.3, 1.0], [1.6, 0.6, 0.9], "#8C929C"); m.box("trim", [px, 0.62, 1.0], [1.7, 0.05, 1.0], "#A3ABB6"); m.box("snow", [px, 0.65, 1.0], [1.5, 0.05, 0.8], "#E4EBF3"); for (let k = 0; k < 7; k++) { const py = 0.82 + rnd(k + px) * 0.12, pz = 1.0 + (rnd(k * 3 + px) - 0.5) * 0.3; m.ico("plant", [px - 0.6 + k * 0.2, py, pz], [0.24, 0.26, 0.24], pick(["#1F3A36", "#28463F", "#22403A"], rnd(k + 9))); m.ico("snow", [px - 0.6 + k * 0.2, py + 0.17, pz], [0.17, 0.08, 0.17], "#EEF3F9"); } m.box("snow", [px, 0.632, 1.0], [1.68, 0.03, 0.98], "#EEF3F9"); }
   // warm wall packs on the piers (security lights), each with its glow
   for (const x of [-16.8, -10.3, 10.3, 16.8]) { m.box("metal", [x, 4.0, 0.24], [0.34, 0.26, 0.18], "#1E2630"); m.box("warm", [x, 3.89, 0.27], [0.26, 0.04, 0.1], "#FFFFFF"); m.glow([x, 3.82, 0.4], "#FFCF96", 1.4); }
   // the entrance: two pairs of doors with sidelights and a transom, push bars, decals; the vestibule mat inside
@@ -290,8 +302,8 @@ const buildStore = (m) => {
   m.box("trim", [0, 6.95, FZ + 0.22], [W_ + 0.6, 0.12, 0.14], "#A3ABB6");
   m.box("metal", [0, 7.12, FZ + 0.05], [W_ + 0.7, 0.16, 0.5], "#2A2E33");
   for (let k = -9; k <= 9; k++) if (Math.abs(k) > 3) m.box("stucco", [k * 2, 5.65, FZ + 0.195], [0.02, 2.4, 0.01], "#5A554F");   // control joints (clear of the sign)
-  m.box("roof", [0, 6.6, ZB / 2], [W_, 0.1, L_], "#FFFFFF", { metric: true });
-  for (const [x, z, w, d] of [[-9, -14, 3.2, 2], [7, -20, 2.6, 1.8], [-4, -38, 3.2, 2], [10, -46, 2.2, 1.6]]) { m.box("metal", [x, 7.35, z], [w, 1.4, d], "#A9B3C0"); m.cyl("metal", [x + w * 0.25, 8.07, z], 0.4, 0.06, "#2A3240", { seg: 16 }); }   // rooftop units
+  m.box("roof", [0, 6.6, ZB / 2], [W_, 0.1, L_], "#FFFFFF", { metric: true }); m.box("snow", [0, 6.67, ZB / 2], [W_ - 0.2, 0.06, L_ - 0.2], "#D9E2EE");
+  for (const [x, z, w, d] of [[-9, -14, 3.2, 2], [7, -20, 2.6, 1.8], [-4, -38, 3.2, 2], [10, -46, 2.2, 1.6]]) { m.box("metal", [x, 7.35, z], [w, 1.4, d], "#A9B3C0"); m.cyl("metal", [x + w * 0.25, 8.07, z], 0.4, 0.06, "#2A3240", { seg: 16 }); m.box("snow", [x - w * 0.15, 8.08, z], [w * 0.6, 0.05, d - 0.1], "#E4EBF3"); }   // rooftop units
   // the canopy over the entrance: fascia, soffit with recessed lights, two columns with stone bases
   const CX = 4.9, CZ = 3.7;
   m.box("metal", [0, 3.75, CZ / 2 + 0.1], [CX * 2, 0.6, CZ], "#1B2433");
@@ -301,13 +313,14 @@ const buildStore = (m) => {
   for (let i = 0; i < 4; i++) for (let j = 0; j < 2; j++) { const x = -3.3 + i * 2.2, z = 1.2 + j * 1.7; m.cyl("warm", [x, 3.43, z], 0.09, 0.02, "#FFFFFF", { seg: 14 }); m.glow([x, 3.36, z], "#FFD6A0", 0.7); }
   for (const s of [-1, 1]) { m.box("brick2", [s * 4.4, 1.72, CZ - 0.3], [0.5, 3.44, 0.5], "#FFFFFF", { metric: true }); m.box("trim", [s * 4.4, 0.25, CZ - 0.3], [0.62, 0.5, 0.62], "#7E8796"); }
   // the sidewalk (concrete slabs, tooled joints), the curb, bollards, a bench, a trash can, the town's newspaper box, a planter
-  m.box("concrete", [0, -0.075, 2.3], [W_ + 12, 0.15, 4.3], "#FFFFFF", { metric: true });
-  for (let x = -24; x <= 24; x += 1.6) m.box("dark", [x, 0.001, 2.3], [0.015, 0.002, 4.2], "#5E6876");
-  m.box("trim", [0, -0.07, 4.45], [W_ + 12, 0.16, 0.18], "#A3ABB6", { metric: true });
-  for (const x of [-2.4, -0.8, 0.8, 2.4]) { m.cyl("metal", [x, 0.45, 4.05], 0.1, 0.9, "#3A4A5E", { seg: 14 }); m.sph("metal", [x, 0.9, 4.05], [0.1, 0.06, 0.1], "#3A4A5E", { seg: 10 }); }
-  m.push([7.2, 0, 1.6], 0); m.box("metal", [0, 0.55, 0], [0.5, 0.72, 0.42], "#1F4E8C"); m.box("metal", [0, 0.1, 0], [0.42, 0.2, 0.36], "#1B2433"); m.quad("news", [0, 0.66, 0.213], 0.44, 0.44, "#FFFFFF", [0, 0, 1, 1]); m.box("metal", [0, 0.93, 0], [0.52, 0.04, 0.44], "#16355E"); m.pop();
-  m.push([-7.4, 0, 1.4], 0); for (let k = 0; k < 3; k++) m.box("wood", [0, 0.44, -0.12 + k * 0.13], [1.6, 0.04, 0.1], "#6B4A36"); for (let k = 0; k < 2; k++) m.box("wood", [0, 0.62 + k * 0.14, -0.24], [1.6, 0.1, 0.03], "#6B4A36", { r: [-0.15, 0, 0] }); for (const sd of [-1, 1]) { m.box("metal", [sd * 0.7, 0.22, -0.02], [0.05, 0.44, 0.42], "#1E2630"); m.box("metal", [sd * 0.7, 0.62, -0.25], [0.05, 0.4, 0.04], "#1E2630"); } m.pop();
-  m.cyl("metal", [5.8, 0.45, 1.5], 0.27, 0.9, "#2A3B4E", { seg: 16 }); m.sph("metal", [5.8, 0.9, 1.5], [0.29, 0.12, 0.29], "#22303F", { seg: 14 });
+  m.box("concrete", [0, -0.075, 1.925], [W_ + 12, 0.15, 3.55], "#FFFFFF", { metric: true });
+  for (const s2 of [-1, 1]) m.box("concrete", [s2 * 12.8, -0.075, 4.075], [22.4, 0.15, 0.75], "#FFFFFF", { metric: true });
+  for (const x of [-3.3, -2.2, 2.2, 3.3]) { m.cyl("metal", [x, 0.45, 4.05], 0.1, 0.9, "#3A4A5E", { seg: 14 }); m.sph("metal", [x, 0.9, 4.05], [0.1, 0.06, 0.1], "#3A4A5E", { seg: 10 }); m.sph("snow", [x, 0.93, 4.05], [0.09, 0.04, 0.09], "#EEF3F9", { seg: 8 }); m.box("metal", [x, 0.6, 4.05], [0.205, 0.05, 0.205], "#C9A93E", { ry: 0.78 }); }
+  buildFront(m);
+  m.push([7.2, 0, 1.6], 0); m.box("metal", [0, 0.55, 0], [0.5, 0.72, 0.42], "#1F4E8C"); m.box("metal", [0, 0.1, 0], [0.42, 0.2, 0.36], "#1B2433"); m.quad("news", [0, 0.66, 0.213], 0.44, 0.44, "#FFFFFF", [0, 0, 1, 1]); m.box("metal", [0, 0.93, 0], [0.52, 0.04, 0.44], "#16355E"); m.box("snow", [0, 0.97, 0], [0.48, 0.04, 0.4], "#EEF3F9"); m.pop();
+  m.push([-7.4, 0, 1.4], 0); for (let k = 0; k < 3; k++) m.box("wood", [0, 0.44, -0.12 + k * 0.13], [1.6, 0.04, 0.1], "#6B4A36"); for (let k = 0; k < 2; k++) m.box("wood", [0, 0.62 + k * 0.14, -0.24], [1.6, 0.1, 0.03], "#6B4A36", { r: [-0.15, 0, 0] }); for (const sd of [-1, 1]) { m.box("metal", [sd * 0.7, 0.22, -0.02], [0.05, 0.44, 0.42], "#1E2630"); m.box("metal", [sd * 0.7, 0.62, -0.25], [0.05, 0.4, 0.04], "#1E2630"); } m.box("snow", [0, 0.48, 0.02], [1.5, 0.04, 0.34], "#EEF3F9"); m.pop();
+  m.cyl("metal", [5.8, 0.45, 1.5], 0.27, 0.9, "#2A3B4E", { seg: 16 }); m.sph("metal", [5.8, 0.9, 1.5], [0.29, 0.12, 0.29], "#22303F", { seg: 14 }); m.sph("snow", [5.8, 0.98, 1.5], [0.25, 0.07, 0.25], "#EEF3F9", { seg: 12 });
+  for (let k = 0; k < 13; k++) m.box("metal", [5.8 + Math.cos(k * 0.483) * 0.272, 0.45, 1.5 + Math.sin(k * 0.483) * 0.272], [0.025, 0.86, 0.02], "#22303F", { ry: -k * 0.483 });   // its slats
   // ── the interior floor fittings and the departments ──
   // the transition strips between terrazzo and carpet along the main aisle
   for (const s of [-1, 1]) m.box("chrome", [s * AISLE, 0.004, (ZB + -2.8) / 2], [0.05, 0.008, -ZB - 2.8], "#B9A77A");
@@ -334,11 +347,9 @@ const buildStore = (m) => {
   // the side walls: slatwall with shelves of folded goods (men's right, women's left) and the fitting-room doorway
   for (const s of [-1, 1]) {
     m.box("slat", [s * (X1 - 0.06), 1.3, -20], [0.04, 2.2, 22], "#FFFFFF", { metric: true });
-    for (let r = 0; r < 4; r++) { m.box("chrome", [s * (X1 - 0.25), 0.55 + r * 0.5, -20], [0.36, 0.015, 21.6], "#9AA6B4"); for (let k = 0; k < 40; k++) { const z = -30.6 + k * 0.53; for (let i = 0; i < 3; i++) m.box("fold", [s * (X1 - 0.25), 0.575 + r * 0.5 + i * 0.045, z], [0.32, 0.042, 0.34], pick(s > 0 ? MENS : WOMENS, rnd(r * 90 + k * 3 + s)), { rectFn: (j) => T.foldCell(Math.floor(j / 4) === 2 ? (r % 2 ? 1 : 0) : 3) }); } }
+    for (let r = 0; r < 4; r++) { m.box("chrome", [s * (X1 - 0.25), 0.55 + r * 0.5, -20], [0.36, 0.015, 21.6], "#9AA6B4"); for (let k = 0; k < 40; k++) { const z = -30.6 + k * 0.53; for (let i = 0; i < 3; i++) foldPiece(m, "fold", [s * (X1 - 0.25), 0.578 + r * 0.5 + i * 0.045, z], [0.34, 0.045, 0.32], pick(s > 0 ? MENS : WOMENS, rnd(r * 90 + k * 3 + s)), (j) => T.foldCell(Math.floor(j / 4) === 2 ? (r % 2 ? 1 : 0) : 3), -s * Math.PI / 2 + (rnd(r * 7 + k + i) - 0.5) * 0.05); } }
     m.box("paint", [s * (X1 - 0.06), 3.05, -20], [0.06, 0.4, 22.2], "#D3D9E1");
   }
-  m.box("dark", [X0 + 0.05, 1.2, -34], [0.06, 2.4, 1.6], "#141A24");
-  m.box("dsign", [X0 + 0.1, 2.75, -34], [0.02, 0.36, 2.2], "#FFFFFF", { rect: T.signCell(7), ry: Math.PI / 2 });
   // HOME (left, behind the cross aisle): towel tables and gondolas of bedding
   [[-2.2, -40.5], [-2.15, -45.5], [-2.2, -51]].forEach(([x, z], i) => foldTable(m, x, z, 90 + i, HOMEC, "towel", 0.05 * (i - 1), i === 0 ? 4 : i === 2 ? 5 : null));
   [[-7.5, -42], [-7.5, -48], [-11.5, -42], [-11.5, -48], [-7.5, -57.5], [-11.5, -57.5]].forEach(([x, z], i) => gondola(m, x, z, 3.2, 100 + i, HOMEC, Math.PI / 2));
@@ -362,6 +373,73 @@ const buildStore = (m) => {
   m.box("frame", [0, 0.9, 0], [0.06, 1.8, 0.06], "#2A2E33"); m.box("dark", [0, 0.04, 0], [0.5, 0.04, 0.4], "#2A2E33");
   m.box("dsign", [0, 1.55, 0.035], [0.7, 0.18, 0.01], "#FFFFFF", { rect: T.signCell(8) });
   m.pop();
+  buildInteriorDetail(m);
+};
+// ── V39 detail pass: the interior's finish ─────────────────────────────────────────────────────────────────────────────────
+const buildInteriorDetail = (m) => {
+  // the terrazzo aisle's border: a darker poured band inside each brass strip, and the carpet's vinyl reducer strip beside it
+  for (const s of [-1, 1]) {
+    m.box("lam", [s * (AISLE - 0.13), 0.0035, (ZB - 2.8) / 2], [0.2, 0.002, -ZB - 2.8], "#4E5866");
+    m.box("dark", [s * (AISLE + 0.05), 0.006, (ZB - 2.8) / 2], [0.06, 0.012, -ZB - 2.8], "#2A3038");
+  }
+  // perimeter department words on the wall bulkheads over the slatwall (a pale band, navy letters, a light-blue rule)
+  const band = (x, z, i, s) => { m.box("lam", [x - s * 0.02, 3.55, z], [0.04, 0.46, 6.4], "#D9E0E8"); m.quad("print", [x - s * 0.045, 3.55, z], 6.24, 0.39, "#FFFFFF", wallCell(i), { ry: -s * Math.PI / 2 }); };
+  band(X0 + 0.06, -14, 0, -1); band(X0 + 0.06, -27, 0, -1); band(X1 - 0.06, -14, 1, 1); band(X1 - 0.06, -27, 1, 1);
+  band(X0 + 0.06, -50, 2, -1); band(X1 - 0.06, -50, 3, 1);
+  // ── the fitting rooms (women's, on the left wall): a framed entrance with its sign, a corridor of louvred doors, the return rack ──
+  const FX = X0 + 3.2, FZ0 = -38.4, FZ1 = -31.2;
+  m.box("paint", [(X0 + FX) / 2, 1.25, FZ0], [FX - X0, 2.5, 0.12], "#C3CBD6"); m.box("paint", [(X0 + FX) / 2, 1.25, FZ1], [FX - X0, 2.5, 0.12], "#C3CBD6");
+  for (const [za, zb] of [[FZ0, -35.5], [-34.1, FZ1]]) m.box("paint", [FX, 1.25, (za + zb) / 2], [0.12, 2.5, zb - za], "#C3CBD6");
+  m.box("paint", [FX, 2.38, -34.8], [0.12, 0.24, 1.4], "#C3CBD6");                                     // the header over the opening
+  m.box("paint", [(X0 + FX) / 2, 2.52, (FZ0 + FZ1) / 2], [FX - X0, 0.04, FZ1 - FZ0], "#D3D9E1");          // its lid
+  for (const zz of [-35.5, -34.1]) m.box("wood", [FX + 0.07, 1.13, zz], [0.04, 2.26, 0.08], "#FFFFFF", { metric: true });   // the casing
+  m.box("wood", [FX + 0.07, 2.27, -34.8], [0.04, 0.08, 1.48], "#FFFFFF", { metric: true });
+  m.box("dsign", [FX + 0.1, 2.72, -34.8], [0.02, 0.34, 2.0], "#FFFFFF", { rect: T.signCell(7), ry: Math.PI / 2 });
+  m.box("dark", [FX + 0.08, 2.72, -34.8], [0.02, 0.38, 2.06], "#0A2547");
+  m.box("velvet", [(X0 + FX) / 2 + 0.3, 0.004, -34.8], [FX - X0 - 0.4, 0.004, 1.3], "#30394C");          // the corridor's runner
+  for (let k = 0; k < 4; k++) for (const sd of [-1, 1]) {   // the cubicle doors, louvred, with their number plates and hooks
+    const dx = X0 + 0.55 + k * 0.7, dz = -34.8 + sd * 0.68;
+    m.box("wood", [dx, 1.0, dz], [0.62, 1.7, 0.035], "#E6DCCB", { metric: true });
+    for (let l = 0; l < 14; l++) m.box("wood", [dx, 0.35 + l * 0.095, dz - sd * 0.02], [0.52, 0.02, 0.01], "#BFB29D", { r: [sd * 0.5, 0, 0] });
+    m.box("tag", [dx, 1.95, dz - sd * 0.02], [0.14, 0.14, 0.006], "#FFFFFF", { rect: doorNoCell(k * 2 + (sd > 0 ? 1 : 0)) });
+    m.box("chrome", [dx + 0.22, 1.05, dz - sd * 0.03], [0.03, 0.12, 0.03], "#C9D1DA");
+  }
+  // the return rack outside the entrance: a chrome bar on two uprights with a few garments left behind, and its sign
+  m.push([FX + 1.0, 0, -36.6], Math.PI / 2);
+  for (const s of [-1, 1]) { m.box("chrome", [s * 0.6, 0.75, 0], [0.03, 1.5, 0.03], "#C9D1DA"); m.box("chrome", [s * 0.6, 0.02, 0], [0.05, 0.03, 0.5], "#C9D1DA"); }
+  m.box("chrome", [0, 1.5, 0], [1.25, 0.025, 0.025], "#C9D1DA");
+  for (let i = 0; i < 6; i++) garment(m, [-0.5 + i * 0.17 + rnd(i) * 0.05, 1.49, 0], Math.PI / 2 + (rnd(i + 3) - 0.5) * 0.3, 0.44, 0.7, pick(WOMENS, rnd(i + 70)), [0, 1, 5, 4, 2, 6][i]);
+  m.box("tag", [0, 1.72, 0.005], [0.8, 0.2, 0.006], "#FFFFFF", { rect: notice(0) });
+  m.pop();
+  // ── the service counter's finish: a navy band and kick, a pin pad on a stand at each register, bag stacks, the counter sign ──
+  m.push([-6.6, 0, -6.6], 0);
+  m.box("lam", [0, 0.86, -0.352], [3.0, 0.1, 0.006], "#0B2F5E"); m.box("lam", [0, 0.5, -0.352], [3.0, 0.008, 0.006], "#7FB4F2");
+  for (const s of [-1, 1]) {
+    m.box("dark", [s * 0.8 - 0.32, 1.06, -0.18], [0.05, 0.08, 0.05], "#2A2F38");
+    m.box("dark", [s * 0.8 - 0.32, 1.14, -0.2], [0.1, 0.16, 0.04], "#1A1E24", { r: [0.35, 0, 0] });
+    m.box("screen", [s * 0.8 - 0.32, 1.17, -0.221], [0.07, 0.05, 0.004], "#FFFFFF", { r: [0.35, 0, 0] });
+  }
+  for (let k = 0; k < 18; k++) m.box("tag", [1.35, 0.32 + k * 0.006, 0.1], [0.36, 0.005, 0.44], "#FFFFFF", { rect: bagCell(0), r: [0, 0.04 * Math.sin(k), 0] });   // folded bags in the bag well
+  m.box("tag", [0.0, 1.05 + 0.15, 0.36], [0.34, 0.42, 0.12], "#FFFFFF", { rect: bagCell(0) });            // a filled bag waiting for pick-up
+  m.box("chrome", [-1.4, 1.3, -0.2], [0.03, 0.5, 0.03], "#C9D1DA"); m.box("tag", [-1.4, 1.62, -0.2], [0.62, 0.16, 0.01], "#FFFFFF", { rect: notice(1) });
+  m.pop();
+  // the jewellery cases' backs: a mirrored back wall with a lit valance behind the counters
+  // the jewellery department's back wall: a pale panelled wall with a mirror strip, a lit valance and its sign
+  m.box("lam", [6.2, 1.25, -8.62], [6.4, 2.5, 0.06], "#D3DBE5");
+  for (let k = 0; k < 5; k++) m.box("dark", [3.2 + k * 1.5, 1.25, -8.655], [0.012, 2.5, 0.006], "#9AA6B4");
+  m.box("frame", [6.2, 1.45, -8.66], [2.2, 0.9, 0.012], "#B9C3CF"); m.box("mirror", [6.2, 1.45, -8.67], [2.1, 0.8, 0.008], "#DDE6F0");
+  m.box("lam", [6.2, 2.6, -8.69], [6.5, 0.22, 0.16], "#E6EBF1"); m.box("caseLit", [6.2, 2.47, -8.76], [6.3, 0.025, 0.04], "#FFFFFF");
+  m.quad("dsign", [6.2, 2.6, -8.772], 2.0, 0.2, "#FFFFFF", T.signCell(4), { ry: Math.PI });
+  // nesting tables: a lower table tucked in front of three of the aisle tables, with a stack of folded tees
+  for (const [x, z, pal, sd] of [[2.75, -12.0, MENS, 3], [-2.8, -24.6, WOMENS, 5], [2.8, -20.7, DENIM, 7]]) {
+    m.push([x, 0, z], 0);
+    m.box("wood", [0, 0.52, 0], [0.9, 0.035, 0.6], "#FFFFFF", { metric: true });
+    for (const [a, b] of [[-1, -1], [-1, 1], [1, -1], [1, 1]]) m.box("wood", [a * 0.41, 0.26, b * 0.26], [0.04, 0.52, 0.04], "#C8B092", { metric: true });
+    for (let c2 = 0; c2 < 2; c2++) for (let i = 0; i < 5; i++) foldPiece(m, "fold", [-0.2 + c2 * 0.4, 0.56 + 0.038 * (i + 0.5), 0], [0.3, 0.038, 0.36], pick(pal, rnd(sd + c2 * 3 + (i > 2 ? 1 : 0))), (j) => T.foldCell(Math.floor(j / 4) === 2 ? (pal === DENIM ? 4 : 0) : 3), (rnd(sd + i) - 0.5) * 0.06);
+    m.pop();
+  }
+  // the columns' bulkhead caps (a painted band at the ceiling) and a speaker grille / return grilles in the ceiling
+  for (const x of [-7.2, 7.2, -14.4, 14.4]) for (const z of [-9, -18, -27, -45, -54, -63]) m.box("paint", [x, CEIL - 0.15, z], [0.64, 0.3, 0.64], "#D3D9E1");
 };
 
 // ── the ceiling: tiles, troffers (mostly off; a few warm security lights on), diffusers, sprinklers, camera domes ────────────
@@ -393,7 +471,6 @@ const Floors = ({ mode }) => {
   const terr2 = useMemo(() => { const t = T.terrazzoTex().clone(); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(36 / 2.4, 3 / 2.4); t.needsUpdate = true; return t; }, []);
   const terr3 = useMemo(() => { const t = T.terrazzoTex().clone(); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(36 / 2.4, 4.6 / 2.4); t.needsUpdate = true; return t; }, []);
   const carp = useMemo(() => { const t = T.carpetTex().clone(); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(36, 70); t.needsUpdate = true; return t; }, []);
-  const lot = useMemo(T.lotTex, []);
   const tm = (map) => <meshStandardMaterial map={map} color="#97A2B2" roughness={0.2} metalness={0.05} envMapIntensity={0.15} />;
   return (
     <group>
@@ -402,10 +479,8 @@ const Floors = ({ mode }) => {
       <mesh rotation-x={-Math.PI / 2} position={[0, 0.0025, -36]} receiveShadow><planeGeometry args={[X1 - X0, 3]} />{tm(terr2)}</mesh>
       <mesh rotation-x={-Math.PI / 2} position={[0, 0.0025, -2.45]} receiveShadow><planeGeometry args={[X1 - X0, 4.6]} />{tm(terr3)}</mesh>
       {mode === "in" && <Mirror w={AISLE * 2 - 0.06} d={-ZB - 2.6} pos={[0, 0.006, ZB / 2 - 1.3]} />}
-      {mode === "out" && <Mirror w={22} d={44} pos={[0, LOTY + 0.004, 26.6]} opacity={0.17} color="#AEBBD0" fadeK={0.014} />}
-      {/* the parking lot and the land around */}
-      <mesh rotation-x={-Math.PI / 2} position={[(T.LOT.x0 + T.LOT.x1) / 2, LOTY, (T.LOT.z0 + T.LOT.z1) / 2]} receiveShadow><planeGeometry args={[T.LOT.x1 - T.LOT.x0, T.LOT.z1 - T.LOT.z0]} /><meshStandardMaterial map={lot} color="#A9B4C4" roughness={0.32} metalness={0.15} envMapIntensity={0.45} /></mesh>
-      <mesh rotation-x={-Math.PI / 2} position={[0, LOTY - 0.02, 0]} receiveShadow><planeGeometry args={[500, 500]} /><meshStandardMaterial color="#0C1E33" roughness={0.95} /></mesh>
+      {/* the parking lot, its light and the snowy land around (a_lot.tsx; no planar mirror outside: no mirror copy of the sign) */}
+      <LotGround />
     </group>
   );
 };
@@ -460,25 +535,6 @@ const TrofferBank = ({ level }) => {
     </group>
   );
 };
-// the lot lamps: tall square poles with shoebox heads (warm), their glows and two real lights
-const LAMPS = [[-11.5, 16], [11.5, 16], [-11.5, 38], [11.5, 38], [-20, 56], [20, 56]];
-const LotLamps = ({ lights }) => (
-  <group>
-    {LAMPS.map(([x, z], i) => (
-      <group key={i} position={[x, LOTY, z]}>
-        <mesh position={[0, 0.35, 0]}><cylinderGeometry args={[0.32, 0.38, 0.7, 12]} /><meshStandardMaterial color="#7E8796" roughness={0.8} /></mesh>
-        <mesh position={[0, 4.9, 0]} castShadow><boxGeometry args={[0.16, 8.4, 0.16]} /><meshStandardMaterial color="#2A3240" metalness={0.6} roughness={0.4} /></mesh>
-        {[-1, 1].map((s) => <group key={s} position={[s * 0.75, 9.0, 0]}>
-          <mesh position={[-s * 0.35, 0.06, 0]}><boxGeometry args={[0.7, 0.08, 0.08]} /><meshStandardMaterial color="#2A3240" metalness={0.6} roughness={0.4} /></mesh>
-          <mesh><boxGeometry args={[0.8, 0.22, 0.48]} /><meshStandardMaterial color="#1E2630" metalness={0.5} roughness={0.4} /></mesh>
-          <mesh position={[0, -0.115, 0]} rotation-x={Math.PI / 2}><planeGeometry args={[0.7, 0.38]} /><meshStandardMaterial color="#FFE9C8" emissive="#FFC98A" emissiveIntensity={3} side={THREE.DoubleSide} /></mesh>
-          <Glow position={[0, -0.3, 0]} size={3.2} color="#FFC98A" opacity={0.7} />
-        </group>)}
-        {lights && i < 2 && <pointLight position={[0, 8.6, 0]} intensity={70} distance={26} decay={1.7} color="#FFC98A" />}
-      </group>
-    ))}
-  </group>
-);
 // the Vermont hills: two long ridgelines (a noisy top edge) far behind the store, in the fog
 const ridgeGeo = (seed, w, h0, h1, n = 160) => {
   const P = [], I = [];
@@ -492,33 +548,18 @@ const Ridges = () => {
     <mesh geometry={g1} position={[-30, 0, -210]}><meshBasicMaterial color="#0A2342" side={THREE.DoubleSide} /></mesh>
   </group>);
 };
-// pines and the hills behind the store (silhouettes in the fog)
-const Backdrop = () => {
-  const grp = useMemo(() => {
-    const m = new Mesher();
-    for (let i = 0; i < 120; i++) {
-      const x = -60 + i * 1.0 + (rnd(i) - 0.5) * 1.4, z = ZB - 3.5 - rnd(i + 1) * 12, h = 17 + rnd(i + 2) * 9, r = 2.4 + rnd(i + 3) * 1.0, c = rnd(i + 4) < 0.5 ? "#16293D" : "#1B3147";
-      m.cyl("trim", [x, 2, z], 0.25, 4, "#141E2B", { seg: 6 });
-      for (let k = 0; k < 4; k++) { const y0 = 3 + k * (h - 3) * 0.22, hh = (h - 3) * (0.42 - k * 0.04), rr = r * (1 - k * 0.22); m.cyl("plant", [x, y0 + hh / 2, z], rr, hh, c, { rt: 0, rb: 1, seg: 9 }); }
-    }
-    for (const s of [-1, 1]) for (let i = 0; i < 16; i++) { const x = s * (24 + rnd(i + 50) * 14), z = 10 - i * 5.5, h = 8 + rnd(i + 51) * 7; m.cyl("plant", [x, h * 0.55, z], 1.5 + rnd(i + 52), h, "#1C3348", { rt: 0, rb: 1, seg: 7 }); }
-    return m.build(townMats());
-  }, []);
-  return (
-    <group>
-      <primitive object={grp} />
-      <Ridges />
-    </group>
-  );
-};
+// the conifers and the hills behind the store
+const Backdrop = () => (<group><StoreTrees /><Ridges /></group>);
 // the sign: white channel letters on the fascia (emissive), a soft halo on the stucco behind them
-export const SIGN_AT = [0, 5.62, 0.24];
+export const SIGN_AT = [0, 5.62, 0.36];
 const StoreSign = () => {
   const tex = useMemo(T.jcpSignTex, []), halo = useMemo(T.jcpHaloTex, []);
   return (
     <group position={SIGN_AT}>
-      <mesh position={[0, 0, -0.03]}><planeGeometry args={[8.4, 2.1]} /><meshBasicMaterial map={halo} color="#B3CEEF" transparent opacity={0.3} blending={THREE.AdditiveBlending} depthWrite={false} /></mesh>
-      <mesh position={[0.04, -0.04, -0.035]}><planeGeometry args={[7.2, 1.8]} /><meshBasicMaterial map={tex} color="#000000" transparent opacity={0.35} depthWrite={false} /></mesh>
+      <mesh position={[0, 0, -0.163]}><planeGeometry args={[8.4, 2.1]} /><meshBasicMaterial map={halo} color="#B3CEEF" transparent opacity={0.3} blending={THREE.AdditiveBlending} depthWrite={false} /></mesh>
+      <mesh position={[0.05, -0.06, -0.166]}><planeGeometry args={[7.2, 1.8]} /><meshBasicMaterial map={tex} color="#000000" transparent opacity={0.3} depthWrite={false} /></mesh>
+      {/* the letters' returns (aluminium sides, 11 cm deep): stacked cut-outs behind the lit faces */}
+      {[0.012, 0.03, 0.05, 0.07, 0.09, 0.11].map((d, i) => <mesh key={i} position={[0, 0, -d]}><planeGeometry args={[7.2, 1.8]} /><meshStandardMaterial map={tex} transparent alphaTest={0.4} color="#2E333B" roughness={0.45} metalness={0.5} /></mesh>)}
       <mesh><planeGeometry args={[7.2, 1.8]} /><meshStandardMaterial map={tex} transparent alphaTest={0.4} color="#FFFFFF" emissive="#FFFFFF" emissiveMap={tex} emissiveIntensity={2.4} roughness={0.4} /></mesh>
     </group>
   );
