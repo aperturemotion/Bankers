@@ -1,32 +1,34 @@
 // @ts-nocheck
-// ★ V38 rev 2 — the COMPANY → ROAD hand-over (owned by the company builder, E; st_road.tsx spreads roadArrival as its first shots).
-//   Timur, 2026-11-26: "really smoothen the transition after this scene … I don't really understand what's happening … make it a
-//   lot more smoother." The old one pushed into a black screen, held empty navy, then the road appeared.
-//   NOW: the lottery terminal stands in a convenience store BESIDE THE INTERSTATE (company_store.tsx, on the road's scrolling
-//   ground, so the store, the pines and the road's lines stand still together and the sedan really drives along). After the screen
-//   dies on "ended the game", the camera rises off the terminal, out through the store window into the night, across the lot,
-//   and swings in high behind the sedan as it drives past the store — one continuous eased move, no cut, no flash, no empty frame. It comes to
-//   rest high behind the car exactly on road's frame 1104 (velocity 0), where road's own crane down behind the car takes over.
-//   Every frame from the cut onto the terminal (CUT2) to 1104 is a solved per-frame key (company_cam.keysFrom).
-import { groundToWorld, roadToWorld, roadS, storeToGround, SCREEN, screenPt, SCR_WORD, SCR_W } from "./company_store";
-import { solveView, segPx, keysFrom, moveBetween, smoother } from "./company_cam";
+// ★ V38 — the COMPANY → ROAD hand-over (company builder; st_company spreads storeShots, st_road spreads roadArrival).
+//   rev 2 (Timur, 2026-11-26: "really smoothen the transition after this scene"): the lottery terminal stands in a convenience store
+//   beside the interstate (company_store.tsx), the camera flew out of the window and caught the sedan as it drove past.
+//   ★ rev 5 (builder R; Timur, 2026-11-27: "a little slower … more seamless transitions … preferably no fade outs"): that flight
+//   caught a car doing highway speed in 34 frames (≥ 400 px/f). NOW the Selbees' sedan is PARKED in the store's lot, outside the
+//   window behind the register (road_drive.ts):
+//     1018  the matched cut: chalk "WINFALL" → the same word on the terminal's screen (solved, as before; the push eases out slower)
+//     1034  the push rests on the screen; 1056 "ended": GAME ENDED on it, the pole display reads CLOSED
+//     1050  ONE slow pull-back to the register (the HERO: the terminal on its open till, lit by the store's key, its shadow on the counter)
+//     1088  the camera rises over the register and (1112) out through the upper pane of the window
+//     1084  the car's lamps come on ("Then"); 1110 it pulls out of the lot and eases onto the interstate
+//     1136  the camera rides along — from rest, with the car — and settles high behind it (road's chase), no relative speed to catch
+//   No cut, no flash, no fade, no empty frame.
+import { roadToWorld, storeToGround, SCREEN, screenPt, SCR_WORD, STORE as STORE_O } from "./company_store";
+import { solveView, segPx, keysFrom, smoother } from "./company_cam";
+import { S, carZ, CAR_Z0 } from "./road_drive";
+import { makeCam } from "./kit";
 
 export const CUT2 = 1018;            // company's chalk "WINFALL" → the terminal's "WINFALL" (the first terminal frame)
 export const ROAD_FROM = CUT2;       // the road mounts with the store (its world is outside the window; its light takes over on the cut)
-export const DEPART = 1062;          // the camera starts to rise off the terminal (as "ended", 1056–1063, finishes)
-export const FLY = 1070;             // … and flies out through the window from here
-export const ARRIVE = 1104;          // at rest high behind the car; road's crane (a = 1104) continues from here
-export const HEAD_SY = 600, TALLY_HP = 140, CUT_HP = 310;
-export const G2 = Math.log(CUT_HP / TALLY_HP) / 22;   // the push's log-rate per frame through the cut
-const DEC = 12;
-// road-local (design) poses
-export const HOVER = { pos: [-16, 10.5, 3.5], target: [8, 0.4, 0.2], fov: 40 };
-// store-local framings of the terminal (metres)
-const WIDE = { pos: [0.12, 1.75, 3.9], target: [0.05, 1.06, 1.4], fov: 40 };
-const WIDE2 = { pos: [0.06, 1.72, 3.7], target: [0.03, 1.06, 1.4], fov: 40 };
-const RISE = { pos: [-0.55, 1.9, 3.1], target: [-0.1, 1.05, 1.3], fov: 40 };   // risen and to the left (clear of the sign), looking down on the dark terminal   // risen, looking down on the dark terminal
+export const HEAD_SY = 600, TALLY_HP = 190, CUT_HP = 310;   // rev 5: the chalk push starts closer (140 → 190 px) and runs 30 f: half the rate at the cut
+export const PUSH_N = 30;
+export const G2 = Math.log(CUT_HP / TALLY_HP) / PUSH_N;   // the push's log-rate per frame through the cut
+const DEC = 16;
+export const REST = CUT2 + DEC;
+// store-local → the road's local (design) frame while the car is parked (the ground stands still: S = S_PARK)
 const g = (p) => storeToGround(p);
-const gPose = (k) => ({ pos: g(k.pos), target: g(k.target), fov: k.fov });
+const toLocal = (p, f) => [p[0] - S(f), p[1], p[2]];
+const st = (p) => toLocal(g(p), CUT2);
+const toLocalG = (p) => [p[0] - STORE_O[0], p[1] - STORE_O[1], p[2] - STORE_O[2]];   // ground → store-local
 // the matched cut's screen side, solved in GROUND coords (a rotation of world about y: the solve carries over exactly)
 const WORD_C = screenPt(SCR_WORD.x, SCR_WORD.y);
 const WORD_HALF = (() => { const a = screenPt(SCR_WORD.x - SCR_WORD.w / 2, SCR_WORD.y), b = screenPt(SCR_WORD.x + SCR_WORD.w / 2, SCR_WORD.y); return Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]) / 2; })();
@@ -36,29 +38,36 @@ const screenPoseG = (f) => {
   const C = g(WORD_C);
   return solveView({ C, w: [-SCREEN.n[0], -SCREEN.n[1], -SCREEN.n[2]], sx: 540, sy: HEAD_SY, size: Math.exp(L), fov: 40, measure: (k) => segPx(k, C, SCREEN.ax, WORD_HALF) });
 };
-const REST = CUT2 + DEC;
-/** the camera in GROUND coords while it is in the store (frames CUT2 … DEPART) */
-const inStore = (f) => {
-  if (f <= REST) return screenPoseG(f);
-  const rest = screenPoseG(REST);
-  if (f <= 1044) return moveBetween(rest, gPose(WIDE), smoother((f - REST) / (1044 - REST)));
-  if (f <= DEPART) return moveBetween(gPose(WIDE), gPose(WIDE2), smoother((f - 1044) / (DEPART - 1044)));
-  return moveBetween(gPose(WIDE2), gPose(RISE), smoother((f - DEPART) / (FLY + 10 - DEPART)));
+/** the solved screen push in WORLD coords (frames CUT2 … REST) */
+export const departCam = (f) => { const s = screenPoseG(Math.min(f, REST)); return { pos: roadToWorld(toLocal(s.pos, f)), target: roadToWorld(toLocal(s.target, f)), fov: s.fov }; };
+// the register's hero framing, the look over it at the car through the glass, and the pose outside the glass (store-local metres)
+const HERO = { pos: [0.22, 1.8, 3.6], target: [-0.04, 1.0, 1.45], fov: 38 };
+const LOOK = { pos: [-0.2, 1.84, 3.05], target: [-0.45, 1.0, -1.2], fov: 38 };
+// road-local: the car is parked at (0, 0, CAR_Z0 = 7.3); outside the glass, above its right rear; then high behind it in its lane
+const OUT = { pos: [-3.0, 2.45, 10.4], target: [1.2, 1.1, 7.1], fov: 38 };   // just outside the glass, above the car's right rear
+export const CHASE = { pos: [-11.5, 4.2, 0.6], target: [5, 1.3, -0.2], fov: 36 };
+// ★ the whole hand-over is ONE chain of overlapping eased moves (kit.makeCam, no drift) evaluated RELATIVE TO THE CAR — which stands
+//   parked until 1110 (so relative to the car = relative to the store) and then eases out of the lot and sideways into its lane
+//   (road_drive.carZ): the chain is authored as if the car stood still, and the car's sideways glide is added back every frame. So the
+//   camera rides with the car from rest and never has to catch it. Every frame from REST on is a solved per-frame key (keysFrom).
+const rel = (p) => [p[0], p[1], p[2] - CAR_Z0];
+const RS = (k) => ({ pos: rel(st(k.pos)), target: rel(st(k.target)), fov: k.fov });   // store-local pose → car-relative
+const RL = (k) => ({ pos: rel(k.pos), target: rel(k.target), fov: k.fov });          // road-local pose (car parked) → car-relative
+/** the hand-over's moves (car-relative), from the screen push at rest to riding high behind the car */
+export const handoverShots = () => {
+  const s0 = screenPoseG(REST);
+  return [
+    { a: 0, b: 0, ...RS({ pos: toLocalG(s0.pos), target: toLocalG(s0.target), fov: s0.fov }) },
+    { a: 1050, b: 1096, ...RS(HERO) },                      // on the screen (GAME ENDED on "ended"), then ONE slow pull-back to the register (46 f)
+    { a: 1082, b: 1126, ...RS(LOOK) },                      // rise and look over it, through the glass, at the parked car (lamps on at 1084)
+    { a: 1100, b: 1146, ...RL(OUT) },                       // out through the upper pane as the car starts to roll (1110)
+    { a: 1128, b: 1222, ...CHASE }                          // ride along as it pulls out, settling high behind it in its lane
+  ];
 };
-const toLocal = (p, f) => [p[0] - roadS(f), p[1], p[2]];
-/** the live camera (WORLD) from CUT2 to ARRIVE */
-export const departCam = (f) => {
-  const s = inStore(f);
-  let pos = toLocal(s.pos, f), target = toLocal(s.target, f), fov = s.fov;
-  if (f > FLY) {
-    const tt = (f - FLY) / (ARRIVE - FLY), u = smoother(tt);
-    // out through the window first (z, done by 65 %), then back along the road (x) and up (y), a small crest on top
-    const uz = smoother(tt / 0.65), ux = Math.pow(u, 1.5), uy = u * u, ut = smoother((f - FLY) / 20), lift = 4 * Math.sin(Math.PI * u) * smoother(u / 0.7);
-    pos = [pos[0] + (HOVER.pos[0] - pos[0]) * ux, pos[1] + (HOVER.pos[1] - pos[1]) * uy + lift, pos[2] + (HOVER.pos[2] - pos[2]) * uz];
-    target = [target[0] + (HOVER.target[0] - target[0]) * ut, target[1] + (HOVER.target[1] - target[1]) * ut, target[2] + (HOVER.target[2] - target[2]) * ut];   // the gaze leads: it finds the car first
-    fov = fov + (HOVER.fov - fov) * u;
-  }
-  return { pos: roadToWorld(pos), target: roadToWorld(target), fov };
+/** per-frame keys [f0, f1] for a chain of car-relative road-local shots (st_road appends its own moves and calls this) */
+export const chainKeys = (shots, f0, f1) => {
+  const C = makeCam(shots, 0);
+  return keysFrom(f0, f1, (f) => { const k = C(f), z = carZ(f); return { pos: roadToWorld([k.pos[0], k.pos[1], k.pos[2] + z]), target: roadToWorld([k.target[0], k.target[1], k.target[2] + z]), fov: k.fov }; });
 };
-/** road's first shots: the flight, one solved key per frame, a < 1104 */
-export const roadArrival = (A, t) => keysFrom(DEPART, ARRIVE, departCam);
+/** company's shots: the solved push on the screen (the chain from REST + 1 is road's: st_road.tsx) */
+export const storeShots = () => keysFrom(CUT2, REST, departCam);

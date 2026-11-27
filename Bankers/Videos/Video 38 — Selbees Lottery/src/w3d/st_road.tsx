@@ -13,16 +13,18 @@
 //         tickets, which glow in the house light blue (tag TUBS OF TICKETS); "$600,000+" lands on its word (label OFTEN, A ROUND).
 //   1336  DEPARTURE: the shell dissolves and the camera pushes into one ticket in the trunk until it fills the frame (1356); the
 //         globe station cuts (cut: true) to the identical ticket on the MIT group's stack and pulls back.
-import { roadArrival, ROAD_FROM } from "./xfer_company_road";
+import { ROAD_FROM } from "./xfer_company_road";
 import React, { useMemo } from "react";
 import * as THREE from "three";
 import { useCurrentFrame } from "remotion";
-import { canvasTex, std, ease, easeOut, rnd, clamp01, Sky, Glow } from "./kit";
+import { canvasTex, std, ease, easeOut, rnd, clamp01, Sky, Glow, FOG } from "./kit";
 import { Tag, Counter, Pill } from "./overlays";
 import { cueAt } from "../bnx/SfxLayer";
 import { BODY, FIGURE } from "./fonts3d";
 import { wa, wAt, undrift, Inst, heroCam, Stars } from "./st_road_parts";
 import { Car, TRUNK_TUB } from "./st_road_car";
+import { S, V, carZ, carYaw, GAP, S_PARK, LIGHTS_ON, FD, GANTRY_GX } from "./road_drive";
+import { CHASE, REST, handoverShots, chainKeys } from "./xfer_company_road";
 
 export const ROAD_O = [1200, 0, 0];
 // authored with the car running along +x; the station turns it a quarter so the camera looks down world −z, as the house key
@@ -35,17 +37,17 @@ const T = () => {
   const years = wa("6 years,", 1150), miles = wa("900 miles", 1150), often = wa("often", 1250), betting = wa("betting", 1250), money = wa("$600,000.", 1250);
   return { then, similar, mass, massEnd: wAt("massachusetts.", 1080).end, forW, years, miles, often, betting, money, moneyEnd: wAt("$600,000.", 1250).end, cut: ROAD_CUT };
 };
-// ── the world scrolls: the car holds at the origin, everything else streams toward −x at highway speed ─────────────────────────
-const V = 0.85;                      // m per frame (~57 mph on screen; reads as cruising without strobing the 12-m lane period)
-const S = (f) => V * (f - 1000);
+// ── the world scrolls: the car holds at the origin, everything else streams toward −x by the distance it has driven ─────────────
+// rev 5 (builder R): S(f) is the car's DRIVE (road_drive.ts): parked in the store's lot until 1110, then an eased pull-away to cruising
+//   speed (0.85 m/f). The car also eases across the open shoulder from the lot into the right lane (carZ, carYaw).
 const PERIOD = 48;                   // every roadside repeat (posts, reflectors, pines) repeats every 48 m, so the scroll wraps seamlessly
 // cross-section (z): car lane centre 0; right shoulder to 4.8, guardrail 5.1; left lane to −5.4, median barrier −7.1; westbound beyond
 const ROAD_Z0 = -19.5, ROAD_Z1 = 5.2, ROAD_LEN = 420, ROAD_X = 90;
 const zRow = (z) => ((z - ROAD_Z0) / (ROAD_Z1 - ROAD_Z0)) * 1024;
 const roadTex = () => canvasTex("c_interstate", 512, 1024, (c, w, h) => {
   // asphalt with grain, two wheel-track sheens per lane, the lane lines (12-m period along x = the canvas width)
-  c.fillStyle = "#1B2535"; c.fillRect(0, 0, w, h);
-  for (let i = 0; i < 26000; i++) { const g = 26 + rnd(i) * 44; c.fillStyle = `rgba(${g},${g + 8},${g + 22},${0.22 + rnd(i + 7) * 0.32})`; c.fillRect(rnd(i + 1) * w, rnd(i + 2) * h, 2, 2); }
+  c.fillStyle = "#2A3850"; c.fillRect(0, 0, w, h);   // rev 5: a lighter asphalt (it was #1B2535) so the car's shadow from the key reads on it
+  for (let i = 0; i < 26000; i++) { const g = 34 + rnd(i) * 44; c.fillStyle = `rgba(${g},${g + 8},${g + 22},${0.22 + rnd(i + 7) * 0.32})`; c.fillRect(rnd(i + 1) * w, rnd(i + 2) * h, 2, 2); }
   const band = (z0, z1, col) => { c.fillStyle = col; c.fillRect(0, zRow(z0), w, zRow(z1) - zRow(z0)); };
   [[-0.9, -0.5], [0.5, 0.9], [-4.5, -4.1], [-3.1, -2.7], [-15.2, -14.8], [-13.8, -13.4], [-11.6, -11.2], [-10.2, -9.8]].forEach(([a, b]) => band(a, b, "rgba(10,16,28,0.35)"));
   band(1.8, 4.8, "rgba(60,74,96,0.25)"); band(-6.6, -5.4, "rgba(60,74,96,0.25)"); band(-8.8, -7.6, "rgba(60,74,96,0.25)"); band(-19.5, -16.0, "rgba(60,74,96,0.25)");
@@ -70,7 +72,7 @@ const signTex = () => canvasTex("c_massSign2", 2048, 720, (c, w, h) => {
   [w * 0.28, w * 0.72].forEach((x) => { c.beginPath(); c.moveTo(x, 640); c.lineTo(x - 64, 560); c.lineTo(x - 22, 560); c.lineTo(x - 22, 488); c.lineTo(x + 22, 488); c.lineTo(x + 22, 560); c.lineTo(x + 64, 560); c.closePath(); c.fill(); });
 });
 // the gantry reaches x −8.5 10 f after "Massachusetts." ends (rev 4f: the chase cam sits at −18.8, so it passes over it 22 f after)
-const gantryX = (f, t) => -8.5 + (S(t.massEnd + 10) - S(f));
+const gantryX = (f, t) => GANTRY_GX - S(f);   // rev 5: anchored on the ground (road_drive.GANTRY_GX), the car now starts from the store's lot
 const barrierShape = () => {
   const s = new THREE.Shape();
   s.moveTo(-0.31, 0); s.lineTo(0.31, 0); s.lineTo(0.31, 0.08); s.lineTo(0.18, 0.25); s.lineTo(0.08, 0.81); s.lineTo(-0.08, 0.81); s.lineTo(-0.18, 0.25); s.lineTo(-0.31, 0.08); s.closePath();
@@ -82,20 +84,34 @@ const Roadside = ({ f }) => {
     refl: new THREE.BoxGeometry(0.05, 0.12, 0.09),
     deli: new THREE.CylinderGeometry(0.04, 0.04, 1.1, 6),
     cone1: new THREE.ConeGeometry(1, 1, 11),
-    trunk: new THREE.CylinderGeometry(0.15, 0.2, 1, 5)
+    trunk: new THREE.CylinderGeometry(0.15, 0.2, 1, 5),
+    hill: new THREE.SphereGeometry(1, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2)
   }), []);
   const mat = useMemo(() => ({
     post: std("#5E6E84", 0.5, 0.6), refl: new THREE.MeshStandardMaterial({ color: "#FFFFFF", emissive: "#CFE3FF", emissiveIntensity: 1.6 }),
     reflAmber: new THREE.MeshStandardMaterial({ color: "#FFE2A0", emissive: "#FFC97A", emissiveIntensity: 1.2 }),
-    deli: std("#D8E2EE", 0.5, 0.1), pine: std("#0C2036", 0.92, 0), pine2: std("#0F2741", 0.92, 0), trunk: std("#0A1828", 0.9, 0)
+    deli: std("#D8E2EE", 0.5, 0.1), pine: std("#0C2036", 0.92, 0), pine2: std("#0F2741", 0.92, 0), trunk: std("#0A1828", 0.9, 0),
+    far: std("#0D2645", 0.95, 0), hill: std("#0B2342", 1, 0)
   }), []);
   const items = useMemo(() => {
     const n = Math.ceil(ROAD_LEN / PERIOD) + 1, x0 = ROAD_X - ROAD_LEN / 2;
-    const posts = [], refl = [], reflM = [], deli = [], pines = [], pines2 = [], trunks = [];
+    const posts = [], refl = [], reflM = [], deli = [], pines = [], pines2 = [], trunks = [], far = [], hills = [];
     for (let p = 0; p < n; p++) {
       const bx = x0 + p * PERIOD;
-      for (let k = 0; k < 24; k++) posts.push({ p: [bx + k * 2, 0.4, 5.25] });
-      for (let k = 0; k < 4; k++) { refl.push({ p: [bx + k * 12, 0.62, 5.12] }); reflM.push({ p: [bx + k * 12 + 6, 0.7, -6.95] }); deli.push({ p: [bx + k * 12 + 3, 0.55, 7.2] }); }
+      // rev 5: the right guardrail, its reflectors and the delineators stand on the ground with a gap at the store's lot (GroundRail)
+      for (let k = 0; k < 4; k++) reflM.push({ p: [bx + k * 12 + 6, 0.7, -6.95] });
+      // rev 5 (Timur, 1192 f: "the end of the Earth is visible … fixed by adding fog, blue fog"): DEPTH receding into the fog — a second,
+      //   taller belt of pines behind the first on both sides, and long low ridges behind them (40–70 m out: the fog takes them to
+      //   ~80–95 %), so the ground never ends in a flat line under the sky
+      for (let k = 0; k < 14; k++) {
+        const right = k < 7, j = k % 7, x = bx + (j / 7) * PERIOD + rnd(k * 11 + 4) * 5;
+        const z = right ? 27 + rnd(k * 13 + 1) * 14 : -42 - rnd(k * 13 + 2) * 14, hgt = 13 + rnd(k * 17 + 3) * 11, r = hgt * 0.3;
+        far.push({ p: [x, hgt * 0.5, z], s: [r, hgt, r] }); far.push({ p: [x + 1.2, hgt * 0.8, z + 0.8], s: [r * 0.65, hgt * 0.5, r * 0.65] });
+      }
+      for (let k = 0; k < 4; k++) {
+        const right = k < 2, x = bx + (k % 2) * 24 + rnd(k * 7 + 9) * 8;
+        hills.push({ p: [x, -2, right ? 52 + rnd(k) * 10 : -66 - rnd(k + 3) * 10], s: [30 + rnd(k + 5) * 10, 11 + rnd(k + 8) * 7, 16] });
+      }
       for (let k = 0; k < 22; k++) {
         // pines in two belts, right and left of the roadway; same pattern every period
         const right = k < 11, j = k % 11;
@@ -107,25 +123,65 @@ const Roadside = ({ f }) => {
         trunks.push({ p: [x, 0.7, z], s: [1, 1.4, 1] });
       }
     }
-    return { posts, refl, reflM, deli, pines, pines2, trunks };
+    return { posts, refl, reflM, deli, pines, pines2, trunks, far, hills };
   }, []);
   const shift = -(S(f) % PERIOD);
   return (
     <group position={[shift, 0, 0]}>
-      <Inst geo={geo.post} mat={mat.post} items={items.posts} castShadow />
-      <Inst geo={geo.refl} mat={mat.refl} items={items.refl} />
       <Inst geo={geo.refl} mat={mat.reflAmber} items={items.reflM} />
-      <Inst geo={geo.deli} mat={mat.deli} items={items.deli} />
+      <Inst geo={geo.cone1} mat={mat.far} items={items.far} />
+      <Inst geo={geo.hill} mat={mat.hill} items={items.hills} />
       <Inst geo={geo.cone1} mat={mat.pine} items={items.pines} />
       <Inst geo={geo.cone1} mat={mat.pine2} items={items.pines2} />
       <Inst geo={geo.trunk} mat={mat.trunk} items={items.trunks} />
     </group>
   );
 };
+// rev 5: the right-hand guardrail (beam, posts, reflectors) and the delineators, anchored to the GROUND (drawn at gx − S(f)), open
+//   for the store's lot (GAP) — the Selbees pull out of the lot across the shoulder into the lane
+const RAIL_X0 = -60, RAIL_X1 = 460;
+const GroundRail = ({ f }) => {
+  const geo = useMemo(() => ({ post: new THREE.BoxGeometry(0.1, 0.8, 0.12), refl: new THREE.BoxGeometry(0.05, 0.12, 0.09), deli: new THREE.CylinderGeometry(0.04, 0.04, 1.1, 6) }), []);
+  const mat = useMemo(() => ({ post: std("#5E6E84", 0.5, 0.6), refl: new THREE.MeshStandardMaterial({ color: "#FFFFFF", emissive: "#CFE3FF", emissiveIntensity: 1.6 }), deli: std("#D8E2EE", 0.5, 0.1), beam: std("#AEBBCC", 0.3, 0.75) }), []);
+  const items = useMemo(() => {
+    const out = (x) => x > GAP[0] && x < GAP[1];
+    const posts = [], refl = [], deli = [];
+    for (let x = RAIL_X0; x <= RAIL_X1; x += 2) if (!out(x)) posts.push({ p: [x, 0.4, 5.25] });
+    for (let x = RAIL_X0; x <= RAIL_X1; x += 12) { if (!out(x)) refl.push({ p: [x, 0.62, 5.12] }); if (!out(x + 3)) deli.push({ p: [x + 3, 0.55, 7.2] }); }
+    return { posts, refl, deli };
+  }, []);
+  return (
+    <group position={[-S(f), 0, 0]}>
+      <Inst geo={geo.post} mat={mat.post} items={items.posts} castShadow receiveShadow />
+      <Inst geo={geo.refl} mat={mat.refl} items={items.refl} />
+      <Inst geo={geo.deli} mat={mat.deli} items={items.deli} />
+      {[[RAIL_X0, GAP[0]], [GAP[1], RAIL_X1]].map(([a, b]) => <mesh key={a} material={mat.beam} position={[(a + b) / 2, 0.62, 5.12]} castShadow receiveShadow><boxGeometry args={[b - a, 0.32, 0.05]} /></mesh>)}
+      {/* the beam's flared end terminals at the gap */}
+      {[[GAP[0], 1], [GAP[1], -1]].map(([x, sd]) => <mesh key={"e" + x} material={mat.beam} position={[x + sd * 0.25, 0.55, 5.3]} rotation-y={sd * 0.5}><boxGeometry args={[0.6, 0.3, 0.05]} /></mesh>)}
+    </group>
+  );
+};
+// the sky of the road: the kit's Sky drawn WITHOUT tone mapping — three.js mixes the fog in AFTER tone mapping, so the fogged ground
+//   comes out exactly FOG.color (12, 48, 96) while a tone-mapped sky's lower half came out darker (0, 32, 92): a hard line at the
+//   horizon, "the end of the Earth" (1192 f). Untoned, the sky's lower half IS the fog's colour and the ground melts into it.
+const roadSkyTex = () => canvasTex("road_sky_r5", 8, 512, (c, w, h) => {
+  const g = c.createLinearGradient(0, 0, 0, h);
+  g.addColorStop(0, "#010A1C"); g.addColorStop(0.22, "#04163A"); g.addColorStop(0.38, "#082552"); g.addColorStop(0.46, "#0B2D5C"); g.addColorStop(0.5, FOG.color); g.addColorStop(1, FOG.color);
+  c.fillStyle = g; c.fillRect(0, 0, w, h);
+});
+const RoadSky = () => {
+  const tex = useMemo(roadSkyTex, []);
+  return (
+    <mesh scale={[-1, 1, 1]}>
+      <sphereGeometry args={[400, 48, 32]} />
+      <meshBasicMaterial map={tex} side={THREE.BackSide} fog={false} depthWrite={false} toneMapped={false} />
+    </mesh>
+  );
+};
 // oncoming cars (westbound, across the median) and a truck far ahead in the left lane: lights first, bodies dim
 const Traffic = ({ f }) => {
   const cars = [0, 1, 2, 3].map((i) => {
-    const span = 300, x = 220 - ((f * (V + 0.9) + i * 77 + rnd(i) * 30) % span);
+    const span = 300, x = 220 - ((S(f) + f * 0.9 + i * 77 + rnd(i) * 30) % span);
     const fade = clamp01((220 - x) / 50) * clamp01((x + 70) / 20);
     return { x, z: i % 2 ? -10.9 : -14.4, fade };
   });
@@ -198,24 +254,26 @@ const Scene = ({ f }) => {
   const glow = ease(f, t.betting + 8, t.betting + 20) * (1 - 0.5 * ease(f, t.money + 30, t.cut - 20));
   const shell = 1 - ease(f, t.cut - 22, t.cut - 10);
   const bob = 0.012 * Math.sin(f / 6.3) * (1 - ease(f, t.cut - 40, t.cut - 26));
+  const lamps = ease(f, LIGHTS_ON, LIGHTS_ON + 5);
   return (
     <group rotation-y={Math.PI / 2}>
-      <Sky zenith="#020A1A" mid="#06193A" horizon="#24508A" glowAt={0.5} />
+      <RoadSky />
       <Stars />
       {/* the roadway: one asphalt plane carrying all its lines; verges either side */}
       <mesh rotation-x={-Math.PI / 2} position={[ROAD_X, 0, (ROAD_Z0 + ROAD_Z1) / 2]} receiveShadow>
         <planeGeometry args={[ROAD_LEN, ROAD_Z1 - ROAD_Z0]} />
-        <meshStandardMaterial map={road} roughness={0.42} metalness={0.18} envMapIntensity={0.2} color="#7F8FA8" />
+        <meshStandardMaterial map={road} roughness={0.42} metalness={0.18} envMapIntensity={0.2} color="#8FA2C2" />
       </mesh>
-      <mesh rotation-x={-Math.PI / 2} position={[ROAD_X, -0.03, 0]} receiveShadow><planeGeometry args={[ROAD_LEN, 260]} /><meshStandardMaterial color="#0B1E33" roughness={0.95} /></mesh>
+      <mesh rotation-x={-Math.PI / 2} position={[ROAD_X, -0.03, 0]} receiveShadow><planeGeometry args={[ROAD_LEN + 400, 600]} /><meshStandardMaterial color="#0B1E33" roughness={0.95} /></mesh>
       {/* median barrier (concrete), the guardrail beam (steel) */}
       <mesh geometry={barrier} position={[0, 0, -7.1]} castShadow receiveShadow><meshStandardMaterial color="#8C9AAE" roughness={0.8} /></mesh>
-      <mesh position={[ROAD_X, 0.62, 5.12]} castShadow><boxGeometry args={[ROAD_LEN, 0.32, 0.05]} /><meshStandardMaterial color="#AEBBCC" metalness={0.75} roughness={0.3} /></mesh>
+      <GroundRail f={f} />
       <Roadside f={f} />
       <Traffic f={f} />
       <Gantry f={f} t={t} />
-      <group position={[0, bob, 0]}>
-        <Car xray={xr} flash={flash} shell={shell} glow={glow} spin={-f * 0.22} />
+      {/* rev 5: the car pulls out of the lot (carZ / carYaw), its lamps come on on "Then"; the wheels turn with the distance driven */}
+      <group position={[0, bob * ease(f, FD, FD + 40), carZ(f)]} rotation-y={carYaw(f)}>
+        <Car xray={xr} flash={flash} shell={shell} glow={glow} spin={-(S(f) - S_PARK) * 0.26} lit={lamps} tail={0.25 + 0.75 * lamps} />
       </group>
     </group>
   );
@@ -224,21 +282,22 @@ const Scene = ({ f }) => {
 const shots = () => {
   const t = T();
   const close = heroCam(TRUNK_TUB, 0.19);
-  return [
-    ...roadArrival(A, t),                                                                                          // arrival (xfer_company_road.ts)
-    // rev 4f: both held at the arrival pull-out's distance from the car (~19 m; they were 12.7 / 11.3 m — a zoom back in after the pull-out)
-    { a: 1104, b: t.similar + 24, pos: A([-18.5, 4.4, -0.7]), target: A([12, 2.4, -0.5]), fov: 36 },              // crane down behind the car
-    { a: t.similar + 16, b: t.massEnd + 6, pos: A([-18.8, 3.8, -1.0]), target: A([10, 5.0, -0.8]), fov: 38 },         // tilt up as the sign goes over
-    // rev 2 (Timur: no back-and-forth): ONE sweep round to the side (the "ahead" swing reversed it), then ONE gentle rise
-    // rev 4f (Timur, 40 s: "zooms out, zooms in, and zooms out again … it should just zoom out continuously"): the dive round to the
-    //   side (24 → 8.5 m) and the pull back up to the aerial are gone — ONE slow rise and pull-back from behind the car to a wide aerial;
-    //   the only way in after it is the single push into the trunk (and the ticket) at the end of the scene
-    // the rise waits until the gantry has passed over the camera (gantryX = −18.8 at massEnd + 22; clear of its truss by + 33)
-    { a: t.massEnd + 33, b: t.often - 8, pos: A([-16, 15, -6.5]), target: A([4, 0.5, 0]), fov: 38 },               // a slow rise to a wide aerial
-    { a: t.often - 8, b: t.betting + 16, pos: A([-7.8, 4.4, -4.6]), target: A([-0.5, 0.75, 0]), fov: 36 },          // in behind the trunk
-    { a: t.cut - 42, b: t.cut - 12, pos: A(heroCam(TRUNK_TUB, 1.4).pos), target: A(close.target), fov: 34 },     // line up on one ticket
-    { a: t.cut - 15, b: t.cut, pos: undrift(A(close.pos), t.cut), target: A(close.target), fov: 34 }              // push straight into it
-  ];
+  // rev 5 (Timur, 2026-11-27: "slower … cinematic … always focused on something or moving to something"): four long eased moves, each
+  //   from the car to the car, overlapping so the camera never settles and restarts:
+  //   · the ride-along out of the lot to high behind the car (roadArrival, 1116 → 1172)
+  //   · a slow settle lower behind it, the gaze lifting to the gantry as MASSACHUSETTS comes out of the haze and passes over (→ 1212)
+  //   · ONE slow rise to the wide aerial on "900 miles" (→ 1272)
+  //   · ONE descent in behind the trunk (60 f), overlapped by ONE push onto the hero ticket and into it (1304 → the cut at 1356: 52 f;
+  //     it was a line-up and a 15-f push)
+  const N = [-Math.SQRT1_2, Math.SQRT1_2, 0];   // the hero slip's normal (st_road_parts HERO_N): the last two moves come down it
+  // ★ ONE chain from the register to the ticket (xfer_company_road.chainKeys): car-relative, overlapping smootherstep moves, solved
+  //   per frame (so the push lands EXACTLY on the hero slip at the cut, and no smoothing can swing a move off its subject)
+  return chainKeys([
+    ...handoverShots(),
+    { a: 1200, b: 1282, pos: [-15, 11.5, -5.0], target: [4, 0.5, 0], fov: 38 },                              // a slow rise to the wide aerial
+    { a: 1258, b: 1316, pos: close.target.map((v, i) => v + N[i] * 4.2), target: close.target, fov: 36 },  // down behind the trunk, on the slip's axis
+    { a: 1292, b: t.cut, pos: close.pos, target: close.target, fov: 34 }                                  // ONE straight push into it
+  ], REST + 1, t.cut);
 };
 // an odometer: drums that roll as a real one does (the lowest turns, the next turns over in the last tenth)
 const Odometer = ({ at, out, value, x = 540, y = 330, label, unit }) => {
@@ -305,4 +364,4 @@ const sfx = () => {
     cueAt("ee_whoosh_fast_small_whoosh_01", t.cut - 11, 20, 0.5) // the push into the ticket
   ];
 };
-export const ST = { id: "road", origin: ROAD_O, from: ROAD_FROM, to: ROAD_CUT, light: { keyI: 1.25, rimI: 1.1, shadowBox: 10, fillI: 0.32 }, shots, Scene, Overlay, sfx };
+export const ST = { id: "road", origin: ROAD_O, from: ROAD_FROM, to: ROAD_CUT, light: { key: [-10, 13, 2.5], keyI: 7.0, keyColor: "#C9DCF7", rimI: 1.2, shadowBox: 15, fillI: 0.3, target: [5, 0, 0] }, shots, Scene, Overlay, sfx };

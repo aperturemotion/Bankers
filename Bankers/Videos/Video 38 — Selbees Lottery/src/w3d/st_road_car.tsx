@@ -88,7 +88,7 @@ const useCarParts = () => useMemo(() => {
 
 /** the car. xray 0–1 (shell → glass); flash 0–1 (the white rim's peak); shell 0–1 (whole car dissolves for the push in);
  *  glow 0–1 (the tubs light in the accent); spin: wheel angle */
-export const Car = ({ xray = 0, flash = 0, shell = 1, glow = 0, spin = 0, lit = 1 }) => {
+export const Car = ({ xray = 0, flash = 0, shell = 1, glow = 0, spin = 0, lit = 1, tail = 1 }) => {
   const { B, G, M, D, belt, wip, lines, handle, mirrorBody } = useCarParts();
   const W = useWheelMats();
   const C = useCabinMats();
@@ -103,7 +103,7 @@ export const Car = ({ xray = 0, flash = 0, shell = 1, glow = 0, spin = 0, lit = 
   }
   for (const k of ["under", "trim", "chrome", "mirror", "liner", "plate", "grille", "intake"]) fade(M[k], shell * (1 - (k === "liner" ? 0.7 : 0.8) * xray));
   fade(M.head, shell * (1 - 0.45 * xray)); fade(M.tail, shell * (1 - 0.55 * xray)); fade(M.third, shell * (1 - 0.6 * xray));
-  M.head.emissiveIntensity = 2.4 * shell * lit; M.tail.emissiveIntensity = 1.8 * shell * (1 - 0.6 * xray);
+  M.head.emissiveIntensity = 2.4 * shell * lit; M.tail.emissiveIntensity = 1.8 * shell * tail * (1 - 0.6 * xray); M.third.emissiveIntensity = 2 * tail;
   // the panes: tinted glass, always drawn after the opaque car; they write depth until the x-ray thins them
   const gop = shell * (0.8 - 0.7 * xray);
   M.glass.opacity = gop; M.glass.depthWrite = xray < 0.02 && shell > 0.99; M.glass.visible = gop > 0.004;
@@ -117,8 +117,8 @@ export const Car = ({ xray = 0, flash = 0, shell = 1, glow = 0, spin = 0, lit = 
     <group>
       {/* contact shadow under the car (soft, always) */}
       <mesh rotation-x={-Math.PI / 2} position={[0, 0.012, 0]}>
-        <planeGeometry args={[5.6, 2.5]} />
-        <meshBasicMaterial color="#000814" transparent opacity={0.55 * shell} depthWrite={false} alphaMap={useMemo(() => canvasTex("carShadow", 128, 64, (c, w, h) => { const g = c.createRadialGradient(w / 2, h / 2, 4, w / 2, h / 2, w / 2); g.addColorStop(0, "#fff"); g.addColorStop(0.6, "#888"); g.addColorStop(1, "#000"); c.fillStyle = g; c.fillRect(0, 0, w, h); }), [])} />
+        <planeGeometry args={[6.0, 2.9]} />
+        <meshBasicMaterial color="#000814" transparent opacity={0.78 * shell} depthWrite={false} alphaMap={useMemo(() => canvasTex("carShadow", 128, 64, (c, w, h) => { const g = c.createRadialGradient(w / 2, h / 2, 4, w / 2, h / 2, w / 2); g.addColorStop(0, "#fff"); g.addColorStop(0.6, "#888"); g.addColorStop(1, "#000"); c.fillStyle = g; c.fillRect(0, 0, w, h); }), [])} />
       </mesh>
       {/* the body and its glasshouse */}
       <mesh geometry={B.side} material={M.side} castShadow={cast} receiveShadow />
@@ -160,7 +160,7 @@ export const Car = ({ xray = 0, flash = 0, shell = 1, glow = 0, spin = 0, lit = 
       {/* the rear plate (in a dark recess on the bumper) and its lamp; the exhaust tip */}
       <mesh position={[-2.452, 0.54, 0]} rotation-y={-Math.PI / 2} material={M.trim}><planeGeometry args={[0.36, 0.19]} /></mesh>
       <mesh position={[-2.458, 0.54, 0]} rotation-y={-Math.PI / 2} material={M.plate}><planeGeometry args={[0.305, 0.152]} /></mesh>
-      <Glow position={[-2.47, 0.63, 0]} size={0.25} color="#EAF2FF" opacity={0.5 * lampsOn} />
+      <Glow position={[-2.47, 0.63, 0]} size={0.25} color="#EAF2FF" opacity={0.5 * lampsOn * tail} />
       <group position={[-2.37, 0.3, -0.48]} rotation-z={Math.PI / 2}>
         <mesh material={M.chrome}><cylinderGeometry args={[0.035, 0.035, 0.16, 20, 1, true]} /></mesh>
         <mesh position={[0, -0.07, 0]} material={M.under}><cylinderGeometry args={[0.03, 0.03, 0.01, 20]} /></mesh>
@@ -179,7 +179,7 @@ export const Car = ({ xray = 0, flash = 0, shell = 1, glow = 0, spin = 0, lit = 
               <meshBasicMaterial map={beam} color="#BFD8FF" transparent opacity={0.035 * lampsOn * lit} blending={THREE.AdditiveBlending} depthWrite={false} side={THREE.DoubleSide} />
             </mesh>
           ))}
-          <Glow position={[-2.5, 0.86, s * 0.5]} size={0.9} color="#FF4A4A" opacity={0.5 * lampsOn * (1 - 0.6 * xray)} />
+          <Glow position={[-2.5, 0.86, s * 0.5]} size={0.9} color="#FF4A4A" opacity={0.5 * lampsOn * tail * (1 - 0.6 * xray)} />
         </group>
       ))}
       <primitive object={tgt} />

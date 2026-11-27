@@ -27,7 +27,7 @@ import { SEAL_SCREEN, PUSH_RATE } from "./xfer_seal";
 import { Certificates, SEAL_C, SEAL_R, onTop, PRICE_PX } from "./company_cert";
 import { Store, storeToGround, groundToWorld, roadS, SCREEN, fitWord } from "./company_store";
 import { solveView, discPx, segPx, keysFrom, smoother, drift } from "./company_cam";
-import { CUT2, DEPART, departCam, HEAD_SY, TALLY_HP, CUT_HP } from "./xfer_company_road";
+import { CUT2, storeShots, HEAD_SY, TALLY_HP, CUT_HP, PUSH_N } from "./xfer_company_road";
 
 export const COMPANY_ORIGIN = [900, 0, 0];
 const W = (p) => [p[0] + COMPANY_ORIGIN[0], p[1] + COMPANY_ORIGIN[1], p[2] + COMPANY_ORIGIN[2]];
@@ -40,7 +40,7 @@ export const T = () => {
   };
 };
 // ── the chalkboard (wall) with its twelve strokes ─────────────────────────────────────────────────────────────────────────
-const BX = 1.2, BY = 7.8, BZ = -9.7, BW = 6.8, BH = 4.4;
+const BX = 1.2, BY = 5.0, BZ = -9.7, BW = 6.8, BH = 4.4;   // rev 5: hung lower (7.8 → 5.0), just above the desk — the crane up to it turns the view 15° less
 const SL_W = 2048, SL_H = 1325;
 const HEAD = { x: 1024, y: 178, w: 640 };   // the chalk "WINFALL" (cap-height middle, width) on the slate canvas
 const HEAD_C = [BX + (HEAD.x / SL_W - 0.5) * BW, BY + (0.5 - HEAD.y / SL_H) * BH, BZ + 0.061];
@@ -181,8 +181,8 @@ export const sealPose = (f) => {
 };
 // the chalk push: the heading at (540, HEAD_SY), from TALLY_HP px half-width (the tally framing) to CUT_HP on the cut, its log-size
 // on q(t) = 2t² − t³ (starts at rest, ends at the constant log-rate G that the screen side carries on and eases out)
-const PUSH0 = CUT2 - 22;
-const HEAD_W = [0, -0.12, -1];
+const PUSH0 = CUT2 - PUSH_N;   // rev 5: 30 f from a closer start (was 22 f): half the rate through the cut
+const HEAD_W = [0, -0.325, -1];   // rev 5: a little more from above (18°; it was 7°) — the crane from the desk tilts up less
 const chalkPose = (f) => {
   const x = Math.min(1, Math.max(0, (f - PUSH0) / (CUT2 - PUSH0)));
   const L = Math.log(TALLY_HP) + Math.log(CUT_HP / TALLY_HP) * (2 * x * x - x * x * x);
@@ -194,13 +194,16 @@ const shots = () => {
   const t = T();
   const P1 = t.cut + DEC + 1;               // the seal push is at rest here; the pull-back starts
   const seal = keysFrom(t.cut + 1, P1, sealPose);
+  // rev 5 (Timur, 2026-11-27: "slower … cinematic", "no point in moving the camera to something that isn't there"): ONE slow pull-back
+  //   and rise off the seal to a frame holding BOTH subjects — the fanned certificates below, the chalk board above (890 → 962) —
+  //   overlapped by ONE gentle push up onto the tally (946 → 987), which lands at rest as the push into the chalk word begins (30 f;
+  //   it was 22). The old crane aimed through the empty air between the desk and the board.
   return [
     ...seal,
-    { a: P1, b: t.company - 4, pos: W([-1.7, 4.3, 5.9]), target: W([-2.3, 0.1, 0.8]), fov: 40 },                 // pull back as the fan opens
-    { a: t.company - 4, b: t.played - 32, pos: W([-1.0, 5.0, 7.3]), target: W([-2.2, 0.15, 0.55]), fov: 40 },          // a slow drift right
-    { a: t.played - 36, b: PUSH0 - 3, pos: TALLY.pos.map((v, i) => v - drift(PUSH0)[i]), target: TALLY.target, fov: 40, arc: 1.2 },   // crane up to the tally (rev 2: 36 f, it was a 20-f lurch)
+    { a: P1, b: 962, pos: W([-0.6, 8.6, 12.6]), target: W([-0.5, 2.2, -4.0]), fov: 40 },                         // pull back and up: the fanned certificates and the board above them
+    { a: 946, b: PUSH0 - 1, pos: TALLY.pos.map((v, i) => v - drift(PUSH0)[i]), target: TALLY.target, fov: 40, zoom: false },   // … then a gentle push up onto the tally
     ...keysFrom(PUSH0 + 1, CUT2 - 1, chalkPose),                                                                       // push into the chalk WINFALL
-    ...keysFrom(CUT2, DEPART - 1, (f) => departCam(f))                                                                // the terminal (store frame)
+    ...storeShots()                                                                                                    // the terminal, the register, out of the window (xfer_company_road.ts)
   ];
 };
 // ── the annotations ───────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -237,4 +240,4 @@ const sfx = () => {
     cueAt("sub", t.ended, 20, 0.5)                                                 // the game ends, the screen dies
   ];
 };
-export const ST = { id: "company", origin: COMPANY_ORIGIN, from: T().cut + 1, to: 1110, light: { shadowBox: 11, keyI: 0.85, fillI: 0.3, rimI: 0.9 }, shots, Scene, Overlay, sfx };
+export const ST = { id: "company", origin: COMPANY_ORIGIN, from: T().cut + 1, to: 1220, light: { shadowBox: 11, keyI: 0.85, fillI: 0.3, rimI: 0.9 }, shots, Scene, Overlay, sfx };

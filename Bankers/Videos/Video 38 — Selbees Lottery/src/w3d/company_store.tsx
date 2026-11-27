@@ -15,11 +15,15 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 import { canvasTex, rnd, ease, clamp01, Glow } from "./kit";
 import { BODY, FIGURE } from "./fonts3d";
 import { drawTicket } from "./ticket_art";
+import { S, V } from "./road_drive";
+import { billFaceMat } from "./money";
 
-// ── the road's frame (must equal st_road.tsx: ROAD_O, V and S(f) = V·(f − 1000)) ─────────────────────────────────────────────
+// ── the road's frame (must equal st_road.tsx: ROAD_O, and its ground scroll S(f), road_drive.ts) ──────────────────────────────
+// rev 5 (builder R): the scroll is the car's DRIVE now (road_drive.ts): 0 while it stands parked in this store's lot, then an eased
+//   pull-away to cruising speed — the store stands still in the picture while the camera is in it
 export const ROAD_WORLD = [1200, 0, 0];
-export const ROAD_V = 0.85;
-export const roadS = (f) => ROAD_V * (f - 1000);
+export const ROAD_V = V;
+export const roadS = (f) => S(f);
 /** road design coords → world (st_road's ROT + ROAD_O) */
 export const roadToWorld = (p) => [p[2] + ROAD_WORLD[0], p[1] + ROAD_WORLD[1], -p[0] + ROAD_WORLD[2]];
 /** ground coords (gx, y, z) at frame f → world */
@@ -30,7 +34,10 @@ export const storeToGround = (p) => [STORE[0] + p[0], STORE[1] + p[1], STORE[2] 
 
 // ── the terminal's layout (store-local metres) ────────────────────────────────────────────────────────────────────────────
 const CTR_Y = 0.95;                       // counter top
-export const TERM = { pos: [0, CTR_Y, 1.56], ry: -0.22 };
+// rev 5 (Timur, 37 s: "the cash register … not that detailed and it has no shadow"): the terminal now stands on its CASH DRAWER (a real
+//   counter register: steel till under the terminal), so the whole unit rises by the drawer's height; every solve reads TERM/SCREEN
+export const DRAWER_H = 0.1;
+export const TERM = { pos: [0, CTR_Y + DRAWER_H, 1.56], ry: -0.22 };
 const MON = { pos: [-0.05, 0.31, -0.1], tilt: -0.34, w: 0.34, h: 0.272, sw: 0.288, sh: 0.216 };
 const termMat = () => { const o = new THREE.Object3D(); o.position.set(...TERM.pos); o.rotation.y = TERM.ry; o.updateMatrixWorld(true); return o; };
 /** the screen's centre / its unit axes (store-local) */
@@ -113,24 +120,51 @@ const signTex = () => canvasTex("c2_lotsign", 1024, 300, (c, w, h) => {
 });
 // the slip the terminal prints: the house WINFALL draw ticket (ticket_art.ts)
 const ticketTex = () => canvasTex("c2_slipticket_v4", 384, 900, (c, w, h) => drawTicket(c, w, h, { seed: 2 }));
-const keyAtlas = () => canvasTex("c2_keyatlas", 512, 512, (c, w, h) => {
-  const labs = ["7", "8", "9", "CLR", "4", "5", "6", "CNCL", "1", "2", "3", "CHK", "0", "00", "QP", "ENTER"];
+// rev 5: a real register keyboard — 5 × 5 keycaps with printed legends (numbers, the lottery keys, the register's tender keys)
+const KEYS = [["CLR", "7", "8", "9", "VOID"], ["QTY", "4", "5", "6", "QP"], ["PLU", "1", "2", "3", "CHECK"], ["PAID OUT", "0", "00", ".", "SUB TOTAL"], ["NO SALE", "CANCEL", "REPRINT", "CREDIT", "CASH"]];
+const KC = 200, KO = 12;   // atlas cell, margin
+const keyAtlas = () => canvasTex("c5_keyatlas", 1024, 1024, (c, w, h) => {
   c.fillStyle = "#3B4656"; c.fillRect(0, 0, w, h);
-  labs.forEach((t, i) => {
-    const x = (i % 4) * 128, y = Math.floor(i / 4) * 128;
-    const g = c.createLinearGradient(0, y, 0, y + 128);
-    const blue = t === "ENTER" || t === "QP";
-    g.addColorStop(0, blue ? "#3D82D6" : "#DDE4EE"); g.addColorStop(1, blue ? "#2563B0" : "#B9C5D6");
-    c.fillStyle = g; c.fillRect(x + 4, y + 4, 120, 120);
-    c.fillStyle = blue ? "#FFFFFF" : "#16243A"; c.textAlign = "center"; c.font = `700 ${t.length > 2 ? 30 : 58}px ${BODY}`; c.fillText(t, x + 64, y + (t.length > 2 ? 76 : 86));
-  });
+  KEYS.forEach((row, r) => row.forEach((t, k) => {
+    const x = KO + k * KC, y = KO + r * KC;
+    const blue = t === "CASH" || t === "QP", fn = !/^[0-9.]+$/.test(t) && !blue, red = t === "VOID" || t === "CLR";
+    const g = c.createLinearGradient(0, y, 0, y + KC);
+    g.addColorStop(0, blue ? "#4A8EE0" : red ? "#C9D2DE" : fn ? "#9AA8BB" : "#E6ECF3"); g.addColorStop(1, blue ? "#2563B0" : red ? "#A9B5C5" : fn ? "#7C8BA0" : "#C2CDDB");
+    c.fillStyle = g; c.beginPath(); c.roundRect(x + 6, y + 6, KC - 12, KC - 12, 22); c.fill();
+    c.strokeStyle = "rgba(255,255,255,0.45)"; c.lineWidth = 3; c.beginPath(); c.roundRect(x + 10, y + 10, KC - 20, KC - 20, 18); c.stroke();
+    c.fillStyle = blue ? "#FFFFFF" : red ? "#B0262B" : "#16243A"; c.textAlign = "center"; c.textBaseline = "middle";
+    const words = t.split(" ");
+    if (words.length > 1) { c.font = `800 40px ${BODY}`; words.forEach((wd, i) => c.fillText(wd, x + KC / 2, y + KC / 2 + (i - (words.length - 1) / 2) * 46)); }
+    else { c.font = `800 ${t.length > 3 ? 44 : t.length > 2 ? 56 : t.length > 1 ? 84 : 104}px ${t.length > 2 ? BODY : FIGURE}`; c.fillText(t, x + KC / 2, y + KC / 2 + 4); }
+  }));
 });
-const vfdTex = () => canvasTex("c2_vfd", 512, 160, (c, w, h) => {
-  c.fillStyle = "#06121C"; c.fillRect(0, 0, w, h);
-  c.fillStyle = "#7FE0F2"; c.font = `600 46px "Liberation Mono", monospace`; c.textAlign = "center";
-  c.fillText("PLAY WINFALL", w / 2, 70); c.fillText("THANK YOU", w / 2, 130);
-  c.fillStyle = "rgba(0,0,0,0.35)"; for (let x = 0; x < w; x += 4) c.fillRect(x, 0, 1, h);
+// the customer pole display (a 2 × 20 vacuum-fluorescent display) shows the sale: one WinFall play, $1 (FACTCHECK: Michigan $1 a play)
+const vfdLines = (c, w, h, l1, l2) => {
+  c.fillStyle = "#04100F"; c.fillRect(0, 0, w, h);
+  c.fillStyle = "#7FF0E0"; c.font = `700 58px "Liberation Mono", "DejaVu Sans Mono", monospace`; c.textAlign = "left"; c.textBaseline = "alphabetic";
+  c.shadowColor = "rgba(127,240,224,0.8)"; c.shadowBlur = 10;
+  c.fillText(l1, 26, 92); c.fillText(l2, 26, 184);
+  c.shadowBlur = 0; c.fillStyle = "rgba(0,0,0,0.4)"; for (let x = 0; x < w; x += 5) c.fillRect(x, 0, 1, h); for (let y = 0; y < h; y += 5) c.fillRect(0, y, w, 1);
+};
+const vfdTex = () => canvasTex("c5_vfd", 768, 216, (c, w, h) => vfdLines(c, w, h, "WINFALL  1 @  $1.00", "TOTAL         $1.00"));
+const vfdEndTex = () => canvasTex("c5_vfd_end", 768, 216, (c, w, h) => vfdLines(c, w, h, "WINFALL     CLOSED", "NO SALE       $0.00"));
+// brand-free rating / model plates (engraved aluminium) and a contact-shadow blob
+const plateTex = (key, l1, l2) => canvasTex(key, 512, 128, (c, w, h) => {
+  const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "#C9D3DF"); g.addColorStop(1, "#97A6BA"); c.fillStyle = g; c.fillRect(0, 0, w, h);
+  for (let x = 0; x < w; x += 2) { c.fillStyle = `rgba(255,255,255,${0.04 + rnd(x) * 0.06})`; c.fillRect(x, 0, 1, h); }   // brushed
+  c.strokeStyle = "#1B2A40"; c.lineWidth = 4; c.strokeRect(6, 6, w - 12, h - 12);
+  c.fillStyle = "#1B2A40"; c.textAlign = "center"; c.font = `800 38px ${BODY}`; c.fillText(l1, w / 2, 56); c.font = `600 26px ${BODY}`; c.fillText(l2, w / 2, 98);
+  c.fillStyle = "#5E6E84"; [[16, 16], [w - 16, 16], [16, h - 16], [w - 16, h - 16]].forEach(([x, y]) => { c.beginPath(); c.arc(x, y, 6, 0, Math.PI * 2); c.fill(); });
 });
+const blobTex = () => canvasTex("c5_blob", 128, 128, (c, w, h) => {
+  const g = c.createRadialGradient(w / 2, h / 2, w * 0.18, w / 2, h / 2, w * 0.5); g.addColorStop(0, "rgba(255,255,255,1)"); g.addColorStop(0.55, "rgba(255,255,255,0.55)"); g.addColorStop(1, "rgba(255,255,255,0)");
+  c.fillStyle = g; c.fillRect(0, 0, w, h);
+});
+/** a soft contact shadow lying on a surface (an AO blob under a thing that stands on it) */
+export const Contact = ({ position, size, opacity = 0.6, ry = 0 }) => {
+  const t = useMemo(blobTex, []);
+  return <mesh position={position} rotation-x={-Math.PI / 2} rotation-z={ry}><planeGeometry args={size} /><meshBasicMaterial color="#000610" alphaMap={t} transparent opacity={opacity} depthWrite={false} /></mesh>;
+};
 const instantTex = () => canvasTex("c2_instant", 1024, 512, (c, w, h) => {
   c.fillStyle = "#0B1626"; c.fillRect(0, 0, w, h);
   const games = [["LUCKY 7s", "$1", "#2F78D0"], ["BINGO", "$2", "#3BA0C8"], ["GOLD RUSH", "$5", "#C9A24A"], ["CROSSWORD", "$3", "#5C7FB8"], ["TRIPLE CASH", "$2", "#2E5E9E"], ["HOT DICE", "$1", "#8A5CB8"], ["WILD CHERRY", "$1", "#C04A60"], ["MONEY BAG", "$10", "#3F8A6A"]];
@@ -167,20 +201,22 @@ const lotTex = () => { const t = canvasTex("c2_lot", 1024, 512, (c, w, h) => {
 }); return t; };
 
 // ── the terminal ──────────────────────────────────────────────────────────────────────────────────────────────────────────
+const KP = { px: 0.029, pz: 0.027, w: 0.025, d: 0.023, h: 0.0095 };
 const keypadGeo = () => {
   const parts = [];
-  for (let i = 0; i < 16; i++) {
-    const col = i % 4, row = Math.floor(i / 4);
-    const wide = col === 3;
-    const g = new THREE.BoxGeometry(wide ? 0.034 : 0.026, 0.009, 0.022);
+  for (let i = 0; i < 25; i++) {
+    const col = i % 5, row = Math.floor(i / 5);
+    const g = new THREE.BoxGeometry(KP.w, KP.h, KP.d);
     const uv = g.attributes.uv;
-    const u0 = (col * 128 + 6) / 512, u1 = (col * 128 + 122) / 512, v1 = 1 - (row * 128 + 6) / 512, v0 = 1 - (row * 128 + 122) / 512;
+    const u0 = (KO + col * KC + 8) / 1024, u1 = (KO + col * KC + KC - 8) / 1024, v1 = 1 - (KO + row * KC + 8) / 1024, v0 = 1 - (KO + row * KC + KC - 8) / 1024;
     for (let k = 0; k < uv.count; k++) uv.setXY(k, 0.002, 0.002);    // the sides: the dark plastic corner of the atlas
     [[8, u0, v1], [9, u1, v1], [10, u0, v0], [11, u1, v0]].forEach(([k, u, v]) => uv.setXY(k, u, v));   // +y face
-    g.translate(col * 0.032 + (wide ? 0.004 : 0), 0, row * 0.027);
+    // a slight dish: the top's four corners a hair lower than its middle would need more verts; a 0.5 mm taper reads as a keycap
+    const p = g.attributes.position; for (let k = 0; k < p.count; k++) if (p.getY(k) > 0) { p.setX(k, p.getX(k) * 0.9); p.setZ(k, p.getZ(k) * 0.9); }
+    g.translate(col * KP.px, 0, row * KP.pz);
     parts.push(g);
   }
-  const m = mergeGeometries(parts); m.translate(-0.05, 0, -0.04); return m;
+  const m = mergeGeometries(parts); m.translate(-2 * KP.px, 0, -2 * KP.pz); m.computeVertexNormals(); return m;
 };
 const bentStrip = (w, len, seg, bend) => {
   // a slip leaving the printer: rises out of the slot, then curls over toward the clerk
@@ -195,6 +231,53 @@ const bentStrip = (w, len, seg, bend) => {
   const uv = g.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setY(i, 1 - uv.getY(i));
   g.computeVertexNormals(); return g;
 };
+// rev 5 — THE TILL: the steel cash drawer the terminal stands on, open a hand's width toward the clerk: the bill compartments with
+//   real $1 notes (money.tsx: the public-domain scan) under their chrome clips, the coin cups, the lock and the drawer's own plate
+const TILL_OPEN = 0.17;
+const BILL_W = 0.066, BILL_L = 0.156;
+const Till = ({ R, M, f, t }) => (
+  <group position={[0, -DRAWER_H, 0]}>
+    <mesh geometry={R.drawer} material={M.steel} position={[0, DRAWER_H / 2 - 0.002, 0]} castShadow receiveShadow />
+    {[[-0.2, -0.17], [0.2, -0.17], [-0.2, 0.17], [0.2, 0.17]].map(([x, z], i) => <mesh key={"ft" + i} position={[x, 0.003, z]} material={M.tray}><cylinderGeometry args={[0.012, 0.012, 0.006, 12]} /></mesh>)}
+    {/* the housing's side screws and the drawer's dark mouth */}
+    {[-1, 1].flatMap((sd) => [-0.12, 0.12].map((z) => <mesh key={sd + "hs" + z} position={[sd * 0.2302, 0.05, z]} rotation-z={Math.PI / 2} material={M.screw}><cylinderGeometry args={[0.0042, 0.0042, 0.0015, 12]} /></mesh>))}
+    <mesh position={[0, 0.048, 0.2085]} material={M.seam}><boxGeometry args={[0.448, 0.086, 0.002]} /></mesh>
+    <group position={[0, 0, TILL_OPEN]}>
+      {/* the drawer front: its panel, the seam round it, the lock, the finger pull, the plate */}
+      <mesh geometry={R.dfront} material={M.steelHi} position={[0, 0.048, 0.212]} castShadow receiveShadow />
+      <mesh position={[0, 0.0095, 0.214]} material={M.seam}><boxGeometry args={[0.3, 0.006, 0.012]} /></mesh>
+      <group position={[0.17, 0.056, 0.2195]} rotation-x={Math.PI / 2}>
+        <mesh material={M.chrome}><cylinderGeometry args={[0.0095, 0.0095, 0.004, 24]} /></mesh>
+        <mesh position={[0, -0.0022, 0]} material={M.seam}><boxGeometry args={[0.0022, 0.001, 0.009]} /></mesh>
+      </group>
+      <mesh position={[-0.13, 0.058, 0.2195]} material={M.dplate}><planeGeometry args={[0.09, 0.0225]} /></mesh>
+      {/* the tray: floor, walls, four bill compartments with clips, the coin cups in front */}
+      <mesh position={[0, 0.012, 0]} material={M.tray} receiveShadow><boxGeometry args={[0.44, 0.004, 0.41]} /></mesh>
+      {[-1, 1].map((sd) => <mesh key={"tw" + sd} position={[sd * 0.218, 0.045, 0]} material={M.tray} castShadow receiveShadow><boxGeometry args={[0.004, 0.07, 0.41]} /></mesh>)}
+      {[-0.11, 0, 0.11].map((x) => <mesh key={"dv" + x} position={[x, 0.04, -0.03]} material={M.tray} castShadow receiveShadow><boxGeometry args={[0.003, 0.06, 0.34]} /></mesh>)}
+      <mesh position={[0, 0.035, 0.145]} material={M.tray} castShadow receiveShadow><boxGeometry args={[0.436, 0.05, 0.003]} /></mesh>
+      {[-0.165, -0.055, 0.055, 0.165].map((x, i) => (
+        <group key={"bc" + i} position={[x, 0.014, 0.065]}>
+          {/* a short stack of notes (face up), its top note the scan */}
+          <mesh position={[0, 0.004 + i * 0.0006, -0.004]} material={M.roll} castShadow receiveShadow><boxGeometry args={[BILL_W, 0.006 + i * 0.0012, BILL_L]} /></mesh>
+          <mesh position={[0.002 * (i - 1.5), 0.0072 + i * 0.0012, -0.002]} rotation-x={-Math.PI / 2} rotation-z={Math.PI / 2 + 0.03 * (i - 1.5)} material={M.bill}><planeGeometry args={[BILL_L, BILL_W]} /></mesh>
+          {/* the spring clip: a chrome bar on two arms */}
+          <mesh position={[0, 0.012 + i * 0.0012, 0.045]} rotation-z={Math.PI / 2} material={M.chrome} castShadow><cylinderGeometry args={[0.003, 0.003, 0.08, 10]} /></mesh>
+          {[-1, 1].map((sd) => <mesh key={sd} position={[sd * 0.04, 0.03, 0.09]} rotation-x={0.85} material={M.chrome}><boxGeometry args={[0.003, 0.003, 0.06]} /></mesh>)}
+        </group>
+      ))}
+      {[0, 1, 2, 3, 4, 5, 6, 7].map((k) => {
+        const x = -0.19 + k * 0.054;
+        return (
+          <group key={"cc" + k} position={[x, 0.014, 0.178]}>
+            <mesh material={M.tray} castShadow receiveShadow><cylinderGeometry args={[0.024, 0.02, 0.003, 20]} /></mesh>
+            {Array.from({ length: 2 + (k * 5) % 4 }, (_, j) => <mesh key={j} position={[0.004 * Math.sin(j * 2.1 + k), 0.003 + j * 0.0018, 0.004 * Math.cos(j * 1.7 + k)]} rotation-x={0.05 * Math.sin(j + k)} material={k < 2 ? M.copper : M.silver} castShadow><cylinderGeometry args={[k < 2 ? 0.0095 : k < 4 ? 0.0105 : k < 6 ? 0.0122 : 0.0153, k < 2 ? 0.0095 : k < 4 ? 0.0105 : k < 6 ? 0.0122 : 0.0153, 0.0016, 20]} /></mesh>)}
+          </group>
+        );
+      })}
+    </group>
+  </group>
+);
 export const Terminal = ({ f, t }) => {
   const R = useMemo(() => ({
     base: new RoundedBoxGeometry(0.48, 0.1, 0.4, 3, 0.02),
@@ -205,14 +288,18 @@ export const Terminal = ({ f, t }) => {
     vfd: new RoundedBoxGeometry(0.2, 0.075, 0.04, 2, 0.008),
     reader: new RoundedBoxGeometry(0.16, 0.06, 0.1, 2, 0.01),
     keys: keypadGeo(),
+    drawer: new RoundedBoxGeometry(0.46, DRAWER_H - 0.004, 0.42, 2, 0.006),
+    dfront: new RoundedBoxGeometry(0.452, DRAWER_H - 0.016, 0.014, 2, 0.004),
+    cover: new THREE.CylinderGeometry(0.042, 0.042, 0.13, 24, 1, false, 0, Math.PI),
     slip: bentStrip(0.075, 0.15, 12, 1.5),
     cables: [
-      new THREE.TubeGeometry(new THREE.CatmullRomCurve3([[-0.18, 0.05, -0.2], [-0.24, 0.03, -0.3], [-0.34, 0.012, -0.28], [-0.4, 0.012, -0.12], [-0.42, -0.02, -0.06]].map((p) => new THREE.Vector3(...p))), 24, 0.006, 6, false),
-      new THREE.TubeGeometry(new THREE.CatmullRomCurve3([[-0.12, 0.04, -0.2], [-0.16, 0.012, -0.32], [-0.3, 0.01, -0.34], [-0.41, 0.012, -0.16], [-0.43, -0.02, -0.08]].map((p) => new THREE.Vector3(...p))), 24, 0.0045, 6, false),
-      new THREE.TubeGeometry(new THREE.CatmullRomCurve3([[-0.24, 0.29, -0.17], [-0.25, 0.2, -0.2], [-0.24, 0.06, -0.21], [-0.22, 0.03, -0.24]].map((p) => new THREE.Vector3(...p))), 16, 0.004, 6, false)
+      new THREE.TubeGeometry(new THREE.CatmullRomCurve3([[-0.18, 0.05, -0.2], [-0.24, 0.03, -0.3], [-0.34, 0.012, -0.28], [-0.4, -0.07, -0.12], [-0.42, -0.12, -0.06]].map((p) => new THREE.Vector3(...p))), 24, 0.006, 6, false),
+      new THREE.TubeGeometry(new THREE.CatmullRomCurve3([[-0.12, 0.04, -0.2], [-0.16, 0.012, -0.32], [-0.3, 0.01, -0.34], [-0.41, -0.07, -0.16], [-0.43, -0.12, -0.08]].map((p) => new THREE.Vector3(...p))), 24, 0.0045, 6, false),
+      new THREE.TubeGeometry(new THREE.CatmullRomCurve3([[-0.24, 0.29, -0.17], [-0.25, 0.2, -0.2], [-0.24, 0.06, -0.21], [-0.23, -0.05, -0.25], [-0.22, -0.12, -0.27]].map((p) => new THREE.Vector3(...p))), 16, 0.004, 6, false)
     ]
   }), []);
-  const T = useMemo(() => ({ on: scrOn(), end: scrEnded(), keys: keyAtlas(), ticket: ticketTex(), vfd: vfdTex(), slip: slipTex() }), []);
+  const T = useMemo(() => ({ on: scrOn(), end: scrEnded(), keys: keyAtlas(), ticket: ticketTex(), vfd: vfdTex(), vfdEnd: vfdEndTex(), slip: slipTex(),
+    plate: plateTex("c5_plate_term", "RETAIL LOTTERY TERMINAL", "MODEL T-2  ·  120 V ~ 60 Hz  1.5 A  ·  S/N 04-118327"), dplate: plateTex("c5_plate_drawer", "CASH DRAWER", "5 BILL  ·  8 COIN  ·  24 V SOLENOID") }), []);
   const M = useMemo(() => ({
     shell: new THREE.MeshStandardMaterial({ color: "#2B3442", roughness: 0.42, metalness: 0.15 }),
     shellHi: new THREE.MeshStandardMaterial({ color: "#3A4658", roughness: 0.36, metalness: 0.2 }),
@@ -222,8 +309,23 @@ export const Terminal = ({ f, t }) => {
     keys: new THREE.MeshStandardMaterial({ map: T.keys, roughness: 0.45 }),
     paper: new THREE.MeshStandardMaterial({ map: T.ticket, roughness: 0.55, side: THREE.DoubleSide, emissive: "#ffffff", emissiveMap: T.ticket, emissiveIntensity: 0.08 }),
     slip: new THREE.MeshStandardMaterial({ map: T.slip, roughness: 0.7, side: THREE.DoubleSide }),
-    glass: new THREE.MeshPhysicalMaterial({ color: "#0A1220", roughness: 0.08, metalness: 0, clearcoat: 1, transparent: true, opacity: 0.25, depthWrite: false })
+    glass: new THREE.MeshPhysicalMaterial({ color: "#0A1220", roughness: 0.08, metalness: 0, clearcoat: 1, transparent: true, opacity: 0.25, depthWrite: false }),
+    // rev 5: the till and the small parts
+    steel: new THREE.MeshStandardMaterial({ color: "#1E2733", roughness: 0.38, metalness: 0.55 }),
+    steelHi: new THREE.MeshStandardMaterial({ color: "#2C394B", roughness: 0.3, metalness: 0.6 }),
+    tray: new THREE.MeshStandardMaterial({ color: "#10161F", roughness: 0.7 }),
+    screw: new THREE.MeshStandardMaterial({ color: "#7D8DA3", roughness: 0.25, metalness: 0.95 }),
+    seam: new THREE.MeshBasicMaterial({ color: "#020407" }),
+    chrome: new THREE.MeshStandardMaterial({ color: "#DCE6F2", roughness: 0.12, metalness: 1 }),
+    silver: new THREE.MeshStandardMaterial({ color: "#C3CDD9", roughness: 0.3, metalness: 0.9 }),
+    copper: new THREE.MeshStandardMaterial({ color: "#B07A55", roughness: 0.35, metalness: 0.85 }),
+    roll: new THREE.MeshStandardMaterial({ color: "#EEF2F7", roughness: 0.6 }),
+    smoke: new THREE.MeshPhysicalMaterial({ color: "#1A2A40", roughness: 0.05, clearcoat: 1, transparent: true, opacity: 0.35, depthWrite: false, side: THREE.DoubleSide }),
+    plate: new THREE.MeshStandardMaterial({ map: T.plate, roughness: 0.35, metalness: 0.6 }),
+    dplate: new THREE.MeshStandardMaterial({ map: T.dplate, roughness: 0.35, metalness: 0.6 }),
+    bill: billFaceMat()
   }), []);
+  const vfdOn = f < t.ended + 4;
   // the screen: the draw runs; on "ended" it flickers to GAME ENDED; then its backlight dies as the camera leaves
   const alive = 1 - ease(f, t.ended, t.ended + 5);
   const flick = f >= t.ended - 2 && f < t.ended + 6 ? ([1, 0.35, 0.9, 0.2, 0.7, 0.25, 0.5, 0.2][Math.max(0, Math.min(7, Math.floor(f - (t.ended - 2))))]) : 1;
@@ -236,16 +338,37 @@ export const Terminal = ({ f, t }) => {
       {/* base, the sloped keypad deck on the clerk side, a chrome trim line, feet */}
       <mesh geometry={R.base} material={M.shell} position={[0, 0.05, 0]} castShadow receiveShadow />
       <mesh position={[0, 0.002, 0]}><boxGeometry args={[0.44, 0.006, 0.36]} /><meshStandardMaterial color="#05080D" roughness={0.9} /></mesh>
-      <mesh geometry={R.deck} material={M.shellHi} position={[0, 0.105, 0.115]} rotation-x={0.16} castShadow />
-      <mesh geometry={R.keys} material={M.keys} position={[-0.11, 0.124, 0.1]} rotation-x={0.16} castShadow />
+      <Till R={R} M={M} f={f} t={t} />
+      {/* the base's parting seam (top shell on the bottom tray), side vents, the brand-free rating plate */}
+      {[[0, 0.036, 0.2005, 0.47, 0.0025, 0.002], [0, 0.036, -0.2005, 0.47, 0.0025, 0.002], [0.2405, 0.036, 0, 0.002, 0.0025, 0.39], [-0.2405, 0.036, 0, 0.002, 0.0025, 0.39]].map(([x, y, z, a, b, c], i) =>
+        <mesh key={"sm" + i} position={[x, y, z]} material={M.seam}><boxGeometry args={[a, b, c]} /></mesh>)}
+      {[-1, 1].map((sd) => [0, 1, 2, 3, 4, 5].map((k) => <mesh key={sd + "v" + k} position={[sd * 0.2408, 0.066, -0.1 + k * 0.03]} material={M.seam}><boxGeometry args={[0.002, 0.012, 0.018]} /></mesh>))}
+      <mesh position={[0.1, 0.075, 0.2012]} material={M.plate}><planeGeometry args={[0.1, 0.025]} /></mesh>
+      <mesh geometry={R.deck} material={M.shellHi} position={[0, 0.105, 0.115]} rotation-x={0.16} castShadow receiveShadow />
+      {/* the deck's four screws and its key-well */}
+      <group position={[0, 0.105, 0.115]} rotation-x={0.16}>
+        {[[-0.205, -0.06], [0.205, -0.06], [-0.205, 0.06], [0.205, 0.06]].map(([x, z], i) => <mesh key={"sc" + i} position={[x, 0.0152, z]} material={M.screw}><cylinderGeometry args={[0.0045, 0.0045, 0.0015, 14]} /></mesh>)}
+        {[[-0.205, -0.06], [0.205, -0.06], [-0.205, 0.06], [0.205, 0.06]].map(([x, z], i) => <mesh key={"sl" + i} position={[x, 0.0161, z]} rotation-y={0.6 + i} material={M.seam}><boxGeometry args={[0.007, 0.0006, 0.0012]} /></mesh>)}
+        <mesh position={[-0.11, 0.0152, -0.015]} material={M.seam}><boxGeometry args={[0.152, 0.0008, 0.142]} /></mesh>
+      </group>
+      <mesh geometry={R.keys} material={M.keys} position={[-0.11, 0.124, 0.1]} rotation-x={0.16} castShadow receiveShadow />
       <mesh position={[0, 0.06, 0.201]}><boxGeometry args={[0.46, 0.006, 0.002]} /><meshStandardMaterial color="#4D8ED9" emissive="#4D8ED9" emissiveIntensity={0.9 * (0.3 + 0.7 * scr)} /></mesh>
       <mesh position={[0.2, 0.03, 0.201]}><boxGeometry args={[0.008, 0.008, 0.002]} /><meshStandardMaterial color="#9CD0FF" emissive="#9CD0FF" emissiveIntensity={2} /></mesh>
       {/* the thermal printer on the right with its tear bar and the slip curling out */}
       <group position={[0.145, 0.135, -0.02]}>
-        <mesh geometry={R.printer} material={M.shellHi} castShadow />
+        <mesh geometry={R.printer} material={M.shellHi} castShadow receiveShadow />
         <mesh position={[0, 0.041, 0.05]}><boxGeometry args={[0.1, 0.004, 0.012]} /><meshStandardMaterial color="#05080D" /></mesh>
-        <mesh position={[0, 0.043, 0.058]}><boxGeometry args={[0.11, 0.003, 0.004]} /><primitive object={M.trim} attach="material" /></mesh>
-        <mesh position={[0, 0.0415, -0.04]}><planeGeometry args={[0.12, 0.08]} /><meshStandardMaterial color="#3A4658" roughness={0.3} /></mesh>
+        <mesh position={[0, 0.043, 0.058]} material={M.chrome}><boxGeometry args={[0.11, 0.003, 0.004]} /></mesh>
+        {/* the serrated tear bar's teeth */}
+        {Array.from({ length: 18 }, (_, k) => <mesh key={"tb" + k} position={[-0.051 + k * 0.006, 0.0445, 0.0605]} rotation-z={Math.PI / 4} material={M.chrome}><boxGeometry args={[0.0022, 0.0022, 0.002]} /></mesh>)}
+        {/* the clamshell cover's seam, the paper roll under a smoked window, the feed button and its LED */}
+        <mesh position={[0, 0.0405, 0.012]} material={M.seam}><boxGeometry args={[0.15, 0.0012, 0.0015]} /></mesh>
+        {[-1, 1].map((sd) => <mesh key={"cs" + sd} position={[sd * 0.0755, 0.0405, -0.045]} material={M.seam}><boxGeometry args={[0.0015, 0.0012, 0.115]} /></mesh>)}
+        <mesh position={[0, 0.032, -0.045]} rotation-z={Math.PI / 2} material={M.roll} castShadow><cylinderGeometry args={[0.034, 0.034, 0.082, 28]} /></mesh>
+        <mesh position={[0, 0.032, -0.045]} rotation-z={Math.PI / 2} material={M.black}><cylinderGeometry args={[0.009, 0.009, 0.084, 14]} /></mesh>
+        <mesh geometry={R.cover} position={[0, 0.035, -0.045]} rotation-z={Math.PI / 2} rotation-y={Math.PI / 2} material={M.smoke} renderOrder={2} />
+        <mesh position={[0.062, 0.0412, 0.03]} castShadow><boxGeometry args={[0.018, 0.005, 0.012]} /><meshStandardMaterial color="#C9D3DF" roughness={0.5} /></mesh>
+        <mesh position={[0.062, 0.0425, 0.044]}><boxGeometry args={[0.004, 0.002, 0.004]} /><meshStandardMaterial color="#7FB4F2" emissive="#7FB4F2" emissiveIntensity={2.2} /></mesh>
         {feed > 0.01 && <mesh geometry={R.slip} material={M.paper} position={[0, 0.042, 0.05]} scale={[1, feed, feed]} castShadow />}
       </group>
       {/* the play-slip reader on the customer side, a slip in its throat */}
@@ -258,8 +381,11 @@ export const Terminal = ({ f, t }) => {
       <mesh position={[MON.pos[0], 0.14, -0.15]} castShadow material={M.shell}><boxGeometry args={[0.12, 0.08, 0.06]} /></mesh>
       <mesh position={[MON.pos[0], 0.2, -0.165]} rotation-x={MON.tilt} castShadow material={M.shellHi}><boxGeometry args={[0.07, 0.16, 0.025]} /></mesh>
       <group position={MON.pos} rotation-x={MON.tilt}>
-        <mesh geometry={R.bezel} material={M.shell} castShadow />
+        <mesh geometry={R.bezel} material={M.shell} castShadow receiveShadow />
         <mesh geometry={R.back} material={M.shellHi} position={[0, -0.01, -0.035]} castShadow />
+        {/* the back cover's vents and its four VESA screws */}
+        {[0, 1, 2, 3, 4, 5, 6].map((k) => <mesh key={"mv" + k} position={[-0.06 + k * 0.02, 0.04, -0.0605]} material={M.seam}><boxGeometry args={[0.008, 0.05, 0.002]} /></mesh>)}
+        {[[-0.05, -0.05], [0.05, -0.05], [-0.05, -0.0], [0.05, -0.0]].map(([x, y], i) => <mesh key={"ms" + i} position={[x, y - 0.02, -0.0605]} rotation-x={Math.PI / 2} material={M.screw}><cylinderGeometry args={[0.005, 0.005, 0.002, 12]} /></mesh>)}
         <mesh position={[0, -MON.h / 2 + 0.014, 0.0232]}><planeGeometry args={[0.07, 0.008]} /><meshStandardMaterial color="#8FA9C8" metalness={0.8} roughness={0.3} /></mesh>
         <mesh position={[0, 0, 0.0228]}><planeGeometry args={[MON.sw + 0.006, MON.sh + 0.006]} /><meshStandardMaterial color="#03060B" roughness={0.3} /></mesh>
         {scr > 0.005 && <mesh position={[0, 0, 0.0233]}><planeGeometry args={[MON.sw, MON.sh]} /><meshBasicMaterial map={T.on} transparent opacity={scr} toneMapped={false} /></mesh>}
@@ -269,15 +395,18 @@ export const Terminal = ({ f, t }) => {
       </group>
       {/* the customer display on its pole, turned toward the shop floor */}
       <group position={[-0.26, 0, -0.17]}>
-        <mesh position={[0, 0.17, 0]} material={M.trim} castShadow><cylinderGeometry args={[0.009, 0.009, 0.3, 10]} /></mesh>
+        <mesh position={[0, 0.17 - DRAWER_H / 2, 0]} material={M.trim} castShadow><cylinderGeometry args={[0.009, 0.009, 0.3 + DRAWER_H, 10]} /></mesh>
+        <mesh position={[0, -DRAWER_H + 0.008, 0]} material={M.steel} castShadow receiveShadow><cylinderGeometry args={[0.045, 0.05, 0.016, 24]} /></mesh>
         <group position={[0, 0.34, 0]} rotation-y={Math.PI - 0.6}>
           <mesh geometry={R.vfd} material={M.black} castShadow />
-          <mesh position={[0, 0, 0.0205]}><planeGeometry args={[0.18, 0.056]} /><meshBasicMaterial map={T.vfd} toneMapped={false} /></mesh>
+          <mesh position={[0, 0, 0.0205]}><planeGeometry args={[0.18, 0.056]} /><meshBasicMaterial map={vfdOn ? T.vfd : T.vfdEnd} toneMapped={false} /></mesh>
+          {/* rev 5: a two-sided pole display — the clerk reads the same sale on its back */}
+          <mesh position={[0, 0, -0.0205]} rotation-y={Math.PI}><planeGeometry args={[0.18, 0.056]} /><meshBasicMaterial map={vfdOn ? T.vfd : T.vfdEnd} toneMapped={false} /></mesh>
         </group>
       </group>
       {/* cables: power, network, the display's lead, to a grommet in the counter */}
-      {R.cables.map((g, i) => <mesh key={i} geometry={g} material={i === 1 ? M.shellHi : M.rubber} />)}
-      <mesh position={[-0.42, 0.002, -0.07]} rotation-x={-Math.PI / 2}><ringGeometry args={[0.012, 0.028, 20]} /><meshStandardMaterial color="#0B0F16" /></mesh>
+      {R.cables.map((g, i) => <mesh key={i} geometry={g} material={i === 1 ? M.shellHi : M.rubber} castShadow />)}
+      <mesh position={[-0.42, -DRAWER_H + 0.002, -0.07]} rotation-x={-Math.PI / 2}><ringGeometry args={[0.012, 0.028, 20]} /><meshStandardMaterial color="#0B0F16" /></mesh>
     </group>
   );
 };
@@ -345,9 +474,9 @@ const Room = () => {
       <mesh position={[0, 3.4, RD / 2 - 0.3]}><boxGeometry args={[2 * RW + 0.4, 0.4, RD + 0.8]} /><meshStandardMaterial color="#1C2636" roughness={0.9} /></mesh>
       <mesh position={[0, 3.45, -0.72]}><boxGeometry args={[2 * RW + 0.4, 0.5, 0.06]} /><meshStandardMaterial color="#2A3E5C" roughness={0.6} /></mesh>
       {/* the lot outside, down to the road's shoulder: asphalt with stalls, the curb, a lamp post */}
-      <mesh rotation-x={-Math.PI / 2} position={[0, -0.08, -3.1]} receiveShadow><planeGeometry args={[16, 6.2]} /><meshStandardMaterial map={lot} roughness={0.6} metalness={0.1} /></mesh>
+      <mesh rotation-x={-Math.PI / 2} position={[0, -0.097, -3.1]} receiveShadow><planeGeometry args={[16, 6.2]} /><meshStandardMaterial map={lot} roughness={0.6} metalness={0.1} /></mesh>
       <mesh position={[0, -0.02, -6.15]}><boxGeometry args={[16, 0.15, 0.2]} /><meshStandardMaterial color="#6D7B8E" roughness={0.85} /></mesh>
-      <group position={[4.6, -0.1, -4.6]}>
+      <group position={[-5.2, -0.1, -5.6]} rotation-y={Math.PI}>   {/* rev 5: moved to the lot's far corner, out of the camera's way */}
         <mesh position={[0, 3.5, 0]}><cylinderGeometry args={[0.07, 0.1, 7, 8]} /><meshStandardMaterial color="#2A3648" metalness={0.5} roughness={0.5} /></mesh>
         <mesh position={[-0.6, 7.0, 0]} rotation-z={Math.PI / 2}><cylinderGeometry args={[0.05, 0.05, 1.2, 8]} /><meshStandardMaterial color="#2A3648" /></mesh>
         <mesh position={[-1.15, 6.92, 0]}><boxGeometry args={[0.5, 0.12, 0.25]} /><meshStandardMaterial color="#FFE9C4" emissive="#FFD49A" emissiveIntensity={2.5} /></mesh>
@@ -357,19 +486,29 @@ const Room = () => {
   );
 };
 /** the whole store, in ground coordinates relative to STORE (the caller places it at gx − S(f)) */
+// rev 5: the register's KEY — a cool spot from the ceiling troffer above-left of the clerk (behind the camera's shoulder), shadow-casting,
+//   so the register throws its shadow across the counter to the right and toward the glass; soft contact shadows where things stand
+const KEY_AT = [-1.7, 2.65, 2.25];
 export const Store = ({ f, t }) => {
   const glow = 1 - 0.55 * ease(f, t.ended, t.ended + 8);
-  const inside = 1 - ease(f, 1078, 1092);
+  const tgt = useMemo(() => { const o = new THREE.Object3D(); o.position.set(TERM.pos[0] + 0.05, CTR_Y, TERM.pos[2] - 0.05); return o; }, []);
   return (
     <group position={[STORE[0], STORE[1], STORE[2]]}>
       <Room />
       <Counter />
       <Terminal f={f} t={t} />
       <LotterySign glow={glow} />
-      {/* the shop's own light: a cool overhead over the counter (only while the camera is in here) */}
-      {/* (they fade out once the camera is through the window, and never reach the road: distance 9 m / 4 m, the car passes ≥ 13 m away) */}
-      <pointLight position={[0.6, 2.85, 2.4]} intensity={6 * inside} distance={9} decay={2} color="#E4EEFF" />
-      <pointLight position={[-0.6, 1.6, 0.6]} intensity={1.5 * inside} distance={4} decay={2} color="#9CC0EC" />
+      {/* contact shadows on the counter: under the register, the pole display's foot, the ticket case, the slip holder */}
+      <Contact position={[0.01, CTR_Y + 0.0015, 1.58]} size={[0.6, 0.56]} opacity={0.75} ry={-TERM.ry} />
+      <Contact position={[-0.62, CTR_Y + 0.0015, 1.45]} size={[0.66, 0.3]} opacity={0.5} ry={-0.25} />
+      <Contact position={[0.62, CTR_Y + 0.0015, 1.42]} size={[0.18, 0.1]} opacity={0.55} ry={0.3} />
+      <Contact position={[0.2, CTR_Y + 0.0015, 1.28]} size={[0.16, 0.16]} opacity={0.55} />
+      <primitive object={tgt} />
+      <spotLight position={KEY_AT} target={tgt} angle={0.42} penumbra={0.65} intensity={30} distance={8} decay={1.6} color="#D6E5FA" castShadow
+        shadow-mapSize-width={2048} shadow-mapSize-height={2048} shadow-bias={-0.0002} shadow-normalBias={0.004} shadow-camera-near={0.8} shadow-camera-far={6} shadow-radius={3} />
+      {/* the shop's fill: a cool overhead over the counter, a blue bounce from the glass */}
+      <pointLight position={[0.6, 2.85, 2.4]} intensity={4.5} distance={9} decay={2} color="#CFE0FA" />
+      <pointLight position={[-0.6, 1.6, 0.6]} intensity={1.6} distance={4} decay={2} color="#7FA9E6" />
     </group>
   );
 };
