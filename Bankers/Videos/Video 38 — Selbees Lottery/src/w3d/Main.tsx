@@ -22,7 +22,10 @@ const BIG_SPEC = {
   "2011,": { text: "2011" }, "$120 million": { value: 120, prefix: "$", unit: "MILLION" }, "$26 million,": { value: 26, prefix: "$", unit: "MILLION", size: 250 },
   "$8 million": { value: 8, prefix: "$", unit: "MILLION" }
 };
-const BIG = CHIPS.flatMap((c) => c.parts.filter((p) => BIG_SPEC[p.word]).map((p) => ({ ...BIG_SPEC[p.word], at: p.at - 4, out: Math.max(p.at + 34, c.until - 2) })));
+// rev 7 (Timur, 2026-11-27): "instead of on-screen text like $5 million … just add them somewhere within the scene that actually matches the
+//   visual itself" — the big words are OFF; every figure now lives IN its scene (each station draws its own, on its spoken word).
+const BIG_ON = false;
+const BIG = !BIG_ON ? [] : CHIPS.flatMap((c) => c.parts.filter((p) => BIG_SPEC[p.word]).map((p) => ({ ...BIG_SPEC[p.word], at: p.at - 4, out: Math.max(p.at + 34, c.until - 2) })));
 import { CHIPS, TOTAL, VO_END } from "./take_rt";   // rev 4c: REAL time — the voice, the karaoke, the close
 import { HOOK_SHIFT as S, HOOK_ID } from "./shift";
 import { BrandClose, Watermark } from "../bnx/close";
