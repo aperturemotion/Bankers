@@ -12,7 +12,7 @@ trap restore EXIT
 node -e '
 const fs = require("fs"), cp = require("child_process");
 const src = fs.readdirSync("src/w3d").filter((f) => /\.tsx?$/.test(f)).map((f) => fs.readFileSync("src/w3d/" + f, "utf8")).join("\n");
-const fams = [...new Set([...src.matchAll(/cueAt\(\s*"([a-z_0-9]+)"/g)].map((m) => m[1]))].sort();
+const fams = [...new Set([...src.matchAll(/"([a-z_0-9]+)"/g)].map((m) => m[1]).filter((n) => fs.existsSync("public/sfx/" + n + ".wav")))].sort();   // every sound NAMED in the code (cueAt or a table like Main FAST_MOVES)
 const photos = fs.existsSync("public/photos") ? fs.readdirSync("public/photos").filter((f) => /\.(jpg|png)$/.test(f)).map((f) => "photos/" + f) : [];
 const files = ["vo_trimmed.mp3", "711.mp3", ...fams.map((f) => `sfx/${f}.wav`), ...photos, "bill100.png", "bill1.jpg", "brand/bankers-logo-black.svg", "brand/bankers-logo-blue.svg", "brand/bankers-logo-white.svg"];
 const map = {};
