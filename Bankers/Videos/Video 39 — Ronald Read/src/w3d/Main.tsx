@@ -88,7 +88,7 @@ export const RonaldRead = ({ solo }) => {
       <World3D cam={CAM}>
         {live.map((s, i) => { const { key: keyPos, ...lt } = s.light ?? {}; return (
           <group key={s.id} position={s.origin}>
-            <HouseLights target={[0, 0, 0]} {...lt} {...(keyPos ? { keyPos } : {})} gain={near[i] / nsum} casts={i === top} />
+            <HouseLights target={[0, 0, 0]} {...lt} {...(keyPos ? { keyPos } : {})} gain={(near[i] / nsum) * (s.lightGain ? s.lightGain(story(s, f)) : 1)} casts={i === top} />
             <s.Scene f={story(s, f)} />
           </group>
         ); })}
@@ -98,7 +98,7 @@ export const RonaldRead = ({ solo }) => {
           <World3D cam={f <= dz.at ? dz.camPost : dz.camPre}>
             {(() => { const { key: keyPos, ...lt } = dzOther.light ?? {}; return (
               <group position={dzOther.origin}>
-                <HouseLights target={[0, 0, 0]} {...lt} {...(keyPos ? { keyPos } : {})} gain={1} casts />
+                <HouseLights target={[0, 0, 0]} {...lt} {...(keyPos ? { keyPos } : {})} gain={dzOther.lightGain ? dzOther.lightGain(story(dzOther, f)) : 1} casts />
                 <dzOther.Scene f={story(dzOther, f)} />
               </group>
             ); })()}

@@ -569,7 +569,52 @@ const StoreSign = () => {
  * THE STORE SET. mode "in" (the closed store at night, the aisle mirror, the security lights) or "out" (the store front at blue hour);
  * cart: { xray, flash, glow } for the bin's reveal; ceilFade 0–1 (the close's rising camera: the ceiling fades under the veil).
  */
-export const StoreSet = ({ mode = "in", cart = {}, ceilFade = 0, trof = null }) => {
+// V39 rev 2 (Timur: "make the spotlight a lot more visible on the main visual and the rest of the scene darker"): one ceiling can-light
+// straight over the cart — a real shadow-casting spot, a soft visible beam (two nested additive cones, bright at the lamp), a pool of light on
+// the terrazzo and the lamp's own glow. k 0–1.
+const beamTex = () => canvasTex("a_beam", 8, 256, (c, w, h) => {
+  const g = c.createLinearGradient(0, 0, 0, h);
+  g.addColorStop(0, "rgba(255,255,255,1)"); g.addColorStop(0.25, "rgba(150,150,150,1)"); g.addColorStop(0.7, "rgba(60,60,60,1)"); g.addColorStop(1, "rgba(18,18,18,1)");
+  c.fillStyle = g; c.fillRect(0, 0, w, h);
+});
+const poolTex = () => canvasTex("a_spotpool", 256, 256, (c, w, h) => {
+  const g = c.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
+  g.addColorStop(0, "rgba(255,255,255,1)"); g.addColorStop(0.45, "rgba(200,200,200,1)"); g.addColorStop(0.8, "rgba(50,50,50,1)"); g.addColorStop(1, "rgba(0,0,0,1)");
+  c.fillStyle = g; c.fillRect(0, 0, w, h);
+});
+export const SPOT = { angle: 0.3, top: CEIL - 0.12 };
+const CartSpot = ({ k }) => {
+  const at = useMemo(() => cartPt([0.1, 0, 0]), []);
+  const tgt = useMemo(() => { const o = new THREE.Object3D(); o.position.set(at[0], 0.35, at[2]); return o; }, [at]);
+  const bt = useMemo(beamTex, []), pt = useMemo(poolTex, []);
+  const h = SPOT.top, R = h * Math.tan(SPOT.angle);
+  const add = { transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, toneMapped: false, fog: false };
+  return (
+    <group>
+      <primitive object={tgt} />
+      {/* the fixture: a black can in the ceiling with its lit lens */}
+      <mesh position={[at[0], CEIL - 0.06, at[2]]}><cylinderGeometry args={[0.17, 0.17, 0.12, 28]} /><meshStandardMaterial color="#14181E" roughness={0.5} metalness={0.6} /></mesh>
+      <mesh position={[at[0], CEIL - 0.121, at[2]]} rotation-x={Math.PI / 2}><circleGeometry args={[0.14, 28]} /><meshBasicMaterial color="#FFF3E2" toneMapped={false} transparent opacity={0.15 + 0.85 * k} /></mesh>
+      {k > 0.002 && <>
+        <spotLight position={[at[0], SPOT.top, at[2]]} target={tgt} angle={SPOT.angle} penumbra={0.5} intensity={70 * k} distance={10} decay={1.3} color="#FFF0DA"
+          castShadow shadow-mapSize-width={1024} shadow-mapSize-height={1024} shadow-bias={-0.0006} shadow-normalBias={0.02} />
+        {[[1, 0.09], [0.62, 0.11]].map(([r, o], i) => (
+          <mesh key={i} position={[at[0], h / 2 + 0.01, at[2]]} renderOrder={8}>
+            <cylinderGeometry args={[0.15, R * r, h, 48, 1, true]} />
+            <meshBasicMaterial map={bt} color="#FFF1DC" opacity={o * k} {...add} />
+          </mesh>
+        ))}
+        <mesh position={[at[0], 0.014, at[2]]} rotation-x={-Math.PI / 2} renderOrder={3}>
+          <planeGeometry args={[R * 2.6, R * 2.6]} />
+          <meshBasicMaterial map={pt} color="#FFE9CC" opacity={0.42 * k} {...add} />
+        </mesh>
+        <Glow position={[at[0], CEIL - 0.2, at[2]]} size={1.3} color="#FFF0DA" opacity={0.9 * k} />
+      </>}
+    </group>
+  );
+};
+export const StoreSet = ({ mode = "in", cart = {}, ceilFade = 0, trof = null, spot = 0 }) => {
+  const dim = 1 - 0.8 * clamp01(spot);   // everything but the spot dims as it comes on
   const grp = useMemo(() => { const m = new Mesher(); buildStore(m); return m.build(storeMats()); }, []);
   const inside = mode === "in";
   return (
@@ -583,13 +628,14 @@ export const StoreSet = ({ mode = "in", cart = {}, ceilFade = 0, trof = null }) 
       <LotLamps lights={!inside} />
       <Backdrop />
       <group position={CART.p} rotation-y={CART.ry}><JanitorCart {...cart} /></group>
+      {inside && trof && <CartSpot k={clamp01(spot)} />}
       {/* the light of the closed store: the warm security troffers (four real lights), the blue of the doors and windows, the
           lit display windows; outside, the canopy's downlights over the doors */}
       {inside && <>
-        {[[1.5, -24.0], [-1.5, -20.4], [-4.5, -13.2], [1.5, -38.4]].map(([x, z], i) => <pointLight key={i} position={[x, CEIL - 0.25, z]} intensity={(i < 2 ? 6 : 5) * (trof && inTrofZone(x, z) ? clamp01(trof(x, z)) : 1)} distance={10} decay={1.5} color="#FFCF96" />)}
-        <pointLight position={[0, 2.2, -2.6]} intensity={9} distance={22} decay={1.3} color="#6E9FE0" />
-        <pointLight position={[-10, 2.6, -3.0]} intensity={5} distance={14} decay={1.4} color="#8FB4E8" />
-        <pointLight position={[10, 2.6, -3.0]} intensity={5} distance={14} decay={1.4} color="#8FB4E8" />
+        {[[1.5, -24.0], [-1.5, -20.4], [-4.5, -13.2], [1.5, -38.4]].map(([x, z], i) => <pointLight key={i} position={[x, CEIL - 0.25, z]} intensity={(i < 2 ? 6 : 5) * (trof && inTrofZone(x, z) ? clamp01(trof(x, z)) : 1) * (i < 2 ? 1 - 0.6 * clamp01(spot) : dim)} distance={10} decay={1.5} color="#FFCF96" />)}
+        <pointLight position={[0, 2.2, -2.6]} intensity={9 * dim} distance={22} decay={1.3} color="#6E9FE0" />
+        <pointLight position={[-10, 2.6, -3.0]} intensity={5 * dim} distance={14} decay={1.4} color="#8FB4E8" />
+        <pointLight position={[10, 2.6, -3.0]} intensity={5 * dim} distance={14} decay={1.4} color="#8FB4E8" />
       </>}
       {!inside && <>
         <pointLight position={[0, 3.1, 2.2]} intensity={14} distance={9} decay={1.6} color="#FFD6A0" />
