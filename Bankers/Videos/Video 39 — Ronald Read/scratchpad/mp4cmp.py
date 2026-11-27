@@ -4,7 +4,7 @@ import subprocess, sys, io
 import numpy as np
 from PIL import Image
 FF = __import__("os").environ.get("FFMPEG", r"C:\Users\Timur\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1.2-full_build\bin\ffmpeg.exe")
-MP4 = "out/theranos_blood_test.mp4"; FPS = 30; LIM = 18
+MP4 = __import__("os").environ.get("MP4", "out/ronald_read.mp4"); FPS = 30; LIM = 18
 frames = [int(x) for x in sys.argv[1:]]
 def grab(f):
     raw = subprocess.run([FF, "-v", "error", "-i", MP4, "-vf", f"select=eq(n\,{f})", "-vsync", "0", "-frames:v", "1", "-f", "image2pipe", "-vcodec", "png", "-"], capture_output=True, check=True).stdout

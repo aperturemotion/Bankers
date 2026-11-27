@@ -160,6 +160,7 @@ def _texture_patch():
     for k in range(1, 6):
         im = load(names[k * len(names) // 6])
         for y in range(80, im.shape[0] - 160, 40):
+            if y + 80 > CAP[0] and y < CAP[1]: continue   # V39: never from the masked caption band (the patch was a karaoke chip: paper over a flat pill)
             for x in range(20, im.shape[1] - 180, 40):
                 q = im[y:y + 80, x:x + 160]   # V38 rev 4f: texture in EVERY quarter (the max-std patch was a flat black counter card with
                 #   big white figures — flat areas can't be tracked by shape, so the slide canary fired on its own patch, not on a flaw)
