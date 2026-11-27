@@ -5,6 +5,9 @@ import * as jsx_runtime from "react/jsx-runtime";
 import { aud } from "./aud";
 
 const EVEN = {
+  ov_paper_flutter: 0.4548,
+  ov_steps: 0.4767,
+  ov_chalk: 0.4704,
   ov_clank: 0.0721,
   ov_newspaper: 0.4052,
   ov_paper_unfold: 0.2287,
@@ -130,6 +133,9 @@ const GAIN = Object.fromEntries(
 );
 const AUDIO_LEAD = 1;
 const LEN = {
+  ov_paper_flutter: 28,
+  ov_steps: 120,
+  ov_chalk: 90,
   ov_clank: 27,
   ov_newspaper: 48,
   ov_paper_unfold: 72,
@@ -195,6 +201,9 @@ const LEN = {
   ee_amb_press_conference_busy_camera_shutters: 293
 };
 const ONSET = {
+  ov_paper_flutter: 10,
+  ov_steps: 15,
+  ov_chalk: 16,
   ov_clank: 2,
   ov_newspaper: 1,
   ov_paper_unfold: 1,

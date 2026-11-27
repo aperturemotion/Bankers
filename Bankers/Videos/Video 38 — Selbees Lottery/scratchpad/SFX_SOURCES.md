@@ -9,6 +9,9 @@
 | ov_paper_unfold.wav | Paper Unfolding Quickly | coolernow123 | CC0 | https://freesound.org/people/coolernow123/sounds/547980 |
 | ov_newspaper.wav | newspaper_close_drop.wav | rambler52 | CC0 | https://freesound.org/people/rambler52/sounds/332107 |
 | ov_clank.wav | R27-37-Metal Clanks and Hits.wav | craigsmith | CC0 | https://freesound.org/people/craigsmith/sounds/486295 |
+| ov_chalk.wav | Chalk writing on board.mp3 | mrrap4food | CC0 | https://freesound.org/people/mrrap4food/sounds/619018 |
+| ov_steps.wav | Walking footsteps on pavement.WAV | thomasanthony321 | CC0 | https://freesound.org/people/thomasanthony321/sounds/682773 |
+| ov_paper_flutter.wav | Paper Rustle | BenjaminNelan | CC0 | https://freesound.org/people/BenjaminNelan/sounds/353125 |
 
 Each was trimmed (from its first onset, or around its loudest hit), faded out over 0.15 s, peak-normalised to −3 dBFS, mono 48 kHz,
 and its SfxLayer EVEN set so its active mean level matches the film's existing effects (≈ −38 dB effective).
