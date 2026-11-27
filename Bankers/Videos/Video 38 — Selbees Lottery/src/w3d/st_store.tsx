@@ -104,10 +104,12 @@ export { signTex as storeSignTex, awningTex as storeAwningTex, bladeTex as store
 const Box = ({ p, s, m, cast = true, recv = true, ...r }) => (
   <mesh position={p} castShadow={cast} receiveShadow={recv} material={m} {...r}><boxGeometry args={s} /></mesh>
 );
+// rev 5: the laminate repeats at its real size along the counter (u across the 0.84 m top, v along its 3.5 m)
+const lamRep = (t0) => { const t = t0.clone(); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(1, 4.2); t.needsUpdate = true; return t; };
 const M = {
   frame: std("#2A3240", 0.35, 0.75), steel: std("#8FA9C8", 0.3, 0.8), dark: std("#151C27", 0.6, 0.2), lintel: std("#1E2733", 0.5, 0.6),
   stone: std("#8D97A6", 0.75, 0.05), wallIn: std("#3E4E66", 0.85, 0, { envMapIntensity: 0.25 }), ceil: std("#2E3A4D", 0.9, 0, { envMapIntensity: 0.2 }),
-  lam: std("#34465F", 0.45, 0.1, { envMapIntensity: 0.4 }), top: new THREE.MeshStandardMaterial({ map: canvasTex("st_lamtop", 512, 512, (c, w, h) => { c.fillStyle = "#46546A"; c.fillRect(0, 0, w, h); for (let i = 0; i < 9000; i++) { const g = rnd(i) > 0.5 ? 255 : 0; c.fillStyle = `rgba(${g},${g},${g},${0.03 + rnd(i + 1) * 0.05})`; c.fillRect(rnd(i + 2) * w, rnd(i + 3) * h, 2, 2); } }), roughness: 0.42, metalness: 0.05, envMapIntensity: 0.45 }), shelf: std("#6F7E93", 0.5, 0.3, { envMapIntensity: 0.4 }),
+  lam: std("#34465F", 0.45, 0.1, { envMapIntensity: 0.4 }), top: new THREE.MeshStandardMaterial({ map: lamRep(canvasTex("st_lamtop", 512, 512, (c, w, h) => { c.fillStyle = "#46546A"; c.fillRect(0, 0, w, h); for (let i = 0; i < 9000; i++) { const g = rnd(i) > 0.5 ? 255 : 0; c.fillStyle = `rgba(${g},${g},${g},${0.03 + rnd(i + 1) * 0.05})`; c.fillRect(rnd(i + 2) * w, rnd(i + 3) * h, 2, 2); } })), color: "#C4D2E6", roughness: 0.36, metalness: 0.05, envMapIntensity: 0.45 }), shelf: std("#6F7E93", 0.5, 0.3, { envMapIntensity: 0.4 }),
   plastic: std("#1F2733", 0.45, 0.1), keys: std("#7A8798", 0.5, 0.2)
 };
 const glassMat = new THREE.MeshPhysicalMaterial({ color: "#A9C8EE", roughness: 0.04, metalness: 0, transparent: true, opacity: 0.14, envMapIntensity: 1.6, depthWrite: false, side: THREE.DoubleSide });
@@ -321,6 +323,16 @@ const buildShop = (m) => {
   }
   addGoods(m, goods);
 };
+const CounterSpot = () => {
+  const tgt = useMemo(() => { const o = new THREE.Object3D(); o.position.set(BP[0] + 0.02, BP[1], BP[2] + 0.05); return o; }, []);
+  return (
+    <>
+      <primitive object={tgt} />
+      <spotLight position={[8.35, CEIL - 0.08, 1.75]} target={tgt} angle={0.62} penumbra={0.75} intensity={9} distance={4.5} decay={1.6} color="#E4EEFC" castShadow
+        shadow-mapSize-width={1024} shadow-mapSize-height={1024} shadow-bias={-0.00025} shadow-normalBias={0.004} shadow-camera-near={0.4} shadow-camera-far={4.2} />
+    </>
+  );
+};
 // ── the shop ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
 const Shop = ({ f, t }) => {
   const W_ = Z1 - Z0;
@@ -379,10 +391,13 @@ const Shop = ({ f, t }) => {
           <mesh position={[0, -0.022, 0]} rotation-x={Math.PI / 2}><planeGeometry args={[0.52, 1.12]} /><meshBasicMaterial color="#C9DBF2" /></mesh>
         </group>
       ))}
-      <pointLight position={[8.7, 2.95, 2.3]} intensity={2.2} distance={6} decay={1.6} color="#DCE8FA" />
-      <pointLight position={[10.8, 2.95, 0.6]} intensity={1.6} distance={6} decay={1.6} color="#FFE2BC" />
-      {/* the pool of light on the counter where the leaflet lies */}
-      <pointLight position={[8.95, 1.95, 2.25]} intensity={1.1} distance={2.6} decay={2} color="#FFF1DC" />
+      <pointLight position={[8.7, 2.95, 2.3]} intensity={1.7} distance={6} decay={1.6} color="#CFE0F8" />
+      <pointLight position={[10.8, 2.95, 0.6]} intensity={1.4} distance={6} decay={1.6} color="#D6E4F7" />
+      {/* rev 5 (Timur: "if an object is a main visual … there needs to be shadows on it"): the leaflet's light is a shadow-casting spot from
+          the ceiling panel over the counter (cool white, from the window side, so the flaps throw their shadows across the counter as they
+          open and the stack, the pen and the terminal sit in their own shadows); a faint warm fill from the terminal side keeps the paper from going grey */}
+      <CounterSpot />
+      <pointLight position={[8.95, 1.6, 3.2]} intensity={0.35} distance={1.6} decay={2} color="#FFE9CC" />
       {/* bay headers over the back shelving, the cooler's header */}
       {bays.map((b, i) => <mesh key={i} position={[BACK - 0.05, 2.86, SHELF.z0 + (i + 0.5) * (SHELF.z1 - SHELF.z0) / 3]} rotation-y={-Math.PI / 2}><planeGeometry args={[1.2, 0.225]} /><meshStandardMaterial map={b} roughness={0.5} emissiveMap={b} emissive="#ffffff" emissiveIntensity={0.35} /></mesh>)}
       <mesh position={[COOL.x0 - 0.045, 2.68, (COOL.z0 + COOL.z1) / 2]} rotation-y={-Math.PI / 2}><planeGeometry args={[COOL.z1 - COOL.z0, 0.26]} /><meshBasicMaterial map={cool} toneMapped={false} /></mesh>
@@ -432,12 +447,30 @@ const DIAG = pxToDesign(1330, 960);
 const diagPt = (dz = 0.002) => broPt(BP, DIAG[0], DIAG[1], dz);
 const rulePt = () => { const d = pxToDesign(1420, 340); return broPt(BP, d[0], d[1]); };
 const coverPt = () => broPt(BP, 0, 0.02);   // rev 2: the folded cover lies on the spread's middle panel (−0.15 pointed past its left edge)
+// rev 5 (Timur: the main visual "needs shadows … and needs to be detailed"): the leaflet's contact shadow on the laminate — a soft
+//   dark footprint under the paper that widens with it as it unfolds (the spot's cast shadow alone is a hairline: paper is 1 mm thick)
+const softRectTex = () => canvasTex("st_softrect2", 256, 256, (c, w, h) => {
+  // only the blurred SHADOW of a rect drawn off-canvas (the rect itself would leave a hard edge): densest under the paper, feathered out
+  c.shadowColor = "rgba(0,0,0,1)"; c.shadowBlur = 30; c.shadowOffsetX = 2000; c.fillStyle = "#000";
+  c.fillRect(70 - 2000, 70, w - 140, h - 140);
+});
+const LeafletShadow = ({ open }) => {
+  const tex = useMemo(softRectTex, []);
+  const wz = 0.15 + 0.3 * clamp01(open * 1.02) + 0.02, lx = 0.32 + 0.02;
+  return (
+    <mesh rotation-x={-Math.PI / 2} position={[BP[0] + 0.012, COUNTER.top + 0.0305, BP[2] + 0.008]} renderOrder={1}>
+      <planeGeometry args={[lx * 2, wz * 2]} />
+      <meshBasicMaterial map={tex} color="#000000" transparent opacity={0.5} depthWrite={false} polygonOffset polygonOffsetFactor={-1} />
+    </mesh>
+  );
+};
 const Scene = ({ f }) => {
   const t = useMemo(T, []);
   return (
     <group>
       <Sky />
       <Shop f={f} t={t} />
+      <LeafletShadow open={broOpen(t, f)} />
       <Brochure p={BP} open={broOpen(t, f)} hi={hiK(t, f)} glow={1 - ease(f, t.loopEnd + 14, t.loopEnd + 24)} />
     </group>
   );
@@ -447,35 +480,45 @@ const Scene = ({ f }) => {
 // rev 4f: the kit's drift runs on REAL frames (makeCam sees shots already shifted by HOOK_SHIFT); this station is in STORY time, so
 //   its undrift adds HOOK_SHIFT — without it the 17 s push into the brochure overshot the chart's centre and the picture spun ~100°
 const drift = (fs) => { const f = fs + HOOK_SHIFT; return [0.06 * Math.sin(f / 97), 0.04 * Math.sin(f / 131 + 1), 0.05 * Math.sin(f / 113 + 2)]; };
-const pushIn = (t, d) => {
-  const a = t.threeEnd - 12, b = t.when - 1;
-  const P5 = [d[0] - 0.2, d[1] + 0.36, d[2]], P6 = [d[0] - 0.008, d[1] + 0.075, d[2]];
-  const out = [];
-  for (let f = a + 1; f <= b; f++) {
-    const e = ease(f, a, b), dr = drift(f);
-    const want = [0, 1, 2].map((k) => (P5[k] + dr[k]) * (1 - e) + P6[k] * e);
-    out.push({ a: f - 1, b: f, pos: W([want[0] - dr[0], want[1] - dr[1], want[2] - dr[2]]), target: W(d), fov: 32 - 2 * e });
+// ★ rev 5 (Timur, 2026-11-27: "slower … cinematic … every move on a subject"): the inside is ONE continuous glide keyed per frame in the
+//   camera's own space (aim point, view direction, LOG distance, fov) — down onto the open leaflet, a slow lean in to the roll-down panel as
+//   the rule lights on "loophole", then the push INTO the diagram's jackpot column, which lands on exactly the old end pose (the rolldown's
+//   matched cut). The two stages overlap (it never settles and restarts), the push eases its ZOOM RATE (log distance), and the kit's idle
+//   drift is cancelled progressively from the leaflet on, so the near-vertical end can never spin (rev 4f).
+const IN = (t) => ({ a0: t.newG + 23, a1: t.he + 36, c0: t.he + 28, c1: t.when - 1, w0: t.newG + 23, w1: t.newG + 71 });
+const unit = (v) => { const n = Math.hypot(v[0], v[1], v[2]); return v.map((x) => x / n); };
+const lerpV = (p, q, e) => p.map((x, k) => x + (q[k] - x) * e);
+const insidePath = (t, d) => {
+  const k = IN(t), out = [];
+  const T3 = [8.82, 1.02, 2.27], V3 = unit([8.33 - 8.82, 1.86 - 1.02, 2.29 - 2.27]), D3 = Math.hypot(8.33 - 8.82, 1.86 - 1.02, 0.02);
+  // the lean-in frames the rule AND the diagram from nearly overhead, so the final push barely turns (the turn happens far from the paper)
+  const T5 = [8.735, 1.03, 2.314], V5 = unit([-0.2, 0.98, 0]), D5 = 0.62;
+  const P6 = [d[0] - 0.008, d[1] + 0.075, d[2]], V6 = unit([P6[0] - d[0], P6[1] - d[1], 0]), D6 = Math.hypot(0.008, 0.075);
+  for (let f = k.a0 + 1; f <= k.c1; f++) {
+    const eA = ease(f, k.a0, k.a1), eC = ease(f, k.c0, k.c1), w = ease(f, k.w0, k.w1), dr = drift(f);
+    const eT = ease(f, k.c0 - 22, k.c0 + 16);   // the aim settles on the jackpot column while the camera is still far from the paper
+    const T_ = lerpV(lerpV(T3, T5, eA), d, eT);
+    const V_ = unit(lerpV(lerpV(V3, V5, eA), V6, eC));
+    const D_ = Math.exp(Math.log(D3) + (Math.log(D5) - Math.log(D3)) * eA + (Math.log(D6) - (Math.log(D3) + (Math.log(D5) - Math.log(D3)) * eA)) * eC);
+    const P_ = f === k.c1 ? P6 : [T_[0] + V_[0] * D_, T_[1] + V_[1] * D_, T_[2] + V_[2] * D_];
+    out.push({ a: f - 1, b: f, pos: W([P_[0] - dr[0] * w, P_[1] - dr[1] * w, P_[2] - dr[2] * w]), target: W(f === k.c1 ? d : T_), fov: 32 - 2 * eC });
   }
   return out;
 };
 // ── the camera ───────────────────────────────────────────────────────────────────────────────────────────────────────────
+// rev 5: four moves where there were seven — (1) the slow glide on from the hook, rising over the flat ticket and down main street, to a
+//   three-quarter view of the whole shop front (sign, awning, lit window) as "2003" lands; (2) a slow dolly toward the window, aimed
+//   through the glass at the leaflet lying on the counter ("retired store owner Jerry Selbee"); (3) on "read a brochure" one unbroken move through the glass
+//   down onto the leaflet as it unfolds; (4) the inside glide above.
 const shots = () => {
   const t = T();
   const d = diagPt(0);
   return [
-    // the flight down main street from the hook (over the standing ticket), landing three-quarter on the shop front
-    { a: t.in2003 - 20, b: t.in2003 + 16, pos: W([2.3, 2.6, 13.6]), target: W([6.9, 2.7, 4.2]), fov: 36, arc: 6.5 },   // rev 3: arc 3.2 → 6.5 (clears the 1.5× ticket)
-    // a slow dolly past the lamp post to the window (the counter and the terminal behind the glass) as the tag and photo come up
-    { a: t.in2003 + 8, b: t.read - 4, pos: W([3.3, 1.85, 4.4]), target: W([7.2, 1.7, 1.9]), fov: 34 },
-    // through the glass to the counter, looking down at the folded leaflet
-    { a: t.read - 4, b: t.brochure + 12, pos: W([8.0, 1.86, 2.32]), target: W([8.8, 1.02, 2.22]), fov: 34 },
-    // it unfolds: the camera rises over it
-    { a: t.newG - 4, b: t.winfall + 10, pos: W([8.33, 1.86, 2.29]), target: W([8.82, 1.02, 2.27]), fov: 32 },
-    // in to the roll-down panel as the rule is highlighted
-    { a: t.he - 2, b: t.loopEnd + 6, pos: W([8.55, 1.6, BP[2] + 0.15]), target: W([8.86, 1.02, BP[2] + 0.15]), fov: 32 },
-    // settle on the diagram, then push INTO the jackpot column (the cut to the rolldown lands on the matching close-up)
-    { a: t.three - 8, b: t.threeEnd - 12, pos: W([d[0] - 0.2, d[1] + 0.36, d[2]]), target: W([d[0], d[1], d[2]]), fov: 32 },
-    ...pushIn(t, d)
+    { a: t.in2003 - 46, b: t.in2003 + 42, pos: W([2.5, 3.5, 30.5]), target: W([6.4, 2.5, 8.5]), fov: 38, arc: 0.8 },   // over the ticket, eyes on the lit shopfronts that lead to the store
+    { a: t.in2003 + 18, b: t.store + 16, pos: W([2.0, 2.65, 16.8]), target: W([6.8, 2.6, 2.6]), fov: 38 },
+    { a: t.store - 2, b: t.read + 8, pos: W([3.7, 1.85, 5.6]), target: W([8.75, 1.1, 2.2]), fov: 34 },
+    { a: t.read - 4, b: t.newG + 23, pos: W([8.33, 1.86, 2.29]), target: W([8.82, 1.02, 2.27]), fov: 32 },
+    ...insidePath(t, d)
   ];
 };
 // a timer figure in the house counter dress, rolling m:ss up to 3:00 on "3 minutes"
@@ -520,7 +563,7 @@ const Overlay = ({ f, P }) => {
       {/* the vignette is global (Main.tsx) */}
       {/* rev 2 tag audit: each fully in by its word (Tag at + 12, chips at + 14), read ≥ 36 f, pinned tags gone before the camera leaves
           their object (the flight through the window starts at read − 4) */}
-      <Year at={t.y2003 - 14} out={t.store - 14} x={620} y={300} />
+      <Year at={t.y2003 - 14} out={t.store - 14} x={300} y={300} />{/* rev 5: upper LEFT — the hook's 9 YEARS now sits upper right and is still leaving */}
       <Tag text="His old store" at={t.store - 14} out={t.read - 12} x={110} y={960} to={sign.behind ? null : sign} />
       <Inset src={aud("photos/selbees_2shot.jpg")} credit="Photo: CBS News / 60 Minutes" at={t.jerry - 18} out={t.read + 6} x={80} y={300} w={920} h={518} pos="50% 35%" />
       <Tag text="Jerry & Marge Selbee" at={t.jerry - 14} out={t.read + 4} x={80} y={836} />
@@ -534,15 +577,15 @@ const Overlay = ({ f, P }) => {
 const sfx = () => {
   const t = T();
   return [
-    cueAt("whooshlong", t.in2003 - 2, 36, 0.55),                 // the flight down main street (fastest at its middle)
+    cueAt("whooshlong", t.in2003 + 4, 50, 0.45),   // rev 5: the slow glide down main street (fastest at its middle)
     cueAt("pingshort", t.y2003 - 2, 12, 0.35),
-    cueAt("whooshsoft", (t.read - 4 + t.brochure + 12) / 2, 26, 0.5), // through the window
+    cueAt("whooshsoft", Math.round((t.read - 4 + t.newG + 23) / 2) - 6, 30, 0.42), // rev 5: through the window, down onto the leaflet
     cueAt("ee_whoosh_fast_small_whoosh_01", t.newG + 8, 14, 0.35),  // the left flap swings open
     cueAt("ee_whoosh_fast_small_whoosh_01", t.winfall - 4, 14, 0.3), // the right flap
     cueAt("ee_click_click_01", t.loophole - 3, 6, 0.4),          // the highlighter's cap
     cueAt("pingshort", t.loophole + 6, 12, 0.35),
     cueAt("ee_clock_clock_ticking_01", t.three - 10, 26, 0.45),
-    cueAt("airwoosh", t.threeEnd - 4, 20, 0.5)                    // the push into the diagram
+    cueAt("airwoosh", Math.round((IN(t).c0 + IN(t).c1) / 2) - 4, 24, 0.45)   // rev 5: the push into the diagram (fastest zoom at its middle)
   ];
 };
 export const ST = { id: "store", origin: O, from: 200, to: T().when + 2, light: { target: [7.5, 0, 2.4], shadowBox: 11, keyI: 1.9, fillI: 0.42 }, shots, Scene, Overlay, sfx };
