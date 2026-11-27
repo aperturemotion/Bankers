@@ -24,7 +24,8 @@ export const COMPANIES = [
   { key: "dow", name: "THE DOW CHEMICAL COMPANY", short: "DOW CHEMICAL", state: "DELAWARE", ink: "#2F5279", tint: "rgba(70,120,180,", paper: "#EFF1EC", vig: "plant" },
   { key: "smucker", name: "THE J. M. SMUCKER COMPANY", short: "J. M. SMUCKER", state: "OHIO", ink: "#5C3550", tint: "rgba(150,80,130,", paper: "#F3EFE8", vig: "orchard" },
   { key: "jpm", name: "JPMORGAN CHASE & CO.", short: "JPMORGAN CHASE", state: "DELAWARE", ink: "#3E3A6C", tint: "rgba(100,96,170,", paper: "#F0F0EA", vig: "city" },
-  { key: "cvs", name: "CVS CORPORATION", short: "CVS", state: "DELAWARE", ink: "#1F5466", tint: "rgba(50,130,160,", paper: "#EFF2EE", vig: "globe2" },
+  { key: "cvs", name: "CVS CORPORATION", short: "CVS", state: "DELAWARE", ink: "#1F5466", tint: "rgba(50,130,160,", paper: "#EFF2EE", vig: "globe2" },   // V39 rev 1: "CVS Health" only from Sept 2014, after his death (June 2014) — an older certificate reads CVS Corporation (the name to 2007)
+  { key: "lehman", name: "LEHMAN BROTHERS HOLDINGS INC.", short: "LEHMAN BROTHERS", state: "DELAWARE", ink: "#4A3A2E", tint: "rgba(140,100,70,", paper: "#F2EEE4", vig: "city" },
   { key: "pg", name: "THE PROCTER & GAMBLE COMPANY", short: "PROCTER & GAMBLE", state: "OHIO", ink: "#1D3C6E", tint: "rgba(60,110,190,", paper: "#F1F0E8", vig: "river" },
 ];
 
@@ -74,6 +75,40 @@ const rosette = (c, x, y, R, seed, ink, paper) => {
   for (let k = 0; k < 16; k++) { c.beginPath(); c.ellipse(0, 0, R * 0.3, R * 0.1, (k * Math.PI) / 16, 0, Math.PI * 2); c.stroke(); }
   c.fillStyle = ink; c.beginPath(); c.arc(0, 0, R * 0.06, 0, Math.PI * 2); c.fill();
   c.restore();
+};
+/** a lathe-work loop chain along a line (prolate trochoids, several phases interlaced): the classic bank-note border */
+const trochoidBand = (c, x0, y0, x1, y1, a, b, n, lw, alpha) => {
+  const len = Math.hypot(x1 - x0, y1 - y0), ux = (x1 - x0) / len, uy = (y1 - y0) / len;
+  c.lineWidth = lw; c.globalAlpha = alpha;
+  for (let k = 0; k < n; k++) {
+    const ph = (k / n) * Math.PI * 2; c.beginPath(); let first = true;
+    for (let t = 0; ; t += 0.06) {
+      const s = a * t - b * Math.sin(t + ph) + b * Math.sin(ph), o = b * Math.cos(t + ph);
+      if (s > len) break;
+      const x = x0 + ux * s - uy * o, y = y0 + uy * s + ux * o; first ? c.moveTo(x, y) : c.lineTo(x, y); first = false;
+    }
+    c.stroke();
+  }
+  c.globalAlpha = 1;
+};
+/** bank-note paper: cotton fibres (short curved hairs, a few coloured), a faint mottling, edges a shade warmer */
+const paperFibres = (c, w, h, idx) => {
+  for (let i = 0; i < 2600; i++) {
+    const x = rnd(i * 3 + idx) * w, y = rnd(i * 5 + 7 + idx) * h, L = 6 + rnd(i * 7) * 22, a = rnd(i * 11) * Math.PI * 2, bend = (rnd(i + 3) - 0.5) * 0.8;
+    const col = rnd(i * 13 + idx) < 0.04 ? (rnd(i) < 0.5 ? "rgba(180,40,50,0.35)" : "rgba(40,70,170,0.35)") : rnd(i * 17) < 0.5 ? "rgba(120,104,80,0.10)" : "rgba(255,255,255,0.18)";
+    c.strokeStyle = col; c.lineWidth = 0.8 + rnd(i) * 0.7; c.beginPath(); c.moveTo(x, y);
+    c.quadraticCurveTo(x + Math.cos(a + bend) * L * 0.5, y + Math.sin(a + bend) * L * 0.5, x + Math.cos(a) * L, y + Math.sin(a) * L); c.stroke();
+  }
+  const e = c.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.45, w / 2, h / 2, Math.max(w, h) * 0.62);
+  e.addColorStop(0, "rgba(160,130,80,0)"); e.addColorStop(1, "rgba(160,130,80,0.13)"); c.fillStyle = e; c.fillRect(0, 0, w, h);
+};
+/** a fold crease across the sheet at x (vertical) or y (horizontal): a soft shadow on one side, a lit ridge on the other */
+const crease = (c, w, h, at, vertical) => {
+  const L = vertical ? h : w, g = vertical ? c.createLinearGradient(at - 40, 0, at + 40, 0) : c.createLinearGradient(0, at - 40, 0, at + 40);
+  g.addColorStop(0, "rgba(90,70,40,0)"); g.addColorStop(0.46, "rgba(90,70,40,0.12)"); g.addColorStop(0.5, "rgba(70,55,30,0.28)"); g.addColorStop(0.53, "rgba(255,255,250,0.35)"); g.addColorStop(1, "rgba(255,255,250,0)");
+  c.fillStyle = g; vertical ? c.fillRect(at - 40, 0, 80, L) : c.fillRect(0, at - 40, L, 80);
+  // the crease wears the ink a little along its line
+  for (let i = 0; i < 140; i++) { const q = rnd(i * 7 + at) * L; c.fillStyle = `rgba(250,248,240,${0.2 + rnd(i) * 0.3})`; vertical ? c.fillRect(at - 1, q, 3, 4 + rnd(i + 1) * 10) : c.fillRect(q, at - 1, 4 + rnd(i + 1) * 10, 3); }
 };
 // ── the engraved vignettes (line work only; every one a place or a thing, never a person) ───────────────────────────────────
 const V = {};
@@ -279,7 +314,7 @@ const flourish = (c, x, y, w, seed, ink) => {
   c.strokeStyle = ink; c.lineWidth = 2.6; c.lineCap = "round"; c.beginPath(); c.moveTo(x, y);
   let px = x;
   for (let k = 0; k < 9; k++) {
-    const nx = px + w / 11, h = 18 + rnd(seed + k) * 30;
+    const nx = px + w / 11, h = 14 + rnd(seed + k) * 22;
     c.bezierCurveTo(px + 6, y - h, nx - 12, y - h * 0.9, nx - 4, y + 4); c.bezierCurveTo(nx - 2, y + 10, nx + 2, y - 6, nx + 4, y - 2);
     px = nx;
   }
@@ -318,6 +353,7 @@ const drawCert = (c, co, idx) => {
   c.fillStyle = paper; c.fillRect(0, 0, w, h);
   const g = c.createRadialGradient(w / 2, h / 2, 200, w / 2, h / 2, w * 0.7); g.addColorStop(0, "rgba(255,255,255,0.25)"); g.addColorStop(1, "rgba(120,100,70,0.10)"); c.fillStyle = g; c.fillRect(0, 0, w, h);
   for (let i = 0; i < 9000; i++) { c.fillStyle = `rgba(${rnd(i + idx * 9) < 0.5 ? "120,110,90" : "255,255,255"},${0.02 + rnd(i + 4) * 0.05})`; c.fillRect(rnd(i + 1) * w, rnd(i + 2) * h, 2.5, 2.5); }
+  paperFibres(c, w, h, idx);
   // security tint: a lattice of fine waves in the company's tint, and a large rosette under the text
   c.save(); c.beginPath(); c.rect(176, 176, w - 352, h - 352); c.clip();
   c.strokeStyle = tint + "0.16)"; c.lineWidth = 1.2;
@@ -336,6 +372,10 @@ const drawCert = (c, co, idx) => {
   bandLine(c, B, B, w - B, B, 20, 3, 22, 0.5, 1); bandLine(c, B, h - B, w - B, h - B, 20, 3, 22, 1.5, 1);
   bandLine(c, B, B, B, h - B, 20, 3, 22, 2.5, 1); bandLine(c, w - B, B, w - B, h - B, 20, 3, 22, 3.5, 1);
   c.globalAlpha = 1;
+  // the lathe-work loop chain laid over the ribbon (interlaced trochoids)
+  c.strokeStyle = ink;
+  trochoidBand(c, B, B, w - B, B, 7, 24, 3, 0.9, 0.55); trochoidBand(c, B, h - B, w - B, h - B, 7, 24, 3, 0.9, 0.55);
+  trochoidBand(c, B, B, B, h - B, 7, 24, 3, 0.9, 0.55); trochoidBand(c, w - B, B, w - B, h - B, 7, 24, 3, 0.9, 0.55);
   c.lineWidth = 2; c.strokeRect(150, 150, w - 300, h - 300); c.lineWidth = 5; c.strokeRect(160, 160, w - 320, h - 320); c.lineWidth = 1; c.strokeRect(170, 170, w - 340, h - 340);
   c.fillStyle = ink;
   for (let x = 190; x < w - 190; x += 18) [176, h - 176].forEach((y) => { c.beginPath(); c.moveTo(x, y - 3); c.lineTo(x + 5, y); c.lineTo(x, y + 3); c.lineTo(x - 5, y); c.closePath(); c.fill(); });
@@ -373,23 +413,33 @@ const drawCert = (c, co, idx) => {
   c.font = `700 36px ${CSERIF}`; spaced(c, "FULLY PAID AND NON-ASSESSABLE SHARES OF THE COMMON STOCK OF", w / 2, 1058, 2.5);
   c.font = `700 40px ${CSERIF}`; const p2 = fitFont(c, nm, 700, 40, w - 700, 4); c.font = `700 ${p2}px ${CSERIF}`; spaced(c, nm, w / 2, 1104, 4);
   c.font = `400 25px ${CSERIF}`;
-  c.fillText("transferable on the books of the Corporation by the holder hereof in person or by duly authorized attorney upon surrender", w / 2, 1146);
-  c.fillText("of this Certificate properly endorsed. This Certificate is not valid until countersigned by the Transfer Agent and registered by the Registrar.", w / 2, 1178);
-  c.font = `italic 400 25px ${CSERIF}`;
-  c.fillText("In Witness Whereof, the Corporation has caused this Certificate to be signed by the facsimile signatures of its duly authorized officers.", w / 2, 1210);
-  // the seal and the officers
-  printedSeal(c, w / 2, 1318, 104, co);
-  c.textAlign = "left"; c.font = `400 28px ${CSERIF}`; c.fillStyle = ink; c.fillText("Dated", 300, 1262); c.fillRect(388, 1266, 300, 2);
-  [[600, "SECRETARY"], [w - 600, "CHAIRMAN OF THE BOARD"]].forEach(([x, t], i) => {
-    flourish(c, x - 200, 1328, 380, idx * 13 + i * 7, ink);
-    c.fillStyle = ink; c.fillRect(x - 250, 1346, 500, 2.5);
-    c.font = `700 24px ${CSERIF}`; c.textAlign = "center"; spaced(c, t, x, 1380, 6);
+  c.fillText("transferable on the books of the Corporation by the holder hereof in person or by duly authorized attorney upon surrender", w / 2, 1142);
+  c.fillText("of this Certificate properly endorsed. This Certificate is not valid until countersigned by the Transfer Agent and registered by the Registrar.", w / 2, 1170);
+  c.font = `italic 400 24px ${CSERIF}`;
+  c.fillText("In Witness Whereof, the Corporation has caused this Certificate to be signed by the facsimile signatures of its duly authorized officers.", w / 2, 1198);
+  // the lower field (every element in its own place, clear of the border rules at 1360): Dated and the countersignature over the
+  // two officers' signature lines, the printed seal between them
+  printedSeal(c, w / 2, 1284, 72, co);
+  c.textAlign = "left"; c.font = `400 26px ${CSERIF}`; c.fillStyle = ink; c.fillText("Dated", 330, 1240); c.fillRect(410, 1243, 300, 2);
+  c.font = `700 16px ${CSERIF}`; c.textAlign = "right";
+  c.fillText("COUNTERSIGNED AND REGISTERED BY THE TRANSFER AGENT AND REGISTRAR", w - 330, 1236);
+  [[560, "SECRETARY"], [w - 560, "CHAIRMAN OF THE BOARD"]].forEach(([x, t], i) => {
+    flourish(c, x - 180, 1300, 340, idx * 13 + i * 7, ink);
+    c.fillStyle = ink; c.fillRect(x - 230, 1314, 460, 2.5);
+    c.font = `700 19px ${CSERIF}`; c.textAlign = "center"; spaced(c, t, x, 1342, 5);
   });
-  // the countersignature block (top right of the lower field)
-  c.textAlign = "left"; c.fillStyle = ink; c.font = `700 20px ${CSERIF}`;
-  c.fillText("COUNTERSIGNED AND REGISTERED:", w - 690, 1250);
-  c.font = `400 19px ${CSERIF}`; c.fillText("TRANSFER AGENT AND REGISTRAR", w - 690, 1274); c.fillText("BY", w - 690, 1300); c.fillRect(w - 650, 1302, 280, 1.5);
-  c.font = `italic 400 17px ${CSERIF}`; c.fillText("AUTHORIZED SIGNATURE", w - 600, 1322);
+  // handling: most were mailed folded in thirds (two vertical creases); some also folded in half
+  if (rnd(idx * 13 + 2) < 0.75) { crease(c, w, h, w / 3 + (rnd(idx) - 0.5) * 20, true); crease(c, w, h, (2 * w) / 3 + (rnd(idx + 1) - 0.5) * 20, true); }
+  if (rnd(idx * 17 + 5) < 0.35) crease(c, w, h, h / 2 + (rnd(idx + 2) - 0.5) * 16, false);
+};
+/** a certificate sheet's geometry: a thin box, subdivided, its short ends curling up ~0.7 mm (sheets keep this shape, so a stack nests) */
+const geoCache = new Map();
+export const certGeo = (t) => {
+  if (geoCache.has(t)) return geoCache.get(t);
+  const g = new THREE.BoxGeometry(CW, t, CH, 24, 1, 12), p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) { const u = Math.abs(p.getX(i)) / (CW / 2), v = Math.abs(p.getZ(i)) / (CH / 2); p.setY(i, p.getY(i) + 0.0007 * Math.pow(u, 3) + 0.00025 * Math.pow(v, 4)); }
+  g.computeVertexNormals(); geoCache.set(t, g);
+  return g;
 };
 /** the certificate face of company i (index into COMPANIES), as a texture */
 export const certTex = (i) => canvasTex("c_cert_" + COMPANIES[i].key, TW, TH, (c, w, h) => { c.save(); c.scale(w / DW, h / DH); drawCert(c, COMPANIES[i], i); c.restore(); });

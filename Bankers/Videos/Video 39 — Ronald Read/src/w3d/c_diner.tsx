@@ -7,7 +7,8 @@
 //     finished position), a white diner mug of coffee and a spoon, a ribbed water glass, a chrome napkin dispenser, glass salt
 //     and pepper shakers, a tent card printed "Friendly's" (plain type) with the ice-cream menu (no prices)
 //   · THE GUEST CHECK on a small check tray with a pen: the printed check (Friendly's / GUEST CHECK, fields, ruled lines, a stub),
-//     the server's handwriting (the order lines), "PAID" written across it, and one short note line, "Paid by another guest"
+//     "PAID" in the server's hand across it, and one short note line, "Paid by another guest" (no order lines: nothing is claimed about
+//     what he ate; no check or table number)
 //   · a warm enamel pendant lamp over the table (the only warm light), a big window onto the blue night: a parking lot with stall
 //     lines and lamp poles, a road, trees and a far town under the sky
 import React, { useMemo } from "react";
@@ -15,6 +16,8 @@ import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { canvasTex, rnd, Glow } from "./kit";
 import { HAND, SANSF, usePropFonts, woodTex, speckTex, noiseTex, tileTex, brushedTex } from "./c_tex";
+import { PlateFood, Mug, WaterGlass, Caddy } from "./c_dfood";
+import { conifer, maple, house, snowGround } from "./c_scenery";
 
 export const TOP = 0.76, WALL = -0.62;
 export const TABLE = { x0: -0.38, x1: 0.38, z0: -0.61, z1: 0.51 };
@@ -56,6 +59,8 @@ const checkDraw = (c, w, h) => {
   c.beginPath(); c.moveTo(110, y0); c.lineTo(110, y0 + n * lh); c.moveTo(w - 210, y0); c.lineTo(w - 210, y0 + n * lh); c.stroke();
   c.font = `600 20px ${SANSF}`; c.fillStyle = ink; c.textAlign = "center";
   for (let k = 0; k < n; k++) c.fillText(String(k + 1), 75, y0 + k * lh + 46);
+  // the printed column heads over the item lines
+  c.font = `700 22px ${SANSF}`; c.fillText("QTY", 75, y0 - 16); c.textAlign = "left"; c.fillText("DESCRIPTION", 126, y0 - 16); c.textAlign = "center"; c.fillText("AMOUNT", w - 125, y0 - 16);
   // totals
   const ty = y0 + n * lh;
   c.textAlign = "right"; c.font = `700 26px ${SANSF}`;
@@ -72,9 +77,6 @@ const checkDraw = (c, w, h) => {
   // ── the server's handwriting (ballpoint blue-black) ──
   const pen = "rgba(18,30,62,0.92)";
   const hand = (s, x, y, px, rot = 0, wt = 500, col = pen) => { c.save(); c.translate(x, y); c.rotate(rot); c.font = `${wt} ${px}px "${HAND}"`; c.fillStyle = col; c.textAlign = "left"; c.fillText(s, 0, 0); c.restore(); };
-  hand("1", 128, y0 + 0 * lh + 58, 60); hand("Cheeseburger plate", 160, y0 + 0 * lh + 58, 58, -0.012);
-  hand("1", 128, y0 + 1 * lh + 58, 60); hand("Coffee", 160, y0 + 1 * lh + 58, 58, -0.01);
-  hand("refill", 340, y0 + 2 * lh + 54, 46, -0.02);
   // PAID, written big across the lines and underlined twice
   c.save(); c.translate(w / 2 - 8, y0 + 7.2 * lh); c.rotate(-0.16);
   c.font = `700 250px "${HAND}"`; c.fillStyle = pen; c.textAlign = "center"; c.fillText("PAID", 0, 0);
@@ -106,31 +108,30 @@ const tentDraw = (c, w, h) => {
   c.strokeStyle = navy; c.lineWidth = 6; c.strokeRect(18, 18, w - 36, h - 36);
   c.fillStyle = navy; c.fillRect(0, h - 70, w, 70); c.fillStyle = "#FFFFFF"; c.font = `700 30px ${SANSF}`; c.fillText("SAVE ROOM FOR DESSERT", w / 2, h - 24);
 };
-// the blue night through the window: sky, a far tree line, a town with lit windows, a road with lamps
+// the blue winter night through the window (Brattleboro, Vermont, in winter): a blue-hour sky, snowy hills with a tree line, the far
+// town (clapboard houses with snow on the roofs and lit windows, a white steeple), snowy conifers in tiers and bare maples (c_scenery)
 const nightDraw = (c, w, h) => {
   const g = c.createLinearGradient(0, 0, 0, h);
-  g.addColorStop(0, "#04132B"); g.addColorStop(0.35, "#0A2C5A"); g.addColorStop(0.62, "#2D5E9E"); g.addColorStop(0.7, "#20477C"); g.addColorStop(1, "#0B2042");
+  g.addColorStop(0, "#04132B"); g.addColorStop(0.35, "#0A2C5A"); g.addColorStop(0.6, "#2D5E9E"); g.addColorStop(0.66, "#3E70AE"); g.addColorStop(1, "#1B3560");
   c.fillStyle = g; c.fillRect(0, 0, w, h);
   for (let i = 0; i < 140; i++) { c.fillStyle = `rgba(220,232,250,${0.2 + rnd(i) * 0.5})`; c.fillRect(rnd(i + 3) * w, rnd(i + 7) * h * 0.4, 2, 2); }
   const hz = h * 0.66;
-  // far hills
-  c.fillStyle = "#102C52"; c.beginPath(); c.moveTo(0, hz); for (let x = 0; x <= w; x += 8) c.lineTo(x, hz - 40 - 30 * Math.sin(x / 260) - 14 * Math.sin(x / 71)); c.lineTo(w, h); c.lineTo(0, h); c.fill();
-  // a town: houses, a white steeple, lit windows
-  for (let k = 0; k < 26; k++) {
-    const x = rnd(k * 3) * w, bw = 40 + rnd(k + 1) * 70, bh = 24 + rnd(k + 2) * 40, y = hz + 8 - bh;
-    c.fillStyle = rnd(k + 5) < 0.5 ? "#0E2648" : "#12305A"; c.fillRect(x, y, bw, bh);
-    c.beginPath(); c.moveTo(x - 4, y); c.lineTo(x + bw / 2, y - bh * 0.45); c.lineTo(x + bw + 4, y); c.fill();
-    for (let j = 0; j < 3; j++) if (rnd(k * 9 + j) < 0.5) { c.fillStyle = rnd(k + j) < 0.8 ? "#FFCF8A" : "#CFE0FA"; c.fillRect(x + 6 + j * (bw / 3.2), y + bh * 0.35, 7, 8); }
-  }
-  c.fillStyle = "#1B3A66"; c.fillRect(w * 0.7, hz - 120, 14, 128); c.beginPath(); c.moveTo(w * 0.7 - 6, hz - 120); c.lineTo(w * 0.7 + 7, hz - 190); c.lineTo(w * 0.7 + 20, hz - 120); c.fill();
-  // a tree line in front
-  c.fillStyle = "#081B36";
-  for (let x = -20; x < w + 20; x += 18) { const th = 40 + rnd(x) * 60; c.beginPath(); c.moveTo(x - 16, hz + 30); c.lineTo(x, hz + 30 - th); c.lineTo(x + 16, hz + 30); c.fill(); }
-  c.fillRect(0, hz + 28, w, h - hz);
-  // the road's lamps: a row of warm dots receding
-  for (let k = 0; k < 14; k++) { const x = w * 0.05 + k * w * 0.07, y = hz + 26 - k * 0.5; const gg = c.createRadialGradient(x, y, 0, x, y, 22); gg.addColorStop(0, "rgba(255,214,150,0.95)"); gg.addColorStop(0.25, "rgba(255,190,120,0.35)"); gg.addColorStop(1, "rgba(255,190,120,0)"); c.fillStyle = gg; c.fillRect(x - 22, y - 22, 44, 44); }
+  // far hills under snow, a dark band of forest along their flanks
+  c.fillStyle = "#3A5A88"; c.beginPath(); c.moveTo(0, hz); for (let x = 0; x <= w; x += 8) c.lineTo(x, hz - 60 - 40 * Math.sin(x / 260) - 16 * Math.sin(x / 71)); c.lineTo(w, h); c.lineTo(0, h); c.fill();
+  for (let x = 0; x < w; x += 5) { const top = hz - 60 - 40 * Math.sin(x / 260) - 16 * Math.sin(x / 71); c.fillStyle = `rgba(14,34,64,${0.55 + rnd(x) * 0.3})`; c.fillRect(x, top + 14 + rnd(x + 1) * 10, 5, 30 + rnd(x + 2) * 22); }
+  snowGround(c, w, hz - 6, h);
+  // the far town: houses, a white steeple
+  for (let k = 0; k < 16; k++) { const x = rnd(k * 3) * w, bw = 60 + rnd(k + 1) * 70; house(c, x, hz + 4, bw, bw * 0.55, k + 30, { wall: rnd(k + 5) < 0.5 ? "#1E3A64" : "#25446F", lit: 0.55 }); }
+  const sx = w * 0.7; c.fillStyle = "#C9D6E6"; c.fillRect(sx, hz - 130, 22, 134); c.fillRect(sx - 30, hz - 50, 82, 54);
+  c.beginPath(); c.moveTo(sx - 6, hz - 130); c.lineTo(sx + 11, hz - 215); c.lineTo(sx + 28, hz - 130); c.fill(); c.fillStyle = "#FFD9A0"; c.fillRect(sx + 6, hz - 110, 10, 16);
+  // the road along the lot: a plowed band with headlamp glows and streetlamps receding
+  c.fillStyle = "#1A2A44"; c.fillRect(0, hz + 30, w, 26);
+  for (let k = 0; k < 14; k++) { const x = w * 0.05 + k * w * 0.07, y = hz + 22 - k * 0.5; const gg = c.createRadialGradient(x, y, 0, x, y, 22); gg.addColorStop(0, "rgba(255,214,150,0.95)"); gg.addColorStop(0.25, "rgba(255,190,120,0.35)"); gg.addColorStop(1, "rgba(255,190,120,0)"); c.fillStyle = gg; c.fillRect(x - 22, y - 22, 44, 44); }
+  // the tree line in front of the town: conifers of every size, bare maples between them
+  for (let k = 0; k < 34; k++) { const x = (k / 34) * w + rnd(k * 5) * 50, th = 70 + rnd(k * 7) * 110; conifer(c, x, hz + 34 + rnd(k) * 8, th, th * 0.45, k + 3, { dark: "#0A1A33", mid: "#11264A", snow: "#B9CCE6" }); }
+  for (let k = 0; k < 9; k++) maple(c, rnd(k * 11 + 4) * w, hz + 40, 110 + rnd(k) * 80, k + 50, { col: "#0A1730" });
 };
-const lotDraw = (c, w, h) => {   // asphalt with stall lines, oil stains, a curb (top = toward the window)
+const lotDraw = (c, w, h) => {   // a plowed lot at night: wet asphalt, stall lines, tyre tracks in the slush, snow along the edges
   c.fillStyle = "#1A2638"; c.fillRect(0, 0, w, h);
   for (let i = 0; i < 20000; i++) { c.fillStyle = `rgba(${rnd(i) < 0.5 ? "200,215,235" : "0,0,0"},${0.03 + rnd(i + 1) * 0.06})`; c.fillRect(rnd(i + 2) * w, rnd(i + 3) * h, 2, 2); }
   c.fillStyle = "#3A4A60"; c.fillRect(0, 0, w, 24);   // the curb strip by the building
@@ -138,14 +139,41 @@ const lotDraw = (c, w, h) => {   // asphalt with stall lines, oil stains, a curb
   for (let k = 0; k < 12; k++) c.fillRect(30 + k * 86, 40, 5, 200);   // stall lines (2.7 m pitch)
   for (let k = 0; k < 12; k++) c.fillRect(30 + k * 86, 520, 5, 200);
   for (let k = 0; k < 9; k++) { c.fillStyle = "rgba(0,0,0,0.18)"; c.beginPath(); c.ellipse(70 + k * 86 + rnd(k) * 20, 160, 24, 40, 0, 0, Math.PI * 2); c.fill(); }
+  // slush and packed snow: patches, the tyre tracks through them, a ridge of snow along the lot's far edge
+  for (let i = 0; i < 90; i++) { const x = rnd(i * 3) * w, y = 260 + rnd(i * 5) * 240, r = 20 + rnd(i) * 70; const g = c.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, "rgba(170,188,212,0.45)"); g.addColorStop(1, "rgba(170,188,212,0)"); c.fillStyle = g; c.fillRect(x - r, y - r, 2 * r, 2 * r); }
+  c.strokeStyle = "rgba(20,30,46,0.55)"; c.lineWidth = 9; for (let k = 0; k < 4; k++) { const y = 300 + k * 50; c.beginPath(); c.moveTo(0, y); c.bezierCurveTo(w * 0.3, y + 30, w * 0.6, y - 20, w, y + 10); c.stroke(); c.beginPath(); c.moveTo(0, y + 22); c.bezierCurveTo(w * 0.3, y + 52, w * 0.6, y + 2, w, y + 32); c.stroke(); }
+  c.fillStyle = "#AFC2DC"; c.fillRect(0, h - 120, w, 120); for (let x = 0; x < w; x += 6) { c.fillStyle = "#AFC2DC"; c.fillRect(x, h - 120 - rnd(x) * 18, 6, 20); }
+  c.fillStyle = "rgba(175,194,220,0.9)"; c.fillRect(0, 24, w, 10);
+};
+const signDraw = (c, w, h) => {   // the roadside sign box: the name in plain type, a second line, lit from inside
+  const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "#F4F6FA"); g.addColorStop(1, "#DCE4EE"); c.fillStyle = g; c.fillRect(0, 0, w, h);
+  c.fillStyle = "#123E73"; c.fillRect(0, 0, w, h * 0.14); c.fillRect(0, h * 0.86, w, h * 0.14);
+  c.fillStyle = "#123E73"; c.textAlign = "center"; c.textBaseline = "middle"; let nx = h * 0.36; c.font = `800 ${nx}px ${SANSF}`; while (c.measureText("Friendly's").width > w * 0.8) { nx -= 4; c.font = `800 ${nx}px ${SANSF}`; } c.fillText("Friendly's", w / 2, h * 0.44);
+  let px = h * 0.12; c.font = `700 ${px}px ${SANSF}`; while (c.measureText("RESTAURANT  ·  ICE CREAM").width > w * 0.82 && px > 10) { px -= 2; c.font = `700 ${px}px ${SANSF}`; }
+  c.fillText("RESTAURANT  ·  ICE CREAM", w / 2, h * 0.72);
 };
 // ── materials ─────────────────────────────────────────────────────────────────────────────────────────────────────────
 const useMats = () => useMemo(() => {
-  const vinylMap = tileTex("vinyl_ch", 512, 64, (c, w, h) => {   // channel tufting: rounded channels, dark seams
-    for (let x = 0; x < w; x++) { const t = (x % 128) / 128, s = Math.sin(t * Math.PI); const v = Math.round(28 + 34 * s); c.fillStyle = `rgb(${v * 0.35},${v * 0.7},${v * 1.6})`; c.fillRect(x, 0, 1, h); }
-    for (let x = 0; x < w; x += 128) { c.fillStyle = "#050E1F"; c.fillRect(x, 0, 3, h); }
-  }, true, [4, 1]);
-  const vinylSeat = noiseTex("vinylseat", "#2A4C8A", 10, [3, 3]);
+  // channel-tufted navy vinyl: each channel puffs (a lit crown, shaded flanks), a sewn seam between channels (a dark crease with a
+  // row of stitch dashes either side), fine grain and a few soft wrinkles where it is sat against
+  const vinylDraw = (bump) => (c, w, h) => {
+    const P = 128;
+    for (let x = 0; x < w; x++) { const t = (x % P) / P, s = Math.pow(Math.sin(t * Math.PI), 0.7); const v = bump ? Math.round(40 + 200 * s) : Math.round(26 + 40 * s); c.fillStyle = bump ? `rgb(${v},${v},${v})` : `rgb(${v * 0.32},${v * 0.66},${v * 1.55})`; c.fillRect(x, 0, 1, h); }
+    for (let x = 0; x < w; x += P) {
+      c.fillStyle = bump ? "#000" : "#040B19"; c.fillRect(x - 2, 0, 4, h);
+      if (!bump) { c.fillStyle = "rgba(160,190,235,0.35)"; for (let y = 2; y < h; y += 9) { c.fillRect(x - 8, y, 1.6, 5); c.fillRect(x + 7, y + 4, 1.6, 5); } }
+    }
+    for (let i = 0; i < 6000; i++) { c.fillStyle = bump ? `rgba(${rnd(i) < 0.5 ? "255,255,255" : "0,0,0"},0.06)` : `rgba(${rnd(i) < 0.5 ? "200,220,255" : "0,0,10"},${0.03 + rnd(i + 1) * 0.04})`; c.fillRect(rnd(i + 2) * w, rnd(i + 3) * h, 1.5, 1.5); }
+    for (let k = 0; k < 10; k++) { const x = rnd(k * 7) * w, y = rnd(k * 3) * h; c.strokeStyle = bump ? "rgba(0,0,0,0.25)" : "rgba(0,6,20,0.3)"; c.lineWidth = 2; c.beginPath(); c.moveTo(x, y); c.quadraticCurveTo(x + 20, y + 6, x + 34, y + 18); c.stroke(); }
+  };
+  const vinylMap = tileTex("vinyl_ch2", 1024, 128, vinylDraw(false), true, [4, 1]);
+  const vinylBump = tileTex("vinyl_ch2b", 1024, 128, vinylDraw(true), false, [4, 1]);
+  // the seat: plain vinyl with a soft sheen and a seam 6 cm in from the front edge
+  const vinylSeat = tileTex("vinylseat2", 512, 512, (c, w, h) => {
+    c.fillStyle = "#2A4C8A"; c.fillRect(0, 0, w, h);
+    for (let i = 0; i < 9000; i++) { c.fillStyle = `rgba(${rnd(i) < 0.5 ? "200,220,255" : "0,0,10"},${0.03 + rnd(i + 1) * 0.04})`; c.fillRect(rnd(i + 2) * w, rnd(i + 3) * h, 1.5, 1.5); }
+    for (let k = 0; k < 7; k++) { const x = rnd(k * 9) * w, y = rnd(k * 5) * h; const g = c.createRadialGradient(x, y, 0, x, y, 90); g.addColorStop(0, "rgba(0,8,24,0.18)"); g.addColorStop(1, "rgba(0,8,24,0)"); c.fillStyle = g; c.fillRect(x - 90, y - 90, 180, 180); }
+  }, true, [2, 2]);
   const oak = woodTex("oak", "#7A5636", "#3A2412", [1.5, 1], 3);
   const oakV = woodTex("oakv", "#6E4C2E", "#331F0E", [1, 1], 5);
   const lam = tileTex("maplelam2", 512, 1024, (c, w, h) => {   // a maple-look laminate: straight fine grain along the table's length
@@ -154,20 +182,28 @@ const useMats = () => useMemo(() => {
     c.globalAlpha = 1; for (let i = 0; i < 3000; i++) { c.fillStyle = `rgba(60,30,10,${0.03 + rnd(i + 2) * 0.04})`; c.fillRect(rnd(i + 3) * w, rnd(i + 5) * h, 1, 4 + rnd(i) * 10); }
   }, true, [1, 1]);
   const bead = tileTex("beadboard", 256, 64, (c, w, h) => { c.fillStyle = "#24456F"; c.fillRect(0, 0, w, h); for (let x = 0; x < w; x += 32) { c.fillStyle = "rgba(0,8,20,0.55)"; c.fillRect(x, 0, 3, h); c.fillStyle = "rgba(255,255,255,0.10)"; c.fillRect(x + 3, 0, 2, h); } }, true, [14, 1]);
-  const tile = tileTex("dinerfloor", 256, 256, (c, w, h) => { for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) { c.fillStyle = (i + j) % 2 ? "#1C2E48" : "#9AA6B6"; c.fillRect(i * 128, j * 128, 128, 128); } c.strokeStyle = "rgba(0,0,0,0.3)"; c.strokeRect(0, 0, 128, 128); c.strokeRect(128, 128, 128, 128); }, true, [12, 12]);
+  const tile = tileTex("dinerfloor2", 512, 512, (c, w, h) => {   // 12-inch vinyl composition tiles: mottled chips, worn wax sheen, dark joints
+    for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) {
+      const dark = (i + j) % 2; c.fillStyle = dark ? "#1C2E48" : "#9AA6B6"; c.fillRect(i * 256, j * 256, 256, 256);
+      for (let k = 0; k < 1800; k++) { c.fillStyle = dark ? `rgba(${rnd(k + i * 7 + j) < 0.5 ? "90,110,140" : "5,12,25"},0.25)` : `rgba(${rnd(k + i * 7 + j) < 0.5 ? "255,255,255" : "70,80,96"},0.2)`; c.fillRect(i * 256 + rnd(k * 3 + j) * 256, j * 256 + rnd(k * 5 + i) * 256, 2 + rnd(k) * 5, 1 + rnd(k + 1) * 3); }
+    }
+    c.fillStyle = "rgba(0,0,0,0.45)"; c.fillRect(0, 0, w, 2); c.fillRect(0, 256, w, 2); c.fillRect(0, 0, 2, h); c.fillRect(256, 0, 2, h);
+    for (let k = 0; k < 12; k++) { const x = rnd(k * 9) * w, y = rnd(k * 13) * h; c.strokeStyle = "rgba(0,0,0,0.12)"; c.lineWidth = 2; c.beginPath(); c.moveTo(x, y); c.quadraticCurveTo(x + 30, y + 10, x + 60, y + 4); c.stroke(); }
+  }, true, [12, 12]);
   const paint = noiseTex("dinerwall", "#B9C4D2", 10, [4, 2]);
   const chrome = new THREE.MeshStandardMaterial({ color: "#D6DEE8", metalness: 0.95, roughness: 0.16 });
   const steel = new THREE.MeshStandardMaterial({ map: brushedTex("dsteel", "#9AA6B4", [2, 2]), color: "#D8DEE6", metalness: 0.9, roughness: 0.3 });
   const ceramic = new THREE.MeshPhysicalMaterial({ color: "#F3F1EC", roughness: 0.22, clearcoat: 1, clearcoatRoughness: 0.08 });
   return {
-    vinylBack: new THREE.MeshStandardMaterial({ map: vinylMap, color: "#FFFFFF", roughness: 0.38, metalness: 0.02 }),
-    vinylSeat: new THREE.MeshStandardMaterial({ map: vinylSeat, color: "#FFFFFF", roughness: 0.38 }),
+    vinylBack: new THREE.MeshPhysicalMaterial({ map: vinylMap, bumpMap: vinylBump, bumpScale: 3, color: "#FFFFFF", roughness: 0.34, clearcoat: 0.35, clearcoatRoughness: 0.3 }),
+    vinylSeat: new THREE.MeshPhysicalMaterial({ map: vinylSeat, color: "#FFFFFF", roughness: 0.34, clearcoat: 0.35, clearcoatRoughness: 0.3 }),
+    welt: new THREE.MeshPhysicalMaterial({ color: "#1C3766", roughness: 0.3, clearcoat: 0.5 }),
     oak: new THREE.MeshStandardMaterial({ map: oak, roughness: 0.45, color: "#FFFFFF" }),
     oakV: new THREE.MeshStandardMaterial({ map: oakV, roughness: 0.5, color: "#FFFFFF" }),
     lam: new THREE.MeshPhysicalMaterial({ map: lam, roughness: 0.35, color: "#FFFFFF", clearcoat: 0.6, clearcoatRoughness: 0.2, envMapIntensity: 0.5 }),
     tmould: new THREE.MeshStandardMaterial({ color: "#B8C2CE", metalness: 0.85, roughness: 0.28 }),
     under: new THREE.MeshStandardMaterial({ color: "#2A2620", roughness: 0.8 }),
-    floor: new THREE.MeshStandardMaterial({ map: tile, roughness: 0.3, color: "#FFFFFF" }),
+    floor: new THREE.MeshPhysicalMaterial({ map: tile, roughness: 0.32, clearcoat: 0.5, clearcoatRoughness: 0.25, color: "#FFFFFF" }),
     paint: new THREE.MeshStandardMaterial({ map: paint, roughness: 0.85, color: "#FFFFFF" }),
     bead: new THREE.MeshStandardMaterial({ map: bead, roughness: 0.55, color: "#FFFFFF" }),
     alu: new THREE.MeshStandardMaterial({ color: "#8E9AA8", metalness: 0.8, roughness: 0.35 }),
@@ -195,7 +231,13 @@ const Bench = ({ s, M }) => {
       {/* the seat box (oak kick panel), the cushion, the tufted back, the back panel and the cap rail */}
       <mesh position={[s * 0.72, 0.17, zc]} material={M.oakV} receiveShadow><boxGeometry args={[0.52, 0.34, Z1 - Z0]} /></mesh>
       <mesh geometry={g.seat} position={[s * 0.71, 0.405, zc]} material={M.vinylSeat} castShadow receiveShadow />
-      <mesh geometry={g.back} position={[s * 0.92, 0.8, zc]} rotation-z={-s * 0.1} material={M.vinylBack} castShadow receiveShadow />
+      <group position={[s * 0.92, 0.8, zc]} rotation-z={-s * 0.1}>
+        <mesh geometry={g.back} material={M.vinylBack} castShadow receiveShadow />
+        {/* welt piping along the back cushion's front edges */}
+        {[0.3, -0.3].map((y, i) => <mesh key={i} position={[-s * 0.055, y, 0]} rotation-x={Math.PI / 2} material={M.welt}><cylinderGeometry args={[0.0075, 0.0075, Z1 - Z0 - 0.06, 10]} /></mesh>)}
+      </group>
+      {/* the seat's welt along its front edge, top and bottom, and the seam line */}
+      {[0.466, 0.344].map((y, i) => <mesh key={i} position={[s * 0.47, y, zc]} rotation-x={Math.PI / 2} material={M.welt}><cylinderGeometry args={[0.0075, 0.0075, Z1 - Z0 - 0.06, 10]} /></mesh>)}
       <mesh position={[s * 1.0, 0.6, zc]} material={M.oakV} receiveShadow castShadow><boxGeometry args={[0.04, 1.2, Z1 - Z0]} /></mesh>
       <mesh position={[s * 0.985, 1.2, zc]} material={M.oak} castShadow receiveShadow><boxGeometry args={[0.11, 0.045, Z1 - Z0 + 0.06]} /></mesh>
       {/* the oak end panels at the aisle and at the wall */}
@@ -231,7 +273,19 @@ const Table = ({ M }) => {
 const WX0 = -0.93, WX1 = 0.93, WY0 = 1.0, WY1 = 2.06;
 const WallWindow = ({ M }) => {
   const night = useMemo(() => canvasTex("c_diner_night", 2048, 1024, nightDraw), []);
-  const lot = useMemo(() => { const t = canvasTex("c_diner_lot", 1024, 1024, lotDraw); return t; }, []);
+  const lot = useMemo(() => { const t = canvasTex("c_diner_lot2", 1024, 1024, lotDraw); return t; }, []);
+  const sign = useMemo(() => canvasTex("c_diner_roadsign2", 1024, 512, signDraw), []);
+  const shade = useMemo(() => tileTex("dshade", 256, 256, (c, w, h) => { c.fillStyle = "#E6DFCF"; c.fillRect(0, 0, w, h); for (let y = 0; y < h; y += 3) { c.fillStyle = `rgba(120,100,70,${0.05 + rnd(y) * 0.05})`; c.fillRect(0, y, w, 1); } for (let x = 0; x < w; x += 4) { c.fillStyle = "rgba(255,255,255,0.05)"; c.fillRect(x, 0, 1, h); } }, true, [3, 1]), []);
+  const snowM = useMemo(() => new THREE.MeshStandardMaterial({ color: "#A9BCD6", roughness: 0.9, emissive: "#20344F", emissiveIntensity: 0.12 }), []);
+  const banks = useMemo(() => {
+    const parts = [];
+    const lump = (x, y, z, sx, sy, sz, seed) => { const g = new THREE.IcosahedronGeometry(1, 4); const p = g.attributes.position; for (let i = 0; i < p.count; i++) { const k = 1 + 0.07 * Math.sin(p.getX(i) * 5 + seed) * Math.cos(p.getZ(i) * 4 + seed) + 0.03 * Math.sin(p.getX(i) * 17 + p.getZ(i) * 13 + seed); p.setXYZ(i, x + p.getX(i) * sx * k, Math.max(-0.02, y + p.getY(i) * sy * k), z + p.getZ(i) * sz * k); } parts.push(g.toNonIndexed()); };
+    for (let k = 0; k < 26; k++) lump(-13 + k * 1.05 + rnd(k) * 0.4, 0.05, WALL - 1.7 - rnd(k + 3) * 0.3, 0.8 + rnd(k + 1) * 0.5, 0.35 + rnd(k + 2) * 0.3, 0.55, k);
+    for (let k = 0; k < 26; k++) lump(-22 + k * 1.7 + rnd(k) * 0.6, -0.1, WALL - 27.5 - rnd(k + 9) * 0.8, 1.5 + rnd(k + 3) * 0.6, 0.45 + rnd(k) * 0.35, 1.3, k + 40);
+    const n = parts.reduce((a, g) => a + g.attributes.position.count, 0), pos = new Float32Array(n * 3); let o = 0;
+    parts.forEach((g) => { pos.set(g.attributes.position.array, o); o += g.attributes.position.array.length; });
+    const m = new THREE.BufferGeometry(); m.setAttribute("position", new THREE.BufferAttribute(pos, 3)); m.computeVertexNormals(); return m;
+  }, []);
   const box = (x0, x1, y0, y1, k, m = M.paint) => <mesh key={k} position={[(x0 + x1) / 2, (y0 + y1) / 2, WALL - 0.06]} material={m} receiveShadow><boxGeometry args={[x1 - x0, y1 - y0, 0.12]} /></mesh>;
   return (
     <group>
@@ -258,6 +312,22 @@ const WallWindow = ({ M }) => {
         </group>
       ))}
       <mesh position={[0, 9, WALL - 44]}><planeGeometry args={[110, 55]} /><meshBasicMaterial map={night} fog={false} toneMapped={true} /></mesh>
+      {/* plowed snowbanks along the curb and at the lot's far edge (one merged lumpy mound each) */}
+      <mesh geometry={banks} material={snowM} receiveShadow />
+      {/* snow on the outside sill, just beyond the glass */}
+      <mesh position={[0, WY0 - 0.01, WALL - 0.16]} material={snowM}><boxGeometry args={[WX1 - WX0 + 0.2, 0.045, 0.14]} /></mesh>
+      {/* the roadside sign: two steel posts, a lit double-faced box with the name in plain type */}
+      <group position={[-6.4, 0, WALL - 21]} rotation-y={0.62}>
+        {[-1.05, 1.05].map((x, i) => <mesh key={i} position={[x, 1.5, 0]}><cylinderGeometry args={[0.07, 0.07, 3, 10]} /><meshStandardMaterial color="#20304A" metalness={0.5} roughness={0.5} /></mesh>)}
+        <mesh position={[0, 2.85, 0]}><boxGeometry args={[2.5, 1.2, 0.3]} /><meshStandardMaterial color="#1A2A44" metalness={0.4} roughness={0.5} /></mesh>
+        {[1, -1].map((sd) => <mesh key={sd} position={[0, 2.85, sd * 0.152]} rotation-y={sd > 0 ? 0 : Math.PI}><planeGeometry args={[2.36, 1.06]} /><meshBasicMaterial map={sign} toneMapped={true} /></mesh>)}
+        <mesh position={[0, 3.47, 0]} material={snowM}><boxGeometry args={[2.56, 0.05, 0.34]} /></mesh>
+        <Glow position={[0, 2.85, 0.4]} size={3.4} color="#DCE8FA" opacity={0.25} />
+      </group>
+      {/* a roller shade half drawn at the top of the window, its pull ring */}
+      <mesh position={[0, WY1 - 0.13, WALL + 0.035]} castShadow><boxGeometry args={[WX1 - WX0 - 0.06, 0.26, 0.004]} /><meshStandardMaterial map={shade} color="#FFFFFF" roughness={0.9} /></mesh>
+      <mesh position={[0, WY1 - 0.255, WALL + 0.04]} rotation-z={Math.PI / 2}><cylinderGeometry args={[0.008, 0.008, WX1 - WX0 - 0.05, 10]} /><meshStandardMaterial color="#C8D0DA" metalness={0.8} roughness={0.3} /></mesh>
+      <mesh position={[0, WY1 - 0.29, WALL + 0.042]}><torusGeometry args={[0.014, 0.0025, 6, 20]} /><meshStandardMaterial color="#C8D0DA" metalness={0.8} roughness={0.3} /></mesh>
     </group>
   );
 };
@@ -293,79 +363,14 @@ const plateBand = () => canvasTex("c_plateband", 4, 512, (c, w, h) => {
 const Plate = ({ M }) => {
   const g = useMemo(() => new THREE.LatheGeometry(PLATE.map(([r, y]) => new THREE.Vector2(r, y)), 64), []);
   const m = useMemo(() => new THREE.MeshPhysicalMaterial({ map: plateBand(), color: "#FFFFFF", roughness: 0.2, clearcoat: 1, clearcoatRoughness: 0.06, side: THREE.DoubleSide }), []);
-  const bun = useMemo(() => ({
-    crust: new THREE.SphereGeometry(0.048, 28, 14, 0, Math.PI, 0, Math.PI / 2),
-    cut: new THREE.CircleGeometry(0.048, 24, 0, Math.PI),
-    heel: (() => { const sh = new THREE.Shape(); sh.absarc(0, 0, 0.045, -1.2, 1.2, false); sh.absarc(-0.03, 0, 0.032, 0.95, -0.95, true); return new THREE.ExtrudeGeometry(sh, { depth: 0.012, bevelEnabled: true, bevelThickness: 0.003, bevelSize: 0.003, bevelSegments: 2, curveSegments: 16 }).rotateX(-Math.PI / 2); })(),
-    napkin: (() => { const q = new THREE.IcosahedronGeometry(0.03, 3); const p = q.attributes.position; for (let i = 0; i < p.count; i++) { const k = 1 + 0.32 * Math.sin(p.getX(i) * 140 + p.getY(i) * 90) * Math.cos(p.getZ(i) * 120); p.setXYZ(i, p.getX(i) * k, p.getY(i) * k * 0.7, p.getZ(i) * k); } q.computeVertexNormals(); return q; })(),
-  }), []);
-  const bunM = useMemo(() => {
-    const t = canvasTex("c_bun", 256, 128, (c, w, h) => { const gr = c.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, "#9A5A22"); gr.addColorStop(0.8, "#C9873F"); gr.addColorStop(1, "#E6C08A"); c.fillStyle = gr; c.fillRect(0, 0, w, h); for (let i = 0; i < 90; i++) { c.fillStyle = "#F3E6C4"; c.beginPath(); c.ellipse(rnd(i) * w, rnd(i + 3) * h * 0.75, 2.6, 1.3, rnd(i + 5) * 3, 0, Math.PI * 2); c.fill(); } });
-    return new THREE.MeshStandardMaterial({ map: t, roughness: 0.55, side: THREE.DoubleSide });
-  }, []);
-  const crumb = useMemo(() => new THREE.MeshStandardMaterial({ color: "#E8CF9E", roughness: 0.9 }), []);
-  const fry = useMemo(() => new THREE.MeshStandardMaterial({ color: "#E1A64A", roughness: 0.6, emissive: "#3A2208", emissiveIntensity: 0.2 }), []);
-  const ketchup = useMemo(() => new THREE.MeshPhysicalMaterial({ color: "#8A1C12", roughness: 0.2, clearcoat: 1 }), []);
-  const paper = useMemo(() => new THREE.MeshStandardMaterial({ color: "#F2F2EE", roughness: 0.95 }), []);
-  const fries = [[-0.03, 0.04, 0.4, 0.075], [-0.01, 0.055, 0.7, 0.062], [0.025, 0.035, 1.9, 0.07], [0.05, -0.02, 2.4, 0.05], [0.04, 0.06, 0.1, 0.058]];
-  // knife and fork in the finished position: handles resting on the rim (y ≈ 0.024) at ~4 o'clock, tips in the well
-  const tilt = Math.atan2(0.0245 - 0.0115, 0.078);
+  const napkin = useMemo(() => { const q = new THREE.IcosahedronGeometry(0.032, 3); const p = q.attributes.position; for (let i = 0; i < p.count; i++) { const k = 1 + 0.32 * Math.sin(p.getX(i) * 140 + p.getY(i) * 90) * Math.cos(p.getZ(i) * 120); p.setXYZ(i, p.getX(i) * k, p.getY(i) * k * 0.6, p.getZ(i) * k); } q.computeVertexNormals(); return q; }, []);
+  const paperM = useMemo(() => new THREE.MeshStandardMaterial({ color: "#F2F2EE", roughness: 0.95 }), []);
   return (
     <group position={[-0.13, TOP, -0.1]}>
       <mesh geometry={g} material={m} castShadow receiveShadow />
-      {/* the burger's top crust (eaten down to a curved piece) and the bun heel */}
-      <group position={[-0.045, 0.0105, -0.02]} rotation-y={0.5} scale={[0.95, 0.5, 0.95]}>
-        <mesh geometry={bun.crust} material={bunM} castShadow />
-        <mesh geometry={bun.cut} position={[0, 0, 0.0005]}><meshStandardMaterial color="#EAD3A4" roughness={0.95} side={THREE.DoubleSide} /></mesh>
-      </group>
-      <mesh geometry={bun.heel} material={bunM} position={[0.025, 0.0135, -0.05]} rotation-y={2.2} castShadow />
-      {[[0.0, -0.01], [-0.06, 0.01], [0.03, 0.02], [-0.02, 0.05]].map(([x, z], i) => <mesh key={i} position={[x, 0.0115, z]} material={crumb}><sphereGeometry args={[0.003, 6, 4]} /></mesh>)}
-      {fries.map(([x, z, r, L], i) => <mesh key={i} position={[x, 0.0152, z]} rotation-y={r} rotation-z={0.04 * (i % 2 ? 1 : -1)} material={fry} castShadow><boxGeometry args={[L, 0.0075, 0.0075]} /></mesh>)}
-      <mesh position={[0.045, 0.0108, 0.03]} rotation-x={-Math.PI / 2} scale={[1.4, 0.8, 1]} material={ketchup}><circleGeometry args={[0.016, 20]} /></mesh>
-      <mesh position={[0.06, 0.0109, 0.022]} rotation-x={-Math.PI / 2} scale={[0.8, 0.5, 1]} material={ketchup}><circleGeometry args={[0.01, 16]} /></mesh>
-      <mesh geometry={bun.napkin} material={paper} position={[0.085, 0.024, -0.06]} castShadow />
-      {/* knife and fork */}
-      <group position={[0.035, 0.0115, 0.045]} rotation-y={-0.65}>
-        <group rotation-z={tilt}>
-          <mesh position={[0.05, 0.004, 0.0]} material={M.chrome} castShadow><boxGeometry args={[0.1, 0.0035, 0.016]} /></mesh>
-          <mesh position={[0.135, 0.005, 0.0]} material={M.chrome} castShadow><boxGeometry args={[0.085, 0.007, 0.012]} /></mesh>
-        </group>
-      </group>
-      <group position={[0.015, 0.0115, 0.07]} rotation-y={-0.78}>
-        <group rotation-z={tilt}>
-          {[-0.0075, -0.0025, 0.0025, 0.0075].map((zz, i) => <mesh key={i} position={[0.02, 0.003, zz]} material={M.chrome}><boxGeometry args={[0.04, 0.002, 0.0026]} /></mesh>)}
-          <mesh position={[0.05, 0.003, 0]} material={M.chrome}><boxGeometry args={[0.025, 0.003, 0.02]} /></mesh>
-          <mesh position={[0.11, 0.005, 0]} material={M.chrome} castShadow><boxGeometry args={[0.1, 0.004, 0.011]} /></mesh>
-        </group>
-      </group>
-    </group>
-  );
-};
-const MUG_O = [[0.0, 0.0], [0.036, 0.0], [0.04, 0.004], [0.043, 0.03], [0.044, 0.088], [0.042, 0.096], [0.036, 0.096], [0.0345, 0.088], [0.0335, 0.03], [0.03, 0.016], [0.0, 0.016]];
-const Mug = ({ M, position, ry = 0 }) => {
-  const g = useMemo(() => new THREE.LatheGeometry(MUG_O.map(([r, y]) => new THREE.Vector2(r, y)), 48), []);
-  const coffee = useMemo(() => new THREE.MeshPhysicalMaterial({ color: "#1E0F06", roughness: 0.08, clearcoat: 1 }), []);
-  return (
-    <group position={position} rotation-y={ry}>
-      <mesh geometry={g} material={M.ceramic} castShadow receiveShadow />
-      <mesh position={[0, 0.072, 0]} rotation-x={-Math.PI / 2} material={coffee}><circleGeometry args={[0.0338, 36]} /></mesh>
-      <mesh position={[0.048, 0.05, 0]} material={M.ceramic} castShadow><torusGeometry args={[0.022, 0.0075, 12, 28, Math.PI * 1.2]} /></mesh>
-      {/* the spoon beside it */}
-      <group position={[0.02, 0.0, 0.07]} rotation-y={0.5}>
-        <mesh position={[0, 0.003, 0]} scale={[1, 0.2, 0.62]} material={M.chrome} castShadow><sphereGeometry args={[0.016, 16, 10]} /></mesh>
-        <mesh position={[0.07, 0.004, 0]} rotation-z={0.04} material={M.chrome}><boxGeometry args={[0.11, 0.003, 0.008]} /></mesh>
-      </group>
-    </group>
-  );
-};
-const Glass = ({ position }) => {
-  const g = useMemo(() => new THREE.LatheGeometry([[0, 0], [0.033, 0], [0.034, 0.006], [0.04, 0.13], [0.0375, 0.13], [0.0315, 0.012], [0, 0.012]].map(([r, y]) => new THREE.Vector2(r, y)), 18), []);
-  const w = useMemo(() => new THREE.LatheGeometry([[0, 0.012], [0.0313, 0.012], [0.0365, 0.095], [0, 0.095]].map(([r, y]) => new THREE.Vector2(r, y)), 18), []);
-  return (
-    <group position={position}>
-      <mesh geometry={g} renderOrder={3}><meshPhysicalMaterial color="#DCEBFA" transparent opacity={0.28} roughness={0.05} clearcoat={1} depthWrite={false} side={THREE.DoubleSide} envMapIntensity={1.4} /></mesh>
-      <mesh geometry={w} renderOrder={2}><meshPhysicalMaterial color="#9CC4EE" transparent opacity={0.22} roughness={0.05} depthWrite={false} /></mesh>
-      <mesh position={[0, 0.095, 0]} rotation-x={-Math.PI / 2} renderOrder={2}><circleGeometry args={[0.0364, 24]} /><meshPhysicalMaterial color="#CFE2F6" transparent opacity={0.35} roughness={0.02} clearcoat={1} depthWrite={false} /></mesh>
+      <PlateFood W={0.0105} chrome={M.chrome} />
+      {/* the paper napkin, crumpled on the table beside the plate */}
+      <mesh geometry={napkin} material={paperM} position={[-0.17, 0.02, -0.12]} castShadow />
     </group>
   );
 };
@@ -395,6 +400,9 @@ const Tent = ({ ready, position, ry }) => {
   const h = 0.15, w = 0.1, a = 0.28;   // each panel leans a from the vertical
   return (
     <group position={position} rotation-y={ry}>
+      {/* the chrome wire stand the card sits in: a weighted base and two clips */}
+      <mesh position={[0, 0.004, 0]} castShadow><boxGeometry args={[w * 0.9, 0.008, 0.095]} /><meshStandardMaterial color="#D6DEE8" metalness={0.95} roughness={0.16} /></mesh>
+      {[-1, 1].map((sx) => <mesh key={sx} position={[sx * w * 0.32, 0.018, 0]} rotation-x={Math.PI / 2}><torusGeometry args={[0.012, 0.0018, 6, 16, Math.PI]} /><meshStandardMaterial color="#D6DEE8" metalness={0.95} roughness={0.16} /></mesh>)}
       {[1, -1].map((s) => (
         <mesh key={s} position={[0, (h / 2) * Math.cos(a), s * (h / 2) * Math.sin(a)]} rotation-x={-s * a} rotation-y={s > 0 ? 0 : Math.PI} castShadow receiveShadow>
           <boxGeometry args={[w, h, 0.0012]} />
@@ -439,8 +447,10 @@ export const DinerSet = () => {
       <Table M={M} />
       <Pendant M={M} />
       <Plate M={M} />
-      <Mug M={M} position={[0.22, TOP, -0.17]} ry={-0.4} />
-      <Glass position={[0.04, TOP, -0.33]} />
+      <Mug ceramic={M.ceramic} chrome={M.chrome} position={[0.22, TOP, -0.17]} ry={-0.4} />
+      <WaterGlass position={[0.06, TOP, -0.33]} level={0.09} ice={4} />
+      <WaterGlass position={[-0.29, TOP, -0.33]} level={0.06} ice={3} />
+      <Caddy chrome={M.chrome} position={[-0.02, TOP, -0.535]} ry={0.04} />
       <Dispenser M={M} position={[0.17, TOP, -0.535]} />
       <Shaker M={M} position={[0.275, TOP, -0.52]} fill="#F2F2F0" />
       <Shaker M={M} position={[0.315, TOP, -0.48]} fill="#3A332C" />

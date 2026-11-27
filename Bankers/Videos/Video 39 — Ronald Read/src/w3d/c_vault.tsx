@@ -1,5 +1,6 @@
 // @ts-nocheck
-// ★ V39 builder C — THE BANK VAULT (station `vault`): "When he died, he owned at least 95 stocks. The certificates in his safe deposit
+// ★ V39 builder C — THE BANK VAULT (station `vault`; detail pass 2026-11-27: the round vault doorway c_vdoor.tsx, lock faces, bezels,
+//   hinge knuckles, engraved plates, section dividers, the box's lid/lips/label, the counting table's mat and pen, brass-strip terrazzo): "When he died, he owned at least 95 stocks. The certificates in his safe deposit
 //   box stood about 5 inches high." (WSJ 19 Mar 2015). Metres; floor y 0; the wall of boxes' door faces at z WALLZ (facing +z).
 //   · the wall: 176 brushed-brass doors in four sections (3-, 5- and 10-inch doors), each with an engraved number plate, two
 //     keyholes (guard key + renter key) in round escutcheons, a hinge, inset in a steel grid; a steel plinth and a cornice with
@@ -14,7 +15,8 @@ import * as THREE from "three";
 import { canvasTex, rnd, Glow, clamp01, ease } from "./kit";
 import { Mesher } from "./town_parts";
 import { SANSF, usePropFonts, brushedTex, tileTex, speckTex, sheetEdgeTex } from "./c_tex";
-import { CW, CH, certMats, certIndex, CSERIF } from "./c_cert";
+import { CW, CH, certMats, certIndex, certGeo, CSERIF } from "./c_cert";
+import { VaultFront } from "./c_vdoor";
 export { CW };
 
 export const WALLZ = -1.0;
@@ -26,6 +28,8 @@ export const BOX = { x: X0 + TCOL * CELL + CELL / 2, w: 0.24, h: 0.236, d: 0.56,
 export const INCH = 0.0254, STACK_H = 5 * INCH, FLOOR_T = 0.004;
 // the column sections: door pitch per column (3-inch, 5-inch, 10-inch)
 const PITCH = [0.132, 0.132, 0.132, 0.088, 0.088, 0.264, 0.264, 0.264, 0.264, 0.132, 0.132, 0.132];
+/** the target box's number (the same plate as on its door) */
+const BOXNO = (() => { let k = 0, n0 = 0; for (let c = 0; c < TCOL; c++) k += Math.round((TOPY - Y0) / PITCH[c]); n0 = Math.round((TOPY - Y0) / PITCH[TCOL]); return 1000 + TCOL * 100 + (n0 - 3); })();
 
 // ── textures ─────────────────────────────────────────────────────────────────────────────────────────────────────────
 // number plates: an atlas of engraved brass tags (black numbers), 16 × 32 cells
@@ -34,10 +38,56 @@ const numRect = (k) => { const col = k % 16, row = Math.floor(k / 16); return [c
 const numDraw = (nums) => (c, w, h) => {
   nums.forEach((n, k) => {
     const x = (k % 16) * NA.cw, y = Math.floor(k / 16) * NA.ch;
-    const g = c.createLinearGradient(x, y, x, y + NA.ch); g.addColorStop(0, "#E9D7A2"); g.addColorStop(0.5, "#C9AA62"); g.addColorStop(1, "#A9873F");
+    // a stamped brass plate: a bevelled edge (lit from the upper left), a brushed face, the number ENGRAVED (dark fill, a bright lip
+    // below-right where the cut catches the light), a slotted screw at each end
+    const g = c.createLinearGradient(x, y, x, y + NA.ch); g.addColorStop(0, "#EEDDAA"); g.addColorStop(0.45, "#D2B470"); g.addColorStop(1, "#A8873F");
     c.fillStyle = g; c.fillRect(x, y, NA.cw, NA.ch);
-    c.strokeStyle = "#6B5220"; c.lineWidth = 3; c.strokeRect(x + 3, y + 3, NA.cw - 6, NA.ch - 6);
-    c.fillStyle = "#1A140A"; c.font = `700 40px ${CSERIF}`; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText(String(n), x + NA.cw / 2, y + NA.ch / 2 + 2);
+    for (let i = 0; i < 60; i++) { c.fillStyle = `rgba(${rnd(i + k) < 0.5 ? "255,245,210" : "90,60,20"},${0.06 + rnd(i * 3 + k) * 0.1})`; c.fillRect(x + 4, y + 4 + rnd(i * 7 + k) * (NA.ch - 8), NA.cw - 8, 1); }
+    c.fillStyle = "rgba(255,248,220,0.85)"; c.fillRect(x, y, NA.cw, 3); c.fillRect(x, y, 3, NA.ch);
+    c.fillStyle = "rgba(70,48,12,0.85)"; c.fillRect(x, y + NA.ch - 3, NA.cw, 3); c.fillRect(x + NA.cw - 3, y, 3, NA.ch);
+    c.strokeStyle = "rgba(90,66,24,0.7)"; c.lineWidth = 1.5; c.strokeRect(x + 6.5, y + 6.5, NA.cw - 13, NA.ch - 13);
+    c.font = `700 36px ${CSERIF}`; c.textAlign = "center"; c.textBaseline = "middle";
+    if ("letterSpacing" in c) c.letterSpacing = "2px";
+    c.fillStyle = "rgba(255,244,205,0.9)"; c.fillText(String(n), x + NA.cw / 2 + 1.4, y + NA.ch / 2 + 3.4);
+    c.fillStyle = "#17110A"; c.fillText(String(n), x + NA.cw / 2, y + NA.ch / 2 + 2);
+    if ("letterSpacing" in c) c.letterSpacing = "0px";
+    [x + 14, x + NA.cw - 14].forEach((sx, i) => {
+      const sy = y + NA.ch / 2, gg = c.createRadialGradient(sx - 2, sy - 2, 0, sx, sy, 7); gg.addColorStop(0, "#FFF4D0"); gg.addColorStop(1, "#8A6A2A");
+      c.fillStyle = gg; c.beginPath(); c.arc(sx, sy, 6.5, 0, Math.PI * 2); c.fill(); c.strokeStyle = "rgba(60,40,10,0.8)"; c.lineWidth = 1; c.stroke();
+      c.save(); c.translate(sx, sy); c.rotate(rnd(k * 2 + i) * Math.PI); c.fillStyle = "#3A2A10"; c.fillRect(-5, -1, 10, 2); c.restore();
+    });
+  });
+};
+// THE LOCK FACES (an atlas of two, transparent outside the escutcheon): left = the bank's GUARD lock, right = the RENTER's lock.
+// A bevelled brass escutcheon ring, the turning plug (a slightly darker brass disc with its shear line), the keyway cut into it.
+export const LOCK = { W: 512, H: 256 };
+export const lockRect = (i) => [i * 0.5, 0, i * 0.5 + 0.5, 1];
+const lockDraw = (c, w, h) => {
+  c.clearRect(0, 0, w, h);
+  [0, 1].forEach((i) => {
+    const cx = i * 256 + 128, cy = 128;
+    // the escutcheon: a domed ring, lit from the upper left
+    const rg = c.createLinearGradient(cx - 120, cy - 120, cx + 120, cy + 120); rg.addColorStop(0, "#FFF1C4"); rg.addColorStop(0.45, "#D8B46A"); rg.addColorStop(1, "#7A5A22");
+    c.fillStyle = rg; c.beginPath(); c.arc(cx, cy, 124, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = "rgba(60,40,10,0.9)"; c.lineWidth = 3; c.stroke();
+    c.strokeStyle = "rgba(255,246,214,0.8)"; c.lineWidth = 2; c.beginPath(); c.arc(cx, cy, 112, Math.PI * 0.9, Math.PI * 1.7); c.stroke();
+    // the recess round the plug (a dark shear gap), then the plug
+    c.fillStyle = "#2A1E0C"; c.beginPath(); c.arc(cx, cy, 86, 0, Math.PI * 2); c.fill();
+    const pg = c.createRadialGradient(cx - 26, cy - 30, 6, cx, cy, 84); pg.addColorStop(0, "#F2DCA2"); pg.addColorStop(0.7, "#B9944E"); pg.addColorStop(1, "#8C6B2E");
+    c.fillStyle = pg; c.beginPath(); c.arc(cx, cy, 80, 0, Math.PI * 2); c.fill();
+    for (let k = 0; k < 40; k++) { c.strokeStyle = `rgba(${k % 2 ? "255,240,200" : "80,55,20"},0.12)`; c.lineWidth = 1; c.beginPath(); c.arc(cx, cy, 8 + k * 1.8, 0, Math.PI * 2); c.stroke(); }
+    c.fillStyle = "#0A0703";
+    if (i === 0) {
+      // guard lock: a lever-lock keyway — a round head over a stepped slot
+      c.beginPath(); c.arc(cx, cy - 26, 15, 0, Math.PI * 2); c.fill();
+      c.beginPath(); c.moveTo(cx - 8, cy - 22); c.lineTo(cx + 8, cy - 22); c.lineTo(cx + 8, cy + 6); c.lineTo(cx + 13, cy + 6); c.lineTo(cx + 13, cy + 22); c.lineTo(cx + 5, cy + 22); c.lineTo(cx + 5, cy + 46); c.lineTo(cx - 8, cy + 46); c.closePath(); c.fill();
+    } else {
+      // renter lock: a flat, wards-cut keyway
+      c.beginPath(); c.moveTo(cx - 5, cy - 50);
+      [[5, -50], [5, -34], [11, -28], [5, -20], [5, -4], [12, 4], [5, 12], [5, 30], [10, 36], [5, 42], [5, 50], [-5, 50], [-5, 38], [-11, 30], [-5, 24], [-5, 6], [-11, -2], [-5, -10], [-5, -50]].forEach(([dx, dy]) => c.lineTo(cx + dx, cy + dy));
+      c.closePath(); c.fill();
+    }
+    c.fillStyle = "rgba(255,240,200,0.35)"; c.beginPath(); c.arc(cx, cy, 80, Math.PI * 1.05, Math.PI * 1.45); c.lineTo(cx, cy); c.closePath(); c.fill();
   });
 };
 const signDraw = (c, w, h) => {
@@ -67,22 +117,63 @@ const rulerDraw = (c, w, h) => {
   c.save(); c.translate(w * 0.78, h - 40); c.rotate(-Math.PI / 2); c.font = `600 ${w * 0.11}px ${SANSF}`; c.textAlign = "left"; c.fillText("INCHES  ·  STAINLESS", 0, 0); c.restore();
 };
 // ── materials ────────────────────────────────────────────────────────────────────────────────────────────────────────
+// terrazzo in 1.2 m squares divided by brass strips (the strips catch the ceiling light)
+const terrDraw = (c, w, h) => {
+  c.fillStyle = "#5C6979"; c.fillRect(0, 0, w, h);
+  const fl = ["rgba(232,238,246,0.55)", "rgba(18,24,34,0.55)", "rgba(150,170,196,0.55)", "rgba(206,186,150,0.4)", "rgba(90,104,122,0.6)"];
+  for (let i = 0; i < 52000; i++) { c.fillStyle = fl[Math.floor(rnd(i + 11) * fl.length)]; const s = 1 + rnd(i + 5) * 3.2; c.fillRect(rnd(i * 3) * w, rnd(i * 5 + 1) * h, s, s * (0.6 + rnd(i) * 0.9)); }
+  for (let i = 0; i < 40; i++) { const x = rnd(i * 7) * w, y = rnd(i * 9) * h, r = 20 + rnd(i) * 70; const g = c.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, "rgba(255,255,255,0.05)"); g.addColorStop(1, "rgba(255,255,255,0)"); c.fillStyle = g; c.fillRect(x - r, y - r, 2 * r, 2 * r); }
+  // the divider strips on the tile's edges (a polished brass line with a dark joint beside it)
+  [0, h - 4].forEach((y) => { c.fillStyle = "#3A2C12"; c.fillRect(0, y, w, 4); }); [0, w - 4].forEach((x) => { c.fillStyle = "#3A2C12"; c.fillRect(x, 0, 4, h); });
+  c.fillStyle = "#D9B86C"; c.fillRect(0, 1, w, 2); c.fillRect(1, 0, 2, h);
+};
 const useVaultMats = () => useMemo(() => {
   const nums = []; for (let c = 0; c < NCOL; c++) { const n = Math.round((TOPY - Y0) / PITCH[c]); for (let r = 0; r < n; r++) nums.push(1000 + c * 100 + (n - r)); }
-  const brass = new THREE.MeshStandardMaterial({ map: brushedTex("vbrass", "#B4935A", [1, 1]), color: "#FFFFFF", metalness: 0.85, roughness: 0.34, vertexColors: true });
-  const steel = new THREE.MeshStandardMaterial({ map: brushedTex("vsteel", "#8C98A6", [2, 2], true), color: "#FFFFFF", metalness: 0.8, roughness: 0.32, vertexColors: true });
-  const plate = new THREE.MeshStandardMaterial({ map: canvasTex("c_v_nums", NA.W, NA.H, numDraw(nums)), metalness: 0.6, roughness: 0.4, color: "#FFFFFF" }); plate.userData.cast = false;
+  const bTex = brushedTex("vbrass2", "#C8A866", [1, 1]);
+  const brass = new THREE.MeshStandardMaterial({ map: bTex, bumpMap: bTex, bumpScale: 0.12, color: "#FFFFFF", metalness: 0.9, roughness: 0.27, vertexColors: true });
+  const sTex = brushedTex("vsteel", "#8C98A6", [2, 2], true);
+  const steel = new THREE.MeshStandardMaterial({ map: sTex, color: "#FFFFFF", metalness: 0.8, roughness: 0.3, vertexColors: true });
+  const plate = new THREE.MeshStandardMaterial({ map: canvasTex("c_v_nums2", NA.W, NA.H, numDraw(nums)), metalness: 0.55, roughness: 0.38, color: "#FFFFFF" }); plate.userData.cast = false;
+  const lock = new THREE.MeshStandardMaterial({ map: canvasTex("c_v_locks", LOCK.W, LOCK.H, lockDraw), metalness: 0.75, roughness: 0.3, color: "#FFFFFF", alphaTest: 0.5, transparent: false }); lock.userData.cast = false;
   const dark = new THREE.MeshStandardMaterial({ color: "#0B0D12", roughness: 0.6, vertexColors: true }); dark.userData.cast = false;
-  const terr = speckTex("vterrazzo", "#5E6B7C", ["rgba(230,236,244,0.5)", "rgba(20,26,36,0.5)", "rgba(150,170,195,0.5)", "rgba(200,180,150,0.35)"], 16000, [10, 10], 3);
+  const terr = tileTex("vterrazzo2", 1024, 1024, terrDraw, true, [9 / 1.2, 5.2 / 1.2]);
   return {
-    brass, steel, plate, dark, nums,
-    floor: new THREE.MeshPhysicalMaterial({ map: terr, roughness: 0.22, clearcoat: 0.8, clearcoatRoughness: 0.1, color: "#FFFFFF" }),
+    brass, steel, plate, lock, dark, nums,
+    floor: new THREE.MeshPhysicalMaterial({ map: terr, roughness: 0.2, clearcoat: 0.8, clearcoatRoughness: 0.08, color: "#FFFFFF" }),
     tableTop: new THREE.MeshStandardMaterial({ map: brushedTex("vtable", "#A9B4C0", [1.5, 1]), color: "#FFFFFF", metalness: 0.85, roughness: 0.22 }),
     tableBase: new THREE.MeshStandardMaterial({ color: "#2E3744", metalness: 0.6, roughness: 0.45 }),
     wallPaint: new THREE.MeshStandardMaterial({ color: "#2A3A52", roughness: 0.8 }),
+    mat: new THREE.MeshStandardMaterial({ map: tileTex("vmat", 256, 256, (c, w, h) => { c.fillStyle = "#2B3530"; c.fillRect(0, 0, w, h); for (let i = 0; i < 4000; i++) { c.fillStyle = `rgba(${rnd(i) < 0.5 ? "120,140,130" : "0,0,0"},${0.05 + rnd(i + 1) * 0.08})`; c.fillRect(rnd(i + 2) * w, rnd(i + 3) * h, 2, 2); } c.strokeStyle = "rgba(160,180,170,0.18)"; c.lineWidth = 1; for (let x = 0; x < w; x += 16) { c.beginPath(); c.moveTo(x, 0); c.lineTo(x, h); c.stroke(); } }, true, [2, 2]), roughness: 0.85, color: "#FFFFFF" }),
   };
 }, []);
 // ── the wall of boxes (merged) ───────────────────────────────────────────────────────────────────────────────────────
+/** one safe-deposit door's hardware on its leaf (door-local: centre (cx, cy), face plane zF), shared by the wall and the moving door */
+const doorHardware = (m, cx, cy, dw, dh, zF, rect, seed = 0) => {
+  // the leaf's raised border (a stamped frame 9 mm in from the edge: bright on the top/left, shaded on the bottom/right)
+  const bi = 0.009, bt = 0.0028;
+  m.box("brass", [cx, cy + dh / 2 - bi, zF + 0.0012], [dw - 2 * bi, bt, 0.0018], "#F0DCA8");
+  m.box("brass", [cx, cy - dh / 2 + bi, zF + 0.0012], [dw - 2 * bi, bt, 0.0018], "#8F7440");
+  m.box("brass", [cx - dw / 2 + bi, cy, zF + 0.0012], [bt, dh - 2 * bi, 0.0018], "#E4CC92");
+  m.box("brass", [cx + dw / 2 - bi, cy, zF + 0.0012], [bt, dh - 2 * bi, 0.0018], "#9A7E46");
+  // the number plate (upper middle)
+  const ph = Math.min(0.024, dh * 0.22), py = cy + dh / 2 - ph / 2 - Math.min(0.02, dh * 0.15);
+  m.box("brass", [cx, py, zF + 0.0009], [ph * 2 + 0.003, ph + 0.003, 0.0012], "#7A6232");
+  m.quad("plate", [cx, py, zF + 0.0017], ph * 2, ph, "#FFFFFF", rect);
+  // the two locks (guard left, renter right): a turned escutcheon standing 4 mm proud, its face from the lock atlas
+  const kr = Math.min(0.0125, dh * 0.15), ky = dh > 0.1 ? cy - dh * 0.1 : cy - dh * 0.2, kx = Math.min(0.036, dw * 0.15);
+  [-1, 1].forEach((s, i) => {
+    m.cyl("brass", [cx + s * kx, ky, zF + 0.002], kr * 1.08, 0.004, "#E6CE96", { r: [Math.PI / 2, 0, 0], seg: 20 });
+    m.quad("lock", [cx + s * kx, ky, zF + 0.0041], kr * 2.1, kr * 2.1, "#FFFFFF", lockRect(i), { r: [0, 0, (rnd(seed * 3 + i) - 0.5) * 0.3] });
+  });
+  // the hinge on the left edge: knuckles with gaps, a pin cap top and bottom
+  const nk = dh > 0.1 ? 3 : 2, kh = Math.min(0.05, dh * 0.22), span = dh * 0.62;
+  for (let j = 0; j < nk; j++) {
+    const yy = cy - span / 2 + (span * j) / (nk - 1);
+    m.cyl("steel", [cx - dw / 2 - 0.0005, yy, zF + 0.002], 0.0042, kh, "#D2C6A6", { seg: 10 });
+    m.cyl("steel", [cx - dw / 2 - 0.0005, yy + kh / 2 + 0.0012, zF + 0.002], 0.0026, 0.0024, "#EDE4CC", { seg: 8 });
+    m.cyl("steel", [cx - dw / 2 - 0.0005, yy - kh / 2 - 0.0012, zF + 0.002], 0.0026, 0.0024, "#EDE4CC", { seg: 8 });
+  }
+};
 const buildWall = (M) => {
   const m = new Mesher();
   const zF = WALLZ;   // door face plane
@@ -92,42 +183,46 @@ const buildWall = (M) => {
     for (let r = 0; r < n; r++) {
       const y0 = Y0 + r * p, cx = x0 + CELL / 2, cy = y0 + p / 2;
       const isTarget = c === TCOL && r === 3;
-      const num = M.nums[k], rect = numRect(k); k++;
+      const rect = numRect(k); k++;
+      // the opening's frame bezel: a bright chamfered lip round every opening, 5 mm proud of the doors
+      const bz = zF + 0.0045;
+      m.box("steel", [cx, y0 + p - 0.0042, bz], [CELL - 0.004, 0.0036, 0.003], "#F2F5F8");
+      m.box("steel", [cx, y0 + 0.0042, bz], [CELL - 0.004, 0.0036, 0.003], "#8D96A2");
+      m.box("steel", [x0 + 0.0062, cy, bz], [0.0036, p - 0.008, 0.003], "#E6EAEF");
+      m.box("steel", [x0 + CELL - 0.0062, cy, bz], [0.0036, p - 0.008, 0.003], "#9EA7B2");
       if (isTarget) continue;   // its door and box are separate (they move)
-      const dw = CELL - 0.012, dh = p - 0.012;
-      const tint = ["#FFFFFF", "#F4EEE2", "#FBF6EC", "#EDE6D6"][Math.floor(rnd(c * 31 + r) * 4)];
+      const dw = CELL - 0.016, dh = p - 0.016;
+      const tint = ["#FFFFFF", "#F4EEE2", "#FBF6EC", "#EDE6D6", "#F7F0DE"][Math.floor(rnd(c * 31 + r) * 5)];
       m.box("brass", [cx, cy, zF - 0.005], [dw, dh, 0.01], tint);
-      // a bevelled frame line inside the door edge
-      m.box("brass", [cx, cy + dh / 2 - 0.006, zF + 0.0012], [dw - 0.012, 0.003, 0.002], "#D9C08A");
-      m.box("brass", [cx, cy - dh / 2 + 0.006, zF + 0.0012], [dw - 0.012, 0.003, 0.002], "#8F7440");
-      // number plate (upper middle), two keyholes (lower middle), hinge knuckles at the left edge, a small pull at the right
-      const ph = Math.min(0.026, dh * 0.24), py = cy + dh / 2 - ph / 2 - Math.min(0.016, dh * 0.12);
-      m.quad("plate", [cx, py, zF + 0.0016], ph * 2, ph, "#FFFFFF", rect);
-      const ky = p > 0.1 ? cy - dh * 0.12 : cy - dh * 0.18, kr = Math.min(0.012, dh * 0.16);
-      [-1, 1].forEach((s) => {
-        m.cyl("brass", [cx + s * 0.035, ky, zF + 0.003], kr, 0.006, "#E2C98E", { r: [Math.PI / 2, 0, 0], seg: 16 });
-        m.box("dark", [cx + s * 0.035, ky - kr * 0.15, zF + 0.0062], [kr * 0.32, kr * 0.9, 0.001], "#FFFFFF");
-        m.cyl("dark", [cx + s * 0.035, ky + kr * 0.3, zF + 0.0062], kr * 0.28, 0.001, "#FFFFFF", { r: [Math.PI / 2, 0, 0], seg: 10 });
-      });
-      m.cyl("steel", [x0 + 0.008, cy + dh * 0.3, zF + 0.002], 0.004, Math.min(0.03, dh * 0.25), "#C9B58A", { seg: 8 });
-      m.cyl("steel", [x0 + 0.008, cy - dh * 0.3, zF + 0.002], 0.004, Math.min(0.03, dh * 0.25), "#C9B58A", { seg: 8 });
-      m.box("brass", [x0 + CELL - 0.022, cy, zF + 0.004], [0.006, Math.min(0.04, dh * 0.4), 0.008], "#D6BE86");
+      doorHardware(m, cx, cy, dw, dh, zF, rect, c * 40 + r);
     }
-    // the steel grid: a vertical stile at each column edge, a rail at each row boundary (they stand 4 mm proud of the doors)
+    // the steel grid: a vertical stile at each column edge, a rail at each row boundary (they stand proud of the doors)
     m.box("steel", [x0, (Y0 + TOPY) / 2, zF - 0.28], [0.008, TOPY - Y0, 0.57], "#FFFFFF");
     for (let r = 0; r <= n; r++) m.box("steel", [x0 + CELL / 2, Y0 + r * p, zF - 0.28], [CELL, 0.006, 0.57], "#FFFFFF");
   }
   m.box("steel", [X0 + NCOL * CELL, (Y0 + TOPY) / 2, zF - 0.28], [0.008, TOPY - Y0, 0.57], "#FFFFFF");
-  // plinth and cornice, pilasters at the ends, the back of the cabinet (dark) and the wall around it
+  // the section dividers (heavier stiles where the door sizes change) with a row of rivets
+  [3, 5, 9].forEach((c) => {
+    const x = X0 + c * CELL;
+    m.box("steel", [x, (Y0 + TOPY) / 2, zF + 0.004], [0.016, TOPY - Y0, 0.008], "#C8D0DA");
+    for (let y = Y0 + 0.06; y < TOPY; y += 0.12) m.sph("steel", [x, y, zF + 0.0085], 0.0032, "#EEF2F6", { seg: 8 });
+  });
+  // plinth (a kick plate) and cornice, pilasters at the ends, the back of the cabinet (dark) and the wall around it
   m.box("steel", [0, Y0 / 2, zF - 0.02], [NCOL * CELL + 0.12, Y0, 0.06], "#AEB8C4");
+  m.box("steel", [0, Y0 - 0.008, zF + 0.012], [NCOL * CELL + 0.12, 0.016, 0.012], "#E2E8EE");
   m.box("steel", [0, TOPY + 0.015, zF - 0.02], [NCOL * CELL + 0.16, 0.03, 0.08], "#D0D8E2");
+  m.box("steel", [0, TOPY + 0.034, zF + 0.022], [NCOL * CELL + 0.16, 0.008, 0.012], "#F2F5F8");
   m.box("steel", [0, TOPY + 0.3, zF - 0.02], [NCOL * CELL + 0.2, 0.04, 0.09], "#D0D8E2");
-  [-1, 1].forEach((s) => m.box("steel", [s * (NCOL * CELL / 2 + 0.05), (Y0 + TOPY) / 2 + 0.08, zF - 0.02], [0.1, TOPY + 0.16, 0.07], "#AEB8C4"));
+  m.box("steel", [0, TOPY + 0.322, zF + 0.026], [NCOL * CELL + 0.2, 0.008, 0.012], "#F2F5F8");
+  [-1, 1].forEach((s) => {
+    m.box("steel", [s * (NCOL * CELL / 2 + 0.05), (Y0 + TOPY) / 2 + 0.08, zF - 0.02], [0.1, TOPY + 0.16, 0.07], "#AEB8C4");
+    for (let y = 0.2; y < TOPY + 0.2; y += 0.25) m.cyl("steel", [s * (NCOL * CELL / 2 + 0.05), y, zF + 0.016], 0.006, 0.004, "#EEF2F6", { r: [Math.PI / 2, 0, 0], seg: 10 });
+  });
   m.box("dark", [0, (Y0 + TOPY) / 2, zF - 0.6], [NCOL * CELL, TOPY - Y0, 0.02], "#FFFFFF");
   return m;
 };
 const Wall = ({ M }) => {
-  const grp = useMemo(() => buildWall(M).build({ brass: M.brass, steel: M.steel, plate: M.plate, dark: M.dark }), [M]);
+  const grp = useMemo(() => buildWall(M).build({ brass: M.brass, steel: M.steel, plate: M.plate, lock: M.lock, dark: M.dark }), [M]);
   const sign = useMemo(() => canvasTex("c_v_sign", 2048, 256, signDraw), []);
   return (
     <group>
@@ -157,32 +252,39 @@ const Table = ({ M }) => {
         </group>
       ))}
       <mesh position={[cx, 0.16, cz]} material={M.tableTop} castShadow receiveShadow><boxGeometry args={[w - 0.12, 0.018, d - 0.12]} /></mesh>
+      {/* the rolled (bullnose) front edge and the drip lip under it */}
+      <mesh position={[cx, TT - 0.015, TABLE.z1]} rotation-z={Math.PI / 2} material={M.tableTop} castShadow><cylinderGeometry args={[0.0155, 0.0155, w, 20]} /></mesh>
+      {[TABLE.x0, TABLE.x1].map((x, i) => <mesh key={i} position={[x, TT - 0.015, TABLE.z1]} material={M.tableTop}><sphereGeometry args={[0.0155, 16, 12]} /></mesh>)}
+      {/* a cork-backed rubber counting mat at the far end, with a pen on its bead chain and a stack of envelopes (blank) */}
+      <mesh position={[-0.37, TT + 0.0025, WALLZ + 0.37]} receiveShadow castShadow material={M.mat}><boxGeometry args={[0.4, 0.005, 0.52]} /></mesh>
+      <group position={[-0.5, TT + 0.005, WALLZ + 0.24]}>
+        <mesh position={[0, 0.012, 0]} castShadow><cylinderGeometry args={[0.022, 0.026, 0.024, 20]} /><meshStandardMaterial color="#1E2630" metalness={0.6} roughness={0.35} /></mesh>
+        <mesh position={[0.012, 0.055, 0.004]} rotation-z={-0.35} castShadow><cylinderGeometry args={[0.004, 0.004, 0.13, 10]} /><meshStandardMaterial color="#1B1F26" roughness={0.3} metalness={0.3} /></mesh>
+        <mesh position={[0.035, 0.115, 0.004]} rotation-z={-0.35}><cylinderGeometry args={[0.0042, 0.0042, 0.02, 10]} /><meshStandardMaterial color="#C8D0DA" metalness={0.9} roughness={0.2} /></mesh>
+        {Array.from({ length: 14 }, (_, i) => <mesh key={i} position={[-0.004 - i * 0.006, 0.006 + 0.004 * Math.sin(i * 0.5), 0.018 + i * 0.0045]}><sphereGeometry args={[0.0018, 6, 4]} /><meshStandardMaterial color="#C8D0DA" metalness={0.9} roughness={0.25} /></mesh>)}
+      </group>
+      <group position={[-0.36, TT + 0.005, WALLZ + 0.5]} rotation-y={0.12}>
+        {[0, 1, 2, 3].map((i) => <mesh key={i} position={[(rnd(i) - 0.5) * 0.006, 0.0012 + i * 0.0014, (rnd(i + 3) - 0.5) * 0.006]} rotation-y={(rnd(i + 5) - 0.5) * 0.06} castShadow receiveShadow><boxGeometry args={[0.24, 0.0013, 0.105]} /><meshStandardMaterial color={i % 2 ? "#E9E3D2" : "#EFEADB"} roughness={0.9} /></mesh>)}
+      </group>
     </group>
   );
 };
 // ── the box: door, steel shell (→ glass), the certificates, the handle ───────────────────────────────────────────────
 const Door = ({ M, open }) => {
-  const p = PITCH[TCOL], dw = CELL - 0.012, dh = p - 0.012, cy = Y0 + 3 * p + p / 2, x0 = X0 + TCOL * CELL;
-  const kIdx = useMemo(() => { let k = 0; for (let c = 0; c < TCOL; c++) k += Math.round((TOPY - Y0) / PITCH[c]); return k + 3; }, []);
-  const rect = numRect(kIdx);
-  const plateGeo = useMemo(() => { const g = new THREE.PlaneGeometry(0.052, 0.026); const uv = g.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, rect[0] + uv.getX(i) * (rect[2] - rect[0]), rect[1] + uv.getY(i) * (rect[3] - rect[1])); return g; }, []);
-  const brass = useMemo(() => { const b = M.brass.clone(); b.vertexColors = false; return b; }, [M]);
+  const p = PITCH[TCOL], dw = CELL - 0.016, dh = p - 0.016, cy = Y0 + 3 * p + p / 2, x0 = X0 + TCOL * CELL;
+  const grp = useMemo(() => {
+    let k = 0; for (let c = 0; c < TCOL; c++) k += Math.round((TOPY - Y0) / PITCH[c]); k += 3;
+    const m = new Mesher();
+    m.box("brass", [dw / 2, 0, -0.005], [dw, dh, 0.01], "#FFFFFF");
+    doorHardware(m, dw / 2, 0, dw, dh, 0, numRect(k), 77);
+    // its inner face: the bare steel back of the leaf and the lock cases (seen as it swings open)
+    m.box("steel", [dw / 2, 0, -0.0105], [dw - 0.01, dh - 0.01, 0.001], "#7E8894");
+    [-1, 1].forEach((s) => m.box("steel", [dw / 2 + s * Math.min(0.036, dw * 0.15), -dh * 0.1, -0.024], [0.05, 0.06, 0.026], "#A9B2BC"));
+    return m.build({ brass: M.brass, steel: M.steel, plate: M.plate, lock: M.lock, dark: M.dark });
+  }, [M]);
   return (
-    <group position={[x0 + 0.006, cy, WALLZ]} rotation-y={-1.85 * open}>
-      <group position={[dw / 2, 0, 0]}>
-        <mesh position={[0, 0, -0.005]} material={brass} castShadow><boxGeometry args={[dw, dh, 0.01]} /></mesh>
-        <mesh geometry={plateGeo} material={M.plate} position={[0, dh / 2 - 0.013 - 0.016, 0.0016]} />
-        {[-1, 1].map((s) => (
-          <group key={s} position={[s * 0.035, -dh * 0.12, 0.003]}>
-            <mesh rotation-x={Math.PI / 2} material={brass}><cylinderGeometry args={[0.012, 0.012, 0.006, 20]} /></mesh>
-            <mesh position={[0, -0.002, 0.0032]}><boxGeometry args={[0.004, 0.011, 0.001]} /><meshStandardMaterial color="#0B0D12" /></mesh>
-            <mesh position={[0, 0.0036, 0.0032]} rotation-x={Math.PI / 2}><cylinderGeometry args={[0.0034, 0.0034, 0.001, 10]} /><meshStandardMaterial color="#0B0D12" /></mesh>
-          </group>
-        ))}
-        <mesh position={[dw / 2 - 0.016, 0, 0.004]} material={brass}><boxGeometry args={[0.006, 0.04, 0.008]} /></mesh>
-      </group>
-      <mesh position={[0.002, dh * 0.3, 0.002]} material={M.steel}><cylinderGeometry args={[0.004, 0.004, 0.03, 8]} /></mesh>
-      <mesh position={[0.002, -dh * 0.3, 0.002]} material={M.steel}><cylinderGeometry args={[0.004, 0.004, 0.03, 8]} /></mesh>
+    <group position={[x0 + 0.008, cy, WALLZ]} rotation-y={-1.85 * open}>
+      <primitive object={grp} />
     </group>
   );
 };
@@ -195,7 +297,7 @@ const Stack = () => {
     const top = new THREE.MeshStandardMaterial({ color: "#CFC9BB", roughness: 0.9 });
     const faces = [side, side, top, top, side, side];
     const pg = certMats(certIndex("pg"));
-    return { geo: new THREE.BoxGeometry(CH, th * 0.985, CW), faces, pg };
+    return { geo: new THREE.BoxGeometry(CH, th * 0.985, CW), faces, pg, top: certGeo(0.0006) };
   }, []);
   return (
     <group>
@@ -203,7 +305,7 @@ const Stack = () => {
         <mesh key={i} geometry={parts.geo} material={parts.faces} position={[(rnd(i * 3) - 0.5) * 0.006, FLOOR_T + th * (i + 0.5), (rnd(i * 5) - 0.5) * 0.006]} rotation-y={(rnd(i * 7) - 0.5) * 0.03} castShadow receiveShadow />
       ))}
       {/* the top certificate, its face up (turned to read from the box's front) */}
-      <mesh position={[0.001, FLOOR_T + STACK_H + 0.0004, 0]} rotation-y={Math.PI / 2 + 0.012} material={parts.pg} castShadow><boxGeometry args={[CW, 0.0006, CH]} /></mesh>
+      <mesh position={[0.001, FLOOR_T + STACK_H + 0.0004, 0]} rotation-y={Math.PI / 2 + 0.012} material={parts.pg} geometry={parts.top} castShadow />
     </group>
   );
 };
@@ -213,6 +315,13 @@ export const boxCentre = (k) => [BOX.x, TT, WALLZ - 0.024 - BOX.d / 2 + BOX.out 
 const Box = ({ slide, glass, flash }) => {
   const shell = useMemo(() => new THREE.MeshPhysicalMaterial({ map: brushedTex("vbox", "#7F8B98", [1, 1]), color: "#FFFFFF", metalness: 0.8, roughness: 0.3, clearcoat: 0, transparent: false }), []);
   const front = useMemo(() => new THREE.MeshPhysicalMaterial({ map: brushedTex("vboxf", "#8C97A4", [1, 1], true), color: "#FFFFFF", metalness: 0.8, roughness: 0.28 }), []);
+  const label = useMemo(() => new THREE.MeshStandardMaterial({ map: canvasTex("c_v_boxlabel", 512, 220, (c, w, h) => {
+    c.fillStyle = "#F1EEE4"; c.fillRect(0, 0, w, h);
+    for (let i = 0; i < 1500; i++) { c.fillStyle = `rgba(120,110,90,${0.03 + rnd(i) * 0.04})`; c.fillRect(rnd(i + 1) * w, rnd(i + 2) * h, 2, 2); }
+    c.fillStyle = "#1E2A3A"; c.textAlign = "center"; c.font = `700 40px ${CSERIF}`; if ("letterSpacing" in c) c.letterSpacing = "6px"; c.fillText("SAFE DEPOSIT", w / 2, 66); if ("letterSpacing" in c) c.letterSpacing = "0px";
+    c.fillRect(60, 86, w - 120, 2); c.font = `700 92px ${CSERIF}`; c.fillText(String(BOXNO), w / 2, 184);
+  }), roughness: 0.8, color: "#FFFFFF", transparent: true }), []);
+  label.opacity = 1 - glass; label.depthWrite = glass < 0.5;
   const edges = useMemo(() => {
     const g = new THREE.EdgesGeometry(new THREE.BoxGeometry(BOX.w, BOX.h, BOX.d));
     const lid = new THREE.EdgesGeometry(new THREE.BoxGeometry(BOX.w, 0.006, BOX.d - 0.01));
@@ -240,6 +349,16 @@ const Box = ({ slide, glass, flash }) => {
       <group position={[0, h * 0.62, d / 2 + 0.002]}>
         <mesh rotation-z={Math.PI / 2} position={[0, 0, 0.012]}><cylinderGeometry args={[0.004, 0.004, 0.09, 10]} /><meshStandardMaterial color="#C8D0DA" metalness={0.9} roughness={0.25} transparent opacity={1 - 0.7 * glass} /></mesh>
         {[-1, 1].map((s) => <mesh key={s} position={[s * 0.045, 0, 0.006]} rotation-x={Math.PI / 2}><cylinderGeometry args={[0.005, 0.005, 0.014, 10]} /><meshStandardMaterial color="#C8D0DA" metalness={0.9} roughness={0.25} transparent opacity={1 - 0.7 * glass} /></mesh>)}
+      </group>
+      {/* the lid: a piano hinge across it (the front half lifts), a turned-down front lip; rolled edges along the sides */}
+      <mesh position={[0, h + 0.0015, -0.04]} rotation-z={Math.PI / 2} material={shell}><cylinderGeometry args={[0.0035, 0.0035, w - 0.006, 10]} /></mesh>
+      <mesh position={[0, h - 0.007, d / 2 - 0.004]} material={shell} renderOrder={4}><boxGeometry args={[w + 0.002, 0.012, 0.0025]} /></mesh>
+      {[-1, 1].map((s) => <mesh key={s} position={[s * (w / 2), h - 0.004, 0]} rotation-x={Math.PI / 2} material={shell}><cylinderGeometry args={[0.0032, 0.0032, d - 0.01, 8]} /></mesh>)}
+      {/* the label holder on the front: a folded steel frame and its card (the box's number) */}
+      <group position={[0, h * 0.3, d / 2 + 0.0008]}>
+        <mesh material={label} renderOrder={5}><planeGeometry args={[0.07, 0.03]} /></mesh>
+        {[[0, 0.0165, 0.078, 0.004], [0, -0.0165, 0.078, 0.004]].map(([x, y, L, t], i) => <mesh key={i} position={[x, y, 0.001]} material={front}><boxGeometry args={[L, t, 0.002]} /></mesh>)}
+        {[-1, 1].map((s) => <mesh key={s} position={[s * 0.038, 0, 0.001]} material={front}><boxGeometry args={[0.004, 0.037, 0.002]} /></mesh>)}
       </group>
       <lineSegments geometry={edges.g} material={edges.m} position={[0, h / 2, 0]} renderOrder={6} />
       <Stack />
@@ -284,6 +403,7 @@ export const VaultSet = ({ open, slide, glass, flash, ruler, level }) => {
   return (
     <group>
       <Wall M={M} />
+      <VaultFront />
       <Table M={M} />
       <Door M={M} open={open} />
       <Box slide={slide} glass={glass} flash={flash} />
