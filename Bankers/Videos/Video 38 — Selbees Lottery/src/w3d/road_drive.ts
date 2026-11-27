@@ -28,6 +28,8 @@ export const carZ = (f) => CAR_Z0 * (1 - smoother((S(f) - S_PARK - 3) / 46));
 export const carYaw = (f) => { const dx = S(f + 0.5) - S(f - 0.5), dz = carZ(f + 0.5) - carZ(f - 0.5); return dx < 1e-5 ? 0 : Math.atan2(-dz, dx); };
 /** the stretch of ground with no guardrail (the store's lot opens onto the shoulder) */
 export const GAP = [S_PARK - 26, S_PARK + 64];
-/** the MASSACHUSETTS gantry's ground x: 34 m down the road from the lot (it comes out of the haze on "Massachusetts" and passes over
- *  the car at ~1179, on "For 6 years") */
-export const GANTRY_GX = S_PARK + 34;
+/** the MASSACHUSETTS gantry's ground x. rev 7: its LED band rolls "900 MILES" on the word (1213), when it stands 36 m ahead of the
+ *  camera; the rising aerial then clears its truss by ~2 m as it passes over (st_road shots) */
+export const GANTRY_GX = S_PARK + 87.4;
+/** rev 7: the LED message trailer ("6 YEARS", 1169) on the left shoulder, 34 m ahead of the camera on the word */
+export const VMS_GX = S_PARK + 54.3;

@@ -23,6 +23,7 @@ import { aud } from "../bnx/aud";
 import { BODY } from "./fonts3d";
 import { Room, Outside, TableLamp, noiseTex } from "./st_test_props";
 import { AO, Cast, KEY_OFFICE } from "./company_ao";
+import { Wipe } from "./road_signs";
 import { T as TT } from "./st_test";
 import { SEAL_SCREEN, PUSH_RATE } from "./xfer_seal";
 import { Certificates, SEAL_C, SEAL_R, onTop, PRICE_PX } from "./company_cert";
@@ -74,6 +75,18 @@ const STROKES = (() => {
   return s;
 })();
 const drawAt = (t, k) => t.played - 8 + k * 1.8;      // the 12th lands on "12" (≈ 994)
+// rev 7 (Timur: figures IN the scene, not on the screen): under the tally the chalk states it — "= 12", written on the word "12"
+const twelveTex = () => canvasTex("r7_chalk12", 1024, 384, (c, w, h) => {
+  const L = document.createElement("canvas"); L.width = w; L.height = h; const q = L.getContext("2d");
+  q.fillStyle = "rgba(240,246,252,0.95)"; q.textAlign = "center"; q.textBaseline = "middle";
+  q.font = `italic 800 300px ${BODY}`; q.fillText("= 12", w / 2, h / 2 + 10);
+  q.fillRect(150, h - 46, w - 300, 14);                                                     // underlined twice
+  q.fillRect(190, h - 20, w - 380, 10);
+  q.globalCompositeOperation = "destination-out";
+  for (let i = 0; i < 20000; i++) { q.fillStyle = `rgba(0,0,0,${0.25 + rnd(i + 5) * 0.5})`; q.fillRect(rnd(i * 3 + 7) * w, rnd(i * 5 + 3) * h, 2 + rnd(i) * 3, 2); }   // chalk grain
+  c.clearRect(0, 0, w, h); c.drawImage(L, 0, 0);
+});
+const TWELVE_AT = (t) => t.twelve - 1;
 const Chalkboard = ({ f, t }) => {
   const st = useMemo(slateTex, []), ck = useMemo(chalkTex, []);
   const frame = "#5A6676";
@@ -96,6 +109,7 @@ const Chalkboard = ({ f, t }) => {
       <AO p={[1.85, -BH / 2 - 0.387, 0.52]} w={1.05} d={0.28} o={0.5} soft={0.6} spin={0.3} />
       {[[0, BH / 2 - 0.14, BW, 0.34], [0, -BH / 2 + 0.14, BW, 0.34], [-BW / 2 + 0.14, 0, 0.34, BH], [BW / 2 - 0.14, 0, 0.34, BH]].map(([x, y, w, d], i) =>
         <AO key={"fi" + i} p={[x, y, 0.0625]} w={w} d={d} n="z" o={0.42} soft={0.8} />)}
+      <Wipe tex={useMemo(twelveTex, [])} w={2.1} h={0.79} k={ease(f, TWELVE_AT(t), TWELVE_AT(t) + 11)} position={[0.15, -1.78, 0.074]} />
       {STROKES.map(([x0, y0, x1, y1], k) => {
         const a = drawAt(t, k), d = ease(f, a, a + 5);
         if (d <= 0.001) return null;
@@ -250,7 +264,7 @@ const sfx = () => {
     cueAt("pingshort", t.cut + 8, 10, 0.25),                                       // $500 PER SHARE
     cueAt("whooshsoft", t.cut + 24, 24, 0.3),                                      // the slow pull-back off the seal
     cueAt("whooshsoft", 950, 24, 0.25),                                            // the push up onto the board
-    cueAt("ov_chalk", Math.round(drawAt(t, 0)), Math.round(drawAt(t, STROKES.length - 1) - drawAt(t, 0)) + 8, 0.35),   // the twelve chalk strokes being drawn
+    cueAt("ov_chalk", Math.round(drawAt(t, 0)), Math.round(TWELVE_AT(t) + 11 - drawAt(t, 0)) + 4, 0.35),   // the twelve chalk strokes, then "= 12" chalked on the word
     cueAt("ee_whoosh_fast_small_whoosh_01", CUT2 - 6, 12, 0.3),                   // the push into the chalk word → the screen
     cueAt("ov_printer", CUT2 + 2, 26, 0.3),                                        // the terminal prints the WinFall slip
     cueAt("sub", t.ended, 20, 0.4),                                                // the game ends, the screen dies

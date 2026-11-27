@@ -18,6 +18,7 @@ import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeom
 import { canvasTex, Glow, clamp01 } from "./kit";
 import { Tub } from "./st_road_parts";
 import { AO } from "./company_ao";
+import { TallySheet } from "./road_signs";
 import { bodyGeometry, greenGeometry, featureLines, decal, topY, roofY, beltW, sideZ, AXLE, TRACK } from "./road_carbody";
 import { sideTex, sideBump, topTex, topBump, headTex, headEmis, tailTex, tailEmis, grilleTex, intakeTex, plateTex } from "./road_cartex";
 import { Wheel, useWheelMats } from "./road_wheel";
@@ -89,7 +90,7 @@ const useCarParts = () => useMemo(() => {
 
 /** the car. xray 0–1 (shell → glass); flash 0–1 (the white rim's peak); shell 0–1 (whole car dissolves for the push in);
  *  glow 0–1 (the tubs light in the accent); spin: wheel angle */
-export const Car = ({ xray = 0, flash = 0, shell = 1, glow = 0, spin = 0, lit = 1, tail = 1, settle = 0 }) => {
+export const Car = ({ xray = 0, flash = 0, shell = 1, glow = 0, spin = 0, lit = 1, tail = 1, settle = 0, f = 0 }) => {
   const { B, G, M, D, belt, wip, lines, handle, mirrorBody } = useCarParts();
   const W = useWheelMats();
   const C = useCabinMats();
@@ -189,6 +190,8 @@ export const Car = ({ xray = 0, flash = 0, shell = 1, glow = 0, spin = 0, lit = 
       {[[AXLE, 1], [AXLE, -1], [-AXLE, 1], [-AXLE, -1]].map(([x, s]) => <Wheel key={x + "_" + s} x={x} z={s * TRACK} side={s} spin={spin} mats={W} />)}
       {/* the cabin, and what the car carries — tubs of tickets on the back seat and in the trunk */}
       <group visible={shell > 0.004}><Cabin mats={C} /></group>
+      {/* rev 7: the Selbees' tally sheet on a clipboard against the rear window — "$600,000" written on it on the word */}
+      <TallySheet f={f} fade={shell} glow={glow} />
       {/* rev 6 fake shadows: each tote's dark foot on the seat, the trunk floor, or the totes under it */}
       {[[-0.7, 0.67, -0.33, 0.04], [-0.7, 0.67, 0.33, -0.03], [-0.72, 0.97, 0.05, 0.1], [TRUNK_TUB[0], TRUNK_TUB[1], 0, 0], [-1.88, 0.48, -0.47, 0], [-1.88, 0.48, 0.47, 0]].map(([x, y, z, r], i) =>
         <AO key={"ta" + i} p={[x + 0.02, y + 0.004, z + 0.02]} w={0.5} d={0.52} o={0.55 * shell * (1 - 0.6 * xray)} soft={0.5} spin={r} />)}

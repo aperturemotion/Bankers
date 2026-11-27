@@ -25,7 +25,8 @@ import { BODY, FIGURE } from "./fonts3d";
 import { wa, wAt, undrift, Inst, heroCam, Stars } from "./st_road_parts";
 import { Car, TRUNK_TUB } from "./st_road_car";
 import { AO, AOInst } from "./company_ao";
-import { S, V, carZ, carYaw, GAP, S_PARK, LIGHTS_ON, FD, GANTRY_GX } from "./road_drive";
+import { VMSTrailer, GantryLed, VMS_WORD, MILES_WORD } from "./road_signs";
+import { S, V, carZ, carYaw, GAP, S_PARK, LIGHTS_ON, FD, GANTRY_GX, VMS_GX } from "./road_drive";
 import { CHASE, REST, handoverShots, chainKeys } from "./xfer_company_road";
 
 export const ROAD_O = [1200, 0, 0];
@@ -63,16 +64,17 @@ const roadTex = () => canvasTex("c_interstate", 512, 1024, (c, w, h) => {
 });
 // rev 2 (Timur: "the arrows and the Massachusetts title overlap each other"): a guide-sign layout — EAST on top, the legend in the
 // middle, the down-arrows in their OWN band under it (never inside the legend's line), drawn at 2× (2048 × 720, same 2.84:1 aspect)
-const signTex = () => canvasTex("c_massSign2", 2048, 720, (c, w, h) => {
+// rev 7: the arrows' band becomes an LED distance window (road_signs.GantryLed rolls "900 MILES" in it on the word) — a guide sign's
+//   destination and its distance, the figure a driver actually reads
+const LED_WIN = { x0: 520, x1: 1528, y0: 470, y1: 652 };   // canvas px of the window
+const signTex = () => canvasTex("c_massSign7", 2048, 720, (c, w, h) => {
   c.fillStyle = "#0B3F7A"; c.fillRect(0, 0, w, h);
   c.strokeStyle = "#FFFFFF"; c.lineWidth = 22; c.beginPath(); c.roundRect(30, 30, w - 60, h - 60, 50); c.stroke();
   c.fillStyle = "#FFFFFF"; c.textAlign = "center"; c.textBaseline = "alphabetic";
   c.font = `700 112px ${BODY}`; c.fillText("EAST", w / 2, 178);
-  c.font = `800 236px ${BODY}`; c.fillText("MASSACHUSETTS", w / 2, 438, w - 200);
-  // the lane arrows: a band below the legend (legend baseline 438, no descenders; arrows 478 → 640)
-  c.fillStyle = "rgba(255,255,255,0.18)"; c.fillRect(110, 468, w - 220, 4);
-  c.fillStyle = "#FFFFFF";
-  [w * 0.28, w * 0.72].forEach((x) => { c.beginPath(); c.moveTo(x, 640); c.lineTo(x - 64, 560); c.lineTo(x - 22, 560); c.lineTo(x - 22, 488); c.lineTo(x + 22, 488); c.lineTo(x + 22, 560); c.lineTo(x + 64, 560); c.closePath(); c.fill(); });
+  c.font = `800 236px ${BODY}`; c.fillText("MASSACHUSETTS", w / 2, 420, w - 200);
+  c.fillStyle = "#05070A"; c.beginPath(); c.roundRect(LED_WIN.x0 - 14, LED_WIN.y0 - 14, LED_WIN.x1 - LED_WIN.x0 + 28, LED_WIN.y1 - LED_WIN.y0 + 28, 18); c.fill();
+  c.strokeStyle = "#8FA9C8"; c.lineWidth = 6; c.stroke();
 });
 // the gantry reaches x −8.5 10 f after "Massachusetts." ends (rev 4f: the chase cam sits at −18.8, so it passes over it 22 f after)
 const gantryX = (f, t) => GANTRY_GX - S(f);   // rev 5: anchored on the ground (road_drive.GANTRY_GX), the car now starts from the store's lot
@@ -241,6 +243,9 @@ const Gantry = ({ f, t }) => {
       <group position={[-0.62, 6.75, zc]}>
         <mesh castShadow><boxGeometry args={[0.12, 2.75, 7.75]} /><meshStandardMaterial color="#0A2F5E" roughness={0.6} /></mesh>
         <mesh position={[-0.065, 0, 0]} rotation-y={-Math.PI / 2}><planeGeometry args={[7.75, 2.73]} /><meshStandardMaterial map={tex} roughness={0.45} emissiveMap={tex} emissive="#FFFFFF" emissiveIntensity={0.38} /></mesh>
+        <group position={[-0.07, (0.5 - (LED_WIN.y0 + LED_WIN.y1) / 2 / 720) * 2.73, ((LED_WIN.x0 + LED_WIN.x1) / 2 / 2048 - 0.5) * 7.75]} rotation-y={-Math.PI / 2}>
+          <GantryLed f={f} w={((LED_WIN.x1 - LED_WIN.x0) / 2048) * 7.75} h={((LED_WIN.y1 - LED_WIN.y0) / 720) * 2.73} />
+        </group>
         <mesh position={[-0.6, -1.5, 0]}><boxGeometry args={[1.0, 0.06, 7.8]} /><meshStandardMaterial {...steel} /></mesh>
         {[-2.6, 0, 2.6].map((z) => (
           <group key={z} position={[-1.0, -1.42, z]}>
@@ -285,9 +290,11 @@ const Scene = ({ f }) => {
       <Roadside f={f} />
       <Traffic f={f} />
       <Gantry f={f} t={t} />
+      {/* rev 7: "6 YEARS" on a message trailer on the left shoulder (road_drive.VMS_GX), 34 m ahead of the camera on the word */}
+      {Math.abs(VMS_GX - S(f)) < 160 && <VMSTrailer f={f} x={VMS_GX - S(f)} z={-6.0} />}
       {/* rev 5: the car pulls out of the lot (carZ / carYaw), its lamps come on on "Then"; the wheels turn with the distance driven */}
       <group position={[0, bob * ease(f, FD, FD + 40) - 0.014 * jolt, carZ(f)]} rotation-y={carYaw(f)}>
-        <Car xray={xr} flash={flash} shell={shell} glow={glow} spin={-(S(f) - S_PARK) * 0.26} lit={lamps} tail={0.25 + 0.75 * lamps} settle={jolt} />
+        <Car xray={xr} flash={flash} shell={shell} glow={glow} spin={-(S(f) - S_PARK) * 0.26} lit={lamps} tail={0.25 + 0.75 * lamps} settle={jolt} f={f} />
       </group>
     </group>
   );
@@ -371,6 +378,8 @@ const sfx = () => {
     cueAt("whooshsoft", 1100, 30, 0.22),                         // the camera rises out through the window
     cueAt("ov_car_away", FD, 70, 0.4),                           // the car pulls out of the lot and drives off
     cueAt("whooshlong", 1150, 40, 0.22),                         // road hum as it comes up to speed (the ride-along)
+    cueAt("ee_click_click_01", VMS_WORD - 3, 6, 0.15),           // rev 7: the message trailer's LEDs switch on (1 → 6 YEARS)
+    cueAt("ee_click_click_01", MILES_WORD - 4, 6, 0.15),         // rev 7: the gantry's LED band lights (→ 900 MILES)
     cueAt("airwoosh", 1192, 40, 0.35),                           // the gantry passes over the camera
     cueAt("whooshsoft", 1210, 30, 0.25),                         // the slow rise to the aerial
     cueAt("pingshort", t.betting + 2, 20, 0.3),                  // the shell turns to glass
