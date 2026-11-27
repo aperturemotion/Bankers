@@ -26,5 +26,6 @@ were made directly and are reported in the handback.
 ## Figures on screen (one source family: the 2015 reporting — WSJ, Boston Globe, NBC, Rutland Herald)
 almost $8 million · 1921 / 2014 · ~25 years / 17 years · 95 stocks · 5 inches · Lehman 2008 · $4.8M / $1.2M · library budget ~$600K · Pavilion 2023.
 Companies on screen: the top certificate in the cart's bin is "The Procter & Gamble Company" — one of his longtime blue-chip holdings named by the WSJ (19 Mar 2015, quoted by CNBC 29 Aug 2016: P&G, J.P. Morgan Chase, General Electric, Dow Chemical; at his death also J.M. Smucker, CVS Health, Johnson & Johnson). No share count or serial is printed.
+The kitchen-table stack starts with Pacific Gas and Electric and the year counter rolls 1959 → 2014: his earliest known purchase was 39 PG&E shares on 13 Jan 1959 (WSJ 19 Mar 2015, via Wikipedia). The stock board's tickers are only the WSJ-named holdings.
 No investing advice, no stock picks; company names (JCPenney, Toyota, Lehman Brothers, and the blue chips named in the WSJ) are allowed on screen (Videos 3–5 ruling).
 No AI images of real people: Ronald Read appears only as credited press photos if any are used; he is never modelled.
