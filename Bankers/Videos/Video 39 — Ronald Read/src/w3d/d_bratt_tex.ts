@@ -140,3 +140,84 @@ export const sheenTex = () => canvasTex("d_sheen", 256, 512, (c, w, h) => {
   c.fillStyle = "rgba(190,214,245,0.10)"; c.beginPath(); c.moveTo(w * 0.2, 0); c.lineTo(w * 0.5, 0); c.lineTo(w * 0.1, h); c.lineTo(-w * 0.2, h); c.fill();
   c.fillStyle = "rgba(190,214,245,0.06)"; c.beginPath(); c.moveTo(w * 0.65, 0); c.lineTo(w * 0.75, 0); c.lineTo(w * 0.45, h); c.lineTo(w * 0.35, h); c.fill();
 });
+// ── DETAIL pass (2026-11-27): masonry, snow, books, a real road ─────────────────────────────────────────────────────────────
+const wrapT = (t, sx = 1, sy = 1) => { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(sx, sy); return t; };
+/** a SOLDIER COURSE: bricks stood on end in a row (the brick lintel over a window / the band under a cornice); 1 m wide × 0.2 m */
+export const soldierTex = () => wrapT(canvasTex("d_soldier", 1024, 256, (c, w, h) => {
+  c.fillStyle = "#9C968E"; c.fillRect(0, 0, w, h);
+  const n = 11, bw = w / n;
+  for (let k = 0; k < n; k++) {
+    const hh = 8 + rnd(k * 3) * 9, ll = 30 + rnd(k * 3 + 1) * 10;
+    c.fillStyle = `hsl(${hh},${44 + rnd(k) * 10}%,${ll}%)`; c.fillRect(k * bw + 4, 6, bw - 8, h - 12);
+    const g = c.createLinearGradient(k * bw, 0, k * bw + bw, 0); g.addColorStop(0, "rgba(255,255,255,0.10)"); g.addColorStop(0.5, "rgba(255,255,255,0)"); g.addColorStop(1, "rgba(0,0,0,0.16)");
+    c.fillStyle = g; c.fillRect(k * bw + 4, 6, bw - 8, h - 12);
+    for (let q = 0; q < 40; q++) { c.fillStyle = `rgba(${rnd(k * 40 + q) < 0.5 ? "0,0,0" : "255,255,255"},${0.05 + rnd(k * 40 + q + 7) * 0.07})`; c.fillRect(k * bw + 6 + rnd(k + q * 3) * (bw - 14), 8 + rnd(k * 7 + q) * (h - 20), 3, 3); }
+  }
+}), 1, 5);
+/** dressed stone (sills, lintels, the base course, coping): a fine limestone speckle, faint bedding lines */
+export const stoneTex = () => wrapT(canvasTex("d_stone", 512, 512, (c, w, h) => {
+  c.fillStyle = "#D2CCC0"; c.fillRect(0, 0, w, h);
+  for (let i = 0; i < 16000; i++) { const g = rnd(i) * 60 - 30; c.fillStyle = `rgba(${g > 0 ? "255,255,250" : "60,56,50"},${Math.abs(g) / 240})`; c.fillRect(rnd(i + 1) * w, rnd(i + 2) * h, 2, 2); }
+  for (let k = 0; k < 6; k++) { c.fillStyle = "rgba(90,84,74,0.08)"; c.fillRect(0, rnd(k) * h, w, 1 + rnd(k + 3) * 2); }
+}), 1, 1);
+/** packed snow (ledges, banks, the lawn): soft blue-white, wind ripples and sparkle */
+export const snowTex = () => wrapT(canvasTex("d_snow", 1024, 1024, (c, w, h) => {
+  c.fillStyle = "#EEF3FA"; c.fillRect(0, 0, w, h);
+  for (let i = 0; i < 70; i++) {
+    const y0 = rnd(i * 3 + 1) * h, amp = 6 + rnd(i) * 10, len = 200 + rnd(i + 5) * 500, x0 = rnd(i + 9) * w;
+    c.strokeStyle = `rgba(150,170,205,${0.03 + rnd(i + 2) * 0.04})`; c.lineWidth = 6 + rnd(i + 4) * 10; c.beginPath();
+    for (let x = 0; x <= len; x += 16) { const yy = y0 + Math.sin((x0 + x) / 90 + i) * amp; if (x === 0) c.moveTo(x0 + x, yy); else c.lineTo(x0 + x, yy); }
+    c.stroke();
+  }
+  for (let i = 0; i < 30000; i++) { const g = rnd(i * 2 + 7); c.fillStyle = `rgba(${g < 0.55 ? "120,140,175" : "255,255,255"},${0.03 + rnd(i) * 0.06})`; c.fillRect(rnd(i + 1) * w, rnd(i + 3) * h, 2, 2); }
+  for (let i = 0; i < 260; i++) { c.fillStyle = "rgba(255,255,255,0.95)"; c.fillRect(rnd(i * 5 + 2) * w, rnd(i * 7 + 3) * h, 1.5, 1.5); }
+}), 1, 1);
+/** plowed snow along a curb: grey-white, dirtier toward the road, slush and grit */
+export const bankTex = () => wrapT(canvasTex("d_bank", 512, 256, (c, w, h) => {
+  const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "#E6ECF4"); g.addColorStop(0.6, "#C9D0DA"); g.addColorStop(1, "#8E96A2");
+  c.fillStyle = g; c.fillRect(0, 0, w, h);
+  for (let i = 0; i < 9000; i++) { const y = rnd(i + 2) * h, d = y / h; c.fillStyle = `rgba(${40 + rnd(i) * 40},${44 + rnd(i) * 40},${52 + rnd(i) * 40},${0.04 + d * 0.16 * rnd(i + 5)})`; c.fillRect(rnd(i + 1) * w, y, 2, 2); }
+}), 1, 1);
+/** book stacks (a double-faced range seen from its side): 1 m of shelving × 2.2 m, six shelves of spines, wood uprights */
+export const spinesTex = () => wrapT(canvasTex("d_spines", 1024, 2048, (c, w, h) => {
+  c.fillStyle = "#5E4330"; c.fillRect(0, 0, w, h);
+  const pal = ["#8A3E34", "#2E4F7A", "#C9B48A", "#4E6E5E", "#E2D6BE", "#6A4A7A", "#B07A3A", "#1F3554", "#A9563A", "#D8CDB4", "#3E5C48", "#7A2E2A", "#C2A15E", "#2A3E5E"];
+  const shelfH = (h - 120) / 6;
+  for (let r = 0; r < 6; r++) {
+    const y0 = 60 + r * shelfH; let x = 40;
+    c.fillStyle = "#3A281C"; c.fillRect(0, y0, w, shelfH);
+    while (x < w - 44) {
+      const bw = 18 + rnd(r * 977 + x * 0.31) * 30, bh = shelfH * (0.62 + rnd(r * 31 + x * 0.7) * 0.3);
+      if (rnd(x * 0.13 + r) < 0.03) { x += 40; continue; }   // a gap on the shelf
+      const col = pal[Math.floor(rnd(r * 13 + x * 1.7) * pal.length)];
+      c.fillStyle = col; c.fillRect(x, y0 + shelfH - 26 - bh, bw - 2, bh);
+      c.fillStyle = "rgba(255,255,255,0.12)"; c.fillRect(x + 2, y0 + shelfH - 26 - bh, 3, bh);
+      c.fillStyle = "rgba(0,0,0,0.25)"; c.fillRect(x + bw - 5, y0 + shelfH - 26 - bh, 3, bh);
+      if (bw > 26) { c.fillStyle = "rgba(240,230,200,0.75)"; c.fillRect(x + 5, y0 + shelfH - 26 - bh + bh * 0.15, bw - 12, 5); c.fillRect(x + 5, y0 + shelfH - 26 - bh * 0.25, bw - 12, 14); }
+      x += bw;
+    }
+    c.fillStyle = "#8A6A4C"; c.fillRect(0, y0 + shelfH - 26, w, 26); c.fillStyle = "rgba(255,240,210,0.25)"; c.fillRect(0, y0 + shelfH - 26, w, 3);
+  }
+  c.fillStyle = "#6E5038"; c.fillRect(0, 0, 40, h); c.fillRect(w - 40, 0, 40, h); c.fillRect(0, 0, w, 60); c.fillRect(0, h - 60, w, 60);
+}), 1, 1 / 2.2);
+/** a range end panel with its call-number card (generic Dewey ranges) */
+export const rangeEndTex = () => canvasTex("d_rangeend", 512, 1024, (c, w, h) => {
+  c.fillStyle = "#7A5A40"; c.fillRect(0, 0, w, h);
+  for (let i = 0; i < 60; i++) { c.fillStyle = `rgba(40,26,16,${0.05 + rnd(i) * 0.08})`; c.fillRect(0, rnd(i + 1) * h, w, 2 + rnd(i + 2) * 6); }
+  c.strokeStyle = "rgba(40,26,16,0.5)"; c.lineWidth = 6; c.strokeRect(20, 20, w - 40, h - 40);
+  c.fillStyle = "#F2EBDC"; c.fillRect(120, 160, w - 240, 150); c.fillStyle = "#2A2A2A"; c.font = `700 52px ${BODY}`; c.textAlign = "center"; c.textBaseline = "middle";
+  c.fillText("300 – 399", w / 2, 235);
+});
+/** the road: asphalt aggregate, tyre-polished wheel paths, sealed cracks, a patch, slush darkening the gutters (10 m × 10 m) */
+export const roadTex = () => wrapT(canvasTex("d_road", 1024, 1024, (c, w, h) => {
+  c.fillStyle = "#1C2534"; c.fillRect(0, 0, w, h);
+  for (let i = 0; i < 60000; i++) { const g = 26 + rnd(i) * 46; c.fillStyle = `rgba(${g},${g + 6},${g + 16},${0.25 + rnd(i + 7) * 0.35})`; c.fillRect(rnd(i + 1) * w, rnd(i + 2) * h, 2, 2); }
+  for (const v of [0.24, 0.38, 0.62, 0.76]) { const g = c.createLinearGradient(0, (v - 0.05) * h, 0, (v + 0.05) * h); g.addColorStop(0, "rgba(0,0,0,0)"); g.addColorStop(0.5, "rgba(8,12,20,0.35)"); g.addColorStop(1, "rgba(0,0,0,0)"); c.fillStyle = g; c.fillRect(0, (v - 0.05) * h, w, 0.1 * h); }
+  c.fillStyle = "rgba(40,48,60,0.35)"; c.fillRect(w * 0.3, h * 0.55, w * 0.22, h * 0.16); c.strokeStyle = "rgba(10,14,20,0.6)"; c.lineWidth = 3; c.strokeRect(w * 0.3, h * 0.55, w * 0.22, h * 0.16);   // a patch
+  c.lineCap = "round";
+  for (let k = 0; k < 10; k++) {   // sealed cracks: wandering black lines
+    let x = rnd(k * 9) * w, y = rnd(k * 9 + 1) * h; c.strokeStyle = `rgba(6,8,12,${0.5 + rnd(k) * 0.3})`; c.lineWidth = 3 + rnd(k + 2) * 4; c.beginPath(); c.moveTo(x, y);
+    const a = rnd(k * 9 + 2) * Math.PI * 2; for (let s = 0; s < 14; s++) { x += Math.cos(a + (rnd(k * 50 + s) - 0.5) * 1.6) * 22; y += Math.sin(a + (rnd(k * 50 + s + 1) - 0.5) * 1.6) * 22; c.lineTo(x, y); } c.stroke();
+  }
+  for (const [v0, v1] of [[0, 0.1], [0.9, 1]]) { const g = c.createLinearGradient(0, v0 * h, 0, v1 * h); g.addColorStop(v0 ? 0 : 1, "rgba(0,0,0,0)"); g.addColorStop(v0 ? 1 : 0, "rgba(60,72,90,0.45)"); c.fillStyle = g; c.fillRect(0, v0 * h, w, (v1 - v0) * h); }
+}), 22, 1);

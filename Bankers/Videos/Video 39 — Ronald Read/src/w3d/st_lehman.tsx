@@ -1,7 +1,7 @@
 // @ts-nocheck
 // ★ V39 station LEHMAN (builder D): "Not every pick worked. He held Lehman Brothers when it collapsed in 2008. It was one stock out of dozens."
-//   A big physical stock board in a dark hall (d_board.tsx): a steel housing with 95 LED lamp tiles, all lit steady blue — the ten named
-//   holdings by their real tickers, the rest a plain neutral mark.
+//   A big physical LED stock board in a dark hall (d_board.tsx): a steel housing with 95 LED tile modules — the seven holdings the WSJ
+//   named by their full names in their brand colours (Chase's and GE's free marks), tickers small; the rest idle, unnamed slots.
 //   · cut in on the board's upper left, gliding right along the lit tiles ("Not every pick worked.")
 //   · "Lehman": the LEH tile flares white and its LEHMAN / BROTHERS lines light; the camera has pushed onto it
 //   · "collapsed": it turns RED (the only red in the scene), flickers, cracks and goes dark, tipping back into its socket (it stays on
@@ -36,10 +36,9 @@ const Scene = ({ f }) => {
   return (
     <group>
       <BoardFloor />
-      {/* the hall's far wall in the haze, washed faintly by the board */}
-      <mesh position={[0, 8, -14]}><planeGeometry args={[80, 16]} /><meshStandardMaterial color="#0B1A2E" roughness={0.9} /></mesh>
-      <LightWash position={[0, 4.5, -13.9]} w={22} h={10} color="#4D8ED9" opacity={0.16} />
-      <Board />
+      {/* the hall's far wall (panels, pilasters, up-lights: d_board's room) washed faintly by the board */}
+      <LightWash position={[0, 4.5, -13.8]} w={22} h={10} color="#4D8ED9" opacity={0.12} />
+      <Board f={f} />
       <LehTile s={s} />
       {/* the board's light: a soft bloom over the lamp field, its pool on the polished floor */}
       <Glow position={[0, GRID_CY, 0.4]} size={11} color="#4D8ED9" opacity={0.1} />
