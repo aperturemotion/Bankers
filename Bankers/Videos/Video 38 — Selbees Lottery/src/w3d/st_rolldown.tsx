@@ -358,6 +358,90 @@ const wallShadeTex = () => canvasTex("rd_wallshade_v6", 256, 4, (c, w, h) => {
 const Ring = ({ y, r = R + 0.06, tube = 0.05, m = MAT.steel }) => (
   <mesh position={[0, y, 0]} rotation-x={Math.PI / 2} material={m} castShadow><torusGeometry args={[r, tube, 12, 64]} /></mesh>
 );
+// ★ rev 7 — THE JACKPOT METER (Timur: "instead of on-screen text like $5 million … add them somewhere within the scene that actually matches
+//   the visual itself"). A progressive-jackpot LED meter mounted on the coin column's front (as on a real lottery terminal / casino
+//   column): a blue-steel housing on two brackets, a smoked face lettered JACKPOT, and seven-segment digits that climb with the coins
+//   from $4,1xx,xxx and land on $5,000,000 on "$5 million" (five + 2). It comes into frame from the top as the camera pulls back off the
+//   coin wall, and is read across "$5 million" (real 567–590).
+const MET = { y: 2.5, z: R + 0.105, az: 0.36, w: 0.6, h: 0.23, d: 0.06 };   // az: turned 21° round the column toward the camera's side
+const MET_ROW = { y: -0.008, h: 0.1, cw: 0.058, comma: 0.024, dollar: 0.056, gap: 0.004 };   // the digit row (y: its centre above the face centre)
+const meterLayout = () => {   // x of each glyph's centre, left to right: $, d6, ",", d5 d4 d3, ",", d2 d1 d0
+  const order = ["$", 6, ",", 5, 4, 3, ",", 2, 1, 0];
+  const wOf = (g) => (g === "$" ? MET_ROW.dollar : g === "," ? MET_ROW.comma : MET_ROW.cw);
+  const total = order.reduce((a, g) => a + wOf(g) + MET_ROW.gap, -MET_ROW.gap);
+  let x = -total / 2; const out = [];
+  for (const g of order) { out.push({ g, x: x + wOf(g) / 2 }); x += wOf(g) + MET_ROW.gap; }
+  return out;
+};
+// seven-segment digits 0–9, top to bottom (lit segments light blue-white, the unlit ones faintly visible, as on a real LED meter)
+const SEG = { 0: "abcdef", 1: "bc", 2: "abdeg", 3: "abcdg", 4: "bcfg", 5: "acdfg", 6: "acdefg", 7: "abc", 8: "abcdefg", 9: "abcdfg" };
+const segStripTex = () => canvasTex("rd_meterdigits_v7", 96, 1600, (c, w, h) => {
+  c.fillStyle = "#03101F"; c.fillRect(0, 0, w, h);
+  const ch = 160, sw = 12, L = 56, x0 = 20, yT = 14;
+  const seg = (k, y0, on) => {
+    c.fillStyle = on ? "#D6EBFF" : "rgba(110,150,210,0.09)";
+    const hz = (x, y) => { c.beginPath(); c.moveTo(x, y); c.lineTo(x + sw / 2, y - sw / 2); c.lineTo(x + L - sw / 2, y - sw / 2); c.lineTo(x + L, y); c.lineTo(x + L - sw / 2, y + sw / 2); c.lineTo(x + sw / 2, y + sw / 2); c.closePath(); c.fill(); };
+    const vt = (x, y) => { c.beginPath(); c.moveTo(x, y); c.lineTo(x + sw / 2, y + sw / 2); c.lineTo(x + sw / 2, y + L - sw / 2); c.lineTo(x, y + L); c.lineTo(x - sw / 2, y + L - sw / 2); c.lineTo(x - sw / 2, y + sw / 2); c.closePath(); c.fill(); };
+    const yA = y0 + yT, yG = yA + L + 4, yD = yG + L + 4;
+    ({ a: () => hz(x0, yA), g: () => hz(x0, yG), d: () => hz(x0, yD), f: () => vt(x0 - 2, yA + 2), b: () => vt(x0 + L + 2, yA + 2), e: () => vt(x0 - 2, yG + 2), c: () => vt(x0 + L + 2, yG + 2) })[k]();
+  };
+  for (let d = 0; d < 10; d++) {
+    const y0 = d * ch;
+    c.save(); c.shadowColor = "rgba(150,200,255,0.9)"; c.shadowBlur = 8;
+    for (const k of "abcdefg") seg(k, y0, SEG[d].includes(k));
+    c.restore();
+  }
+});
+const meterFaceTex = () => canvasTex("rd_meterface_v7", 1200, 460, (c, w, h) => {
+  const px = w / (MET.w - 0.02);
+  c.fillStyle = "#03101F"; c.fillRect(0, 0, w, h);
+  for (let i = 0; i < 1600; i++) { c.fillStyle = `rgba(120,170,240,${rnd(i + 5) * 0.03})`; c.fillRect(rnd(i * 3) * w, rnd(i * 7 + 1) * h, 2, 2); }   // the smoked glass
+  c.textAlign = "center"; c.textBaseline = "middle";
+  c.fillStyle = "#7FB4F2"; c.font = `800 ${Math.round(0.034 * px)}px ${BODY}`; c.letterSpacing = `${Math.round(0.012 * px)}px`;
+  c.fillText("WINFALL JACKPOT", w / 2, h * 0.17);
+  c.letterSpacing = "0px";
+  // the "$" and the commas, in the LED's light (the digits sit on their own planes)
+  c.save(); c.shadowColor = "rgba(150,200,255,0.9)"; c.shadowBlur = 10; c.fillStyle = "#D6EBFF";
+  const cy = h / 2 - MET_ROW.y * px;
+  for (const gl of meterLayout()) {
+    if (gl.g === "$") { c.font = `700 ${Math.round(0.11 * px)}px ${BODY}`; c.fillText("$", w / 2 + gl.x * px, cy + 2); }
+    if (gl.g === ",") { c.beginPath(); c.arc(w / 2 + gl.x * px, cy + MET_ROW.h * 0.42 * px, 0.006 * px, 0, 7); c.fill(); c.fillRect(w / 2 + gl.x * px - 2, cy + MET_ROW.h * 0.42 * px, 4, 0.012 * px); }
+  }
+  c.restore();
+  c.fillStyle = "rgba(127,180,242,0.6)"; c.font = `600 ${Math.round(0.017 * px)}px ${BODY}`; c.letterSpacing = "4px";
+  c.fillText("ROLLS DOWN AT $5 MILLION IF NO ONE MATCHES 6", w / 2, h * 0.86);
+  c.letterSpacing = "0px";
+});
+const meterValue = (t, f) => {
+  const k = easeOut(f, t.cut - 6, t.five + 2);
+  return Math.min(5000000, Math.floor(4137560 + (5000000 - 4137560) * k));
+};
+const JackpotMeter = ({ f, t }) => {
+  const face = useMemo(meterFaceTex, []);
+  const L = useMemo(meterLayout, []);
+  const digits = useMemo(() => [6, 5, 4, 3, 2, 1, 0].map((k) => {
+    const tx = segStripTex().clone(); tx.repeat.set(1, 0.1); tx.needsUpdate = true;
+    return { k, tx, m: new THREE.MeshBasicMaterial({ map: tx, toneMapped: false }) };
+  }), []);
+  const v = meterValue(t, f), landed = f >= t.five + 2;
+  digits.forEach(({ k, tx }) => { const d = Math.floor(v / Math.pow(10, k)) % 10; tx.offset.y = 1 - (d + 1) / 10; });
+  return (
+    <group position={[Math.sin(MET.az) * MET.z, MET.y, Math.cos(MET.az) * MET.z]} rotation-y={MET.az}>
+      {/* the housing (blue steel), its bezel, two brackets back to the glass */}
+      <mesh material={MAT.dark} castShadow receiveShadow><boxGeometry args={[MET.w + 0.04, MET.h + 0.04, MET.d]} /></mesh>
+      <mesh position={[0, 0, MET.d / 2 + 0.002]} material={MAT.steel}><boxGeometry args={[MET.w + 0.05, MET.h + 0.05, 0.006]} /></mesh>
+      {[-0.22, 0.22].map((x) => <mesh key={x} position={[x, 0, -MET.d / 2 - 0.03]} material={MAT.steel} castShadow><boxGeometry args={[0.04, 0.08, 0.06]} /></mesh>)}
+      {/* the smoked face and the digits */}
+      <mesh position={[0, 0, MET.d / 2 + 0.0065]}><planeGeometry args={[MET.w - 0.02, MET.h - 0.01]} /><meshBasicMaterial map={face} toneMapped={false} /></mesh>
+      {L.filter((gl) => typeof gl.g === "number").map((gl) => (
+        <mesh key={gl.g} position={[gl.x, MET_ROW.y, MET.d / 2 + 0.008]} material={digits[6 - gl.g].m}><planeGeometry args={[MET_ROW.cw, MET_ROW.h]} /></mesh>
+      ))}
+      {/* a glass cover, and the LED's own light on its bezel when it lands */}
+      <mesh position={[0, 0, MET.d / 2 + 0.012]}><planeGeometry args={[MET.w - 0.02, MET.h - 0.01]} /><meshPhysicalMaterial color="#CFE2F8" transparent opacity={0.06} roughness={0.04} clearcoat={1} depthWrite={false} envMapIntensity={0.9} /></mesh>
+      <Glow position={[0, MET_ROW.y, MET.d / 2 + 0.05]} size={0.75} color="#7FB4F2" opacity={landed ? 0.22 : 0.12} />
+    </group>
+  );
+};
 // the machine (drawn twice: once for real, once mirrored in the glossy floor)
 const Machine = ({ f, t, mirror = false }) => {
   const wallShade = useMemo(wallShadeTex, []);
@@ -398,6 +482,7 @@ const Machine = ({ f, t, mirror = false }) => {
       {/* the glass's two long highlights (the key's and the top light's reflections) */}
       {[[-0.62, 0.22], [0.5, 0.12]].map(([a, o], i) => <mesh key={i} position={[Math.sin(a) * (R + 0.004), (BASE + TOP) / 2, Math.cos(a) * (R + 0.004)]} rotation-y={a}><planeGeometry args={[0.07 - i * 0.03, TOP - BASE - 0.3]} /><meshBasicMaterial color="#EAF3FF" transparent opacity={o} blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} /></mesh>)}
       {[0, 1, 2, 3, 4, 5].map((i) => { const a = (i * Math.PI) / 3; return <mesh key={i} position={[Math.cos(a) * (R + 0.04), (BASE + TOP) / 2, Math.sin(a) * (R + 0.04)]} material={MAT.steel} castShadow={sh}><cylinderGeometry args={[0.018, 0.018, TOP - BASE, 6]} /></mesh>; })}
+      {!mirror && <JackpotMeter f={f} t={t} />}
       {/* the $5M ring: it brightens as the coins reach it */}
       <mesh position={[0, LINE, 0]} rotation-x={Math.PI / 2}><torusGeometry args={[R + 0.035, 0.018, 8, 96]} /><meshBasicMaterial color="#B3CEEF" toneMapped={false} transparent opacity={0.45 + 0.55 * atLine} /></mesh>
       {atLine > 0.01 && <Glow position={[0, LINE, R]} size={3.2} color="#7FB4F2" opacity={0.5 * atLine} />}
@@ -671,6 +756,7 @@ const sfx = () => {
     cueAt("coin", t.cut + 4, 14, 0.35), cueAt("coin", t.cut + 16, 14, 0.3), cueAt("chainshort", t.cut + 2, 30, 0.22),
     cueAt("whooshsoft", (t.cut + 2 + t.money + 4) / 2 - 8, 30, 0.35),   // rev 5: on the slow pull-back's fastest frame
     cueAt("pingshort", t.five + 10, 12, 0.4),                     // the coins reach the $5M ring
+    cueAt("data", t.five - 14, 16, 0.12),                         // rev 7: the jackpot meter's last digits racing up to $5,000,000 (lands five + 2)
     cueAt("ee_click_click_01", t.nobody, 6, 0.45), cueAt("ee_click_click_01", t.nobody + 20, 6, 0.35),   // the gate's lamp
     cueAt("ee_click_click_01", t.rolled - 10, 6, 0.4),            // the spout door
     cueAt("chain", t.rolled - 4, t.prizesEnd - t.rolled + 4, 0.3), // the cascade
