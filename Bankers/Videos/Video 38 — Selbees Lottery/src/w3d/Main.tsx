@@ -17,7 +17,6 @@ import { HOOK_SHIFT as S, HOOK_ID } from "./shift";
 import { BrandClose, Watermark } from "../bnx/close";
 import { SfxLayer, cueAt } from "../bnx/SfxLayer";
 import { STATIONS } from "./stations";
-import { TEST_CUT } from "./st_test";
 import { TOTAL_PUSH_END } from "./st_total";
 
 export const CLOSE_AT = VO_END + 12;          // the close begins after the last line's breath
@@ -49,7 +48,8 @@ export const CAM = smoothCam(CAM_RAW, TOTAL, shotsAll.filter((s) => s.cut).map((
 //   and the two pictures cross-fade on a smootherstep. The 70 s window → brochure cut became one too (it pushed through the pane onto
 //   the blank back wall: 8 grey frames).
 const HALF = 7;
-export const DISSOLVES = [{ at: TEST_CUT() + S, pre: "rolldown", post: "test" }, { at: TOTAL_PUSH_END() + S, pre: "total", post: "rules" }].map((d) => ({
+// rev 5 (builder Q): rolldown → test is a MATCH CUT on Jerry's ticket stack now (st_test TEST_ARRIVE "match"), not a dissolve
+export const DISSOLVES = [{ at: TOTAL_PUSH_END() + S, pre: "total", post: "rules" }].map((d) => ({
   ...d, camPre: makeCam([...shotsAll.filter((s) => s.a < d.at), OUTRO].filter((s) => s.a < d.at)), camPost: makeCam(shotsAll.filter((s) => s.a >= d.at))
 }));
 const dissolveAt = (f) => DISSOLVES.find((d) => f >= d.at + 1 - HALF && f < d.at + 1 + HALF);   // a cut shot at `at` lands on at + 1

@@ -10,9 +10,14 @@
 //   blinks, NOBODY MATCHED 6); on "rolled down" the spout opens and the coins cascade tray to tray while the camera follows down
 //   the staircase; on "On those days" it travels to a balance in front: tickets stack on one pan, prize coins on the other, and on
 //   "math" the beam tips to the prizes (MATH ON YOUR SIDE).
+//   ★ rev 5 (builder Q, Timur 2026-11-27): the camera is five long overlapping glides (see shots); the balance has no lit pointer ("that
+//   weird blue line in the middle of the scale") and no lit lines anywhere on the machine (chute lips and the plinth bead are steel);
+//   the left pan carries JERRY'S TICKET STACK (ticket_stack.ts) and the station ends with a push onto it that MATCH-CUTS to the same
+//   stack on his kitchen table (st_test) — no dissolve; a shadow catcher and contact shadows put the key's shadows on the floor; the
+//   floor runs into the fog and the sky is the fog's own colour at the horizon (FogSky), so no horizon line shows.
 import React, { useMemo, useLayoutEffect, useRef } from "react";
 import * as THREE from "three";
-import { canvasTex, std, ease, easeOut, rnd, clamp01, lerp, Glow, Sky } from "./kit";
+import { canvasTex, std, ease, easeOut, rnd, clamp01, lerp, Glow, FOG } from "./kit";
 import { Tag, Counter } from "./overlays";
 import { wf, wEnd } from "./take";
 import { cueAt } from "../bnx/SfxLayer";
@@ -20,6 +25,9 @@ import { BODY, FIGURE } from "./fonts3d";
 import { drawTicket } from "./ticket_art";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { TK_N, tkLocal, PILE_K, MATCH_CUT } from "./ticket_stack";
+import { TicketBundle, ContactShadow } from "./ticket_bundle";
+import { HOOK_SHIFT } from "./shift";
 
 const O = [300, 0, 0];
 const W = (p) => [p[0] + O[0], p[1] + O[1], p[2] + O[2]];
@@ -36,7 +44,7 @@ const TRAYS = [
   { k: 3, x: 4.45, y: 1.05, w: 1.5, d: 1.15 }
 ];
 const T6 = { x: 2.15, y: 5.55, w: 1.2, d: 1.0 };
-const BAL = { x: 7.6, z: 2.4, h: 2.05, arm: 0.92, yaw: 0.55 };
+const BAL = { x: 6.9, z: 2.7, h: 2.35, arm: 0.92, yaw: 0.55 };   // rev 5: the pivot 0.3 m higher (the pans hang longer, clear of the stack)
 const balPt = (p) => { const c = Math.cos(BAL.yaw), s = Math.sin(BAL.yaw); return [BAL.x + p[0] * c + p[2] * s, p[1], BAL.z - p[0] * s + p[2] * c]; };
 // the coin level in the column: rising to the $5M ring, holding, then draining as the money rolls down
 const level = (t, f) => {
@@ -227,7 +235,7 @@ const Chute = ({ L, r = 0.2, sh = true }) => {
   }, [L, r]);
   // a light-blue line along each rolled lip (the house's lit edge; it shows the chute's curve and its run)
   const lips = useMemo(() => mergeGeometries([cyl(0.006, 0.006, L - 0.04, L / 2, 0.016, r + 0.01, 6, 0, Math.PI / 2).toNonIndexed(), cyl(0.006, 0.006, L - 0.04, L / 2, 0.016, -(r + 0.01), 6, 0, Math.PI / 2).toNonIndexed()]), [L, r]);
-  return (<><mesh geometry={g} material={M.polished} castShadow={sh} receiveShadow /><mesh geometry={lips}><meshBasicMaterial color="#9CC3F2" toneMapped={false} transparent opacity={0.8} /></mesh></>);
+  return (<><mesh geometry={g} material={M.polished} castShadow={sh} receiveShadow /><mesh geometry={lips} material={M.chrome} /></>);   // rev 5: chrome lip beads, no lit lines
 };
 const Tray = ({ tr, lit, lite }) => (
   <group position={[tr.x, tr.y, 0]}><Bin w={tr.w} d={tr.d} k={tr.k} lit={lit} h={tr.y} open={tr.k > 3} lite={lite} /></group>
@@ -349,7 +357,7 @@ const Machine = ({ f, t, mirror = false }) => {
       {/* the plinth: two steps with a light ring */}
       <mesh position={[0, 0.17, 0]} material={MAT.plinth} castShadow={sh} receiveShadow><cylinderGeometry args={[1.55, 1.65, 0.34, 64]} /></mesh>
       <mesh position={[0, 0.45, 0]} material={MAT.dark} castShadow={sh} receiveShadow><cylinderGeometry args={[1.22, 1.3, 0.22, 64]} /></mesh>
-      <mesh position={[0, 0.345, 0]} rotation-x={Math.PI / 2} material={MAT.rim}><torusGeometry args={[1.56, 0.012, 6, 96]} /></mesh>
+      <mesh position={[0, 0.345, 0]} rotation-x={Math.PI / 2} material={MAT.steel}><torusGeometry args={[1.565, 0.014, 8, 96]} /></mesh>   {/* rev 5: a polished steel bead, not a lit line */}
       {/* the coin column: the stack's wall, the loose coins on top, the glass, collars, the cage */}
       <mesh position={[0, BASE + hgt / 2, 0]} castShadow={sh}><cylinderGeometry args={[R - 0.07, R - 0.07, hgt, 48, 1, true]} /><meshStandardMaterial map={stack} roughness={0.3} metalness={0.85} envMapIntensity={1.3} /></mesh>
       <mesh position={[0, L - 0.005, 0]}><cylinderGeometry args={[R - 0.08, R - 0.08, 0.01, 48]} /><meshStandardMaterial color="#8FA7C8" roughness={0.35} metalness={0.85} /></mesh>
@@ -405,7 +413,13 @@ const Machine = ({ f, t, mirror = false }) => {
     </group>
   );
 };
-// ── the balance: a pillar, a beam on a knife edge, two pans on three rods each ───────────────────────────────────────────────
+// ── the balance (rev 5, builder Q) ────────────────────────────────────────────────────────────────────────────────────────
+// Timur (2026-11-27, 749 f): "remove that weird blue line in the middle of the scale itself" — it was the beam's pointer, drawn as a glowing
+//   light-blue bar. Now a real beam balance: a stepped base, a turned column with collars, a steel beam on a knife-edge bearing (no pointer:
+//   nothing hangs in the middle of the scale), and two pans that hang on three rods each from stirrup hooks. No lit lines. The
+//   left pan's tickets are JERRY'S TICKET STACK (ticket_stack.ts, the kitchen's 36 banded bundles at PILE_K), so the camera can push onto
+//   them and land, on the cut, on the same stack on his kitchen table (st_test). Everything casts and takes the key's shadow.
+const HANG = 1.25, PAN_TOP = 0.03, PILE_YAW = -BAL.yaw;   // the pans hang 1.25 m under the beam ends; the pile is square to the world
 const beamAngle = (t, f) => {
   const wl = easeOut(f, t.enough - 2, t.tickets + 12);           // tickets go on: the left pan dips
   const wr = easeOut(f, t.put, t.math + 8);    // prizes pour on: it tips the other way
@@ -413,47 +427,104 @@ const beamAngle = (t, f) => {
   const settle = f > t.math + 8 ? 0.03 * Math.exp(-(f - t.math - 8) / 10) * Math.sin((f - t.math - 8) / 3) : 0;
   return target + settle;
 };
-const rodQ = (ang) => new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(-Math.cos(ang) * 0.4, 0.86, -Math.sin(ang) * 0.4).normalize());
+// the rods: from the pan's rim (radius 0.44) up to the hook at the beam end; at pile-local angles 30/150/270°, clear of the stack's corners
+const ROD_R = 0.44, ROD_ANG = [Math.PI / 6, (5 * Math.PI) / 6, (3 * Math.PI) / 2];   // none in front of the stack (the match looks at it from +z)
+const rodLen = Math.hypot(ROD_R, HANG);
+const rodQ = (ang) => new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(-Math.cos(ang) * ROD_R, HANG, -Math.sin(ang) * ROD_R).normalize());
+/** the pile's frame at frame f: its origin (world, the pan's top under the stack's centre) and its world yaw */
+export const pileFrame = (f) => {
+  const t = T(), a = beamAngle(t, f);
+  const lx = -BAL.arm * Math.cos(a), ly = BAL.h - BAL.arm * Math.sin(a) - HANG + PAN_TOP;
+  const c = Math.cos(BAL.yaw), s = Math.sin(BAL.yaw);
+  return { o: [O[0] + BAL.x + lx * c, O[1] + ly, O[2] + BAL.z - lx * s], yaw: BAL.yaw + PILE_YAW };
+};
+const yawV = (v, y) => { const c = Math.cos(y), s = Math.sin(y); return [v[0] * c + v[2] * s, v[1], -v[0] * s + v[2] * c]; };
+/** pile-local (kitchen units, relative to the stack's centre on the table/pan) → world, at frame f */
+export const pileToWorld = (f, p) => { const F = pileFrame(f), r = yawV(p, F.yaw); return [F.o[0] + r[0] * PILE_K, F.o[1] + r[1] * PILE_K, F.o[2] + r[2] * PILE_K]; };
+/** world → pile-local */
+export const worldToPile = (f, w) => { const F = pileFrame(f); return yawV([(w[0] - F.o[0]) / PILE_K, (w[1] - F.o[1]) / PILE_K, (w[2] - F.o[2]) / PILE_K], -F.yaw); };
+// ★ THE MATCH (rolldown → test): the camera's pose on the cut, in PILE-LOCAL units (= kitchen units around the kitchen stack's centre):
+//   the stack left of centre, ~21 % of the frame's height, seen from the front a little above (the kitchen's own view of it)
+export const MATCH_LOCAL = { pos: [1.3, 9.4, 12.6], target: [1.3, 0.0, 0.5], fov: 40 };   // ~19° down: the plaques in front never hide its foot
+// makeCam's idle drift (kit.tsx), on REAL frames (story + HOOK_SHIFT): the match cancels it on both sides of the cut
+export const camDrift = (fr) => [0.06 * Math.sin(fr / 97), 0.04 * Math.sin(fr / 131 + 1), 0.05 * Math.sin(fr / 113 + 2)];
+/** the kitchen camera that continues the rolldown camera on the frame after the cut (world, drift-cancelled) */
+export const matchPose = (toKitchen) => {
+  const C = MATCH_CUT(), dr = camDrift(C + HOOK_SHIFT), dk = camDrift(C + 1 + HOOK_SHIFT);
+  const F = pileFrame(C), dl = yawV(dr, -F.yaw).map((v) => v / PILE_K);   // the rolldown drift, seen in the pile's units
+  const pos = toKitchen([MATCH_LOCAL.pos[0] + dl[0], MATCH_LOCAL.pos[1] + dl[1], MATCH_LOCAL.pos[2] + dl[2]]);
+  return { pos: [pos[0] - dk[0], pos[1] - dk[1], pos[2] - dk[2]], target: toKitchen(MATCH_LOCAL.target), fov: MATCH_LOCAL.fov };
+};
 const Balance = ({ f, t }) => {
-  const tface = useMemo(ticketFace, []);
-  const tmats = useMemo(() => { const e = std("#E9EFF7", 0.6, 0); const top = new THREE.MeshStandardMaterial({ map: tface, roughness: 0.55 }); return [e, e, top, e, e, e]; }, [tface]);
   const a = beamAngle(t, f);
   const H = BAL.h, A = BAL.arm;
   const pan = (side) => [side * A * Math.cos(a), H + side * A * Math.sin(a)];
-  const nT = 26;   // every ticket is mounted; each one is invisible (scale 0) until its fall starts above the frame
   const panG = (side, children) => {
     const [px, py] = pan(side);
     return (
       <group position={[px, py, 0]}>
-        {[0, 1, 2].map((i) => { const ang = (i * Math.PI * 2) / 3; return <mesh key={i} position={[Math.cos(ang) * 0.2, -0.43, Math.sin(ang) * 0.2]} quaternion={rodQ(ang)} material={MAT.steel}><cylinderGeometry args={[0.006, 0.006, 0.955, 4]} /></mesh>; })}
-        <mesh position={[0, 0.02, 0]} material={MAT.steel}><sphereGeometry args={[0.035, 12, 8]} /></mesh>
-        <group position={[0, -0.86, 0]}>
-          <mesh material={MAT.steel} castShadow receiveShadow><cylinderGeometry args={[0.46, 0.38, 0.06, 48]} /></mesh>
-          <mesh position={[0, 0.032, 0]} rotation-x={-Math.PI / 2}><ringGeometry args={[0.4, 0.46, 48]} /><meshBasicMaterial color="#7FB4F2" toneMapped={false} transparent opacity={0.5} /></mesh>
-          {children}
+        {/* the stirrup hook under the beam end, the rods, the pan (a spun steel dish with a rolled rim) */}
+        <mesh position={[0, -0.05, 0]} material={MAT.steel} castShadow><torusGeometry args={[0.045, 0.012, 8, 20]} /></mesh>
+        <mesh position={[0, -0.11, 0]} material={MAT.steel} castShadow><sphereGeometry args={[0.03, 12, 8]} /></mesh>
+        <group rotation-y={PILE_YAW}>
+          {ROD_ANG.map((ang, i) => <mesh key={i} position={[Math.cos(ang) * ROD_R / 2, -0.11 - (HANG - 0.11) / 2, Math.sin(ang) * ROD_R / 2]} quaternion={rodQ(ang)} material={MAT.steel} castShadow><cylinderGeometry args={[0.0065, 0.0065, rodLen - 0.11, 6]} /></mesh>)}
+        </group>
+        <group position={[0, -HANG, 0]}>
+          <mesh material={MAT.steel} castShadow receiveShadow><cylinderGeometry args={[0.47, 0.37, 0.05, 56]} /></mesh>
+          <mesh position={[0, 0.026, 0]} rotation-x={Math.PI / 2} material={MAT.steel} castShadow><torusGeometry args={[0.465, 0.014, 8, 56]} /></mesh>
+          <mesh position={[0, -0.03, 0]} material={MAT.dark} castShadow><cylinderGeometry args={[0.2, 0.25, 0.02, 40]} /></mesh>
+          <group position={[0, PAN_TOP - 0.004, 0]}>{children}</group>
         </group>
       </group>
     );
   };
+  const nT = TK_N;
   return (
     <group position={[BAL.x, 0, BAL.z]} rotation-y={BAL.yaw}>
-      <mesh position={[0, 0.06, 0]} material={MAT.plinth} castShadow receiveShadow><cylinderGeometry args={[0.55, 0.62, 0.12, 48]} /></mesh>
-      <mesh position={[0, 0.16, 0]} material={MAT.dark} castShadow><cylinderGeometry args={[0.32, 0.4, 0.1, 48]} /></mesh>
-      <mesh position={[0, H / 2 + 0.1, 0]} material={MAT.steel} castShadow><cylinderGeometry args={[0.05, 0.07, H - 0.1, 20]} /></mesh>
-      <mesh position={[0, H + 0.05, 0]} material={MAT.steel} castShadow><coneGeometry args={[0.09, 0.2, 4]} /></mesh>
-      {/* the pointer that reads the tilt against a small scale */}
-      <group position={[0, H, 0.06]} rotation-z={a}>
-        <mesh position={[0, 0, 0]} material={MAT.steel} castShadow><boxGeometry args={[2 * A + 0.08, 0.06, 0.07]} /></mesh>
-        {[-1, 1].map((s) => <mesh key={s} position={[s * A, 0, 0]} material={MAT.steel}><sphereGeometry args={[0.05, 12, 8]} /></mesh>)}
-        <mesh position={[0, -0.32, 0.04]} material={MAT.rim}><boxGeometry args={[0.018, 0.55, 0.01]} /></mesh>
+      {/* the base: a stepped plinth with a contact shadow, the column with collars and a capital */}
+      <mesh position={[0, 0.06, 0]} material={MAT.plinth} castShadow receiveShadow><cylinderGeometry args={[0.55, 0.62, 0.12, 56]} /></mesh>
+      <mesh position={[0, 0.125, 0]} material={MAT.steel} castShadow receiveShadow><cylinderGeometry args={[0.47, 0.5, 0.012, 56]} /></mesh>
+      <mesh position={[0, 0.18, 0]} material={MAT.dark} castShadow receiveShadow><cylinderGeometry args={[0.32, 0.4, 0.1, 48]} /></mesh>
+      <mesh position={[0, H / 2 + 0.1, 0]} material={MAT.steel} castShadow receiveShadow><cylinderGeometry args={[0.05, 0.07, H - 0.1, 24]} /></mesh>
+      {[0.27, H * 0.5, H - 0.32].map((y, i) => <mesh key={i} position={[0, y, 0]} material={MAT.dark} castShadow><cylinderGeometry args={[0.078 - i * 0.008, 0.078 - i * 0.008, 0.05, 24]} /></mesh>)}
+      <mesh position={[0, H - 0.08, 0]} material={MAT.steel} castShadow><cylinderGeometry args={[0.1, 0.06, 0.12, 24]} /></mesh>
+      {/* the knife-edge bearing: a block with a V, the beam rocking on it */}
+      <mesh position={[0, H - 0.01, 0]} material={MAT.dark} castShadow><boxGeometry args={[0.16, 0.06, 0.16]} /></mesh>
+      {/* the beam: a steel bar with a centre web, a boss at the pivot and pivot balls at its ends */}
+      <group position={[0, H + 0.03, 0]} rotation-z={a}>
+        <mesh material={MAT.steel} castShadow><boxGeometry args={[2 * A, 0.05, 0.05]} /></mesh>
+        <mesh material={MAT.steel} castShadow><boxGeometry args={[0.9, 0.08, 0.06]} /></mesh>
+        <mesh position={[0, 0, 0]} rotation-x={Math.PI / 2} material={MAT.dark} castShadow><cylinderGeometry args={[0.06, 0.06, 0.09, 24]} /></mesh>
+        <mesh position={[0, 0, 0.048]} rotation-x={Math.PI / 2} material={MAT.steel}><cylinderGeometry args={[0.022, 0.022, 0.02, 16]} /></mesh>
+        {[-1, 1].map((s) => <mesh key={s} position={[s * A, 0, 0]} material={MAT.steel} castShadow><sphereGeometry args={[0.042, 14, 10]} /></mesh>)}
       </group>
-      {panG(-1, Array.from({ length: nT }, (_, i) => {
-          const land = ease(f, t.enough - 10 + i * 1.2, t.enough + 2 + i * 1.2);
-          return <mesh key={i} position={[(rnd(i) - 0.5) * 0.05, 0.04 + i * 0.022 + (1 - land) * 2.2, (rnd(i + 5) - 0.5) * 0.05]} scale={clamp01(land * 3)} rotation-y={(rnd(i + 2) - 0.5) * 0.6} material={tmats} castShadow><boxGeometry args={[0.5, 0.014, 0.26]} /></mesh>;
-        }))}
-      {panG(1, <Coins f={f} n={60} list={(ff) => heap(ff, { n: 60, cx: 0, cy: 0.03, cz: 0, w: 0.5, d: 0.5, layers: 4, k: 1, seed: 900, t0: t.put, t1: t.math + 4 })} />)}
+      {/* the left pan: JERRY'S TICKET STACK (the kitchen's 36 bundles, square to the world), each falling into place */}
+      {panG(-1, (
+        <group rotation-y={PILE_YAW} scale={PILE_K}>
+          <ContactShadow position={[0, 0.01, 0]} size={[2.1, 2.3]} opacity={0.55 * ease(f, t.enough - 8, t.enough)} />
+          {Array.from({ length: nT }, (_, i) => {
+            const land = ease(f, t.enough - 10 + i * 1.15, t.enough + 2 + i * 1.15);
+            if (land <= 0) return null;
+            const p = tkLocal(i);
+            return <TicketBundle key={i} p={[p[0], p[1] + (1 - land) * 10, p[2], p[3]]} s={1} />;
+          })}
+        </group>
+      ))}
+      {panG(1, <Coins f={f} n={60} list={(ff) => heap(ff, { n: 60, cx: 0, cy: 0.0, cz: 0, w: 0.5, d: 0.5, layers: 4, k: 1, seed: 900, t0: t.put, t1: t.math + 4 })} />)}
     </group>
   );
+};
+// ★ rev 5 — the studio's sky, MATCHED TO THE FOG. three.js applies fog AFTER tone mapping, so kit.Sky (tone-mapped) draws its "fog colour"
+//   lower half darker than the fogged floor actually is (measured on 749 f: sky (0,29,89) over floor (10,44,94)) — a hard horizon line
+//   across the frame. This sky is not tone-mapped, and it is the fog's own colour from 18° above the horizon down, rising into the navy.
+const fogSkyTex = () => canvasTex("rd_fogsky_v5", 8, 512, (c, w, h) => {
+  const g = c.createLinearGradient(0, 0, 0, h);
+  g.addColorStop(0, "#020C1E"); g.addColorStop(0.22, "#061C40"); g.addColorStop(0.4, FOG.color); g.addColorStop(1, FOG.color);
+  c.fillStyle = g; c.fillRect(0, 0, w, h);
+});
+const FogSky = () => {
+  const tex = useMemo(fogSkyTex, []);
+  return (<mesh scale={[-1, 1, 1]}><sphereGeometry args={[400, 48, 32]} /><meshBasicMaterial map={tex} side={THREE.BackSide} fog={false} depthWrite={false} toneMapped={false} /></mesh>);
 };
 // ── the studio ───────────────────────────────────────────────────────────────────────────────────────────────────────────
 const Studio = () => {
@@ -461,16 +532,23 @@ const Studio = () => {
   const grid = useMemo(() => { const g = gridTex().clone(); g.wrapS = g.wrapT = THREE.RepeatWrapping; g.repeat.set(30, 30); g.needsUpdate = true; return g; }, []);
   return (
     <group>
+      {/* rev 5: the floor runs on into the fog (700 m: its far edge is pure fog colour, so no horizon line shows), a little less mirror-like
+          so the key's shadows read on it */}
       <mesh rotation-x={-Math.PI / 2} position={[2, 0, 0]} receiveShadow>
-        <planeGeometry args={[160, 160]} />
-        <meshStandardMaterial color="#0A2140" roughness={0.18} metalness={0.55} transparent opacity={0.8} envMapIntensity={0.6} depthWrite={false} />
+        <planeGeometry args={[700, 700]} />
+        <meshStandardMaterial color="#0E2A52" roughness={0.3} metalness={0.4} transparent opacity={0.84} envMapIntensity={0.5} depthWrite={false} />
       </mesh>
-      <mesh rotation-x={-Math.PI / 2} position={[2, 0.004, 0]}><planeGeometry args={[160, 160]} /><meshBasicMaterial map={grid} transparent opacity={0.07} blending={THREE.AdditiveBlending} depthWrite={false} /></mesh>
+      <mesh rotation-x={-Math.PI / 2} position={[2, 0.004, 0]}><planeGeometry args={[160, 160]} /><meshBasicMaterial map={grid} transparent opacity={0.05} blending={THREE.AdditiveBlending} depthWrite={false} /></mesh>
+      {/* rev 5: a shadow catcher over the floor where the machine and the balance stand — the key's cast shadows read on the dark
+          glossy floor (the floor's own diffuse is too dark to show them) */}
+      <mesh rotation-x={-Math.PI / 2} position={[4, 0.008, 1]} receiveShadow><planeGeometry args={[22, 18]} /><shadowMaterial transparent opacity={0.55} color="#000814" depthWrite={false} /></mesh>
+      <ContactShadow position={[0, 0.009, 0]} size={[4.2, 4.2]} opacity={0.5} />
+      <ContactShadow position={[BAL.x, 0.009, BAL.z]} size={[1.9, 1.9]} opacity={0.6} ry={BAL.yaw} />
       <mesh rotation-x={-Math.PI / 2} position={[2.5, 0.006, 0.5]}><planeGeometry args={[16, 16]} /><meshBasicMaterial map={pool} transparent blending={THREE.AdditiveBlending} depthWrite={false} opacity={0.55} /></mesh>
       <mesh rotation-x={-Math.PI / 2} position={[BAL.x, 0.007, BAL.z]}><planeGeometry args={[6, 6]} /><meshBasicMaterial map={pool} transparent blending={THREE.AdditiveBlending} depthWrite={false} opacity={0.4} /></mesh>
       {/* a soft top light on the machine and one on the balance */}
       <pointLight position={[1.5, 8.5, 4]} intensity={9} distance={18} decay={1.4} color="#CFE0F8" />
-      <pointLight position={[BAL.x - 1, 4.5, BAL.z + 3]} intensity={3} distance={9} decay={1.5} color="#DCE8FA" />
+      <pointLight position={[BAL.x - 1, 4.5, BAL.z + 3]} intensity={1.6} distance={9} decay={1.5} color="#CFE0F8" />
     </group>
   );
 };
@@ -478,7 +556,7 @@ const Scene = ({ f }) => {
   const t = useMemo(T, []);
   return (
     <group>
-      <Sky zenith="#03112A" mid="#0A2547" horizon="#2C5286" glowAt={0.5} />
+      <FogSky />
       <Studio />
       <group scale={[1, -1, 1]}><Machine f={f} t={t} mirror /></group>
       <Machine f={f} t={t} />
@@ -487,23 +565,31 @@ const Scene = ({ f }) => {
   );
 };
 // ── the camera ───────────────────────────────────────────────────────────────────────────────────────────────────────────
+// ★ rev 5 (Timur, 2026-11-27: "slower … cinematic … always focused on something or moving to something"): five long, overlapping glides,
+//   each leaving one subject and landing on the next, instead of six quick moves. The cut lands close on the coin wall (matched to
+//   the store's push into the leaflet); one slow pull-back and rise to the column's top, the $5M ring and the shut MATCH 6 gate
+//   ("jackpot … $5 million … nobody won"); one slow descending glide right down the staircase as the coins cascade ("rolled down to
+//   the smaller prizes"); one glide on to the balance, held whole while it weighs ("enough tickets … math on your side"); then the
+//   push onto the left pan's ticket stack — the MATCH: on "it." the cut lands on the same stack on Jerry's kitchen table (st_test).
+const RA = [0.6, 2.4, 5.0, 0.3, 2.2, 0, 50];   // rev 5: first straight back off the coin wall (x, y, z, target x, y, z, frames)
+const R1 = [1.3, 4.3, 8.6, 1.15, 3.6, 0, 20, 86], R2 = [4.3, 4.1, 10.8, 3.2, 3.15, 0.4], R2T = [16, 16];   // then the rise to ring + gate; the staircase glide
 const shots = () => {
-  const t = T();
+  const t = T(), C = MATCH_CUT();
   return [
     // the cut: close on the column (the leaflet's diagram made real), coins pouring in past the lens
     { a: t.cut, b: t.cut, cut: true, pos: W([0.12, 1.4, 2.1]), target: W([0, 1.34, 0]), fov: 30 },
-    // pull back and up as the coins climb to the $5M ring
-    { a: t.cut + 2, b: t.five + 16, pos: W([1.1, 3.9, 9.4]), target: W([1.1, 3.4, 0]), fov: 34 },
-    // crane to the shut MATCH 6 gate
-    { a: t.nobody - 10, b: t.money, pos: W([1.3, 6.25, 4.3]), target: W([1.85, 5.35, 0]), fov: 34 },
-    // follow the cascade down the staircase, orbiting to the right
-    { a: t.money - 2, b: t.smaller + 2, pos: W([4.6, 3.8, 9.8]), target: W([3.1, 2.4, 0]), fov: 40 },   // rev 2: arrives on "smaller" (the tags' window)
-    // travel to the balance in front
-    { a: t.on, b: t.tickets + 4, pos: W([BAL.x - 1.25, 2.95, BAL.z + 7.6]), target: W([BAL.x, 1.3, BAL.z]), fov: 40 },
-    // rev 3 (Timur: "on second 23 … you zoom in too much … the left part and the right part is cut off … the whole visual is seen
-    //   throughout"): NO push in — the whole balance stays in frame, a slow drift to the right at the same distance, on through the
-    //   dissolve into the kitchen (b past TEST_CUT + 7)
-    { a: t.tickets - 6, b: t.sideEnd + 16, pos: W([BAL.x - 0.45, 2.9, BAL.z + 7.5]), target: W([BAL.x + 0.15, 1.3, BAL.z]), fov: 40 }
+    // one slow pull-back and rise: the coins climb to the $5M ring; it lands framing the ring and the shut MATCH 6 gate ("nobody won")
+    //   (in two overlapping parts: first straight back off the coin wall, then the rise — a tilt while still close whips the picture)
+    { a: t.cut + 2, b: t.cut + 2 + RA[6], pos: W([RA[0], RA[1], RA[2]]), target: W([RA[3], RA[4], RA[5]]), fov: 32 },
+    { a: t.cut + 2 + R1[6], b: t.cut + 2 + R1[7], pos: W([R1[0], R1[1], R1[2]]), target: W([R1[3], R1[4], R1[5]]), fov: 34 },
+    // a slow descending glide right, down the staircase with the cascade
+    { a: t.won + R2T[0], b: t.prizes + R2T[1], pos: W([R2[0], R2[1], R2[2]]), target: W([R2[3], R2[4], R2[5]]), fov: 38 },
+    // on to the balance, framed whole (it lands as the tickets begin to fall)
+    { a: t.smaller + 4, b: t.enough + 12, pos: W([BAL.x - 0.55, 2.95, BAL.z + 7.7]), target: W([BAL.x + 0.02, 1.42, BAL.z]), fov: 40 },
+    // held whole while it weighs: a very slow creep in (both pans stay in frame), the way the push will go
+    { a: t.enough + 6, b: t.side + 4, pos: W([BAL.x - 0.62, 2.9, BAL.z + 7.3]), target: W([BAL.x - 0.04, 1.42, BAL.z]), fov: 40 },
+    // the push onto Jerry's ticket stack on the left pan, landing at rest on the cut (MATCH_LOCAL → st_test's first frame)
+    { a: t.side, b: C, pos: pileToWorld(C, MATCH_LOCAL.pos), target: pileToWorld(C, MATCH_LOCAL.target), fov: MATCH_LOCAL.fov }
   ];
 };
 // the 3-D points the tags point at (world coords, for P) — exported for the tag probe
@@ -551,18 +637,18 @@ const sfx = () => {
   const t = T();
   return [
     cueAt("coin", t.cut + 4, 14, 0.35), cueAt("coin", t.cut + 16, 14, 0.3), cueAt("chainshort", t.cut + 2, 30, 0.22),
-    cueAt("whooshsoft", (t.cut + t.won) / 2 - 10, 30, 0.45),
+    cueAt("whooshsoft", (t.cut + 2 + t.money + 4) / 2 - 8, 30, 0.35),   // rev 5: on the slow pull-back's fastest frame
     cueAt("pingshort", t.five + 10, 12, 0.4),                     // the coins reach the $5M ring
-    cueAt("ee_whoosh_fast_small_whoosh_01", (t.nobody - 10 + t.money) / 2, 16, 0.35),
     cueAt("ee_click_click_01", t.nobody, 6, 0.45), cueAt("ee_click_click_01", t.nobody + 20, 6, 0.35),   // the gate's lamp
     cueAt("ee_click_click_01", t.rolled - 10, 6, 0.4),            // the spout door
     cueAt("chain", t.rolled - 4, t.prizesEnd - t.rolled + 4, 0.3), // the cascade
     cueAt("coin", t.rolled + 8, 14, 0.35), cueAt("coin", t.rolled + 20, 14, 0.32), cueAt("coin", t.smaller, 14, 0.3),
-    cueAt("airwoosh", (t.money - 2 + t.smaller + 2) / 2, 24, 0.45),
-    cueAt("whooshsoft", (t.on + t.tickets + 4) / 2, 24, 0.45),
+    cueAt("airwoosh", (t.won + t.prizes + 10) / 2 - 21, 30, 0.35),
+    cueAt("whooshsoft", (t.smaller + 4 + t.enough + 12) / 2 - 8, 30, 0.35),
+    cueAt("whooshlong", (t.side + MATCH_CUT()) / 2 - 12, 34, 0.38),   // the push onto the ticket stack (the match)
     cueAt("ee_click_click_01", t.enough + 2, 6, 0.3), cueAt("ee_click_click_01", t.tickets + 6, 6, 0.3),
     cueAt("chainshort", t.tickets + 10, 24, 0.25),
     cueAt("thud", t.math + 8, 12, 0.4)
   ];
 };
-export const ST = { id: "rolldown", origin: O, from: 477, to: 760, light: { target: [3, 0, 0.8], shadowBox: 9, keyI: 2.2, fillI: 0.45 }, shots, Scene, Overlay, sfx };
+export const ST = { id: "rolldown", origin: O, from: 477, to: MATCH_CUT() + 2, light: { target: [3, 0, 0.8], shadowBox: 9, keyI: 2.2, fillI: 0.45 }, shots, Scene, Overlay, sfx };

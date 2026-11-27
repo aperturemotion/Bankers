@@ -133,7 +133,7 @@ const shadeTex = () => canvasTex("stt_shade", 64, 256, (c, w, h) => {
 });
 // the vase profile (a ceramic baluster, glazed in the house navy-blue), turned on a lathe
 const VASE = [[0, 0], [0.95, 0], [1.0, 0.12], [0.9, 0.3], [1.05, 0.9], [1.12, 1.5], [0.98, 2.1], [0.62, 2.6], [0.38, 2.85], [0.34, 3.05], [0.45, 3.15], [0.0, 3.2]].map(([x, y]) => new THREE.Vector2(x, y));
-export const TableLamp = ({ position = [0, 0, 0], on = 1, scale = 1 }) => {
+export const TableLamp = ({ position = [0, 0, 0], on = 1, scale = 1, power = 1 }) => {   // power: the bulb's light only (rev 5: the kitchen's key leads)
   const st = useMemo(shadeTex, []);
   const vase = useMemo(() => new THREE.LatheGeometry(VASE, 48), []);
   return (
@@ -149,8 +149,8 @@ export const TableLamp = ({ position = [0, 0, 0], on = 1, scale = 1 }) => {
       </mesh>
       <mesh position={[0, 6.55, 0]}><torusGeometry args={[1.15, 0.035, 8, 48]} /><meshStandardMaterial color="#C9A86A" metalness={0.8} roughness={0.3} /></mesh>
       <mesh position={[0, 4.45, 0]}><torusGeometry args={[1.7, 0.035, 8, 48]} /><meshStandardMaterial color="#C9A86A" metalness={0.8} roughness={0.3} /></mesh>
-      <pointLight position={[0, 4.6, 0]} intensity={70 * on} distance={30} decay={2} color="#FFC48A" />
-      <pointLight position={[0, 6.8, 0]} intensity={10 * on} distance={14} decay={2} color="#FFD8A8" />
+      <pointLight position={[0, 4.6, 0]} intensity={70 * on * power} distance={30} decay={2} color="#FFC48A" />
+      <pointLight position={[0, 6.8, 0]} intensity={10 * on * power} distance={14} decay={2} color="#FFD8A8" />
       <Glow position={[0, 5.3, 0]} size={6.5} color="#FFC07A" opacity={0.38 * on} />
       <Glow position={[0, 4.3, 0]} size={3.2} color="#FFE0B0" opacity={0.55 * on} />
     </group>

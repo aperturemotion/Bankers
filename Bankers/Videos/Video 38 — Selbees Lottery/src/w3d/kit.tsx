@@ -226,7 +226,7 @@ export const Sky = ({ zenith = "#020F24", mid = "#082A57", horizon = "#3F72B4", 
   return (
     <mesh scale={[-1, 1, 1]}>
       <sphereGeometry args={[radius, 48, 32]} />
-      <meshBasicMaterial map={tex} side={THREE.BackSide} fog={false} depthWrite={false} />
+      <meshBasicMaterial map={tex} side={THREE.BackSide} fog={false} depthWrite={false} toneMapped={false} />   {/* rev 5: un-tone-mapped, so its fog-blue lower half meets the fogged ground without a dark band (builder Q) */}
     </mesh>
   );
 };
