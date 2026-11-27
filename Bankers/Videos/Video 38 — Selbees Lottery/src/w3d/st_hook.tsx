@@ -262,6 +262,43 @@ const WorldLabel = ({ f, t }) => {
     </group>
   );
 };
+// ★ rev 7 (Timur: "instead of on-screen text … add them somewhere within the scene that actually matches the visual itself"): "FOR 9 YEARS"
+//   lives in the street — the main street's bank TIME · TEMP sign, a lit LED board on a bracket off the first left-hand corner, high over
+//   the sidewalk and in frame above-left of the standing ticket (≈ 200–245 f). It shows the evening (time / temperature, like any bank
+//   sign) until "9", then its year rolls 2003 → 2012 and it settles on "9 YEARS" over "2003 – 2012" (FACTCHECK: the game ran 2003 to
+//   January 2012; CBS and HL both say nine years). LED dots in the house light blue; it sits in the fog like the lamps.
+const LED = { w: 768, h: 384 };
+const ledTex = (key, lines) => canvasTex("hook_led_" + key, LED.w, LED.h, (c, w, h) => {
+  c.fillStyle = "#03080F"; c.fillRect(0, 0, w, h);
+  c.textAlign = "center"; c.textBaseline = "middle"; c.fillStyle = "#A9D0FF"; c.shadowColor = "rgba(127,180,242,0.9)"; c.shadowBlur = 14;
+  for (const [txt, y, px] of lines) { c.font = `${px}px ${FIGURE}`; c.fillText(txt, w / 2, y); }
+  // the LED matrix: dark gaps between the dots
+  c.shadowBlur = 0; c.fillStyle = "rgba(3,8,15,0.78)";
+  for (let x = 0; x < w; x += 8) c.fillRect(x, 0, 2.6, h);
+  for (let y = 0; y < h; y += 8) c.fillRect(0, y, w, 2.6);
+});
+const ledFor = (t, f) => {
+  if (f < t.years - 3) return Math.floor(f / 50) % 2 ? ledTex("temp", [["41°F", 196, 230]]) : ledTex("time", [["7:42 PM", 196, 210]]);
+  const k = easeOut(f, t.years - 3, t.years + 9);   // a quick roll, so "9 YEARS" holds ~20 f before the glide carries the sign out of frame
+  if (f < t.years + 12) { const y = 2003 + Math.round(9 * k); return ledTex("y" + y, [[String(y), 196, 250]]); }
+  return ledTex("nine", [["9 YEARS", 150, 190], ["2003 – 2012", 300, 104]]);
+};
+const BankSign = ({ f, t }) => {
+  const tex = ledFor(t, f);
+  const X = -(ROAD_W / 2 + 2.2), Z = -22.75, Y = 7.3, SW = 3.0, SH = 1.5, ARM = 0.35;
+  const lit = 1;
+  return (
+    <group position={[X, 0, Z]}>
+      {/* the wall plate and two bracket arms off the facade, the cabinet, its LED faces (both ways along the street) */}
+      <mesh position={[0.06, Y, 0]}><boxGeometry args={[0.12, SH + 0.5, 0.5]} /><meshStandardMaterial color="#26303D" metalness={0.6} roughness={0.4} /></mesh>
+      {[SH / 2 - 0.12, -SH / 2 + 0.12].map((dy, i) => <mesh key={i} position={[0.06 + ARM / 2, Y + dy, 0]}><boxGeometry args={[ARM, 0.07, 0.07]} /><meshStandardMaterial color="#26303D" metalness={0.6} roughness={0.4} /></mesh>)}
+      <mesh position={[ARM + 0.1 + SW / 2, Y, 0]}><boxGeometry args={[SW + 0.16, SH + 0.16, 0.22]} /><meshStandardMaterial color="#1A2230" metalness={0.5} roughness={0.45} /></mesh>
+      <mesh position={[ARM + 0.1 + SW / 2, Y + SH / 2 + 0.2, 0]}><boxGeometry args={[SW * 0.42, 0.24, 0.18]} /><meshStandardMaterial color="#C9D3DE" metalness={0.4} roughness={0.4} /></mesh>
+      {[1, -1].map((sd) => <mesh key={sd} position={[ARM + 0.1 + SW / 2, Y, sd * 0.112]} rotation-y={sd > 0 ? 0 : Math.PI}><planeGeometry args={[SW, SH]} /><meshBasicMaterial map={tex} toneMapped={false} fog={false} /></mesh>)}
+      <FogGlow position={[ARM + 0.1 + SW / 2, Y, 0.4]} world={[X + ARM + 0.1 + SW / 2, Y, Z + 0.4]} size={4.2} color="#7FB4F2" opacity={0.28 * lit} />
+    </group>
+  );
+};
 const Scene = ({ f }) => {
   const t = useMemo(T, []);
   const asphalt = useMemo(asphaltTex, []);
@@ -283,6 +320,7 @@ const Scene = ({ f }) => {
       <Town build={(m) => buildHookStreet(m, blds)} />
       <Trees />
       <ShadeLayer build={(s) => buildHookShade(s, blds)} />
+      <BankSign f={f} t={t} />
       {/* rev 5: lamp 5 (z −53) stood right in front of the corner store and cut its landing shot in two — it is left out */}
       {Array.from({ length: 10 }, (_, i) => i !== 5 && <Lamp key={i} x={(i % 2 ? 1 : -1) * (ROAD_W / 2 + 0.6)} z={-8 - i * 9} light={i < 6} />)}
       {/* rev 4c: the retired couple, walking toward the camera from the Evart sign; she glances at him on "retired couple" */}
@@ -350,7 +388,8 @@ const sfx = () => {
     cueAt("ov_paper_flutter", t.next - 26, 14, 0.18),
     cueAt("thud", t.next - 12, 12, 0.2),                      // rev 4b: the ticket slaps down flat on the road
     cueAt("pingshort", t.legally, 12, 0.5),
-    cueAt("coin", t.years, 16, 0.45)
+    cueAt("coin", t.years, 16, 0.45),
+    cueAt("data", t.years - 2, 13, 0.16)                      // rev 7: the bank sign's LED year rolling 2003 → 2012
   ];
 };
 // rev 5: the key's shadow box sits on the couple and the ticket (the default box around the origin left the ticket's shadow out)

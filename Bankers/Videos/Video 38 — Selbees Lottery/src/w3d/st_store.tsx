@@ -149,14 +149,69 @@ const bayTex = (key, text) => canvasTex("st_bay_" + key, 512, 96, (c, w, h) => {
   c.fillStyle = "#F4F6F8"; c.fillRect(0, 0, w, h); c.fillStyle = "#1F5FB4"; c.fillRect(0, 0, w, 12);
   c.fillStyle = "#123E73"; c.textAlign = "center"; c.textBaseline = "middle"; c.font = `800 46px ${BODY}`; c.fillText(text, w / 2, h / 2 + 6);
 });
-const Lamp = ({ z }) => (
-  <group position={[FX - 0.08, 4.32, z]}>
+const Lamp = ({ z, on = 1 }) => (
+  <group position={[FX - 0.08, 4.6, z]}>
     <mesh position={[-0.22, 0.12, 0]} rotation-z={0.9} material={M.frame}><cylinderGeometry args={[0.018, 0.018, 0.5, 8]} /></mesh>
     <mesh position={[-0.42, 0.24, 0]} rotation-z={-0.5} material={M.frame}><coneGeometry args={[0.09, 0.14, 16, 1, true]} /></mesh>
     <mesh position={[-0.40, 0.19, 0]}><sphereGeometry args={[0.04, 10, 8]} /><meshBasicMaterial color="#FFE6BE" toneMapped={false} /></mesh>
-    <Glow position={[-0.36, 0.1, 0]} size={0.9} color="#FFD49A" opacity={0.55} />
+    <Glow position={[-0.36, 0.1, 0]} size={0.9} color="#FFD49A" opacity={0.2 + 0.45 * on} />
   </group>
 );
+// ★ rev 7 (Timur: "instead of on-screen text … add them somewhere within the scene"): "2003" is the store's own vinyl banner for the new
+//   game, strung across the brick band over the sign — WINFALL · NEW FOR 2003 · PLAY HERE (FACTCHECK: Winfall was a brand-new
+//   Michigan game in 2003) — lit by the goosenecks, which come up as the voice says "In 2003" and the glide brings the store out of the fog
+const BANNER = { z0: Z0 + 0.55, z1: Z1 - 0.55, y0: 4.12, y1: 4.54 };
+const bannerTex = () => canvasTex("st_banner2003b", 2048, 132, (c, w, h) => {
+  const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "#F4F7FC"); g.addColorStop(1, "#DCE6F3"); c.fillStyle = g; c.fillRect(0, 0, w, h);
+  c.fillStyle = "#0B3F7A"; c.fillRect(0, 0, w, 9); c.fillRect(0, h - 9, w, 9);
+  c.textBaseline = "middle"; c.textAlign = "center";
+  // the year sits mid-banner, clear of the blade sign that hangs in front of its near end (screen right)
+  c.fillStyle = "#005DC8"; c.font = `400 100px ${FIGURE}`; c.fillText("WINFALL", 380, h / 2 + 4);
+  c.fillStyle = "#0B3F7A"; c.font = `800 52px ${BODY}`; c.fillText("NEW FOR", 860, h / 2 + 2);
+  c.fillStyle = "#005DC8"; c.font = `400 118px ${FIGURE}`; c.fillText("2003", 1170, h / 2 + 6);
+  c.fillStyle = "#0B3F7A"; c.font = `800 44px ${BODY}`; c.fillText("PLAY HERE", 1640, h / 2 + 2);
+  c.fillStyle = "#4D8ED9"; for (const x of [640, 1400]) { c.beginPath(); for (let k = 0; k < 10; k++) { const r = k % 2 ? 11 : 26, a = -Math.PI / 2 + k * Math.PI / 5; c.lineTo(x + r * Math.cos(a), h / 2 + r * Math.sin(a)); } c.fill(); }
+  c.fillStyle = "#8D97A6"; for (const x of [22, w - 22]) for (const y of [22, h - 22]) { c.beginPath(); c.arc(x, y, 9, 0, 7); c.fill(); c.fillStyle = "#3A4656"; c.beginPath(); c.arc(x, y, 4, 0, 7); c.fill(); c.fillStyle = "#8D97A6"; }   // the grommets
+});
+const Banner = ({ on }) => {
+  const tex = useMemo(bannerTex, []);
+  const L = BANNER.z1 - BANNER.z0, H = BANNER.y1 - BANNER.y0, zc = (BANNER.z0 + BANNER.z1) / 2, yc = (BANNER.y0 + BANNER.y1) / 2;
+  return (
+    <group position={[FX - 0.105, yc, zc]} rotation-y={-Math.PI / 2}>
+      <mesh><planeGeometry args={[L, H, 24, 1]} /><meshStandardMaterial map={tex} roughness={0.6} emissiveMap={tex} emissive="#ffffff" emissiveIntensity={0.1 + 0.42 * on} side={THREE.DoubleSide} /></mesh>
+      {[-1, 1].map((sd) => <mesh key={sd} position={[sd * (L / 2 + 0.03), 0, -0.02]} rotation-z={Math.PI / 2}><cylinderGeometry args={[0.006, 0.006, H * 0.9, 5]} /><meshStandardMaterial color="#C9D3DE" roughness={0.5} /></mesh>)}
+    </group>
+  );
+};
+// ★ rev 7: "3 MINUTES" is a digital kitchen timer standing on the counter just past the leaflet's top edge, its display tilted up to the
+//   lens in the lean-in shot (now framed a little wider, so the timer, the rule and the diagram share it); it runs from "He found …", its
+//   seconds roll up to 3:00 on "3 minutes", it blinks 3:00, and the push into the diagram starts on the word (same end pose)
+const timerTex = (sec, dim) => canvasTex(`st_timer_${sec}_${dim ? 1 : 0}`, 256, 128, (c, w, h) => {
+  c.fillStyle = "#BFD6EE"; c.fillRect(0, 0, w, h);
+  const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "rgba(255,255,255,0.25)"); g.addColorStop(1, "rgba(0,40,90,0.12)"); c.fillStyle = g; c.fillRect(0, 0, w, h);
+  c.textBaseline = "middle"; c.textAlign = "center";
+  c.fillStyle = "rgba(11,37,71,0.08)"; c.font = `400 104px ${FIGURE}`; c.fillText("8:88", w / 2, h / 2 + 6);   // the unlit LCD segments
+  if (!dim) { c.fillStyle = "#0B2547"; c.fillText(`${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`, w / 2, h / 2 + 6); }
+  c.font = `700 15px ${BODY}`; c.fillStyle = "#0B2547"; c.textAlign = "left"; c.fillText("MIN", 14, 18); c.textAlign = "right"; c.fillText("SEC", w - 14, 18);
+});
+const TIMER_P = [8.985, COUNTER.top + 0.03, 2.33];
+const KitchenTimer = ({ f, t }) => {
+  const run = clamp01((f - (t.he - 2)) / (t.three - (t.he - 2)));
+  const sec = f < t.he - 2 ? 0 : Math.min(180, Math.round(180 * run));   // one second a frame-ish: 0:00 at "He", 3:00 on "3 minutes"
+  const blink = f > t.three + 2 && Math.floor((f - t.three) / 8) % 2 === 1;
+  const tex = timerTex(sec, blink);
+  return (
+    <group position={TIMER_P} rotation-y={-Math.PI / 2}>
+      {/* a white body leaning far back on its fold-out stand, so its display looks up at the camera over the counter */}
+      <group rotation-x={-1.1} position={[0, 0.028, 0]}>
+        <mesh><boxGeometry args={[0.078, 0.078, 0.022]} /><meshStandardMaterial color="#EEF2F7" roughness={0.35} /></mesh>
+        <mesh position={[0, 0.012, 0.0115]}><planeGeometry args={[0.062, 0.031]} /><meshStandardMaterial map={tex} roughness={0.25} emissiveMap={tex} emissive="#ffffff" emissiveIntensity={0.25} /></mesh>
+        {[-0.022, 0, 0.022].map((x, i) => <mesh key={i} position={[x, -0.021, 0.0125]}><boxGeometry args={[0.016, 0.01, 0.004]} /><meshStandardMaterial color={i === 2 ? "#1F5FB4" : "#9AA6B4"} roughness={0.4} /></mesh>)}
+      </group>
+      <mesh position={[0, 0.014, -0.028]} rotation-x={0.9}><boxGeometry args={[0.05, 0.003, 0.03]} /><meshStandardMaterial color="#C9D3DE" roughness={0.4} metalness={0.3} /></mesh>
+    </group>
+  );
+};
 // ── the merged construction of the shop (town kit): facade brick/stone/steel, the interior fittings, the goods ───────────
 const SHELF = { x0: BACK - 0.38, z0: -1.0, z1: 3.75, ys: [0.52, 1.16, 1.58, 2.0, 2.42] };
 const COOL = { x0: BACK - 0.55, z0: 3.95, z1: 6.08 };
@@ -403,7 +458,8 @@ const Shop = ({ f, t }) => {
       <ShadeLayer build={buildStoreShade} />
       {/* the sign panel and its gooseneck lamps */}
       <mesh position={[FX - 0.06 - 0.041, 3.62, zc + 0.15]} rotation-y={-Math.PI / 2}><planeGeometry args={[6.3, 0.88]} /><meshStandardMaterial map={sign} roughness={0.4} emissiveMap={sign} emissive="#ffffff" emissiveIntensity={0.55} /></mesh>
-      {[-0.4, 1.6, 3.6].map((z, i) => <Lamp key={i} z={z + 0.15} />)}
+      {[-0.4, 1.6, 3.6].map((z, i) => <Lamp key={i} z={z + 0.15} on={ease(f, t.in2003 - 6, t.y2003 + 8)} />)}
+      <Banner on={ease(f, t.in2003 - 6, t.y2003 + 8)} />
       {/* the awning over the display window */}
       <group position={[FX - 0.36, 2.98, (WIN.z0 + WIN.z1) / 2]} rotation-z={-0.38}>
         <mesh castShadow receiveShadow><boxGeometry args={[0.8, 0.025, WIN.z1 - WIN.z0 + 0.3]} /><meshStandardMaterial map={awn} roughness={0.85} /></mesh>
@@ -526,6 +582,7 @@ const Scene = ({ f }) => {
       <Shop f={f} t={t} />
       <LeafletShadow open={broOpen(t, f)} />
       <Brochure p={BP} open={broOpen(t, f)} hi={hiK(t, f)} glow={1 - ease(f, t.loopEnd + 14, t.loopEnd + 24)} />
+      <KitchenTimer f={f} t={t} />
     </group>
   );
 };
@@ -539,18 +596,18 @@ const drift = (fs) => { const f = fs + HOOK_SHIFT; return [0.06 * Math.sin(f / 9
 //   the rule lights on "loophole", then the push INTO the diagram's jackpot column, which lands on exactly the old end pose (the rolldown's
 //   matched cut). The two stages overlap (it never settles and restarts), the push eases its ZOOM RATE (log distance), and the kit's idle
 //   drift is cancelled progressively from the leaflet on, so the near-vertical end can never spin (rev 4f).
-const IN = (t) => ({ a0: t.newG + 23, a1: t.he + 36, c0: t.he + 28, c1: t.when - 1, w0: t.newG + 23, w1: t.newG + 71 });
+const IN = (t) => ({ a0: t.newG + 23, a1: t.he + 36, c0: t.three - 3, c1: t.when - 1, w0: t.newG + 23, w1: t.newG + 71 });   // rev 7: the push waits for "3 minutes" (the timer is in the lean-in frame)
 const unit = (v) => { const n = Math.hypot(v[0], v[1], v[2]); return v.map((x) => x / n); };
 const lerpV = (p, q, e) => p.map((x, k) => x + (q[k] - x) * e);
 const insidePath = (t, d) => {
   const k = IN(t), out = [];
   const T3 = [8.82, 1.02, 2.27], V3 = unit([8.33 - 8.82, 1.86 - 1.02, 2.29 - 2.27]), D3 = Math.hypot(8.33 - 8.82, 1.86 - 1.02, 0.02);
   // the lean-in frames the rule AND the diagram from nearly overhead, so the final push barely turns (the turn happens far from the paper)
-  const T5 = [8.735, 1.03, 2.314], V5 = unit([-0.2, 0.98, 0]), D5 = 0.62;
+  const T5 = [8.77, 1.03, 2.325], V5 = unit([-0.16, 0.99, 0]), D5 = 1.1;   // rev 7: wide enough for the kitchen timer at the top of the frame
   const P6 = [d[0] - 0.008, d[1] + 0.075, d[2]], V6 = unit([P6[0] - d[0], P6[1] - d[1], 0]), D6 = Math.hypot(0.008, 0.075);
   for (let f = k.a0 + 1; f <= k.c1; f++) {
     const eA = ease(f, k.a0, k.a1), eC = ease(f, k.c0, k.c1), w = ease(f, k.w0, k.w1), dr = drift(f);
-    const eT = ease(f, k.c0 - 22, k.c0 + 16);   // the aim settles on the jackpot column while the camera is still far from the paper
+    const eT = ease(f, k.c0 - 2, k.c0 + 16);   // the aim settles on the jackpot column while the camera is still far from the paper
     const T_ = lerpV(lerpV(T3, T5, eA), d, eT);
     const V_ = unit(lerpV(lerpV(V3, V5, eA), V6, eC));
     const D_ = Math.exp(Math.log(D3) + (Math.log(D5) - Math.log(D3)) * eA + (Math.log(D6) - (Math.log(D3) + (Math.log(D5) - Math.log(D3)) * eA)) * eC);
@@ -641,7 +698,8 @@ const sfx = () => {
     cueAt("ov_paper_unfold", Math.round((t.newG - 2 + t.winfall + 6) / 2) + 1, 22, 0.28),
     cueAt("ee_click_click_01", t.loophole - 3, 6, 0.4),          // the highlighter's cap
     cueAt("pingshort", t.loophole + 6, 12, 0.35),
-    cueAt("ee_clock_clock_ticking_01", t.three - 10, 26, 0.45),
+    cueAt("ee_clock_clock_ticking_01", t.three - 10, 26, 0.38),   // rev 7: the kitchen timer's seconds rolling to 3:00
+    cueAt("pingshort", t.three + 2, 10, 0.22),                  // rev 7: its beep at 3:00
     cueAt("airwoosh", Math.round((IN(t).c0 + IN(t).c1) / 2) - 4, 24, 0.45)   // rev 5: the push into the diagram (fastest zoom at its middle)
   ];
 };
