@@ -12,6 +12,17 @@ import { AbsoluteFill, Audio, Sequence, useCurrentFrame } from "remotion";
 import { aud } from "../bnx/aud";
 import { World3D, makeCam, smoothCam, projectWith, HouseLights, ease } from "./kit";
 import { Karaoke } from "./karaoke";
+import { BigWord } from "./overlays";
+// ★ rev 6: the BIG WORDS — the film's key figures (and "Legally.") as large Anton text, no panel, no label (overlays.tsx BigWord). Keyed to
+//   the karaoke chips' keywords in REAL time; in from the word's onset − 4, out at the chip's end. $3,600 / $6,300 stay the kitchen's 3-D plaques.
+const BIG_SPEC = {
+  "1,903": { value: 1903, unit: "PEOPLE" }, "Legally.": { text: "LEGALLY" }, "9 years.": { value: 9, unit: "YEARS" }, "2003,": { text: "2003" },
+  "3 minutes.": { value: 3, unit: "MINUTES" }, "$5 million": { value: 5, prefix: "$", unit: "MILLION" }, "12": { value: 12, unit: "ROLL-DOWNS" },
+  "6 years,": { value: 6, unit: "YEARS" }, "900 miles": { value: 900, unit: "MILES" }, "$600,000.": { value: 600000, prefix: "$", size: 230 },
+  "2011,": { text: "2011" }, "$120 million": { value: 120, prefix: "$", unit: "MILLION" }, "$26 million,": { value: 26, prefix: "$", unit: "MILLION", size: 250 },
+  "$8 million": { value: 8, prefix: "$", unit: "MILLION" }
+};
+const BIG = CHIPS.flatMap((c) => c.parts.filter((p) => BIG_SPEC[p.word]).map((p) => ({ ...BIG_SPEC[p.word], at: p.at - 4, out: Math.max(p.at + 34, c.until - 2) })));
 import { CHIPS, TOTAL, VO_END } from "./take_rt";   // rev 4c: REAL time — the voice, the karaoke, the close
 import { HOOK_SHIFT as S, HOOK_ID } from "./shift";
 import { BrandClose, Watermark } from "../bnx/close";
@@ -118,6 +129,7 @@ export const SelbeesLottery = ({ solo }) => {
       {HAZE.map((h) => f > h.a && f < h.b && <AbsoluteFill key={h.a} style={{ background: "#0A2A52", opacity: ease(f, h.a, h.peak) * (1 - ease(f, h.peak, h.b)) }} />)}
       <AbsoluteFill style={{ background: "#001C3C", opacity: 0.86 * veil }} />
       <Karaoke chips={CHIPS} hideFrom={CLOSE_AT + 4} />
+      {BIG.map((b, i) => <BigWord key={i} {...b} />)}
       {f >= CLOSE_AT && <BrandClose at={CLOSE_AT + 22} y={960} />}
       <Watermark lit={1} outAt={CLOSE_AT + 10} />
       {solo !== "picture" && <AudioLayers />}

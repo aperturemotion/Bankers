@@ -9,6 +9,7 @@
 //   "loophole" a light-blue highlight runs along the roll-down rule; a 3:00 timer rolls in on "3 minutes"; the camera then pushes
 //   INTO the rule's diagram (the jackpot column) — the rolldown station cuts to the matching close-up of the real machine.
 //   Local frame: the street face of the shop is the plane x = FX (it faces −x, the road); the shop spans z Z0 … Z1.
+import { COUNTERS } from "./label_style";
 import React, { useMemo } from "react";
 import * as THREE from "three";
 import { useCurrentFrame } from "remotion";
@@ -539,6 +540,7 @@ const Timer = ({ at, land, out, x, y }) => {
   );
 };
 const Year = ({ at, out, x, y }) => {
+  if (!COUNTERS) return null;   // rev 6: panels off (label_style.ts)
   const f = useCurrentFrame();
   const kIn = easeOut(f, at, at + 14), kOut = ease(f, out, out + 10);
   const vis = kIn * (1 - kOut);

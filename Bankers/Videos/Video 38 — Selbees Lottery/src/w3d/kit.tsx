@@ -11,7 +11,11 @@
 import React, { useMemo } from "react";
 import { useCurrentFrame, useVideoConfig, delayRender, continueRender } from "remotion";
 import { ThreeCanvas } from "@remotion/three";
-import { useThree } from "@react-three/fiber";
+import { useThree, useFrame } from "@react-three/fiber";
+import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
+import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
+import { GTAOPass } from "three/examples/jsm/postprocessing/GTAOPass.js";
+import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import * as THREE from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 
@@ -177,11 +181,48 @@ export const HouseLights = ({ keyPos = [-9, 14, 8], keyI = 2.6, keyColor = "#DCE
 // ★ rev 5 (Timur, 2026-11-27): "the distance … should always be covered up … by adding fog, blue fog"; "a little bit more blue throughout".
 //   FOG is the Bankers blue and denser (0.018 → 0.03: a subject 10 m away keeps 91 %, 40 m 24 %, 60 m 4 % — the world's edge is never seen).
 export const FOG = { color: "#0C3060", density: 0.03, sky: "#0A2A55" };
+// ★ rev 6 (Timur): "if you're not going to add shadows to things like the food shelves … at least add those fake shadows … a dark subtle shape
+//   under it, the correct one … you can see the corners better … we don't want unlit objects." = AMBIENT OCCLUSION over the whole world:
+//   GTAO (three's GTAOPass) darkens creases, corners and the ground under every object, correctly from the geometry, subtly (blend AO_K).
+export const AO_ON = false, AO_K = 0.85;   // rev 6: GTAO tried and parked — on SwiftShader it left a hard dark block (640 f) and darkened whole frames (1110 f)
+// rev 6: instead, EVERY solid object casts and receives the station key's shadow (no unlit, unshadowed visuals): each frame the scene's opaque
+// meshes are switched to castShadow + receiveShadow (glass, glows, sprites, sky and fog-only planes excluded: transparent, additive or unlit)
+const ShadowAll = () => {
+  const { scene } = useThree();
+  useFrame(() => {
+    scene.traverse((o) => {
+      if (!o.isMesh || o.userData?.noShadow) return;
+      const ms = Array.isArray(o.material) ? o.material : [o.material];
+      if (ms.some((m) => !m || m.transparent || m.isMeshBasicMaterial || m.blending === THREE.AdditiveBlending || m.side === THREE.BackSide)) return;
+      o.castShadow = true; o.receiveShadow = true;
+    });
+  }, -1);
+  return null;
+};
+const AmbientOcclusion = () => {
+  const { gl, scene, camera } = useThree();
+  const comp = useMemo(() => {
+    const c = new EffectComposer(gl);
+    c.setPixelRatio(1); c.setSize(W, H);
+    c.addPass(new RenderPass(scene, camera));
+    const g = new GTAOPass(scene, camera, W, H);
+    g.updateGtaoMaterial({ radius: 0.55, distanceExponent: 1.6, thickness: 1.2, scale: 1.0, samples: 12, distanceFallOff: 1.0 });
+    g.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 6, rings: 2, samples: 12 });
+    g.blendIntensity = AO_K;
+    c.addPass(g);
+    c.addPass(new OutputPass());
+    return c;
+  }, [gl, scene, camera]);
+  useFrame(() => { comp.render(); }, 1);
+  return null;
+};
 export const World3D = ({ cam, fog = FOG, children }) => (
   <ThreeCanvas width={W} height={H} shadows gl={{ antialias: true, preserveDrawingBuffer: true }} camera={{ fov: 34, near: 0.05, far: 600, position: [0, 2, 10] }}
     style={{ position: "absolute", left: 0, top: 0 }}>
     <Setup fog={fog} />
     <CamDriver cam={cam} />
+    {AO_ON && <AmbientOcclusion />}
+    <ShadowAll />
     {children}
   </ThreeCanvas>
 );

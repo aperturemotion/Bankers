@@ -11,7 +11,7 @@ import React from "react";
 import { Img, useCurrentFrame } from "remotion";
 import { clamp01, ease, easeOut } from "./kit";
 import { BODY, FIGURE } from "./fonts3d";
-import { LABEL_STYLE, PHOTOS, PILLS } from "./label_style";
+import { LABEL_STYLE, PHOTOS, PILLS, COUNTERS } from "./label_style";
 
 const CHIP_BG = "rgba(4, 18, 38, 0.82)";
 const ACCENT = "#4D8ED9";
@@ -77,6 +77,7 @@ export const Tag = ({ text, at, out = 1e9, x, y, to, side = "left", size = 30 })
 };
 export const Counter = ({ at, out = 1e9, x, y, from = 0, value, prefix = "", unit = "", label, size = 120, decimals = 0, countDur = 26, align = "center" }) => {
   const f = useCurrentFrame();
+  if (!COUNTERS) return null;
   const kIn = easeOut(f, at, at + 14), kOut = ease(f, out, out + 10);
   const vis = kIn * (1 - kOut);
   if (vis <= 0.001) return null;
@@ -121,6 +122,28 @@ export const Pill = ({ at, out = 1e9, x = 1040, y = 150, icon, value, prevValue,
       {icon}
       {label && <span style={{ fontFamily: BODY, fontWeight: 700, fontSize: 22, color: "#2A4A73", letterSpacing: 1.5, textTransform: "uppercase" }}>{label}</span>}
       <span style={{ fontFamily: FIGURE, fontSize: 44, color: "#00244D", lineHeight: 1 }}>{shown}</span>
+    </div>
+  );
+};
+
+// ★ rev 6 (Timur, 2026-11-27): "for the big words that should appear as large text, like $600,000, let's do large text, large bold text, just the
+//   way it is at 1,368 frames, but without that weird background label and the 'often' around … apply that to the rest of the video too. Those
+//   kinds of important words should get that sort of larger text and in a more prominent and visible part of the screen, and even larger
+//   sometimes." — a BIG WORD: the figure in Anton, white, its unit in the light blue, NO panel and NO small label; it comes out of depth (a
+//   short scale + blur settle), numbers roll up onto their spoken word, and it lifts away before its line ends.
+export const BigWord = ({ at, out, value = null, text = "", prefix = "", unit = "", size = 210, y = 600 }) => {
+  const f = useCurrentFrame();
+  const kIn = easeOut(f, at, at + 12), kOut = ease(f, out - 10, out);
+  const vis = kIn * (1 - kOut);
+  if (vis <= 0.001) return null;
+  const shown = value === null ? text : prefix + Math.round(value * easeOut(f, at, at + 16)).toLocaleString("en-US");
+  return (
+    <div style={{ position: "absolute", left: 0, width: 1080, top: y, display: "flex", flexDirection: "column", alignItems: "center", pointerEvents: "none",
+      opacity: vis, transform: `translateY(${-50 - kOut * 18}%) scale(${0.86 + 0.14 * kIn})`, filter: `blur(${(1 - kIn) * 8}px)` }}>
+      <div style={{ fontFamily: FIGURE, fontSize: size, lineHeight: 0.95, color: "#FFFFFF", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums",
+        textShadow: "0 6px 24px rgba(0,8,24,0.55), 0 2px 6px rgba(0,8,24,0.6)" }}>{shown}</div>
+      {unit && <div style={{ fontFamily: FIGURE, fontSize: size * 0.36, letterSpacing: size * 0.02, color: "#7FB4F2", marginTop: size * 0.04,
+        textShadow: "0 3px 12px rgba(0,8,24,0.6)" }}>{unit}</div>}
     </div>
   );
 };

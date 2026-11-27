@@ -13,6 +13,7 @@
 //         tickets, which glow in the house light blue (tag TUBS OF TICKETS); "$600,000+" lands on its word (label OFTEN, A ROUND).
 //   1336  DEPARTURE: the shell dissolves and the camera pushes into one ticket in the trunk until it fills the frame (1356); the
 //         globe station cuts (cut: true) to the identical ticket on the MIT group's stack and pulls back.
+import { COUNTERS } from "./label_style";
 import { ROAD_FROM } from "./xfer_company_road";
 import React, { useMemo } from "react";
 import * as THREE from "three";
@@ -301,6 +302,7 @@ const shots = () => {
 };
 // an odometer: drums that roll as a real one does (the lowest turns, the next turns over in the last tenth)
 const Odometer = ({ at, out, value, x = 540, y = 330, label, unit }) => {
+  if (!COUNTERS) return null;   // rev 6: panels off (label_style.ts)
   const f = useCurrentFrame();
   const kIn = easeOut(f, at, at + 14), kOut = ease(f, out, out + 10), vis = kIn * (1 - kOut);
   if (vis <= 0.001) return null;
