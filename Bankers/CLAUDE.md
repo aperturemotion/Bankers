@@ -273,6 +273,32 @@ induction loop. All 720×1280 at 30 fps, 63–98 s, −14.1 LUFS.
 - **Tags pinned to a station must leave BEFORE the camera flies off it** (V38: the balance's tags and RIGGED? hung over an empty floor,
   leader lines to nothing, for ~10 f). Key a tag's `out` to the next station's flight start, not to the word's end.
 
+## ★★★★★ 2026-11-27 — CINEMATIC 3-D WORLD: TIMUR'S STYLE PREFERENCES (they override anything above that conflicts)
+
+> **Timur, 2026-11-27, reviewing Video 38 (Selbees):** "the main change … I need it to be a little slower in terms of the camera movement in
+> the 3D world. It's too fast … it doesn't look cinematic … overall it just needs to be more high quality and cinematic." Then: "save the
+> changes that I just told you to make as style preferences." Every Bankers 3-D World film follows these from now on.
+
+1. **CAMERA — SLOW AND CINEMATIC.** Slower moves overall, long eased glides, nothing fast or jittery. The camera is ALWAYS either framed on a
+   subject or moving TO a subject — never wandering, drifting or travelling toward empty space (V38 ~2274 f "randomly wanders around").
+2. **TRANSITIONS — SEAMLESS, PREFERABLY NO FADE-OUTS.** Scene changes are continuous camera moves through the world (push through / past an
+   object, travel through the blue fog, a match on a shared object), not opacity fades or cross-dissolves wherever avoidable.
+3. **THE DISTANCE IS ALWAYS COVERED BY BLUE FOG.** The world's edge, a flat empty horizon or a white washed-out distance must never be
+   visible (V38 252 f "the distance looks flat … very white"; 1192 f "the end of the Earth is visible"). Dense Bankers-blue fog closes every
+   view's distance; the sky stays, but its horizon sits inside the fog.
+4. **MORE BLUE.** Lean the whole film further into the Bankers blues (lights, fog, materials, grade) — the main colour must dominate.
+5. **THE MAIN VISUAL OF EVERY SCENE CASTS PROPER SHADOWS AND IS DETAILED.** Real cast shadows and contact shadows on the hero object(s),
+   lit by the scene's key — never flat, bright, unlit (V38 897 f the two stacks; 37 s the cash register; 39 s the car). "If an object is a
+   main visual in a scene, there needs to be shadows on it, and it needs to be detailed."
+6. **NO 2-D LEADER LABELS FLOATING OVER THE PICTURE** (V38 69 f "Evart, Michigan" with its line: "it's sort of all over the screen … it's too
+   much"). Removed until Timur picks a replacement from style frames. Panel-type counters he has accepted (e.g. "2003–2012 · 9 years") may
+   stay. Figures that belong to objects become 3-D IN the world (e.g. V38 30 s "3,600" / "5,154": a plaque lying flat on the table in
+   front of each stack, or on/behind the stack), not 2-D cards on the screen.
+7. **SUBTITLES — LOW ON THE SCREEN, TEXT ONLY.** Bottom of the frame, as Bankers used to be; NO pill/background shape behind the words and NO
+   keyword box (V38 255 f "9 years … covered by this blue box"). Just the words (karaoke word timing kept), legible on their own.
+8. **NO PHOTOS / IMAGES** popping up in the film (V38 11.17 s Jerry and Marge Selbee, and any others) — removed.
+9. **NO STRAY GRAPHIC LINES ON OBJECTS** (V38 749 f the blue line through the middle of the scale).
+
 ## 0. What this account is
 
 - **The page:** short-form vertical videos for **Bankers — @bankers** (~361K followers, Sept 2026).
