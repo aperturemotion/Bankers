@@ -327,7 +327,6 @@ const sfx = () => {
     cueAt("sub", t.s0 + 2, 40, 0.45),                           // the monolith rising
     cueAt("chainshort", t.all, 30, 0.22),
     cueAt("ov_clank", t.company + 10, 14, 0.22),                // rev 6: the column locks at full height on its plinth
-    cueAt("pingshort", G0 + 2, 12, 0.5),                        // the shell flashing to glass
     cueAt("ee_whoosh_fast_small_whoosh_01", G0 + 1, 12, 0.3),
     cueAt("ee_clock_clock_ticking_01", t.m26 - 2, 28, 0.16),    // rev 7: the plate's drums rolling up …
     cueAt("ee_click_click_01", t.m26 + 26, 6, 0.22),            // … and locking on 26,000,000
@@ -335,7 +334,6 @@ const sfx = () => {
     cueAt("ov_paper_unfold", t.m8 - 6, 14, 0.18),               // rev 7: the wrapper band goes round the profit slab
     cueAt("whooshsoft", t.m8 + 6, 20, 0.4),                     // the slab lifting out
     cueAt("ov_money_drop", t.profit + 10, 14, 0.16),            // rev 6: the lifted slab settles (its bundles shift)
-    cueAt("pingshort", t.m8 + 14, 12, 0.35),
     cueAt("airwoosh", t.tax - 5, 30, 0.4),                     // the glide to the house (rev 5: fastest ≈ 2053; airwoosh peaks 21 f in)
     cueAt("whooshsoft", t.family + 8, 14, 0.3)                  // the push in toward the window
   ];

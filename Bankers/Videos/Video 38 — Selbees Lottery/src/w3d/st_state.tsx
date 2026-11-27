@@ -439,7 +439,6 @@ const sfx = () => {
     cueAt("ov_paper_flutter", t.made, 24, 0.15),                  // rev 6: the strapped bundles in flight …
     cueAt("ov_money_drop", t.made + 28, 16, 0.2), cueAt("ov_money_drop", t.m120 + 22, 16, 0.17),   // … landing inside the door
     cueAt("coin", t.made + 6, 16, 0.35), cueAt("coin", t.m120 + 6, 16, 0.35), cueAt("coin", t.m120 + 20, 16, 0.3),
-    cueAt("pingshort", t.m120 + 24, 12, 0.35)                      // rev 7: the amount finishes on the cheque
   ];
 };
 export const ST = { id: "state", origin: O_STATE, from: LEAVE_A - 14, to: wAt("in", wAt("$120", 1700)) + 24, light: { target: [0, 0, -12], shadowBox: 24, keyI: 1.6, fillI: 0.32, rimI: 1.9 }, shots, Scene, Overlay, sfx };

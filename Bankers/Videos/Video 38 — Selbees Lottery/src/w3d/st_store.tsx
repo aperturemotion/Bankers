@@ -691,15 +691,12 @@ const sfx = () => {
   const t = T();
   return [
     cueAt("whooshlong", t.in2003 + 4, 50, 0.45),   // rev 5: the slow glide down main street (fastest at its middle)
-    cueAt("pingshort", t.y2003 - 2, 12, 0.35),
     cueAt("whooshsoft", Math.round((t.read - 4 + t.newG + 23) / 2) - 6, 30, 0.42), // rev 5: through the window, down onto the leaflet
     // rev 6: the leaflet's paper — the left flap opens over (newG − 2 … the midpoint of broOpen), the right one after it
     cueAt("ov_paper_unfold", t.newG + 1, 22, 0.32),
     cueAt("ov_paper_unfold", Math.round((t.newG - 2 + t.winfall + 6) / 2) + 1, 22, 0.28),
     cueAt("ee_click_click_01", t.loophole - 3, 6, 0.4),          // the highlighter's cap
-    cueAt("pingshort", t.loophole + 6, 12, 0.35),
     cueAt("ee_clock_clock_ticking_01", t.three - 10, 26, 0.38),   // rev 7: the kitchen timer's seconds rolling to 3:00
-    cueAt("pingshort", t.three + 2, 10, 0.22),                  // rev 7: its beep at 3:00
     cueAt("airwoosh", Math.round((IN(t).c0 + IN(t).c1) / 2) - 4, 24, 0.45)   // rev 5: the push into the diagram (fastest zoom at its middle)
   ];
 };

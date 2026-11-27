@@ -755,7 +755,6 @@ const sfx = () => {
   return [
     cueAt("coin", t.cut + 4, 14, 0.35), cueAt("coin", t.cut + 16, 14, 0.3), cueAt("chainshort", t.cut + 2, 30, 0.22),
     cueAt("whooshsoft", (t.cut + 2 + t.money + 4) / 2 - 8, 30, 0.35),   // rev 5: on the slow pull-back's fastest frame
-    cueAt("pingshort", t.five + 10, 12, 0.4),                     // the coins reach the $5M ring
     cueAt("data", t.five - 14, 16, 0.12),                         // rev 7: the jackpot meter's last digits racing up to $5,000,000 (lands five + 2)
     cueAt("ee_click_click_01", t.nobody, 6, 0.45), cueAt("ee_click_click_01", t.nobody + 20, 6, 0.35),   // the gate's lamp
     cueAt("ee_click_click_01", t.rolled - 10, 6, 0.4),            // the spout door

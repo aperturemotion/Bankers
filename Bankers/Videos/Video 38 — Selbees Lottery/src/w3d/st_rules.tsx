@@ -107,8 +107,6 @@ const sfx = () => {
     cueAt("ov_paper_flutter", t.luck - 2, 18, 0.15),                // rev 6: the ticket sliding off the page …
     cueAt("ee_click_click_01", t.luckE + 8, 6, 0.15),              // … and coming to rest on the counter
     cueAt("whooshsoft", t.its + 2, 16, 0.3),                         // the lean in
-    cueAt("pingshort", t.reading + 4, 12, 0.3),                      // the highlight starts
-    cueAt("pingshort", t.rules + 2, 12, 0.35),                       // …and completes
     cueAt("airwoosh", t.rulesE - 6, 26, 0.3)                         // the pull back across the street
   ];
 };

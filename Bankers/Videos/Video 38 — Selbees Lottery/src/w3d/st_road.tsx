@@ -382,7 +382,6 @@ const sfx = () => {
     cueAt("ee_click_click_01", MILES_WORD - 4, 6, 0.15),         // rev 7: the gantry's LED band lights (→ 900 MILES)
     cueAt("airwoosh", 1192, 40, 0.35),                           // the gantry passes over the camera
     cueAt("whooshsoft", 1210, 30, 0.25),                         // the slow rise to the aerial
-    cueAt("pingshort", t.betting + 2, 20, 0.3),                  // the shell turns to glass
     cueAt("thud", JOLT_AT, 10, 0.15),                            // the road joint
     cueAt("ov_clank", JOLT_AT + 1, 10, 0.12),                    // the totes jump and settle
     cueAt("coin", t.money + 12, 14, 0.3),                        // $600,000 lands (the big word)

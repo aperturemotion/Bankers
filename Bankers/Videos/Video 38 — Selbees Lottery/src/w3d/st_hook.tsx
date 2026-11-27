@@ -387,7 +387,6 @@ const sfx = () => {
     cueAt("thud", t.lottery + 5, 14, 0.38),
     cueAt("ov_paper_flutter", t.next - 26, 14, 0.18),
     cueAt("thud", t.next - 12, 12, 0.2),                      // rev 4b: the ticket slaps down flat on the road
-    cueAt("pingshort", t.legally, 12, 0.5),
     cueAt("coin", t.years, 16, 0.45),
   ];
 };

@@ -254,7 +254,6 @@ const sfx = () => {
     cueAt("whooshsoft", t.y2011 + 12, 24, 0.45),                  // up over the plaza as the paper falls
     cueAt("ov_paper_flutter", t.y2011 + 8, 20, 0.16),             // rev 6: the Globe flutters down …
     cueAt("ov_newspaper", t.boston - 2, 16, 0.3),                 // rev 6: … and slaps onto the table
-    cueAt("pingshort", t.boston + 4, 18, 0.35),                  // JULY 2011
     cueAt("whooshsoft", t.many + 28, 24, 0.35),                   // rev 5: the crane up off the stack onto MIT (fastest ≈ many + 36)
     cueAt("sub", t.rigged, 26, 0.5)                               // RIGGED?
   ];

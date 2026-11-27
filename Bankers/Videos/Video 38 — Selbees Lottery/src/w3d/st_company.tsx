@@ -261,7 +261,6 @@ const sfx = () => {
   const t = T();
   return [
     cueAt("ee_paper_paper_tear_01", t.cut + 10, 20, 0.18),                         // the certificates fan out (paper)
-    cueAt("pingshort", t.cut + 8, 10, 0.25),                                       // $500 PER SHARE
     cueAt("whooshsoft", t.cut + 24, 24, 0.3),                                      // the slow pull-back off the seal
     cueAt("whooshsoft", 950, 24, 0.25),                                            // the push up onto the board
     cueAt("ov_chalk", Math.round(drawAt(t, 0)), Math.round(TWELVE_AT(t) + 11 - drawAt(t, 0)) + 4, 0.35),   // the twelve chalk strokes, then "= 12" chalked on the word
