@@ -63,10 +63,18 @@ const Lamp = ({ x, z }) => (
   </group>
 );
 // the town-limit sign: green in Michigan, here in the house navy-white (the Bankers palette)
-const signTex = () => canvasTex("evartSign", 512, 320, (c, w, h) => {
+const signTex = () => canvasTex("evartSign" + (LABEL_STYLE === "world" ? "_mi" : ""), 512, 320, (c, w, h) => {
   c.fillStyle = "#0B3F7A"; c.fillRect(0, 0, w, h);
   c.strokeStyle = "#FFFFFF"; c.lineWidth = 10; c.strokeRect(16, 16, w - 32, h - 32);
   c.fillStyle = "#FFFFFF"; c.textAlign = "center";
+  if (LABEL_STYLE === "world") {
+    // rev 5 style-frame option "world": the place is named by the scene's own city-limit sign — EVART / MICHIGAN / POP. 1,903
+    c.font = `700 104px ${BODY}`; c.fillText("EVART", w / 2, 128);
+    c.font = `700 44px ${BODY}`; c.fillText("M I C H I G A N", w / 2, 192);
+    c.fillRect(w / 2 - 120, 212, 240, 4);
+    c.font = `600 56px ${BODY}`; c.fillText("POP. 1,903", w / 2, 274);
+    return;
+  }
   c.font = `700 112px ${BODY}`; c.fillText("EVART", w / 2, 150);
   c.font = `600 64px ${BODY}`; c.fillText("POP. 1,903", w / 2, 250);
 });
@@ -120,12 +128,12 @@ const WorldLabel = ({ f, t }) => {
   const tex = useMemo(placeTex, []);
   const k = ease(f, t.town - 14, t.town + 4) * (1 - ease(f, t.retired - 10, t.retired + 6));
   if (k <= 0.001) return null;
-  const W = 3.2, H = 0.8;
+  const W = 2.6, H = 0.65;
   return (
-    <group position={[ROAD_W / 2 + 0.6, -H + (H + 0.55) * k, -9.5]} rotation-y={-0.5}>
+    <group position={[-(ROAD_W / 2 + 0.9), -H + (H + 1.1) * k, -13]} rotation-y={0.55}>
       <mesh castShadow receiveShadow><boxGeometry args={[W + 0.12, H + 0.12, 0.08]} /><meshStandardMaterial color="#14253D" metalness={0.6} roughness={0.35} /></mesh>
       <mesh position={[0, 0, 0.042]}><planeGeometry args={[W, H]} /><meshStandardMaterial map={tex} emissiveMap={tex} emissive="#FFFFFF" emissiveIntensity={0.55} roughness={0.4} /></mesh>
-      {[-1.2, 1.2].map((x, i) => <mesh key={i} position={[x, -H / 2 - 0.3, -0.02]} castShadow><boxGeometry args={[0.07, 0.6, 0.07]} /><meshStandardMaterial color="#2A3B52" metalness={0.7} roughness={0.4} /></mesh>)}
+      {[-1.0, 1.0].map((x, i) => <mesh key={i} position={[x, -H / 2 - 0.55, -0.02]} castShadow><boxGeometry args={[0.07, 1.1, 0.07]} /><meshStandardMaterial color="#2A3B52" metalness={0.7} roughness={0.4} /></mesh>)}
     </group>
   );
 };
@@ -141,7 +149,6 @@ const Scene = ({ f }) => {
   const tp = ticketPose(t, f);
   return (
     <group>
-      {LABEL_STYLE === "world" && <WorldLabel f={f} t={t} />}
       <Sky />
       {/* ground: wet asphalt road, sidewalks, the verges */}
       <mesh rotation-x={-Math.PI / 2} position={[0, 0, -60]} receiveShadow><planeGeometry args={[ROAD_W, 220]} /><meshStandardMaterial map={asphalt} color="#7a8aa3" roughness={0.32} metalness={0.15} /></mesh>

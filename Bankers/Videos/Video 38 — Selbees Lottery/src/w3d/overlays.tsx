@@ -26,8 +26,8 @@ export const Tag = ({ text, at, out = 1e9, x, y, to, side = "left", size = 30 })
   if (LABEL_STYLE === "type") {
     // a typographic kicker: small spaced caps, a short light-blue rule above, no chip, no leader; rises in, fades out
     return (
-      <div style={{ position: "absolute", left: 80, top: 250, opacity: vis, transform: `translateY(${(1 - kIn) * 16}px)`, pointerEvents: "none" }}>
-        <div style={{ width: 64 * kIn, height: 3, background: "#7FB4F2", marginBottom: 14, borderRadius: 2 }} />
+      <div style={{ position: "absolute", left: 0, width: 1080, top: 1236, display: "flex", flexDirection: "column", alignItems: "center", opacity: vis, transform: `translateY(${(1 - kIn) * 16}px)`, pointerEvents: "none" }}>
+        <div style={{ width: 64 * kIn, height: 3, background: "#7FB4F2", marginBottom: 12, borderRadius: 2 }} />
         <div style={{ fontFamily: BODY, fontWeight: 700, fontSize: 34, letterSpacing: 7, color: "#F2F7FD", textTransform: "uppercase", whiteSpace: "nowrap",
           textShadow: "0 2px 4px rgba(0,6,16,0.8), 0 0 16px rgba(0,6,16,0.5)" }}>{text}</div>
       </div>
