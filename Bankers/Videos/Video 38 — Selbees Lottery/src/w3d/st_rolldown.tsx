@@ -25,8 +25,8 @@ import { BODY, FIGURE } from "./fonts3d";
 import { drawTicket } from "./ticket_art";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
-import { TK_N, tkLocal, PILE_K, MATCH_CUT } from "./ticket_stack";
-import { TicketBundle, ContactShadow } from "./ticket_bundle";
+import { TK_N, tkLocal, PILE_K, MATCH_CUT, cue } from "./ticket_stack";
+import { TicketBundle, ContactShadow, AOFlat, AOSkirt, AOSleeve, AOGroove, AORing } from "./ticket_bundle";
 import { HOOK_SHIFT } from "./shift";
 
 const O = [300, 0, 0];
@@ -216,6 +216,12 @@ const Bin = ({ w, d, k, lit, h, open = false, gate = false, lite = false, postX 
       <mesh geometry={geo.strips} material={stripMat} />
       {/* the floor: navy enamel inside the glass */}
       <mesh position={[0, 0.004, 0]} rotation-x={-Math.PI / 2} material={M.enamel} receiveShadow><planeGeometry args={[w - 0.04, d - 0.04]} /></mesh>
+      {/* rev 6 — baked AO: the floor darkens into its corners where the glass meets it, under the coin heap as it fills, round the post's
+          foot on the studio floor, and on the post just under the bin's base */}
+      {!lite && <AOFlat position={[0, 0.008, 0]} size={[w - 0.04, d - 0.04]} kind="frame" opacity={0.6} />}
+      {!lite && lit > 0.01 && <AOFlat position={[0, 0.009, 0]} size={[w * 0.9, d * 0.9]} kind="rect" opacity={0.35 * lit} />}
+      {!lite && <AOFlat position={[postX + 0.06, -h + 0.007, POST_Z + 0.04]} size={[0.8, 0.8]} opacity={0.6} />}
+      {!lite && <AOSleeve position={[postX, -BASE_H - 0.36, POST_Z]} r={0.064} h={0.28} opacity={0.5} flip />}
       {/* the tier plate: the engraved enamel panel and its six enamel balls */}
       <mesh position={[0, -BASE_H - 0.26, d / 2 + 0.101]}><planeGeometry args={[1.08, 0.37]} /><meshStandardMaterial map={plate} emissiveMap={plate} emissive="#ffffff" emissiveIntensity={0.32 + 0.5 * lit} roughness={0.3} metalness={0.1} /></mesh>
       {!lite && BALL_NUMS.map((n, i) => <mesh key={n} geometry={ballGeo} material={balls[i]} position={[((i - 2.5) * 262 / 2048) * 1.08, -BASE_H - 0.26 - ((530 - 352) / 704) * 0.37, d / 2 + 0.115]} castShadow={false} />)}
@@ -235,7 +241,9 @@ const Chute = ({ L, r = 0.2, sh = true }) => {
   }, [L, r]);
   // a light-blue line along each rolled lip (the house's lit edge; it shows the chute's curve and its run)
   const lips = useMemo(() => mergeGeometries([cyl(0.006, 0.006, L - 0.04, L / 2, 0.016, r + 0.01, 6, 0, Math.PI / 2).toNonIndexed(), cyl(0.006, 0.006, L - 0.04, L / 2, 0.016, -(r + 0.01), 6, 0, Math.PI / 2).toNonIndexed()]), [L, r]);
-  return (<><mesh geometry={g} material={M.polished} castShadow={sh} receiveShadow /><mesh geometry={lips} material={M.chrome} /></>);   // rev 5: chrome lip beads, no lit lines
+  // rev 6: the half-pipe's inside bottom darkens along its run (baked AO: it reads as a trough, not a flat strip)
+  return (<><mesh geometry={g} material={M.polished} castShadow={sh} receiveShadow /><mesh geometry={lips} material={M.chrome} />
+    {sh && <AOGroove position={[L / 2, -r + 0.012, 0]} L={L - 0.06} wd={r * 1.5} opacity={0.5} />}</>);   // rev 5: chrome lip beads, no lit lines
 };
 const Tray = ({ tr, lit, lite }) => (
   <group position={[tr.x, tr.y, 0]}><Bin w={tr.w} d={tr.d} k={tr.k} lit={lit} h={tr.y} open={tr.k > 3} lite={lite} /></group>
@@ -337,12 +345,22 @@ const heap = (f, { n, cx, cy, cz, w, d, layers, k, seed, t0, t1 }) => {
   }
   return out;
 };
+// rev 6: a cylinder's turn into shade, around u (three's CylinderGeometry: x = r·sin(2πu), z = r·cos(2πu)); lit toward the station key
+//   (horizontal direction (−9, 8) from the light target), darkest on the opposite side
+const wallShadeTex = () => canvasTex("rd_wallshade_v6", 256, 4, (c, w, h) => {
+  const lit = Math.atan2(-9, 8);   // θ with sinθ ∝ x = −9, cosθ ∝ z = 8
+  for (let i = 0; i < w; i++) {
+    const th = ((i + 0.5) / w) * Math.PI * 2, k = Math.max(0, -Math.cos(th - lit) + 0.25) / 1.25;
+    c.fillStyle = `rgba(0,6,18,${(0.62 * Math.pow(k, 0.9)).toFixed(3)})`; c.fillRect(i, 0, 1, h);
+  }
+});
 // ── parts ────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 const Ring = ({ y, r = R + 0.06, tube = 0.05, m = MAT.steel }) => (
   <mesh position={[0, y, 0]} rotation-x={Math.PI / 2} material={m} castShadow><torusGeometry args={[r, tube, 12, 64]} /></mesh>
 );
 // the machine (drawn twice: once for real, once mirrored in the glossy floor)
 const Machine = ({ f, t, mirror = false }) => {
+  const wallShade = useMemo(wallShadeTex, []);
   const stack = useMemo(() => { const x = stackTex().clone(); x.wrapS = x.wrapT = THREE.RepeatWrapping; x.needsUpdate = true; return x; }, []);
   const L = level(t, f);
   const hgt = Math.max(0.01, L - BASE);
@@ -361,6 +379,12 @@ const Machine = ({ f, t, mirror = false }) => {
       {/* the coin column: the stack's wall, the loose coins on top, the glass, collars, the cage */}
       <mesh position={[0, BASE + hgt / 2, 0]} castShadow={sh}><cylinderGeometry args={[R - 0.07, R - 0.07, hgt, 48, 1, true]} /><meshStandardMaterial map={stack} roughness={0.3} metalness={0.85} envMapIntensity={1.3} /></mesh>
       <mesh position={[0, L - 0.005, 0]}><cylinderGeometry args={[R - 0.08, R - 0.08, 0.01, 48]} /><meshStandardMaterial color="#8FA7C8" roughness={0.35} metalness={0.85} /></mesh>
+      {/* rev 6 — baked AO where the coin wall stands in its base collar and where the column meets the plinth's top */}
+      {!mirror && <AOSleeve position={[0, BASE + 0.02, 0]} r={R - 0.064} h={0.55} opacity={0.5} />}
+      {/* rev 6: the coin wall turns away from the key — its far side falls into shade (it read as a flat lit drum) */}
+      {!mirror && <mesh position={[0, BASE + hgt / 2, 0]} renderOrder={1}><cylinderGeometry args={[R - 0.066, R - 0.066, hgt, 64, 1, true]} /><meshBasicMaterial map={wallShade} color="#000000" transparent depthWrite={false} toneMapped={false} /></mesh>}
+      {!mirror && <AORing position={[0, 0.563, 0]} r0={R + 0.06} r1={1.22} opacity={0.6} />}
+      {!mirror && <AORing position={[0, 0.343, 0]} r0={1.3} r1={1.56} opacity={0.5} />}
       <Coins f={f} n={60} shadows={false} list={(ff) => {
         const LL = level(t, ff);
         return Array.from({ length: 60 }, (_, j) => {
@@ -382,6 +406,7 @@ const Machine = ({ f, t, mirror = false }) => {
         <group position={[R + 0.01, TOP - 0.08, 0]} rotation-z={-0.1}><Chute L={T6.x - T6.w / 2 - R - 0.04} r={0.2} sh={sh} /></group>
         <group position={[T6.x, T6.y - 0.3, 0]}>
           <Bin w={T6.w} d={T6.d} k={6} lit={0.25} h={T6.y - 0.3} gate postX={0.45} lite={mirror} />
+          {!mirror && <AOFlat position={[-T6.w / 2 + 0.1, 0.01, 0]} size={[0.32, 0.95]} kind="rect" opacity={0.5} />}
           {/* the gate: a frame of bars across the chute's mouth, with a lock and its lamp */}
           <group position={[-T6.w / 2 - 0.02, 0.32, 0]}>
             {/* the frame: posts, rails */}
@@ -486,6 +511,9 @@ const Balance = ({ f, t }) => {
       <mesh position={[0, 0.125, 0]} material={MAT.steel} castShadow receiveShadow><cylinderGeometry args={[0.47, 0.5, 0.012, 56]} /></mesh>
       <mesh position={[0, 0.18, 0]} material={MAT.dark} castShadow receiveShadow><cylinderGeometry args={[0.32, 0.4, 0.1, 48]} /></mesh>
       <mesh position={[0, H / 2 + 0.1, 0]} material={MAT.steel} castShadow receiveShadow><cylinderGeometry args={[0.05, 0.07, H - 0.1, 24]} /></mesh>
+      {/* rev 6 — baked AO: the column's foot on the base, the base's step on its plinth */}
+      <AORing position={[0, 0.232, 0]} r0={0.072} r1={0.3} opacity={0.6} />
+      <AORing position={[0, 0.133, 0]} r0={0.4} r1={0.5} opacity={0.45} />
       {[0.27, H * 0.5, H - 0.32].map((y, i) => <mesh key={i} position={[0, y, 0]} material={MAT.dark} castShadow><cylinderGeometry args={[0.078 - i * 0.008, 0.078 - i * 0.008, 0.05, 24]} /></mesh>)}
       <mesh position={[0, H - 0.08, 0]} material={MAT.steel} castShadow><cylinderGeometry args={[0.1, 0.06, 0.12, 24]} /></mesh>
       {/* the knife-edge bearing: a block with a V, the beam rocking on it */}
@@ -502,6 +530,7 @@ const Balance = ({ f, t }) => {
       {panG(-1, (
         <group rotation-y={PILE_YAW} scale={PILE_K}>
           <ContactShadow position={[0, 0.01, 0]} size={[2.1, 2.3]} opacity={0.55 * ease(f, t.enough - 8, t.enough)} />
+          {f > t.enough - 2 && <AOSkirt w={1.38} d={1.62} h={0.5} opacity={0.4 * ease(f, t.enough - 2, t.enough + 4)} />}
           {Array.from({ length: nT }, (_, i) => {
             const land = ease(f, t.enough - 10 + i * 1.15, t.enough + 2 + i * 1.15);
             if (land <= 0) return null;
@@ -510,7 +539,10 @@ const Balance = ({ f, t }) => {
           })}
         </group>
       ))}
-      {panG(1, <Coins f={f} n={60} list={(ff) => heap(ff, { n: 60, cx: 0, cy: 0.0, cz: 0, w: 0.5, d: 0.5, layers: 4, k: 1, seed: 900, t0: t.put, t1: t.math + 4 })} />)}
+      {panG(1, <>
+        <AOFlat position={[0, 0.004, 0]} size={[0.75, 0.75]} opacity={0.5 * ease(f, t.put, t.put + 8)} />
+        <Coins f={f} n={60} list={(ff) => heap(ff, { n: 60, cx: 0, cy: 0.0, cz: 0, w: 0.5, d: 0.5, layers: 4, k: 1, seed: 900, t0: t.put, t1: t.math + 4 })} />
+      </>)}
     </group>
   );
 };
@@ -542,8 +574,8 @@ const Studio = () => {
       {/* rev 5: a shadow catcher over the floor where the machine and the balance stand — the key's cast shadows read on the dark
           glossy floor (the floor's own diffuse is too dark to show them) */}
       <mesh rotation-x={-Math.PI / 2} position={[4, 0.008, 1]} receiveShadow><planeGeometry args={[22, 18]} /><shadowMaterial transparent opacity={0.55} color="#000814" depthWrite={false} /></mesh>
-      <ContactShadow position={[0, 0.009, 0]} size={[4.2, 4.2]} opacity={0.5} />
-      <ContactShadow position={[BAL.x, 0.009, BAL.z]} size={[1.9, 1.9]} opacity={0.6} ry={BAL.yaw} />
+      <AOFlat position={[0.15, 0.009, -0.1]} size={[4.4, 4.4]} opacity={0.6} />
+      <AOFlat position={[BAL.x + 0.06, 0.009, BAL.z - 0.05]} size={[1.75, 1.75]} opacity={0.7} />
       <mesh rotation-x={-Math.PI / 2} position={[2.5, 0.006, 0.5]}><planeGeometry args={[16, 16]} /><meshBasicMaterial map={pool} transparent blending={THREE.AdditiveBlending} depthWrite={false} opacity={0.55} /></mesh>
       <mesh rotation-x={-Math.PI / 2} position={[BAL.x, 0.007, BAL.z]}><planeGeometry args={[6, 6]} /><meshBasicMaterial map={pool} transparent blending={THREE.AdditiveBlending} depthWrite={false} opacity={0.4} /></mesh>
       {/* a soft top light on the machine and one on the balance */}
@@ -648,7 +680,17 @@ const sfx = () => {
     cueAt("whooshlong", (t.side + MATCH_CUT()) / 2 - 12, 34, 0.38),   // the push onto the ticket stack (the match)
     cueAt("ee_click_click_01", t.enough + 2, 6, 0.3), cueAt("ee_click_click_01", t.tickets + 6, 6, 0.3),
     cueAt("chainshort", t.tickets + 10, 24, 0.25),
-    cueAt("thud", t.math + 8, 12, 0.4)
+    cueAt("thud", t.math + 8, 12, 0.4),
+    // ★ rev 6 — context sounds on the visible actions
+    cue("ov_clank", t.rolled - 12, 12, 0.2),                       // the spout's door slides up
+    cue("ov_coins", t.rolled - 2, 30, 0.3),                         // the coins pour out of the spout into MATCH 5
+    cue("ov_coins", t.rolled + 18, 26, 0.22),                       // … roll on down into MATCH 4
+    cue("ov_coins", t.smaller + 2, 26, 0.2),                        // … and into MATCH 3
+    cue("ov_paper_flutter", t.enough - 6, 24, 0.2),                 // the ticket bundles drop onto the left pan
+    cueAt("thud", t.enough + 2, 8, 0.14), cueAt("thud", t.enough + 16, 8, 0.12), cueAt("thud", t.enough + 30, 8, 0.12),   // bundles landing (674 → 714)
+    cue("ov_clank", t.tickets + 10, 12, 0.16),                      // the left pan settles low
+    cue("ov_coins", t.put, 26, 0.3),                                // the prize coins pour onto the right pan
+    cue("ov_clank", t.math + 8, 14, 0.3)                            // the beam tips over and the right pan bottoms out
   ];
 };
 export const ST = { id: "rolldown", origin: O, from: 477, to: MATCH_CUT() + 2, light: { target: [3, 0, 0.8], shadowBox: 9, keyI: 2.2, fillI: 0.45 }, shots, Scene, Overlay, sfx };

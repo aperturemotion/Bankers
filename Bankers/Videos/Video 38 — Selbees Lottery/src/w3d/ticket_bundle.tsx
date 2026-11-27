@@ -78,3 +78,91 @@ export const ContactShadow = ({ position, size, opacity = 0.6, ry = 0 }) => {
     </mesh>
   );
 };
+// ── rev 6 (Timur, 2026-11-27: "at least add those fake shadows … a dark subtle shape under it, the correct one … you can see the corners
+//   better … we don't want unlit objects"): cheap baked-AO quads, black with an alpha gradient, laid where things meet things. All are
+//   MeshBasic + transparent, so kit.ShadowAll leaves them out; depthWrite off and a polygon offset so they never z-fight.
+// a round soft footprint (a radial falloff): under round feet, posts, mugs, lamp bases, coin heaps
+export const discTex = () => canvasTex("q_aodisc", 128, 128, (c, w, h) => {
+  const g = c.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
+  g.addColorStop(0, "rgba(0,6,18,1)"); g.addColorStop(0.45, "rgba(0,6,18,0.75)"); g.addColorStop(0.75, "rgba(0,6,18,0.25)"); g.addColorStop(1, "rgba(0,6,18,0)");
+  c.fillStyle = g; c.fillRect(0, 0, w, h);
+});
+// a ring: dark at its inner edge (where a column meets a plate), fading outward; inner radius = 0.42 of the quad's half-size
+export const ringTex = () => canvasTex("q_aoring", 256, 256, (c, w, h) => {
+  const g = c.createRadialGradient(w / 2, h / 2, w * 0.2, w / 2, h / 2, w / 2);
+  g.addColorStop(0, "rgba(0,6,18,0)"); g.addColorStop(0.02, "rgba(0,6,18,0.95)"); g.addColorStop(0.3, "rgba(0,6,18,0.35)"); g.addColorStop(1, "rgba(0,6,18,0)");
+  c.fillStyle = g; c.fillRect(0, 0, w, h);
+});
+// a vertical falloff: dark at the bottom edge (v = 0), clear by the top — the AO that climbs a wall or a stack from the surface it stands on
+export const rampTex = () => canvasTex("q_aoramp", 8, 128, (c, w, h) => {
+  const g = c.createLinearGradient(0, h, 0, 0);
+  g.addColorStop(0, "rgba(0,6,18,1)"); g.addColorStop(0.25, "rgba(0,6,18,0.45)"); g.addColorStop(0.6, "rgba(0,6,18,0.1)"); g.addColorStop(1, "rgba(0,6,18,0)");
+  c.fillStyle = g; c.fillRect(0, 0, w, h);
+});
+// a floor vignette: dark along all four edges (the corners of a box where its walls meet its floor), clear in the middle
+export const frameTex = () => canvasTex("q_aoframe", 128, 128, (c, w, h) => {
+  c.clearRect(0, 0, w, h);
+  const e = (x0, y0, x1, y1) => { const g = c.createLinearGradient(x0, y0, x1, y1); g.addColorStop(0, "rgba(0,6,18,0.9)"); g.addColorStop(1, "rgba(0,6,18,0)"); return g; };
+  const m = 30;
+  c.fillStyle = e(0, 0, m, 0); c.fillRect(0, 0, m, h); c.fillStyle = e(w, 0, w - m, 0); c.fillRect(w - m, 0, m, h);
+  c.fillStyle = e(0, 0, 0, m); c.fillRect(0, 0, w, m); c.fillStyle = e(0, h, 0, h - m); c.fillRect(0, h - m, w, m);
+});
+// a groove: dark along the middle of its width (u), clear at both edges — the inside bottom of a chute
+export const grooveTex = () => canvasTex("q_aogroove2", 8, 64, (c, w, h) => {   // dark along the middle of its height (v): across the chute
+  const g = c.createLinearGradient(0, 0, 0, h);
+  g.addColorStop(0, "rgba(0,6,18,0)"); g.addColorStop(0.5, "rgba(0,6,18,1)"); g.addColorStop(1, "rgba(0,6,18,0)");
+  c.fillStyle = g; c.fillRect(0, 0, w, h);
+});
+const aoMat = (map, opacity) => new THREE.MeshBasicMaterial({ map, color: "#000000", transparent: true, opacity, depthWrite: false, toneMapped: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+/** a flat AO quad on a horizontal surface. kind: "disc" | "ring" | "frame" | "rect" (the blurred rounded rect) */
+export const AOFlat = ({ position, size, kind = "disc", opacity = 0.5, ry = 0 }) => {
+  const m = useMemo(() => aoMat(kind === "ring" ? ringTex() : kind === "frame" ? frameTex() : kind === "rect" ? contactTex() : discTex(), opacity), [kind]);
+  m.opacity = opacity;
+  return <mesh position={position} rotation={[-Math.PI / 2, 0, ry]} material={m} renderOrder={1}><planeGeometry args={size} /></mesh>;
+};
+/** an AO skirt around a box footprint (w × d) standing on a surface: four upright quads, dark at the foot, clear by height h */
+export const AOSkirt = ({ position = [0, 0, 0], w, d, h, opacity = 0.45, ry = 0, out = 0.004 }) => {
+  const m = useMemo(() => aoMat(rampTex(), opacity), []);
+  m.opacity = opacity;
+  const sides = [[0, d / 2 + out, 0, w], [0, -d / 2 - out, Math.PI, w], [w / 2 + out, 0, Math.PI / 2, d], [-w / 2 - out, 0, -Math.PI / 2, d]];
+  return (
+    <group position={position} rotation-y={ry}>
+      {sides.map(([x, z, r, L], i) => <mesh key={i} position={[x, h / 2, z]} rotation-y={r} material={m} renderOrder={1}><planeGeometry args={[L, h]} /></mesh>)}
+    </group>
+  );
+};
+/** an AO sleeve around a cylinder (radius r) standing on a surface: dark at its foot, clear by height h (open-ended cylinder, outside) */
+export const AOSleeve = ({ position = [0, 0, 0], r, h, opacity = 0.45, flip = false }) => {
+  const m = useMemo(() => { const x = aoMat(rampTex(), opacity); x.side = THREE.DoubleSide; return x; }, []);
+  m.opacity = opacity;
+  return <mesh position={[position[0], position[1] + h / 2, position[2]]} rotation-x={flip ? Math.PI : 0} material={m} renderOrder={1}><cylinderGeometry args={[r, r, h, 48, 1, true]} /></mesh>;
+};
+/** an upright AO quad (a soft shadow on a wall behind something): kind "disc" */
+export const AOWall = ({ position, size, opacity = 0.4, ry = 0 }) => {
+  const m = useMemo(() => aoMat(discTex(), opacity), []);
+  m.opacity = opacity;
+  return <mesh position={position} rotation-y={ry} material={m} renderOrder={1}><planeGeometry args={size} /></mesh>;
+};
+/** a groove quad along x (length L, width wd), lying flat — the inside bottom of a chute */
+export const AOGroove = ({ position, L, wd, opacity = 0.5 }) => {
+  const m = useMemo(() => aoMat(grooveTex(), opacity), []);
+  m.opacity = opacity;
+  return <mesh position={position} rotation-x={-Math.PI / 2} material={m} renderOrder={1}><planeGeometry args={[L, wd]} /></mesh>;
+};
+/** an upright ramp quad: dark at its bottom edge (flip: at its top edge), clear at the other — AO under a ledge, at the foot of a wall */
+export const AORamp = ({ position, size, opacity = 0.4, ry = 0, flip = false }) => {
+  const m = useMemo(() => aoMat(rampTex(), opacity), []);
+  m.opacity = opacity;
+  return <mesh position={position} rotation={[0, ry, flip ? Math.PI : 0]} material={m} renderOrder={1}><planeGeometry args={size} /></mesh>;
+};
+/** a flat AO annulus (inner radius r0, fading out by r1) on a horizontal surface: where a column or post meets a plate */
+const annulusTex = (k) => canvasTex("q_aoannulus_" + k.toFixed(3), 256, 256, (c, w, h) => {
+  const g = c.createRadialGradient(w / 2, h / 2, (w / 2) * k, w / 2, h / 2, w / 2);
+  g.addColorStop(0, "rgba(0,6,18,1)"); g.addColorStop(0.3, "rgba(0,6,18,0.4)"); g.addColorStop(1, "rgba(0,6,18,0)");
+  c.fillStyle = g; c.fillRect(0, 0, w, h);
+});
+export const AORing = ({ position, r0, r1, opacity = 0.5 }) => {
+  const m = useMemo(() => aoMat(annulusTex(r0 / r1), opacity), [r0, r1]);
+  m.opacity = opacity;
+  return <mesh position={position} rotation-x={-Math.PI / 2} material={m} renderOrder={1}><ringGeometry args={[r0, r1, 64]} /></mesh>;
+};

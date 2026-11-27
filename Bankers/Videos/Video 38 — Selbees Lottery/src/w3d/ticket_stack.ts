@@ -22,3 +22,7 @@ export const TEST_ORIGIN = [600, 0, 0];
 // ★ the MATCH CUT (rolldown → test), story frame: the rolldown camera lands on the pan's stack at MATCH_CUT; the kitchen's first frame
 //   is MATCH_CUT + 1 (a cut shot at `a` lands on a + 1). "Jerry tried it." — on "it." the tickets are his, on his table.
 export const MATCH_CUT = () => wf("it.") - 1;
+// rev 6: a cue for the new "ov_*" sounds the integrator adds to SfxLayer (until a name is listed there, its onset is taken as 0 and the
+//   cue is placed on its frame as is; once listed, cueAt's measured onset applies)
+import { cueAt, ONSET_OF } from "../bnx/SfxLayer";
+export const cue = (s, vis, dur, vol) => (ONSET_OF(s) == null ? { s, at: vis, dur, fade: 0, vol } : cueAt(s, vis, dur, vol));

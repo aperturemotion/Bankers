@@ -21,8 +21,8 @@ import { Room, Outside, TableLamp, Mug, Notepad, formicaTex } from "./st_test_pr
 import { billFaceMat, strapTex, bundleGeo, sealLocal, BILL } from "./money";
 import { SEAL_SCREEN, PUSH_RATE } from "./xfer_seal";
 import { BODY, FIGURE } from "./fonts3d";
-import { TH, TK_N, TKX, tkLocal, TK_TOP, MATCH_CUT, TEST_ORIGIN as ORIGIN } from "./ticket_stack";
-import { TicketBundle, ContactShadow } from "./ticket_bundle";
+import { TH, TK_N, TKX, tkLocal, TK_TOP, MATCH_CUT, TEST_ORIGIN as ORIGIN, cue } from "./ticket_stack";
+import { TicketBundle, ContactShadow, AOFlat, AOSkirt, AOWall, AORamp } from "./ticket_bundle";
 import { Plaque, PL } from "./st_test_plaque";
 import { matchPose } from "./st_rolldown";
 
@@ -100,8 +100,10 @@ const Stacks = ({ f, t }) => {
       <group position={[TKX, 0, 0]}>
         <ContactShadow position={[0, 0.008, 0]} size={[2.05, 2.3]} opacity={0.62} />
         {Array.from({ length: TK_N }, (_, i) => <TicketBundle key={"t" + i} p={tkLocal(i)} />)}
+        <AOSkirt w={1.38} d={1.62} h={0.5} opacity={0.4} />   {/* rev 6: baked AO climbing the stack's foot (the same on the balance's pan) */}
       </group>
       {cashDown > 0 && <ContactShadow position={[CSX, 0.008, 0]} size={[2.3, 2.05]} opacity={0.62 * cashDown} />}
+      {cashDown > 0 && <AOSkirt position={[CSX, 0, 0]} w={1.62} d={1.4} h={0.5} opacity={0.4 * cashDown} />}
       {Array.from({ length: CS_N }, (_, i) => {
         const p = csPose(t, f, i);
         if (!p) return null;
@@ -165,10 +167,23 @@ const Kitchen = () => {
         <mesh key={i} position={[x, -1.25, z]} rotation-y={side ? Math.PI / 2 : 0} receiveShadow castShadow><boxGeometry args={[len, 2.5, 0.04]} /><meshStandardMaterial map={gmSide} roughness={0.92} envMapIntensity={0.35} /></mesh>)}
       {/* rev 5: a shadow catcher on the cloth (the gingham's busy checks swallow the stacks' cast shadows) */}
       <mesh position={[0, 0.006, -1]} rotation-x={-Math.PI / 2} receiveShadow><planeGeometry args={[16.6, 10.6]} /><shadowMaterial transparent opacity={0.4} color="#000814" depthWrite={false} /></mesh>
+      {/* rev 6 — baked AO: the front hem darkens toward its foot; the clock's soft shadow on the wall (down and right, the key's way) */}
+      <AORamp position={[0, -1.25, 4.345]} size={[16.6, 2.5]} opacity={0.5} />
+      <AOWall position={[4.45, 7.1, -11.97]} size={[3.0, 3.0]} opacity={0.45} />
+      <AORamp position={[-4.7, 0.86, -11.985]} size={[8.2, 1.0]} opacity={0.4} flip />   {/* under the window sill */}
       {/* a wall clock on the right of the window (a real kitchen's: chrome bezel, white dial, twelve ticks, hands) */}
       <WallClock position={[4.2, 7.4, -11.6]} />
     </group>
   );
+};
+// rev 6: kit.ShadowAll makes every opaque mesh cast; the lamp's glowing shade and bulb must not (a lit shade threw a dark blob across the
+//   table behind the stacks, 811 f; its thin brass rings drew ring lines) — they are marked noShadow; the vase and stem still cast
+const NoShadeShadow = ({ children }) => {
+  const ref = React.useRef();
+  React.useLayoutEffect(() => {
+    ref.current?.traverse((o) => { if (!o.isMesh) return; const m = o.material; if (o.geometry?.type === "TorusGeometry" || (m && (m.side === THREE.DoubleSide || (m.emissiveIntensity ?? 0) > 0.5))) { o.userData.noShadow = true; o.castShadow = false; } });
+  });
+  return <group ref={ref}>{children}</group>;
 };
 const Scene = ({ f }) => {
   const t = useMemo(T, []);
@@ -178,7 +193,12 @@ const Scene = ({ f }) => {
       <Room wallZ={-12} floorY={-7.4} wx0={-8} wx1={-1.4} wy0={1.6} wy1={10} />
       <Outside floorY={-7.4} wallZ={-12} />
       <Kitchen />
-      <TableLamp position={[-3.4, 0, -6.6]} scale={0.75} power={0.55} />
+      <NoShadeShadow><TableLamp position={[-3.4, 0, -6.6]} scale={0.75} power={0.55} /></NoShadeShadow>
+      {/* ★ rev 6 — BAKED AO on the props (Timur: "at least add those fake shadows … a dark subtle shape under it, the correct one"): a soft
+          footprint where each thing stands (the vase, the notepad, the mug; their cast shadows come from the key) */}
+      <AOFlat position={[-3.4, 0.009, -6.6]} size={[1.9, 1.9]} opacity={0.65} />
+      <AOFlat position={[-4.3, 0.008, 1.9]} size={[2.45, 3.3]} kind="rect" opacity={0.5} ry={0.35} />
+      <AOFlat position={[4.65, 0.009, 1.72]} size={[1.85, 1.85]} opacity={0.6} />
       <Notepad position={[-4.3, 0, 1.9]} ry={0.35} />
       <Mug position={[4.6, 0, 1.7]} ry={-0.6} />
       <Stacks f={f} t={t} />
@@ -268,6 +288,13 @@ const sfx = () => {
     cueAt("ee_click_click_01", t.in63 + 10, 6, 0.3),                 // the BACK plaque's drums come to rest
     cueAt("whooshsoft", (t.in63 + M2[6] + PUSH.a2 + M2[7]) / 2 - 8, 30, 0.25),   // the camera rises with the pour
     ...Array.from({ length: 8 }, (_, k) => cueAt("thud", Math.round(csLand(t, k * 8)), 8, 0.22)),   // bundles landing
+    // ★ rev 6 — context sounds on the visible actions: the drums ticking as the plaques count up, the $1 bundles dropping on the table
+    cueAt("ee_clock_clock_ticking_01", t.in36, 24, 0.18),            // the IN drums tick round (770–794)
+    cueAt("ee_clock_clock_ticking_01", t.in63, 10, 0.16),            // the BACK drums tick round (833–843)
+    cue("ov_money_drop", Math.round(csLand(t, 0)), 14, 0.3),        // the first bundle hits the cloth
+    cue("ov_money_drop", Math.round(csLand(t, 24)), 14, 0.2),
+    cue("ov_money_drop", Math.round(csLand(t, 46)), 14, 0.2),
+    cue("ov_money_drop", Math.round(csLand(t, CS_N - 1)), 14, 0.28),  // the top bundle lands
     cueAt("ee_whoosh_fast_small_whoosh_01", t.out - 27, 12, 0.45)    // the push onto the bill (rev 5: its fastest frame is ≈ 854)
   ];
 };
