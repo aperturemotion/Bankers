@@ -21,7 +21,12 @@ for c in cues:
     s=c["s"]
     if s not in cache: cache[s]=dec(f"public/sfx/{s}.wav")
     a=cache[s]; trim=max(0,-c["at"]); fr=max(0,c["at"]); dur=c["dur"]-trim
+    if c.get("rate"): a=np.interp(np.arange(0,len(a),c["rate"]),np.arange(len(a)),a).astype(np.float32)
     seg=a[int(trim/FPS*SR):int((trim+dur)/FPS*SR)]*even[s]*PRES*lv.get(s,1)*c.get("vol",1)
+    n_=len(seg); fi=int(c.get("fadeIn",0)/FPS*SR); fo=int(c.get("fade",0)/FPS*SR); env=np.ones(n_,np.float32)
+    if fi: env[:min(fi,n_)]*=np.sin(np.pi/2*np.arange(min(fi,n_))/fi)
+    if fo: k=min(fo,n_); env[n_-k:]*=np.sin(np.pi/2*np.arange(k)[::-1]/fo)
+    seg=seg*env
     i=int(fr/FPS*SR); seg=seg[:max(0,L-i)]; sfx[i:i+len(seg)]+=seg
     # loudest 100 ms of the cue alone, vs bed+voice over the same span
     w=int(0.1*SR); pk=max((rms(seg[j:j+w]) for j in range(0,max(1,len(seg)-w),w//2)),default=0)

@@ -354,6 +354,8 @@ export const SfxLayer = ({ cues, total }) => /* @__PURE__ */ (0,jsx_runtime.jsx)
     {
       src: aud(`sfx/${c.s}.wav`),
       startFrom: trim + (c.skip ?? 0),
+      // rev 8d: a time-stretched cue (pitch kept) — a whoosh fitted to a camera move's exact start and end
+      ...(c.rate ? { playbackRate: c.rate } : {}),
       volume: fade > 0 || fadeIn > 0 ? (f) => base * ramp(f) : base
     }
   ) }, i);

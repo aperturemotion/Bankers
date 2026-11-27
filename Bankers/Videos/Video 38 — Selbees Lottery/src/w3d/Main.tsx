@@ -74,7 +74,38 @@ const CUT_FLASH = [{ at: 481 + S, o: 0.58, dur: 16, color: "#C8DBF4" }, { at: 88
 // a flight between stations crosses the navy HAZE (the reference style's "through a boundary" transition): the fog thickens to full
 // as the camera crosses and clears as it lands, so a fast arrival into a small room never flashes (test: 51 → 81 levels in one frame)
 const HAZE = [];   // rev 3: the 24 s flight through the haze is a cross-dissolve now (DISSOLVES)
-export const SFX = [...STATIONS.flatMap((s) => (s.sfx ? s.sfx().map((c) => (s.id === HOOK_ID ? c : { ...c, at: c.at + S })) : [])), cueAt("whooshlong", CLOSE_AT + 6, 40, 0.5)];
+// ── rev 8d (Timur, 2026-11-27: "add some subtle … long whooshing sounds when the camera is moving quickly … each sound effect should be
+// linked to an actual visual or change … perfectly synced, meaning that the sound effect starts when the movement … starts and ends when
+// the movement … finishes"). The fast camera moves are MEASURED on the film's own camera (scratchpad/fastmoves.py out/cam_s.json 40 18:
+// the median per-point image speed of a cloud at the aim point, a run above 40 px/f extended both ways while above 18 px/f; hard cuts
+// split runs) — REAL frames [start, end]. Re-run it after any camera change and paste its list here.
+const FAST_MOVES = [
+  [336, 367],
+  [374, 420],
+  [506, 530],
+  [543, 596],
+  [898, 932],
+  [955, 1031],
+  [1416, 1464],
+  [1609, 1740],
+  [1890, 1939],
+  [2079, 2129],
+  [2135, 2233],
+  [2264, 2304]
+];
+const CAM_WHOOSH = new Set(["whooshsoft", "whooshlong", "airwoosh"]);   // the old per-travel whooshes: replaced by the synced ones below
+const WH_VOL = { whooshlong: 0.56, airwoosh: 0.4, ee_whoosh_medium_whoosh_01: 0.29, ee_whoosh_large_whoosh_01: 0.37 };   // each ≈ −19 dB under bed + voice (sfxaudit.py): subtle
+const WH_FILES = { whooshlong: 31.5, airwoosh: 53.4, ee_whoosh_medium_whoosh_01: 62.9, ee_whoosh_large_whoosh_01: 74.4 };   // file length, frames
+const moveWhoosh = ([a, b], i) => {
+  const L = b - a + 1;
+  const s = L < 40 ? "whooshlong" : L < 58 ? "airwoosh" : i % 2 ? "ee_whoosh_medium_whoosh_01" : "ee_whoosh_large_whoosh_01";
+  // stretched (pitch kept) so the file runs exactly the move: it starts on the move's first frame and is gone on its last
+  return { s, at: a, dur: L, rate: WH_FILES[s] / L, fadeIn: Math.round(L * 0.25), fade: Math.round(L * 0.35), xf: true, vol: WH_VOL[s] };
+};
+export const SFX = [
+  ...STATIONS.flatMap((s) => (s.sfx ? s.sfx().map((c) => (s.id === HOOK_ID ? c : { ...c, at: c.at + S })) : [])).filter((c) => !CAM_WHOOSH.has(c.s)),
+  ...FAST_MOVES.map(moveWhoosh),
+];
 
 const AudioLayers = () => (
   <>
