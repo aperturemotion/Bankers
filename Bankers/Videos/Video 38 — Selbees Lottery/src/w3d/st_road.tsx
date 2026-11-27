@@ -24,6 +24,7 @@ import { cueAt } from "../bnx/SfxLayer";
 import { BODY, FIGURE } from "./fonts3d";
 import { wa, wAt, undrift, Inst, heroCam, Stars } from "./st_road_parts";
 import { Car, TRUNK_TUB } from "./st_road_car";
+import { AO, AOInst } from "./company_ao";
 import { S, V, carZ, carYaw, GAP, S_PARK, LIGHTS_ON, FD, GANTRY_GX } from "./road_drive";
 import { CHASE, REST, handoverShots, chainKeys } from "./xfer_company_road";
 
@@ -32,7 +33,8 @@ export const ROAD_O = [1200, 0, 0];
 // (upper left, behind the camera) expects: design (x, y, z) → world (z, y, −x)
 export const ROT = (p) => [p[2], p[1], -p[0]];
 const A = (p) => { const r = ROT(p); return [r[0] + ROAD_O[0], r[1] + ROAD_O[1], r[2] + ROAD_O[2]]; };
-export const ROAD_CUT = 1356;   // the push lands here; the globe's cut shows from the next frame
+export const ROAD_CUT = 1356;
+const JOLT_AT = 1292;   // rev 6: a road joint under the car ("over"): the totes jump and settle (sfx thud + ov_clank)   // the push lands here; the globe's cut shows from the next frame
 const T = () => {
   const then = wa("then", 1080), similar = wa("similar", 1080), mass = wa("massachusetts.", 1080), forW = wa("for", 1150);
   const years = wa("6 years,", 1150), miles = wa("900 miles", 1150), often = wa("often", 1250), betting = wa("betting", 1250), money = wa("$600,000.", 1250);
@@ -96,7 +98,7 @@ const Roadside = ({ f }) => {
   }), []);
   const items = useMemo(() => {
     const n = Math.ceil(ROAD_LEN / PERIOD) + 1, x0 = ROAD_X - ROAD_LEN / 2;
-    const posts = [], refl = [], reflM = [], deli = [], pines = [], pines2 = [], trunks = [], far = [], hills = [];
+    const posts = [], refl = [], reflM = [], deli = [], pines = [], pines2 = [], trunks = [], far = [], hills = [], blobs = [];
     for (let p = 0; p < n; p++) {
       const bx = x0 + p * PERIOD;
       // rev 5: the right guardrail, its reflectors and the delineators stand on the ground with a gap at the store's lot (GroundRail)
@@ -122,9 +124,10 @@ const Roadside = ({ f }) => {
         (k % 2 ? pines : pines2).push({ p: [x, 1.4 + hgt * 0.5, z], s: [r, hgt, r] });
         (k % 2 ? pines : pines2).push({ p: [x, 1.4 + hgt * 0.78, z], s: [r * 0.7, hgt * 0.55, r * 0.7] });
         trunks.push({ p: [x, 0.7, z], s: [1, 1.4, 1] });
+        if (k % 2) blobs.push({ p: [x + 0.4, -0.02, z + 0.9], s: [r * 1.9, r * 2.4] });   // rev 6: the pine's dark foot (offset away from the key)
       }
     }
-    return { posts, refl, reflM, deli, pines, pines2, trunks, far, hills };
+    return { posts, refl, reflM, deli, pines, pines2, trunks, far, hills, blobs };
   }, []);
   const shift = -(S(f) % PERIOD);
   return (
@@ -135,6 +138,7 @@ const Roadside = ({ f }) => {
       <Inst geo={geo.cone1} mat={mat.pine} items={items.pines} />
       <Inst geo={geo.cone1} mat={mat.pine2} items={items.pines2} />
       <Inst geo={geo.trunk} mat={mat.trunk} items={items.trunks} />
+      <AOInst items={items.blobs} o={0.5} soft={0.6} />
     </group>
   );
 };
@@ -146,16 +150,19 @@ const GroundRail = ({ f }) => {
   const mat = useMemo(() => ({ post: std("#5E6E84", 0.5, 0.6), refl: new THREE.MeshStandardMaterial({ color: "#FFFFFF", emissive: "#CFE3FF", emissiveIntensity: 1.6 }), deli: std("#D8E2EE", 0.5, 0.1), beam: std("#AEBBCC", 0.3, 0.75) }), []);
   const items = useMemo(() => {
     const out = (x) => x > GAP[0] && x < GAP[1];
-    const posts = [], refl = [], deli = [];
-    for (let x = RAIL_X0; x <= RAIL_X1; x += 2) if (!out(x)) posts.push({ p: [x, 0.4, 5.25] });
-    for (let x = RAIL_X0; x <= RAIL_X1; x += 12) { if (!out(x)) refl.push({ p: [x, 0.62, 5.12] }); if (!out(x + 3)) deli.push({ p: [x + 3, 0.55, 7.2] }); }
-    return { posts, refl, deli };
+    const posts = [], refl = [], deli = [], blobs = [];
+    for (let x = RAIL_X0; x <= RAIL_X1; x += 2) if (!out(x)) { posts.push({ p: [x, 0.4, 5.25] }); blobs.push({ p: [x + 0.06, -0.02, 5.38], s: [0.3, 0.42] }); }
+    for (let x = RAIL_X0; x <= RAIL_X1; x += 12) { if (!out(x)) refl.push({ p: [x, 0.62, 5.12] }); if (!out(x + 3)) { deli.push({ p: [x + 3, 0.55, 7.2] }); blobs.push({ p: [x + 3.05, -0.02, 7.3], s: [0.2, 0.3] }); } }
+    return { posts, refl, deli, blobs };
   }, []);
   return (
     <group position={[-S(f), 0, 0]}>
       <Inst geo={geo.post} mat={mat.post} items={items.posts} castShadow receiveShadow />
       <Inst geo={geo.refl} mat={mat.refl} items={items.refl} />
       <Inst geo={geo.deli} mat={mat.deli} items={items.deli} />
+      {/* rev 6 fake shadows: each post's and delineator's dark foot, and the beam's soft shadow on the verge (away from the key) */}
+      <AOInst items={items.blobs} o={0.55} soft={0.6} />
+      {[[RAIL_X0, GAP[0]], [GAP[1], RAIL_X1]].map(([a, b]) => <AO key={"bs" + a} p={[(a + b) / 2 + 0.12, -0.02, 5.6]} w={b - a} d={0.55} o={0.35} soft={0.7} />)}
       {[[RAIL_X0, GAP[0]], [GAP[1], RAIL_X1]].map(([a, b]) => <mesh key={a} material={mat.beam} position={[(a + b) / 2, 0.62, 5.12]} castShadow receiveShadow><boxGeometry args={[b - a, 0.32, 0.05]} /></mesh>)}
       {/* the beam's flared end terminals at the gap */}
       {[[GAP[0], 1], [GAP[1], -1]].map(([x, sd]) => <mesh key={"e" + x} material={mat.beam} position={[x + sd * 0.25, 0.55, 5.3]} rotation-y={sd * 0.5}><boxGeometry args={[0.6, 0.3, 0.05]} /></mesh>)}
@@ -219,6 +226,8 @@ const Gantry = ({ f, t }) => {
       {/* two lattice towers: four legs each, on concrete footings */}
       {[5.7, -7.1].map((z) => (
         <group key={z} position={[0, 0, z]}>
+          {/* rev 6: the footing's dark foot and the towers' soft shadow away from the key */}
+          <AO p={[0.1, z > 0 ? -0.02 : 0.004, 0.25]} w={2.3} d={2.2} o={0.6} soft={0.55} />
           <mesh position={[0, 0.4, 0]} castShadow receiveShadow><boxGeometry args={[1.4, 0.8, 1.2]} /><meshStandardMaterial color="#6D7B8E" roughness={0.85} /></mesh>
           {[[-0.45, -0.35], [0.45, -0.35], [-0.45, 0.35], [0.45, 0.35]].map(([a, b], i) => <mesh key={i} position={[a, 4.7, b]} castShadow><cylinderGeometry args={[0.07, 0.07, 8.0, 8]} /><meshStandardMaterial {...steel} /></mesh>)}
           {Array.from({ length: 8 }, (_, k) => <mesh key={"d" + k} position={[-0.45, 1.2 + k * 0.95, 0]} rotation-x={k % 2 ? 0.75 : -0.75}><cylinderGeometry args={[0.03, 0.03, 0.95, 6]} /><meshStandardMaterial {...steel} /></mesh>)}
@@ -255,6 +264,7 @@ const Scene = ({ f }) => {
   const glow = ease(f, t.betting + 8, t.betting + 20) * (1 - 0.5 * ease(f, t.money + 30, t.cut - 20));
   const shell = 1 - ease(f, t.cut - 22, t.cut - 10);
   const bob = 0.012 * Math.sin(f / 6.3) * (1 - ease(f, t.cut - 40, t.cut - 26));
+  const jolt = JOLT_AT <= f && f < JOLT_AT + 20 ? Math.sin((Math.PI * (f - JOLT_AT)) / 6) * Math.exp(-(f - JOLT_AT) / 5) : 0;   // rev 6: a road joint — the car dips, the totes settle
   const lamps = ease(f, LIGHTS_ON, LIGHTS_ON + 5);
   return (
     <group rotation-y={Math.PI / 2}>
@@ -269,12 +279,15 @@ const Scene = ({ f }) => {
       {/* median barrier (concrete), the guardrail beam (steel) */}
       <mesh geometry={barrier} position={[0, 0, -7.1]} castShadow receiveShadow><meshStandardMaterial color="#8C9AAE" roughness={0.8} /></mesh>
       <GroundRail f={f} />
+      {/* rev 6: the median barrier's foot on both sides of the roadway (the far side darker: away from the key) */}
+      <AO p={[ROAD_X, 0.004, -6.58]} w={ROAD_LEN} d={0.55} o={0.45} soft={0.7} />
+      <AO p={[ROAD_X, 0.004, -7.56]} w={ROAD_LEN} d={0.32} o={0.3} soft={0.7} />
       <Roadside f={f} />
       <Traffic f={f} />
       <Gantry f={f} t={t} />
       {/* rev 5: the car pulls out of the lot (carZ / carYaw), its lamps come on on "Then"; the wheels turn with the distance driven */}
-      <group position={[0, bob * ease(f, FD, FD + 40), carZ(f)]} rotation-y={carYaw(f)}>
-        <Car xray={xr} flash={flash} shell={shell} glow={glow} spin={-(S(f) - S_PARK) * 0.26} lit={lamps} tail={0.25 + 0.75 * lamps} />
+      <group position={[0, bob * ease(f, FD, FD + 40) - 0.014 * jolt, carZ(f)]} rotation-y={carYaw(f)}>
+        <Car xray={xr} flash={flash} shell={shell} glow={glow} spin={-(S(f) - S_PARK) * 0.26} lit={lamps} tail={0.25 + 0.75 * lamps} settle={jolt} />
       </group>
     </group>
   );
@@ -349,21 +362,22 @@ const Overlay = ({ f, P: P0 }) => {
     </>
   );
 };
+// rev 6 (Timur: sound "for the car scene"): each cue on a visible action, quiet
 const sfx = () => {
   const t = T();
   return [
-    cueAt("whooshlong", 1086, 30, 0.55),                         // the flight in (fastest frame ~ the middle of 1062–1102)
-    cueAt("whooshsoft", 1112, 24, 0.45),                         // crane down behind the car
-    cueAt("ee_click_click_01", t.similar - 4, 10, 0.4),           // CASH WINFALL tag
-    cueAt("airwoosh", t.massEnd + 22, 40, 0.5),                  // the gantry passes overhead (rev 4f: the chase cam now sits at x −18.8)
-    cueAt("whooshsoft", t.massEnd + 60, 30, 0.35),               // rev 4f: the slow rise to the aerial (was the swing round to the side)
-    cueAt("ee_click_click_01", t.years - 12, 10, 0.35),             // the pill
-    cueAt("ee_whoosh_low_fast_whoosh", t.miles + 10, 30, 0.45),  // up to the aerial
-    cueAt("ee_clock_clock_ticking_01", t.miles - 12, 36, 0.3),    // the odometer rolling
-    cueAt("whooshsoft", t.often + 6, 24, 0.4),                   // down behind the trunk
-    cueAt("pingshort", t.betting + 2, 20, 0.4),                  // the shell turns to glass
-    cueAt("coin", t.money + 26, 14, 0.45),                       // $600,000+ lands
-    cueAt("ee_whoosh_fast_small_whoosh_01", t.cut - 11, 20, 0.5) // the push into the ticket
+    cueAt("ov_clank", LIGHTS_ON, 8, 0.2),                        // the lamps come on (switch clunk)
+    cueAt("ov_car_start", LIGHTS_ON + 4, 30, 0.35),              // the engine starts
+    cueAt("whooshsoft", 1100, 30, 0.22),                         // the camera rises out through the window
+    cueAt("ov_car_away", FD, 70, 0.4),                           // the car pulls out of the lot and drives off
+    cueAt("whooshlong", 1150, 40, 0.22),                         // road hum as it comes up to speed (the ride-along)
+    cueAt("airwoosh", 1192, 40, 0.35),                           // the gantry passes over the camera
+    cueAt("whooshsoft", 1210, 30, 0.25),                         // the slow rise to the aerial
+    cueAt("pingshort", t.betting + 2, 20, 0.3),                  // the shell turns to glass
+    cueAt("thud", JOLT_AT, 10, 0.15),                            // the road joint
+    cueAt("ov_clank", JOLT_AT + 1, 10, 0.12),                    // the totes jump and settle
+    cueAt("coin", t.money + 12, 14, 0.3),                        // $600,000 lands (the big word)
+    cueAt("ee_whoosh_fast_small_whoosh_01", t.cut - 11, 20, 0.4) // the push into the ticket
   ];
 };
 export const ST = { id: "road", origin: ROAD_O, from: ROAD_FROM, to: ROAD_CUT, light: { key: [-10, 13, 2.5], keyI: 7.0, keyColor: "#C9DCF7", rimI: 1.2, shadowBox: 15, fillI: 0.3, target: [5, 0, 0] }, shots, Scene, Overlay, sfx };

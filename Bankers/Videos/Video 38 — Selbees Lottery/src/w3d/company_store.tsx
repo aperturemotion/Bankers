@@ -17,6 +17,7 @@ import { BODY, FIGURE } from "./fonts3d";
 import { drawTicket } from "./ticket_art";
 import { S, V } from "./road_drive";
 import { billFaceMat } from "./money";
+import { AO, Cast } from "./company_ao";
 
 // ── the road's frame (must equal st_road.tsx: ROAD_O, and its ground scroll S(f), road_drive.ts) ──────────────────────────────
 // rev 5 (builder R): the scroll is the car's DRIVE now (road_drive.ts): 0 while it stands parked in this store's lot, then an eased
@@ -235,6 +236,9 @@ const bentStrip = (w, len, seg, bend) => {
 //   real $1 notes (money.tsx: the public-domain scan) under their chrome clips, the coin cups, the lock and the drawer's own plate
 const TILL_OPEN = 0.17;
 const BILL_W = 0.066, BILL_L = 0.156;
+// rev 6: the drawer pops open on NO SALE after the game ends (the pole display reads NO SALE), with the bell (st_company sfx ov_drawer)
+export const DRAWER_AT = 1076;
+const tillOpen = (f) => { const k = clamp01((f - DRAWER_AT) / 6); return TILL_OPEN * (1 - Math.pow(1 - k, 3)) + 0.006 * Math.sin(Math.PI * clamp01((f - DRAWER_AT - 6) / 6)); };
 const Till = ({ R, M, f, t }) => (
   <group position={[0, -DRAWER_H, 0]}>
     <mesh geometry={R.drawer} material={M.steel} position={[0, DRAWER_H / 2 - 0.002, 0]} castShadow receiveShadow />
@@ -242,7 +246,7 @@ const Till = ({ R, M, f, t }) => (
     {/* the housing's side screws and the drawer's dark mouth */}
     {[-1, 1].flatMap((sd) => [-0.12, 0.12].map((z) => <mesh key={sd + "hs" + z} position={[sd * 0.2302, 0.05, z]} rotation-z={Math.PI / 2} material={M.screw}><cylinderGeometry args={[0.0042, 0.0042, 0.0015, 12]} /></mesh>))}
     <mesh position={[0, 0.048, 0.2085]} material={M.seam}><boxGeometry args={[0.448, 0.086, 0.002]} /></mesh>
-    <group position={[0, 0, TILL_OPEN]}>
+    <group position={[0, 0, tillOpen(f)]}>
       {/* the drawer front: its panel, the seam round it, the lock, the finger pull, the plate */}
       <mesh geometry={R.dfront} material={M.steelHi} position={[0, 0.048, 0.212]} castShadow receiveShadow />
       <mesh position={[0, 0.0095, 0.214]} material={M.seam}><boxGeometry args={[0.3, 0.006, 0.012]} /></mesh>
@@ -503,6 +507,20 @@ export const Store = ({ f, t }) => {
       <Contact position={[-0.62, CTR_Y + 0.0015, 1.45]} size={[0.66, 0.3]} opacity={0.5} ry={-0.25} />
       <Contact position={[0.62, CTR_Y + 0.0015, 1.42]} size={[0.18, 0.1]} opacity={0.55} ry={0.3} />
       <Contact position={[0.2, CTR_Y + 0.0015, 1.28]} size={[0.16, 0.16]} opacity={0.55} />
+      {/* rev 6 fake shadows (Timur: "a dark subtle shape under it, the correct one"): the register's soft cast across the counter away from
+          the store key, the counter's foot on the floor both sides, the shelf under the counter top, the room's floor corners, and
+          outside: the storefront's foot, the curb and the lamp post on the lot */}
+      <Cast p={[0.02, CTR_Y + 0.0012, 1.56]} w={0.5} d={0.44} h={0.55} toward={[KEY_AT[0] - 0.02, KEY_AT[1] - CTR_Y, KEY_AT[2] - 1.56]} o={0.3} />
+      <AO p={[-0.3, 0.004, 1.03]} w={3.0} d={0.55} o={0.5} soft={0.6} />
+      <AO p={[-0.3, 0.004, 2.04]} w={3.0} d={0.5} o={0.42} soft={0.6} />
+      <AO p={[-0.3, 0.468, 1.6]} w={2.7} d={0.62} o={0.5} soft={0.5} />
+      <AO p={[-3.3, 0.004, 3.0]} w={0.7} d={6.0} o={0.45} soft={0.7} />
+      <AO p={[3.3, 0.004, 3.0]} w={0.7} d={6.0} o={0.45} soft={0.7} />
+      <AO p={[0, 0.004, 5.75]} w={7.0} d={0.7} o={0.45} soft={0.7} />
+      <AO p={[0, 0.004, 0.22]} w={6.6} d={0.5} o={0.4} soft={0.7} />
+      <AO p={[0, -0.093, -0.42]} w={7.3} d={0.75} o={0.5} soft={0.6} />
+      <AO p={[0, -0.093, -5.92]} w={16} d={0.45} o={0.45} soft={0.7} />
+      <AO p={[-5.2, -0.093, -5.6]} w={0.75} d={0.75} o={0.6} soft={0.6} />
       <primitive object={tgt} />
       <spotLight position={KEY_AT} target={tgt} angle={0.42} penumbra={0.65} intensity={30} distance={8} decay={1.6} color="#D6E5FA" castShadow
         shadow-mapSize-width={2048} shadow-mapSize-height={2048} shadow-bias={-0.0002} shadow-normalBias={0.004} shadow-camera-near={0.8} shadow-camera-far={6} shadow-radius={3} />

@@ -22,10 +22,11 @@ import { cueAt } from "../bnx/SfxLayer";
 import { aud } from "../bnx/aud";
 import { BODY } from "./fonts3d";
 import { Room, Outside, TableLamp, noiseTex } from "./st_test_props";
+import { AO, Cast, KEY_OFFICE } from "./company_ao";
 import { T as TT } from "./st_test";
 import { SEAL_SCREEN, PUSH_RATE } from "./xfer_seal";
 import { Certificates, SEAL_C, SEAL_R, onTop, PRICE_PX } from "./company_cert";
-import { Store, storeToGround, groundToWorld, roadS, SCREEN, fitWord } from "./company_store";
+import { Store, storeToGround, groundToWorld, roadS, SCREEN, fitWord, DRAWER_AT } from "./company_store";
 import { solveView, discPx, segPx, keysFrom, smoother, drift } from "./company_cam";
 import { CUT2, storeShots, HEAD_SY, TALLY_HP, CUT_HP, PUSH_N } from "./xfer_company_road";
 
@@ -87,6 +88,14 @@ const Chalkboard = ({ f, t }) => {
         <mesh castShadow><boxGeometry args={[1.3, 0.28, 0.5]} /><meshStandardMaterial color="#C9D3DF" roughness={0.8} /></mesh>
         <mesh position={[0, -0.12, 0]}><boxGeometry args={[1.3, 0.08, 0.5]} /><meshStandardMaterial color="#2E3B4C" roughness={0.95} /></mesh>
       </group>
+      {/* rev 6 fake shadows: the board's drop shadow on the wall (down-right, away from the key), the tray's under it, the eraser and
+          chalk on the tray, and the frame's inner corners darkened on the slate */}
+      <AO p={[0.35, -0.35, -0.295]} w={BW + 1.5} d={BH + 1.5} n="z" o={0.5} soft={0.3} />
+      <AO p={[0.25, -BH / 2 - 0.85, -0.29]} w={BW * 0.95} d={0.95} n="z" o={0.55} soft={0.6} />
+      <AO p={[-2.3, -BH / 2 - 0.387, 0.5]} w={1.65} d={0.78} o={0.6} soft={0.55} />
+      <AO p={[1.85, -BH / 2 - 0.387, 0.52]} w={1.05} d={0.28} o={0.5} soft={0.6} spin={0.3} />
+      {[[0, BH / 2 - 0.14, BW, 0.34], [0, -BH / 2 + 0.14, BW, 0.34], [-BW / 2 + 0.14, 0, 0.34, BH], [BW / 2 - 0.14, 0, 0.34, BH]].map(([x, y, w, d], i) =>
+        <AO key={"fi" + i} p={[x, y, 0.0625]} w={w} d={d} n="z" o={0.42} soft={0.8} />)}
       {STROKES.map(([x0, y0, x1, y1], k) => {
         const a = drawAt(t, k), d = ease(f, a, a + 5);
         if (d <= 0.001) return null;
@@ -125,6 +134,14 @@ const Desk = () => {
       </group>)}
       <mesh position={[-1.4, 0.012, -0.6]} rotation-x={-Math.PI / 2} receiveShadow><planeGeometry args={[9.4, 5.8]} /><meshStandardMaterial map={leather} roughness={0.7} envMapIntensity={0.4} /></mesh>
       {[[-6.1, -0.6], [3.3, -0.6]].map(([x, z], i) => <mesh key={i} position={[x, 0.04, z]} castShadow receiveShadow><boxGeometry args={[0.5, 0.06, 5.9]} /><meshStandardMaterial color="#0C1C35" roughness={0.5} /></mesh>)}
+      {/* rev 6 fake shadows: the desk on the floor (contact + its long shadow away from the key), the pen, the lamp's foot */}
+      <AO p={[0, -7.39, -1.6]} w={19.8} d={10.4} o={0.6} soft={0.22} />
+      <Cast p={[0, -7.39, -1.6]} w={18.4} d={9.0} h={7.4} toward={KEY_OFFICE} o={0.28} />
+      <AO p={[0, -7.39, -9.35]} w={60} d={1.4} o={0.45} soft={0.9} />
+      <AO p={[1.42, 0.004, 0.98]} w={2.15} d={0.42} o={0.55} soft={0.6} spin={0.5} />
+      <AO p={[-7.35, 0.004, -8.0]} w={2.0} d={2.0} o={0.62} soft={0.6} />
+      <Cast p={[-7.4, 0.004, -8.0]} w={1.6} d={1.6} h={2.6} toward={KEY_OFFICE} o={0.25} />
+      <AO p={[-2.25, 0.013, 0.35]} w={3.9} d={2.9} o={0.3} soft={0.45} />
       <group position={[1.4, 0.13, 1.0]} rotation-y={0.5}>
         <mesh rotation-z={Math.PI / 2} castShadow><cylinderGeometry args={[0.1, 0.09, 1.9, 16]} /><meshPhysicalMaterial color="#0C1F3D" roughness={0.15} clearcoat={1} /></mesh>
         <mesh position={[0.55, 0, 0]} rotation-z={Math.PI / 2}><cylinderGeometry args={[0.104, 0.104, 0.1, 16]} /><meshStandardMaterial color={brass} metalness={0.9} roughness={0.2} /></mesh>
@@ -225,19 +242,20 @@ const Overlay = ({ f, P }) => {
     </>
   );
 };
+// rev 6 (Timur: sound "for the car scene and for the chalk on the board"): each cue on a visible action, quiet
 const sfx = () => {
   const t = T();
   return [
-    cueAt("whooshsoft", t.cut + 24, 24, 0.45),                                     // the pull-back off the seal
-    cueAt("ee_paper_paper_tear_01", t.cut + 10, 20, 0.18),                         // the certificates fan (paper)
-    cueAt("pingshort", t.cut + 8, 10, 0.3),                                        // $500 PER SHARE
-    cueAt("ee_whoosh_medium_whoosh_01", t.family - 14, 14, 0.3),                   // the photo
-    cueAt("whooshlong", t.played - 12, 30, 0.45),                                  // the crane up to the board
-    ...STROKES.map((_, k) => cueAt("ee_click_click_01", Math.round(drawAt(t, k)), 4, 0.22)),   // each chalk stroke
-    cueAt("ee_whoosh_fast_small_whoosh_01", CUT2 - 4, 12, 0.45),                   // the push into the chalk word → the screen
-    cueAt("chainshort", CUT2 + 4, 20, 0.16),                                       // the printer feeding the slip
-    cueAt("whooshsoft", CUT2 + 18, 22, 0.35),                                      // the pull-back off the screen to the terminal
-    cueAt("sub", t.ended, 20, 0.5)                                                 // the game ends, the screen dies
+    cueAt("ee_paper_paper_tear_01", t.cut + 10, 20, 0.18),                         // the certificates fan out (paper)
+    cueAt("pingshort", t.cut + 8, 10, 0.25),                                       // $500 PER SHARE
+    cueAt("whooshsoft", t.cut + 24, 24, 0.3),                                      // the slow pull-back off the seal
+    cueAt("whooshsoft", 950, 24, 0.25),                                            // the push up onto the board
+    cueAt("ov_chalk", Math.round(drawAt(t, 0)), Math.round(drawAt(t, STROKES.length - 1) - drawAt(t, 0)) + 8, 0.35),   // the twelve chalk strokes being drawn
+    cueAt("ee_whoosh_fast_small_whoosh_01", CUT2 - 6, 12, 0.3),                   // the push into the chalk word → the screen
+    cueAt("ov_printer", CUT2 + 2, 26, 0.3),                                        // the terminal prints the WinFall slip
+    cueAt("sub", t.ended, 20, 0.4),                                                // the game ends, the screen dies
+    cueAt("whooshsoft", 1058, 30, 0.22),                                           // the slow pull-back to the register
+    cueAt("ov_drawer", DRAWER_AT, 20, 0.35)                                        // NO SALE: the cash drawer slides open, the bell
   ];
 };
 export const ST = { id: "company", origin: COMPANY_ORIGIN, from: T().cut + 1, to: 1220, light: { shadowBox: 11, keyI: 0.85, fillI: 0.3, rimI: 0.9 }, shots, Scene, Overlay, sfx };
