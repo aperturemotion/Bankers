@@ -366,14 +366,18 @@ const buildStore = (m) => {
 
 // ── the ceiling: tiles, troffers (mostly off; a few warm security lights on), diffusers, sprinklers, camera domes ────────────
 export const LIT = [[1.5, -24.0], [-1.5, -20.4], [1.5, -38.4], [-4.5, -13.2], [7.5, -31.2], [-10.5, -38.4], [4.5, -45.6], [-1.5, -56.4], [10.5, -9.6], [-7.5, -27.6], [-13.5, -20.4], [13.5, -16.8], [-4.5, -49.2]];
-const buildCeiling = (m) => {
+// V39 rev 1 (Timur: the hook's lights switch off row by row): the main-aisle troffers in TROF_ZONE can be driven per frame — the merged
+// ceiling then draws them dark, and <TrofferBank> lays each one's lit lens and glow over it at the level the station gives
+export const inTrofZone = (x, z) => Math.abs(x) < 7.6 && z >= -31.3;
+export const trofZone = () => { const out = []; for (let i = 0; i < 12; i++) for (let j = 0; j < 19; j++) { const x = -16.5 + i * 3, z = -2.4 - j * 3.6; if (z <= -2.2 && inTrofZone(x, z)) out.push([x, z, j]); } return out; };
+const buildCeiling = (m, dyn = false) => {
   const W_ = X1 - X0;
   m.box("ceil", [0, CEIL + 0.01, ZB / 2], [W_, 0.02, -ZB], "#7E8898", { metric: true });
   const isLit = (x, z) => LIT.some(([a, b]) => Math.abs(a - x) < 0.1 && Math.abs(b - z) < 0.1);
   for (let i = 0; i < 12; i++) for (let j = 0; j < 19; j++) {
     const x = -16.5 + i * 3, z = -2.4 - j * 3.6;
     if (z > -2.2) continue;
-    const lit = isLit(x, z);
+    const lit = isLit(x, z) && !(dyn && inTrofZone(x, z));
     m.box("cmetal", [x, CEIL - 0.012, z], [0.64, 0.03, 1.24], "#8E98A6");
     m.quad(lit ? "lensL" : "lensD", [x, CEIL - 0.028, z], 0.6, 1.2, "#FFFFFF", [0, 0, 1, 1], { r: [Math.PI / 2, 0, 0] });
     if (lit) m.glow([x, CEIL - 0.2, z], "#FFC68A", 1.4);
@@ -426,12 +430,35 @@ const Mirror = ({ w, d, pos, opacity = 0.32, color = "#B8C6DA", fadeK = 0.022 })
   }, []);
   return <primitive object={obj} />;
 };
-const Ceiling = ({ fade = 0 }) => {
-  const grp = useMemo(() => { const m = new Mesher(); buildCeiling(m); return m.build(ceilMats()); }, []);
+const Ceiling = ({ fade = 0, dyn = false }) => {
+  const grp = useMemo(() => { const m = new Mesher(); buildCeiling(m, dyn); return m.build(ceilMats()); }, [dyn]);
   const op = 1 - clamp01(fade);
   for (const k of Object.keys(ceilMats())) { const mm = ceilMats()[k]; mm.transparent = op < 0.999; mm.opacity = op; mm.depthWrite = op > 0.5; }
   if (op <= 0.002) return null;
   return <primitive object={grp} />;
+};
+/** the driven troffers: level(x, z) 0–1 per light (1 = lit as the security lights are); a lit lens over the dark one, its glow, and
+ *  the light it throws into the aisle (an ambient share + three aisle lights, always mounted so the light count never changes) */
+const TrofferBank = ({ level }) => {
+  const zone = useMemo(trofZone, []);
+  const mats = useMemo(() => zone.map(() => new THREE.MeshStandardMaterial({ map: T.lensTex(true), emissiveMap: T.lensTex(true), emissive: new THREE.Color("#FFC88A"),
+    emissiveIntensity: 1.1, roughness: 0.3, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -4 })), [zone]);
+  const lv = zone.map(([x, z]) => clamp01(level(x, z)));
+  const rowMean = (zs) => { const L = zone.filter(([, z]) => zs.some((q) => Math.abs(q - z) < 0.1)).map(([x, z]) => clamp01(level(x, z))); return L.reduce((a, b) => a + b, 0) / Math.max(1, L.length); };
+  const frac = lv.reduce((a, b) => a + b, 0) / lv.length;
+  return (
+    <group>
+      {zone.map(([x, z], i) => { mats[i].opacity = lv[i]; return lv[i] > 0.003 && (
+        <group key={i}>
+          <mesh position={[x, CEIL - 0.034, z]} rotation-x={Math.PI / 2} material={mats[i]} renderOrder={2}><planeGeometry args={[0.6, 1.2]} /></mesh>
+          <Glow position={[x, CEIL - 0.2, z]} size={1.4} color="#FFC68A" opacity={0.8 * lv[i]} />
+        </group>); })}
+      <ambientLight intensity={0.32 * frac} color="#FFE2BC" />
+      {[[[-2.4, -6.0, -9.6], -6.0], [[-13.2, -16.8], -15.0], [[-27.6, -31.2], -29.4]].map(([zs, zc], i) => (
+        <pointLight key={i} position={[0, CEIL - 0.35, zc]} intensity={7 * rowMean(zs)} distance={15} decay={1.5} color="#FFCF96" />
+      ))}
+    </group>
+  );
 };
 // the lot lamps: tall square poles with shoebox heads (warm), their glows and two real lights
 const LAMPS = [[-11.5, 16], [11.5, 16], [-11.5, 38], [11.5, 38], [-20, 56], [20, 56]];
@@ -501,7 +528,7 @@ const StoreSign = () => {
  * THE STORE SET. mode "in" (the closed store at night, the aisle mirror, the security lights) or "out" (the store front at blue hour);
  * cart: { xray, flash, glow } for the bin's reveal; ceilFade 0–1 (the close's rising camera: the ceiling fades under the veil).
  */
-export const StoreSet = ({ mode = "in", cart = {}, ceilFade = 0 }) => {
+export const StoreSet = ({ mode = "in", cart = {}, ceilFade = 0, trof = null }) => {
   const grp = useMemo(() => { const m = new Mesher(); buildStore(m); return m.build(storeMats()); }, []);
   const inside = mode === "in";
   return (
@@ -509,7 +536,8 @@ export const StoreSet = ({ mode = "in", cart = {}, ceilFade = 0 }) => {
       <Sky zenith="#020F24" mid="#0A3366" horizon="#5C8FD0" glowAt={0.52} />
       <Floors mode={mode} />
       <primitive object={grp} />
-      <Ceiling fade={ceilFade} />
+      <Ceiling fade={ceilFade} dyn={!!trof} />
+      {trof && inside && <TrofferBank level={trof} />}
       <StoreSign />
       <LotLamps lights={!inside} />
       <Backdrop />
@@ -517,7 +545,7 @@ export const StoreSet = ({ mode = "in", cart = {}, ceilFade = 0 }) => {
       {/* the light of the closed store: the warm security troffers (four real lights), the blue of the doors and windows, the
           lit display windows; outside, the canopy's downlights over the doors */}
       {inside && <>
-        {[[1.5, -24.0], [-1.5, -20.4], [-4.5, -13.2], [1.5, -38.4]].map(([x, z], i) => <pointLight key={i} position={[x, CEIL - 0.25, z]} intensity={i < 2 ? 6 : 5} distance={10} decay={1.5} color="#FFCF96" />)}
+        {[[1.5, -24.0], [-1.5, -20.4], [-4.5, -13.2], [1.5, -38.4]].map(([x, z], i) => <pointLight key={i} position={[x, CEIL - 0.25, z]} intensity={(i < 2 ? 6 : 5) * (trof && inTrofZone(x, z) ? clamp01(trof(x, z)) : 1)} distance={10} decay={1.5} color="#FFCF96" />)}
         <pointLight position={[0, 2.2, -2.6]} intensity={9} distance={22} decay={1.3} color="#6E9FE0" />
         <pointLight position={[-10, 2.6, -3.0]} intensity={5} distance={14} decay={1.4} color="#8FB4E8" />
         <pointLight position={[10, 2.6, -3.0]} intensity={5} distance={14} decay={1.4} color="#8FB4E8" />

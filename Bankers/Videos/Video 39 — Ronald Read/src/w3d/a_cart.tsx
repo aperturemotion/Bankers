@@ -238,8 +238,9 @@ const stackMats = () => {
   return SM;
 };
 
-/** the cart with its bin; xray 0–1 (shell → glass), flash 0–1 (rim peak), glow 0–1 (the stack's light) */
-export const JanitorCart = ({ xray = 0, flash = 0, glow = 0 }) => {
+/** the cart with its bin; xray 0–1 (shell → glass), flash 0–1 (rim peak), glow 0–1 (the stack's light);
+ *  leak 0–1 (V39 rev 1, the hook's tease: before the reveal a faint blue light spills out of the bin's open top) */
+export const JanitorCart = ({ xray = 0, flash = 0, glow = 0, leak = 0 }) => {
   const body = useMemo(() => { const m = new Mesher(); buildCart(m); return m.build(cartMats()); }, []);
   const stack = useMemo(() => { const m = new Mesher(); buildStack(m); return m.build(stackMats()); }, []);
   const B = useMemo(() => ({
@@ -277,8 +278,12 @@ export const JanitorCart = ({ xray = 0, flash = 0, glow = 0 }) => {
       <primitive object={stack} />
       {/* the top certificate (the hero sheet, full print) */}
       <mesh position={[BIN.x, STACK_TOP + 0.0006, BIN.z]} rotation={[-Math.PI / 2, 0, 0.05]} material={stackMats().top}><planeGeometry args={[STACK.w, STACK.d]} /></mesh>
+      {leak > 0.002 && <>
+        <Glow position={[BIN.x, BIN_TOP + 0.05, BIN.z]} size={0.85} color="#7FB4F2" opacity={0.34 * leak} />
+        <Glow position={[BIN.x, BIN_TOP + 0.22, BIN.z]} size={1.7} color="#4D8ED9" opacity={0.12 * leak} />
+      </>}
+      {gl + leak > 0.002 && <pointLight position={[BIN.x, Math.max(STACK_TOP + 0.08, BIN_TOP + 0.12 * (1 - gl)), BIN.z]} intensity={2.2 * gl + 1.1 * leak} distance={2.6} decay={1.6} color="#7FB4F2" />}
       {gl > 0.002 && <>
-        <pointLight position={[BIN.x, STACK_TOP + 0.08, BIN.z]} intensity={2.2 * gl} distance={2.6} decay={1.6} color="#7FB4F2" />
         <Glow position={[BIN.x, (STACK.y0 + STACK_TOP) / 2 + 0.05, BIN.z]} size={1.25} color="#7FB4F2" opacity={0.22 * gl} />
         <Glow position={[BIN.x, STACK_TOP + 0.03, BIN.z]} size={0.7} color="#B3CEEF" opacity={0.3 * gl} />
       </>}

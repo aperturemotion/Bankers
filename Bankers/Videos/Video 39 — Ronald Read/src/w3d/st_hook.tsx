@@ -9,7 +9,9 @@ import React from "react";
 import { Tag, Counter } from "./overlays";
 import { WIN, wAt } from "./windows";
 import { cueAt } from "../bnx/SfxLayer";
-import { ease, clamp01 } from "./kit";
+import { ease, easeOut, clamp01 } from "./kit";
+import { useCurrentFrame } from "remotion";
+import { BODY } from "./fonts3d";
 import { StoreSet, cartPt, CART } from "./a_store";
 import { BIN, STACK_TOP } from "./a_cart";
 
@@ -17,10 +19,22 @@ const T = () => ({ vermont: wAt("Vermont"), y2014: wAt("2014,"), will: wAt("will
 export const revealAt = (t, f) => ({
   xray: ease(f, t.will, t.will + 10),
   flash: clamp01(1 - Math.abs(f - (t.will + 7)) / 10),
-  glow: ease(f, t.will + 4, t.will + 40)
+  glow: ease(f, t.will + 4, t.will + 40),
+  // V39 rev 1 (Timur picked hook idea 2): from frame 0 a faint blue light breathes out of the closed-up bin (slow, 46 f), a little
+  // stronger as the camera nears; it hands over to the stack's own glow as the shell turns to glass
+  leak: (0.72 + 0.28 * ease(f, 0, t.will - 10)) * (0.86 + 0.14 * Math.sin((f / 46) * Math.PI * 2)) * (1 - ease(f, t.will, t.will + 22))
 });
+// V39 rev 1 (idea 3): closing time — the main aisle's ceiling lights switch off row by row from the doors toward the cart (then the rows
+// behind it), until only the two lights over the cart are left; each switch-off is a 4-f fluorescent decay with a soft click
+export const LIGHTS_OFF = [[12, [-2.4, -6.0]], [27, [-9.6]], [42, [-13.2]], [57, [-16.8]], [72, [-27.6, -31.2]], [88, [-20.4, -24.0]]];
+const CART_LIT = [[1.5, -24.0], [-1.5, -20.4]];
+export const trofAt = (f) => (x, z) => {
+  if (CART_LIT.some(([a, b]) => Math.abs(a - x) < 0.1 && Math.abs(b - z) < 0.1)) return 1;
+  const ev = LIGHTS_OFF.find(([, zs]) => zs.some((q) => Math.abs(q - z) < 0.1));
+  return ev ? 1 - ease(f, ev[0], ev[0] + 4) : 1;
+};
 const BINW = (y) => cartPt([BIN.x, y, BIN.z]);
-const Scene = ({ f }) => <StoreSet mode="in" cart={revealAt(T(), f)} />;
+const Scene = ({ f }) => <StoreSet mode="in" cart={revealAt(T(), f)} trof={trofAt(f)} />;
 const shots = () => {
   const t = T(), b = BINW(0.55);
   return [
@@ -33,6 +47,22 @@ const shots = () => {
     { a: t.m8 + 20, b: t.m8 + 150, pos: [b[0] + 2.05, 2.25, b[2] - 3.85], target: [b[0], 0.31, b[2] + 0.3], fov: 34 }
   ];
 };
+// V39 rev 1 (idea 5): the open question under the counter in the hook's last second — HOW? (the film answers it); it rises in after the
+// counter has landed and leaves with it, before the dissolve
+const HowChip = ({ at, out }) => {
+  const f = useCurrentFrame();
+  const kIn = easeOut(f, at, at + 12), kOut = ease(f, out, out + 10), vis = kIn * (1 - kOut);
+  if (vis <= 0.001) return null;
+  return (
+    <div style={{ position: "absolute", left: 540, top: 512, transform: `translate(-50%, ${(1 - kIn) * 18 - kOut * 12}px) scale(${0.9 + 0.1 * kIn})`, opacity: vis,
+      display: "flex", alignItems: "stretch", background: "rgba(4, 18, 38, 0.82)", borderRadius: 10, overflow: "hidden", boxShadow: "0 8px 30px rgba(0,8,20,0.5)" }}>
+      <div style={{ width: 6, background: "#4D8ED9" }} />
+      <div style={{ padding: "12px 26px 12px 22px", fontFamily: BODY, fontWeight: 800, fontSize: 58, letterSpacing: 6, lineHeight: 1, color: "#F2F7FD" }}>
+        HOW<span style={{ color: "#7FB4F2" }}>?</span>
+      </div>
+    </div>
+  );
+};
 const Overlay = ({ f, P }) => {
   const t = T(), end = WIN().hook.end;
   const cart = P(cartPt([-0.25, 1.06, 0]));
@@ -40,7 +70,8 @@ const Overlay = ({ f, P }) => {
     <>
       <Tag text="Brattleboro, Vermont" at={t.vermont - 12} out={t.will - 8} x={70} y={300} to={null} />
       <Tag text="Died 2014" at={t.y2014 - 12} out={t.will - 4} x={70} y={392} to={cart.behind ? null : cart} />
-      <Counter at={t.m8 - 26} out={end - 20} x={540} y={318} from={0} value={8} prefix="$" unit="MILLION" label="ESTATE ≈" size={112} countDur={32} />
+      <Counter at={t.m8 - 26} out={end - 16} x={540} y={318} from={0} value={8} prefix="$" unit="MILLION" label="ESTATE ≈" size={112} countDur={32} />
+      <HowChip at={t.m8 + 15} out={end - 16} />
     </>
   );
 };
@@ -50,7 +81,8 @@ const sfx = () => {
     cueAt("whooshsoft", 22, 30, 0.22),            // the glide in (its fastest frames)
     cueAt("pingshort", t.will + 2, 14, 0.32),     // the shell turns to glass
     cueAt("whooshsoft", t.will + 30, 26, 0.18),   // the rise onto the bin
-    cueAt("coin", t.m8, 16, 0.3)                  // $8 MILLION lands
+    cueAt("coin", t.m8, 16, 0.3),                 // $8 MILLION lands
+    ...LIGHTS_OFF.map(([fr], i) => cueAt("ee_click_click_01", fr, 12, i === LIGHTS_OFF.length - 1 ? 0.2 : 0.14))   // each row switching off
   ];
 };
 const W0 = () => WIN().hook;
