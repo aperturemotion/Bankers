@@ -17,6 +17,7 @@ import * as THREE from "three";
 import { useCurrentFrame } from "remotion";
 import { canvasTex, ease, easeOut, rnd, clamp01, Sky, Glow } from "./kit";
 import { Tag } from "./overlays";
+import { LABEL_STYLE } from "./label_style";
 import { cueAt } from "../bnx/SfxLayer";
 import { BODY } from "./fonts3d";
 import { wa, wAt, undrift, Tub, TUB, heroCam, Stars } from "./st_road_parts";
@@ -182,6 +183,7 @@ const shots = () => {
   ];
 };
 const RedTag = ({ text, at, dimAt, out, x, y, to }) => {
+  if (LABEL_STYLE !== "chip") return null;   // rev 5: the 2-D leader labels are off (label_style.ts)
   const f = useCurrentFrame();
   const kIn = ease(f, at, at + 8), kOut = ease(f, out, out + 10), dim = ease(f, dimAt, dimAt + 10);
   const vis = kIn * (1 - kOut);

@@ -13,6 +13,7 @@ import { Couple, coupleZ } from "./i_couple";
 import { cueAt } from "../bnx/SfxLayer";
 import { BODY, FIGURE } from "./fonts3d";
 import { drawTicket } from "./ticket_art";
+import { LABEL_STYLE } from "./label_style";
 import { Town, addBuilding, addProps } from "./town_parts";
 
 const T = () => ({ town: wf("town"), retired: wf("retired"), couple: wf("couple"), lottery: wf("lottery."), legally: wf("legally."), years: wf("9"), next: wf("in", 2) });
@@ -107,6 +108,27 @@ const ticketPose = (t, f) => {
   return { pivot, pos, yaw, tilt, rock, half, vis: f > t.lottery - 36 };
 };
 
+// rev 5 style-frame option "world": the place name as a lit 3-D plate standing on the verge by the town sign (it rises out of the snow on
+// "town" and sinks back before the flight) — the label lives IN the scene, lit and shadowed like everything else
+const placeTex = () => canvasTex("hook_place_plate", 1024, 256, (c, w, h) => {
+  c.fillStyle = "#0B2447"; c.fillRect(0, 0, w, h);
+  c.strokeStyle = "#7FB4F2"; c.lineWidth = 6; c.strokeRect(14, 14, w - 28, h - 28);
+  c.fillStyle = "#F2F7FD"; c.font = `800 92px ${BODY}`; c.textAlign = "center"; c.textBaseline = "middle";
+  c.fillText("EVART, MICHIGAN", w / 2, h / 2 + 4);
+});
+const WorldLabel = ({ f, t }) => {
+  const tex = useMemo(placeTex, []);
+  const k = ease(f, t.town - 14, t.town + 4) * (1 - ease(f, t.retired - 10, t.retired + 6));
+  if (k <= 0.001) return null;
+  const W = 3.2, H = 0.8;
+  return (
+    <group position={[ROAD_W / 2 + 0.6, -H + (H + 0.55) * k, -9.5]} rotation-y={-0.5}>
+      <mesh castShadow receiveShadow><boxGeometry args={[W + 0.12, H + 0.12, 0.08]} /><meshStandardMaterial color="#14253D" metalness={0.6} roughness={0.35} /></mesh>
+      <mesh position={[0, 0, 0.042]}><planeGeometry args={[W, H]} /><meshStandardMaterial map={tex} emissiveMap={tex} emissive="#FFFFFF" emissiveIntensity={0.55} roughness={0.4} /></mesh>
+      {[-1.2, 1.2].map((x, i) => <mesh key={i} position={[x, -H / 2 - 0.3, -0.02]} castShadow><boxGeometry args={[0.07, 0.6, 0.07]} /><meshStandardMaterial color="#2A3B52" metalness={0.7} roughness={0.4} /></mesh>)}
+    </group>
+  );
+};
 const Scene = ({ f }) => {
   const t = useMemo(T, []);
   const asphalt = useMemo(asphaltTex, []);
@@ -119,6 +141,7 @@ const Scene = ({ f }) => {
   const tp = ticketPose(t, f);
   return (
     <group>
+      {LABEL_STYLE === "world" && <WorldLabel f={f} t={t} />}
       <Sky />
       {/* ground: wet asphalt road, sidewalks, the verges */}
       <mesh rotation-x={-Math.PI / 2} position={[0, 0, -60]} receiveShadow><planeGeometry args={[ROAD_W, 220]} /><meshStandardMaterial map={asphalt} color="#7a8aa3" roughness={0.32} metalness={0.15} /></mesh>

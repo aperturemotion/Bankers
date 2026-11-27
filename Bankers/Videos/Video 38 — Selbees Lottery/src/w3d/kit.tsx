@@ -166,7 +166,7 @@ export const HouseLights = ({ keyPos = [-9, 14, 8], keyI = 2.6, keyColor = "#DCE
   return (
     <>
       <primitive object={tgt} />
-      <hemisphereLight args={["#8DB4EA", "#03101F", fillI * gain]} />
+      <hemisphereLight args={["#7FA9E6", "#0A2448", fillI * gain]} />
       <directionalLight castShadow={casts} position={[target[0] + key[0], target[1] + key[1], target[2] + key[2]]} target={tgt} intensity={keyI * gain} color={keyColor}
         shadow-mapSize-width={2048} shadow-mapSize-height={2048} shadow-bias={-0.0004} shadow-normalBias={0.02}
         shadow-camera-left={-shadowBox} shadow-camera-right={shadowBox} shadow-camera-top={shadowBox} shadow-camera-bottom={-shadowBox} shadow-camera-near={0.5} shadow-camera-far={80} />
@@ -174,7 +174,10 @@ export const HouseLights = ({ keyPos = [-9, 14, 8], keyI = 2.6, keyColor = "#DCE
     </>
   );
 };
-export const World3D = ({ cam, fog = { color: "#0A2A52", density: 0.018, sky: "#071F3E" }, children }) => (
+// ★ rev 5 (Timur, 2026-11-27): "the distance … should always be covered up … by adding fog, blue fog"; "a little bit more blue throughout".
+//   FOG is the Bankers blue and denser (0.018 → 0.03: a subject 10 m away keeps 91 %, 40 m 24 %, 60 m 4 % — the world's edge is never seen).
+export const FOG = { color: "#0C3060", density: 0.03, sky: "#0A2A55" };
+export const World3D = ({ cam, fog = FOG, children }) => (
   <ThreeCanvas width={W} height={H} shadows gl={{ antialias: true, preserveDrawingBuffer: true }} camera={{ fov: 34, near: 0.05, far: 600, position: [0, 2, 10] }}
     style={{ position: "absolute", left: 0, top: 0 }}>
     <Setup fog={fog} />
@@ -214,7 +217,10 @@ export const rnd = (i) => { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; 
 export const Sky = ({ zenith = "#020F24", mid = "#082A57", horizon = "#3F72B4", glowAt = 0.52, radius = 400 }) => {
   const tex = useMemo(() => canvasTex(`sky_${zenith}_${mid}_${horizon}_${glowAt}`, 8, 512, (c, w, h) => {
     const g = c.createLinearGradient(0, 0, 0, h);
-    g.addColorStop(0, zenith); g.addColorStop(0.32, mid); g.addColorStop(glowAt, horizon); g.addColorStop(0.62, "#0B2A50"); g.addColorStop(1, "#061A33");
+    // rev 5: the horizon sits INSIDE the fog — the lower sky (from just above the horizon down) is the fog's own blue, so the ground's far
+    // edge and the sky meet in one blue haze (no white band, no visible end of the world); the horizon glow is a soft blue, never pale
+    const hz = new THREE.Color(horizon).lerp(new THREE.Color(FOG.color), 0.55).getStyle();
+    g.addColorStop(0, zenith); g.addColorStop(0.3, mid); g.addColorStop(Math.max(0.36, glowAt - 0.1), hz); g.addColorStop(glowAt, FOG.color); g.addColorStop(1, FOG.color);
     c.fillStyle = g; c.fillRect(0, 0, w, h);
   }), [zenith, mid, horizon, glowAt]);
   return (

@@ -10,8 +10,12 @@ import { clamp01 } from "./kit";
 import { BODY } from "./fonts3d";
 
 const BOX = "#7FB4F2";
-const SPOKEN = "#A3B0C2";
-export const Karaoke = ({ chips, cy = 1306, size = 56, maxW = 660, hideFrom = 1e9 }) => {
+const SPOKEN = "#D2DCE9";   // rev 5: lighter — there is no dark pill behind it any more
+// ★ rev 5 (Timur, 2026-11-27): "keep them at the bottom of the screen, just like Bankers used to be … without that weird box … remove that blue
+//   box and remove the background darker label shape as well, so it's just the text and lower in the screen." No pill, no keyword box: the
+//   words alone (karaoke timing kept), legible by a soft shadow only (no shape), centred low (a one-line chip's centre at y 1500).
+const SHADOW = "0 2px 4px rgba(0,6,16,0.85), 0 0 18px rgba(0,6,16,0.55)";
+export const Karaoke = ({ chips, cy = 1500, size = 58, maxW = 760, hideFrom = 1e9 }) => {
   const f = useCurrentFrame();
   if (f >= hideFrom) return null;
   const c = chips.find((q) => f >= q.at && f < q.until);
@@ -32,14 +36,13 @@ export const Karaoke = ({ chips, cy = 1306, size = 56, maxW = 660, hideFrom = 1e
       {lines.map((ln, li) => {
         const anyOn = ln.some((p) => p.i <= cur);
         return (
-          <div key={li} style={{ display: "flex", gap: size * 0.24, padding: `${size * 0.1}px ${size * 0.24}px`, background: "rgba(2, 9, 20, 0.70)", borderRadius: 9,
-            opacity: anyOn ? 1 : 0 }}>
+          <div key={li} style={{ display: "flex", gap: size * 0.24, padding: `0 ${size * 0.24}px`, opacity: anyOn ? 1 : 0 }}>
             {ln.filter((p) => p.i <= cur).map((p) => {
-              const spoken = p.i <= cur, now = p.i === cur, kw = p.i === c.kw && spoken;
+              const spoken = p.i <= cur, now = p.i === cur, kw = false;   // rev 5: no keyword box
               const fade = clamp01((f - p.at + 1) / 3);
               return (
                 <span key={p.i} style={{ position: "relative", fontFamily: BODY, fontWeight: now ? 800 : 500, fontSize: size, lineHeight: 1.12,
-                  color: now ? "#FFFFFF" : SPOKEN, opacity: spoken ? fade : 0, padding: `0 ${size * 0.05}px` }}>
+                  color: now ? "#FFFFFF" : SPOKEN, opacity: spoken ? fade : 0, padding: `0 ${size * 0.05}px`, textShadow: SHADOW }}>
                   {p.word}
                   {kw && (
                     <span style={{ position: "absolute", left: -size * 0.06, right: -size * 0.06, top: size * 0.02, bottom: size * 0.0, border: `3px solid ${BOX}`, background: "rgba(127,180,242,0.10)", borderRadius: 2 }}>

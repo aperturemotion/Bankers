@@ -11,6 +11,7 @@ import React from "react";
 import { Img, useCurrentFrame } from "remotion";
 import { clamp01, ease, easeOut } from "./kit";
 import { BODY, FIGURE } from "./fonts3d";
+import { LABEL_STYLE, PHOTOS, PILLS } from "./label_style";
 
 const CHIP_BG = "rgba(4, 18, 38, 0.82)";
 const ACCENT = "#4D8ED9";
@@ -21,6 +22,29 @@ export const Tag = ({ text, at, out = 1e9, x, y, to, side = "left", size = 30 })
   const kIn = ease(f, at, at + 12), kOut = ease(f, out, out + 10);
   const vis = kIn * (1 - kOut);
   if (vis <= 0.001) return null;
+  if (LABEL_STYLE === "off" || LABEL_STYLE === "world") return null;
+  if (LABEL_STYLE === "type") {
+    // a typographic kicker: small spaced caps, a short light-blue rule above, no chip, no leader; rises in, fades out
+    return (
+      <div style={{ position: "absolute", left: 80, top: 250, opacity: vis, transform: `translateY(${(1 - kIn) * 16}px)`, pointerEvents: "none" }}>
+        <div style={{ width: 64 * kIn, height: 3, background: "#7FB4F2", marginBottom: 14, borderRadius: 2 }} />
+        <div style={{ fontFamily: BODY, fontWeight: 700, fontSize: 34, letterSpacing: 7, color: "#F2F7FD", textTransform: "uppercase", whiteSpace: "nowrap",
+          textShadow: "0 2px 4px rgba(0,6,16,0.8), 0 0 16px rgba(0,6,16,0.5)" }}>{text}</div>
+      </div>
+    );
+  }
+  if (LABEL_STYLE === "pin") {
+    // a small ring ON the object and the words right beside it — no box, no long line
+    if (!to) return null;
+    const left = to.x < 700;
+    return (
+      <div style={{ position: "absolute", left: 0, top: 0, opacity: vis, pointerEvents: "none" }}>
+        <div style={{ position: "absolute", left: to.x - 9, top: to.y - 9, width: 18, height: 18, borderRadius: 9, border: "3px solid #FFFFFF", boxShadow: "0 0 10px rgba(127,180,242,0.9)", transform: `scale(${0.6 + 0.4 * kIn})` }} />
+        <div style={{ position: "absolute", left: left ? to.x + 22 : undefined, right: left ? undefined : 1080 - to.x + 22, top: to.y - 20, fontFamily: BODY, fontWeight: 700, fontSize: 30,
+          letterSpacing: 3, color: "#FFFFFF", textTransform: "uppercase", whiteSpace: "nowrap", textShadow: "0 2px 4px rgba(0,6,16,0.85), 0 0 14px rgba(0,6,16,0.6)" }}>{text}</div>
+      </div>
+    );
+  }
   const line = to ? ease(f, at - 4, at + 8) * (1 - kOut) : 0;
   const pad = size * 0.42;
   const chip = (
@@ -71,6 +95,7 @@ export const Counter = ({ at, out = 1e9, x, y, from = 0, value, prefix = "", uni
 };
 export const Inset = ({ src, credit, at, out = 1e9, x, y, w, h, fit = "cover", pos = "50% 30%" }) => {
   const f = useCurrentFrame();
+  if (!PHOTOS) return null;
   const kIn = easeOut(f, at, at + 16), kOut = ease(f, out, out + 12);
   const vis = kIn * (1 - kOut);
   if (vis <= 0.001) return null;
@@ -84,6 +109,7 @@ export const Inset = ({ src, credit, at, out = 1e9, x, y, w, h, fit = "cover", p
 };
 export const Pill = ({ at, out = 1e9, x = 1040, y = 150, icon, value, prevValue, changeAt = -1, label }) => {
   const f = useCurrentFrame();
+  if (!PILLS) return null;
   const kIn = easeOut(f, at, at + 12), kOut = ease(f, out, out + 10);
   const vis = kIn * (1 - kOut);
   if (vis <= 0.001) return null;
