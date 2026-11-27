@@ -59,122 +59,199 @@ export const Spoon = ({ chrome, position, ry = 0 }) => {
 };
 
 // ── food textures ─────────────────────────────────────────────────────────────────────────────────────────────────────
-const bunTopDraw = (c, w, h) => {   // the crown's crust: glossy brown deepening to the top, pale near the base, sesame seeds
-  const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "#8A4A18"); g.addColorStop(0.55, "#B66E2C"); g.addColorStop(0.85, "#D59A55"); g.addColorStop(1, "#EBC892");
+const bunTopDraw = (c, w, h) => {   // the crown (lathe UV: u round, v up): glossy egg-washed brown deepening to the top, a pale base band, sesame
+  const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "#E9C48A"); g.addColorStop(0.12, "#D49A52"); g.addColorStop(0.45, "#B4692A"); g.addColorStop(1, "#8A4818");   // (rendered: canvas bottom = the crown's top)
   c.fillStyle = g; c.fillRect(0, 0, w, h);
-  for (let i = 0; i < 3000; i++) { c.fillStyle = `rgba(${rnd(i) < 0.5 ? "60,25,5" : "255,220,160"},${0.04 + rnd(i + 1) * 0.06})`; c.fillRect(rnd(i + 2) * w, rnd(i + 3) * h, 3, 2); }
-  for (let i = 0; i < 70; i++) { const x = rnd(i * 3) * w, y = rnd(i * 5 + 1) * h * 0.7; c.fillStyle = "#F6E7C2"; c.beginPath(); c.ellipse(x, y, 4.2, 2.2, rnd(i + 7) * 3, 0, Math.PI * 2); c.fill(); c.fillStyle = "rgba(150,100,40,0.5)"; c.beginPath(); c.ellipse(x + 1, y + 1, 3, 1.2, rnd(i + 7) * 3, 0, Math.PI * 2); c.fill(); }
+  for (let i = 0; i < 5000; i++) { c.fillStyle = `rgba(${rnd(i) < 0.5 ? "70,30,8" : "255,225,170"},${0.04 + rnd(i + 1) * 0.07})`; c.fillRect(rnd(i + 2) * w, rnd(i + 3) * h, 2 + rnd(i) * 4, 1 + rnd(i + 4) * 2); }
+  for (let i = 0; i < 26; i++) { const x = rnd(i * 9) * w, y = rnd(i * 4) * h * 0.85; const gg = c.createRadialGradient(x, y, 0, x, y, 30); gg.addColorStop(0, "rgba(255,235,200,0.18)"); gg.addColorStop(1, "rgba(255,235,200,0)"); c.fillStyle = gg; c.fillRect(x - 30, y - 30, 60, 60); }
+  for (let i = 0; i < 150; i++) {   // sesame seeds: teardrops, a shadow under each, denser toward the top (y small)
+    const x = rnd(i * 3) * w, y = h - Math.pow(rnd(i * 5 + 1), 1.3) * h * 0.8, a = rnd(i + 7) * 3.14;
+    c.save(); c.translate(x, y); c.rotate(a); c.fillStyle = "rgba(90,45,10,0.45)"; c.beginPath(); c.ellipse(1.2, 1.4, 5.2, 2.6, 0, 0, Math.PI * 2); c.fill();
+    const sg = c.createLinearGradient(-5, -2, 5, 2); sg.addColorStop(0, "#FFF6DE"); sg.addColorStop(1, "#E2CC98"); c.fillStyle = sg; c.beginPath(); c.moveTo(-5, 0); c.quadraticCurveTo(0, -3.2, 5.5, 0); c.quadraticCurveTo(0, 3.2, -5, 0); c.fill(); c.restore();
+  }
 };
-const crumbDraw = (c, w, h) => {   // the bun's crumb (the cut face of bread): pale with irregular holes
-  c.fillStyle = "#EEDDB4"; c.fillRect(0, 0, w, h);
-  for (let i = 0; i < 900; i++) { c.fillStyle = `rgba(170,130,70,${0.1 + rnd(i) * 0.2})`; c.beginPath(); c.ellipse(rnd(i + 1) * w, rnd(i + 2) * h, 1 + rnd(i + 3) * 4, 1 + rnd(i + 4) * 2.5, rnd(i) * 3, 0, Math.PI * 2); c.fill(); }
+const crustDraw = (c, w, h) => {   // the heel's side and underside: toasted crust, a pale crumb line at the top (the cut face shows a little)
+  const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "#EED7A8"); g.addColorStop(0.18, "#D6A060"); g.addColorStop(1, "#B57434");
+  c.fillStyle = g; c.fillRect(0, 0, w, h);
+  for (let i = 0; i < 2500; i++) { c.fillStyle = `rgba(${rnd(i) < 0.5 ? "90,50,15" : "255,230,180"},${0.05 + rnd(i + 1) * 0.08})`; c.fillRect(rnd(i + 2) * w, rnd(i + 3) * h, 2, 2); }
 };
-const pattyDraw = (c, w, h) => {   // seared beef: dark brown with a char crust and grill-flecks
+const pattyDraw = (c, w, h) => {   // seared ground beef: a dark crust, crumbly texture, browned flecks, a sheen of fat
   c.fillStyle = "#4A2614"; c.fillRect(0, 0, w, h);
-  for (let i = 0; i < 6000; i++) { const v = rnd(i); c.fillStyle = v < 0.4 ? `rgba(20,8,2,${0.2 + rnd(i + 1) * 0.4})` : v < 0.8 ? `rgba(120,60,30,${0.15 + rnd(i + 1) * 0.3})` : `rgba(160,90,50,0.35)`; c.fillRect(rnd(i + 2) * w, rnd(i + 3) * h, 1 + rnd(i + 4) * 4, 1 + rnd(i + 5) * 3); }
+  for (let i = 0; i < 9000; i++) { const v = rnd(i); c.fillStyle = v < 0.35 ? `rgba(18,7,2,${0.25 + rnd(i + 1) * 0.45})` : v < 0.75 ? `rgba(118,58,28,${0.2 + rnd(i + 1) * 0.35})` : v < 0.93 ? `rgba(160,92,52,0.35)` : "rgba(230,170,120,0.35)"; c.beginPath(); c.ellipse(rnd(i + 2) * w, rnd(i + 3) * h, 1 + rnd(i + 4) * 3.5, 1 + rnd(i + 5) * 2.5, rnd(i) * 3, 0, Math.PI * 2); c.fill(); }
 };
-// the cut face of the half burger, bottom → top in canvas y: bottom bun, patty, cheese, tomato, lettuce, top bun
-const LAYERS = [["crumb", 0.018], ["patty", 0.014], ["cheese", 0.003], ["tomato", 0.006], ["lettuce", 0.004], ["crumb", 0.03]];
-const BH = LAYERS.reduce((a, l) => a + l[1], 0);
-const sectionDraw = (c, w, h) => {
-  let y = h;
-  LAYERS.forEach(([k, t], i) => {
-    const hh = (t / BH) * h; y -= hh;
-    if (k === "crumb") { c.drawImage(canvasTex("c_df_crumb", 256, 128, crumbDraw).image, 0, y, w, hh); if (i === LAYERS.length - 1) { const g = c.createLinearGradient(0, y, 0, y + hh * 0.35); g.addColorStop(0, "#9A5A22"); g.addColorStop(1, "rgba(154,90,34,0)"); c.fillStyle = g; c.fillRect(0, y, w, hh * 0.35); } else { c.fillStyle = "rgba(170,110,50,0.8)"; c.fillRect(0, y + hh - 6, w, 6); } }
-    if (k === "patty") { c.drawImage(canvasTex("c_df_patty", 256, 256, pattyDraw).image, 0, y, w, hh); c.fillStyle = "rgba(140,70,50,0.35)"; c.fillRect(0, y + hh * 0.3, w, hh * 0.4); }
-    if (k === "cheese") { c.fillStyle = "#F2A62A"; c.fillRect(0, y, w, hh + 3); }
-    if (k === "tomato") { c.fillStyle = "#C8321E"; c.fillRect(0, y, w, hh); for (let x = 20; x < w; x += 70) { c.fillStyle = "#E9A23C"; c.beginPath(); c.ellipse(x, y + hh / 2, 8, hh * 0.25, 0, 0, Math.PI * 2); c.fill(); } }
-    if (k === "lettuce") { c.fillStyle = "#7FB441"; c.beginPath(); c.moveTo(0, y + hh); for (let x = 0; x <= w; x += 10) c.lineTo(x, y + hh * (0.2 + 0.6 * rnd(x))); c.lineTo(w, y + hh); c.fill(); }
-  });
+const leafDraw = (c, w, h) => {   // a lettuce leaf's frilled edge: pale ribbed green with veins
+  const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "#C9E58A"); g.addColorStop(1, "#6EA238"); c.fillStyle = g; c.fillRect(0, 0, w, h);
+  for (let x = 0; x < w; x += 18) { c.strokeStyle = "rgba(240,255,210,0.5)"; c.lineWidth = 2; c.beginPath(); c.moveTo(x, h); c.quadraticCurveTo(x + 6, h / 2, x - 4, 0); c.stroke(); }
 };
+const tomatoDraw = (c, w, h) => { const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "#D8452C"); g.addColorStop(0.5, "#F07A50"); g.addColorStop(1, "#C3301C"); c.fillStyle = g; c.fillRect(0, 0, w, h); for (let x = 0; x < w; x += 40) { c.fillStyle = "rgba(250,200,90,0.6)"; c.beginPath(); c.ellipse(x + 20, h / 2, 6, h * 0.22, 0, 0, Math.PI * 2); c.fill(); } };
+// a steak fry: u along its length, v round its section; golden flesh with browned ends and edges, skin along one side, salt
 const fryDraw = (c, w, h) => {
-  const g = c.createLinearGradient(0, 0, w, 0); g.addColorStop(0, "#B9741F"); g.addColorStop(0.12, "#E7B055"); g.addColorStop(0.88, "#EDBB62"); g.addColorStop(1, "#A9681A");
+  const g = c.createLinearGradient(0, 0, w, 0); g.addColorStop(0, "#6E3C0C"); g.addColorStop(0.06, "#B8752A"); g.addColorStop(0.16, "#E1A850"); g.addColorStop(0.5, "#EAB862"); g.addColorStop(0.84, "#DFA64C"); g.addColorStop(0.94, "#B06E24"); g.addColorStop(1, "#6A380C");
   c.fillStyle = g; c.fillRect(0, 0, w, h);
-  for (let i = 0; i < 500; i++) { c.fillStyle = `rgba(${rnd(i) < 0.6 ? "150,85,20" : "255,230,170"},${0.15 + rnd(i + 1) * 0.25})`; c.fillRect(rnd(i + 2) * w, rnd(i + 3) * h, 2, 1 + rnd(i) * 3); }
+  // the potato's skin along one long side (v 0.62 … 0.86): brown, papery, with eyes
+  const sk = c.createLinearGradient(0, h * 0.6, 0, h * 0.88); sk.addColorStop(0, "rgba(120,72,28,0)"); sk.addColorStop(0.15, "rgba(126,78,32,0.95)"); sk.addColorStop(0.85, "rgba(104,62,24,0.95)"); sk.addColorStop(1, "rgba(104,62,24,0)");
+  c.fillStyle = sk; c.fillRect(0, h * 0.6, w, h * 0.28);
+  for (let i = 0; i < 30; i++) { c.fillStyle = "rgba(60,32,10,0.6)"; c.beginPath(); c.ellipse(rnd(i * 3) * w, h * (0.64 + rnd(i) * 0.2), 2 + rnd(i + 1) * 4, 1.2, 0, 0, Math.PI * 2); c.fill(); }
+  // browned edges between the faces, blisters, the cut's fine grain
+  [0.12, 0.37, 0.6, 0.88].forEach((v) => { c.fillStyle = "rgba(140,76,18,0.6)"; c.fillRect(0, h * v - 4, w, 8); });
+  for (let i = 0; i < 40; i++) { const x = rnd(i * 5 + 3) * w, y = rnd(i * 9 + 4) * h; const gg = c.createRadialGradient(x, y, 0, x, y, 14); gg.addColorStop(0, "rgba(150,80,20,0.45)"); gg.addColorStop(1, "rgba(150,80,20,0)"); c.fillStyle = gg; c.fillRect(x - 14, y - 14, 28, 28); }
+  for (let i = 0; i < 700; i++) { c.fillStyle = `rgba(${rnd(i) < 0.6 ? "160,96,30" : "255,236,180"},${0.12 + rnd(i + 1) * 0.25})`; c.beginPath(); c.ellipse(rnd(i + 2) * w, rnd(i + 3) * h, 1 + rnd(i) * 4, 0.8 + rnd(i + 4) * 1.6, 0, 0, Math.PI * 2); c.fill(); }
+  for (let i = 0; i < 260; i++) { c.fillStyle = `rgba(255,255,255,${0.6 + rnd(i + 9) * 0.4})`; const x = rnd(i * 7 + 1) * w, y = rnd(i * 11 + 2) * h, s = 1 + rnd(i) * 1.6; c.fillRect(x, y, s, s); }   // salt
+};
+const fleshDraw = (c, w, h) => {   // a dill spear's cut face (x along the spear, y from the skin (0) to the core (h)): translucent flesh, seeds at the core
+  const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "#2F4A12"); g.addColorStop(0.07, "#6F8A2A"); g.addColorStop(0.16, "#B4C266"); g.addColorStop(0.5, "#CDD48A"); g.addColorStop(0.72, "#DADCA0"); g.addColorStop(1, "#C6C98A");
+  c.fillStyle = g; c.fillRect(0, 0, w, h);
+  for (let i = 0; i < 900; i++) { c.fillStyle = `rgba(${rnd(i) < 0.5 ? "250,255,225" : "110,130,45"},${0.08 + rnd(i + 1) * 0.14})`; c.fillRect(rnd(i + 2) * w, rnd(i + 3) * h * 0.7, 2 + rnd(i) * 8, 1); }
+  // the seed cavity: a jelly band with seeds set in it, along the core
+  const jg = c.createLinearGradient(0, h * 0.66, 0, h); jg.addColorStop(0, "rgba(220,226,170,0)"); jg.addColorStop(0.3, "rgba(236,238,196,0.9)"); jg.addColorStop(1, "rgba(214,220,160,0.9)"); c.fillStyle = jg; c.fillRect(0, h * 0.66, w, h * 0.34);
+  for (let k = 0; k < 22; k++) { const x = w * (0.05 + k * 0.042) + (rnd(k) - 0.5) * 10, y = h * (0.8 + (rnd(k + 3) - 0.5) * 0.14), a = (rnd(k + 5) - 0.5) * 0.9;
+    c.save(); c.translate(x, y); c.rotate(a); c.fillStyle = "rgba(120,124,70,0.55)"; c.beginPath(); c.ellipse(1, 1.5, 8, 4.6, 0, 0, Math.PI * 2); c.fill();
+    c.fillStyle = "#F3F0D2"; c.beginPath(); c.ellipse(0, 0, 8, 4.4, 0, 0, Math.PI * 2); c.fill(); c.strokeStyle = "rgba(150,150,90,0.8)"; c.lineWidth = 1.2; c.stroke(); c.restore(); }
+};
+const skinDraw = (c, w, h) => {   // the cucumber's skin: dark glossy green, paler ridges along it, warts with dark tips
+  c.fillStyle = "#2E4814"; c.fillRect(0, 0, w, h);
+  for (let y = 0; y < h; y += 14) { const g = c.createLinearGradient(0, y, 0, y + 14); g.addColorStop(0, "rgba(120,150,50,0)"); g.addColorStop(0.5, "rgba(130,160,60,0.4)"); g.addColorStop(1, "rgba(120,150,50,0)"); c.fillStyle = g; c.fillRect(0, y, w, 14); }
+  for (let i = 0; i < 2000; i++) { c.fillStyle = `rgba(${rnd(i) < 0.5 ? "170,190,90" : "10,20,4"},0.15)`; c.fillRect(rnd(i + 1) * w, rnd(i + 2) * h, 2, 1); }
+  for (let i = 0; i < 220; i++) { const x = rnd(i * 3) * w, y = rnd(i * 5) * h; c.fillStyle = "rgba(160,184,80,0.75)"; c.beginPath(); c.arc(x, y, 2 + rnd(i) * 2.5, 0, Math.PI * 2); c.fill(); c.fillStyle = "rgba(15,24,6,0.85)"; c.beginPath(); c.arc(x + 0.8, y + 0.8, 1, 0, Math.PI * 2); c.fill(); }
 };
 
-// ── the plate's food (local to the plate centre, on the plate's well at y W) ──────────────────────────────────────────────
-export const PlateFood = ({ W = 0.0105, chrome, ry = 0 }) => {
+// ── a whole cheeseburger (centre of its footprint at y 0) ────────────────────────────────────────────────────────────
+const CROWN = [[0, 0.036], [0.018, 0.0352], [0.032, 0.031], [0.042, 0.024], [0.049, 0.015], [0.0525, 0.007], [0.053, 0.002], [0.05, 0], [0, 0]];
+const HEEL = [[0, 0], [0.044, 0], [0.049, 0.0025], [0.052, 0.008], [0.052, 0.016], [0.05, 0.019], [0, 0.019]];
+export const Burger = ({ position, ry = 0 }) => {
   const g = useMemo(() => {
-    const half = (r, t, thetaStart = 0) => new THREE.CylinderGeometry(r, r, t, 40, 1, false, thetaStart, Math.PI);
-    const crown = new THREE.SphereGeometry(0.05, 40, 16, 0, Math.PI, 0, Math.PI / 2);
-    // the lettuce frill: a ring of wavy leaf edge round the half
-    const lettuce = new THREE.CylinderGeometry(0.053, 0.056, 0.006, 48, 2, true, 0, Math.PI); const lp = lettuce.attributes.position;
-    for (let i = 0; i < lp.count; i++) { const a = Math.atan2(lp.getZ(i), lp.getX(i)); lp.setY(i, lp.getY(i) + 0.0025 * Math.sin(a * 22) + 0.0015 * Math.sin(a * 9)); const k = 1 + 0.04 * Math.sin(a * 15); lp.setX(i, lp.getX(i) * k); lp.setZ(i, lp.getZ(i) * k); }
-    lettuce.computeVertexNormals();
-    // the cheese: a square slice laid over the patty, its corners drooping down the sides
-    const cheese = new THREE.PlaneGeometry(0.098, 0.098, 16, 16).rotateX(-Math.PI / 2); const cp = cheese.attributes.position;
-    for (let i = 0; i < cp.count; i++) { const x = cp.getX(i), z = cp.getZ(i), r = Math.hypot(x, z); if (r > 0.046) cp.setY(i, -(r - 0.046) * 0.9); if (x < 0) cp.setX(i, 0.0005); }
+    const crown = new THREE.LatheGeometry(new THREE.SplineCurve(CROWN.map(([r, y]) => new THREE.Vector2(r, y))).getPoints(24), 56);
+    const heel = new THREE.LatheGeometry(HEEL.map(([r, y]) => new THREE.Vector2(r, y)), 56);
+    // the patty: an irregular, slightly domed disc
+    const patty = new THREE.CylinderGeometry(0.0545, 0.0555, 0.014, 64, 2); const pp = patty.attributes.position;
+    for (let i = 0; i < pp.count; i++) { const x = pp.getX(i), z = pp.getZ(i), a = Math.atan2(z, x), r = Math.hypot(x, z); if (r > 0.03) { const k = 1 + 0.035 * Math.sin(a * 7 + 1) + 0.025 * Math.sin(a * 13 + 2) + 0.012 * Math.sin(a * 29); pp.setX(i, x * k); pp.setZ(i, z * k); } pp.setY(i, pp.getY(i) + (pp.getY(i) > 0 ? 0.0015 * (1 - r / 0.056) : 0)); }
+    patty.computeVertexNormals();
+    // the cheese: a square slice draped over the patty, its corners sagging down the sides
+    const cheese = new THREE.PlaneGeometry(0.108, 0.108, 28, 28).rotateX(-Math.PI / 2).rotateY(0.4); const cp = cheese.attributes.position;
+    for (let i = 0; i < cp.count; i++) { const x = cp.getX(i), z = cp.getZ(i), r = Math.hypot(x, z); if (r > 0.052) { const o = r - 0.052; cp.setY(i, -o * 1.6 - o * o * 10); const k = (0.0535 + o * 0.25) / r; cp.setX(i, x * k); cp.setZ(i, z * k); } }
     cheese.computeVertexNormals();
-    const fry = new THREE.BoxGeometry(1, 1, 1);
-    const pickle = new THREE.CapsuleGeometry(0.011, 0.07, 6, 14).rotateZ(Math.PI / 2).scale(1, 0.55, 1); const pp = pickle.attributes.position;
-    for (let i = 0; i < pp.count; i++) { const k = 1 + 0.06 * Math.sin(pp.getX(i) * 300) * Math.sin(Math.atan2(pp.getZ(i), pp.getY(i)) * 7); pp.setY(i, pp.getY(i) * k); pp.setZ(i, pp.getZ(i) * k); }
-    pickle.computeVertexNormals();
-    const cup = new THREE.LatheGeometry([[0, 0], [0.019, 0], [0.024, 0.026], [0.0255, 0.0265], [0.0235, 0.0265], [0.0175, 0.002], [0, 0.002]].map(([r, y]) => new THREE.Vector2(r, y)), 32);
-    const crumbs = new THREE.IcosahedronGeometry(1, 0);
-    return { half, crown, lettuce, cheese, fry, pickle, cup, crumbs, knife: knifeGeo(), fork: forkGeo() };
+    const lettuce = new THREE.CylinderGeometry(0.057, 0.06, 0.008, 72, 2, true); const lp = lettuce.attributes.position;
+    for (let i = 0; i < lp.count; i++) { const a = Math.atan2(lp.getZ(i), lp.getX(i)); lp.setY(i, lp.getY(i) + 0.003 * Math.sin(a * 23) + 0.002 * Math.sin(a * 9 + 1)); const k = 1 + 0.05 * Math.sin(a * 17) + 0.03 * Math.sin(a * 6); lp.setX(i, lp.getX(i) * k); lp.setZ(i, lp.getZ(i) * k); }
+    lettuce.computeVertexNormals();
+    return { crown, heel, patty, cheese, lettuce };
   }, []);
-  const M = useMemo(() => {
-    const bun = new THREE.MeshStandardMaterial({ map: canvasTex("c_df_buntop", 512, 256, bunTopDraw), roughness: 0.42 });
-    const bunSide = new THREE.MeshStandardMaterial({ color: "#D9A866", roughness: 0.6 });
-    const crumb = new THREE.MeshStandardMaterial({ map: canvasTex("c_df_crumb", 256, 128, crumbDraw), roughness: 0.95 });
-    const patty = new THREE.MeshStandardMaterial({ map: canvasTex("c_df_patty", 256, 256, pattyDraw), roughness: 0.7 });
-    const section = new THREE.MeshStandardMaterial({ map: canvasTex("c_df_section", 256, 512, sectionDraw), roughness: 0.8, side: THREE.DoubleSide });
-    return {
-      bun, bunSide, crumb, patty, section,
-      cheese: new THREE.MeshPhysicalMaterial({ color: "#F0A426", roughness: 0.35, clearcoat: 0.6, side: THREE.DoubleSide }),
-      lettuce: new THREE.MeshStandardMaterial({ color: "#86B848", roughness: 0.55, side: THREE.DoubleSide, emissive: "#1F3A08", emissiveIntensity: 0.15 }),
-      tomato: new THREE.MeshPhysicalMaterial({ color: "#C53520", roughness: 0.25, clearcoat: 0.8 }),
-      fry: new THREE.MeshStandardMaterial({ map: canvasTex("c_df_fry", 128, 32, fryDraw), roughness: 0.55, emissive: "#3A2208", emissiveIntensity: 0.15 }),
-      pickle: new THREE.MeshPhysicalMaterial({ color: "#6E8A2E", roughness: 0.3, clearcoat: 0.9, emissive: "#18220A", emissiveIntensity: 0.2 }),
-      ketchup: new THREE.MeshPhysicalMaterial({ color: "#8E1A10", roughness: 0.15, clearcoat: 1 }),
-      paper: new THREE.MeshStandardMaterial({ color: "#F4F2EC", roughness: 0.9, side: THREE.DoubleSide }),
-      crumbM: new THREE.MeshStandardMaterial({ color: "#D9B47A", roughness: 0.9 }),
-    };
-  }, []);
-  // the layers' heights (bottom → top)
-  const y0 = W, hb = 0.018, hp = 0.014, ht = 0.006;
-  const fries = useMemo(() => Array.from({ length: 13 }, (_, i) => {
-    const heap = i < 10;
-    const a = rnd(i * 5 + 1) * Math.PI * 2, r = heap ? rnd(i * 3) * 0.028 : 0.05 + rnd(i) * 0.03;
-    return { x: 0.058 + Math.cos(a) * r * (heap ? 1 : 0.6), z: -0.05 + Math.sin(a) * r * (heap ? 1 : 0.6), y: heap ? 0.0045 + Math.floor(i / 4) * 0.0085 : 0.0045, ry: rnd(i * 7) * Math.PI, rz: heap && i > 3 ? (rnd(i) - 0.5) * 0.4 : 0, L: 0.05 + rnd(i * 11) * 0.03 };
+  const M = useMemo(() => ({
+    crown: new THREE.MeshPhysicalMaterial({ map: (() => { const t = canvasTex("c_df_crown2", 1024, 256, bunTopDraw); return t; })(), color: "#A8744C", roughness: 0.5, clearcoat: 0.22, clearcoatRoughness: 0.5 }),
+    heel: new THREE.MeshStandardMaterial({ map: canvasTex("c_df_heel", 512, 64, crustDraw), roughness: 0.75 }),
+    patty: new THREE.MeshPhysicalMaterial({ map: canvasTex("c_df_patty2", 512, 512, pattyDraw), roughness: 0.55, clearcoat: 0.25, clearcoatRoughness: 0.5 }),
+    cheese: new THREE.MeshPhysicalMaterial({ color: "#F7B53A", roughness: 0.25, clearcoat: 0.8, side: THREE.DoubleSide, emissive: "#7A3E00", emissiveIntensity: 0.2 }),
+    lettuce: new THREE.MeshStandardMaterial({ map: canvasTex("c_df_leaf", 1024, 64, leafDraw), roughness: 0.5, side: THREE.DoubleSide }),
+    tomato: new THREE.MeshPhysicalMaterial({ map: canvasTex("c_df_tomato", 512, 32, tomatoDraw), roughness: 0.25, clearcoat: 0.9 }),
+  }), []);
+  const yP = 0.019, yC = yP + 0.0145, yT = yC + 0.0035, yL = yT + 0.006;
+  return (
+    <group position={position} rotation-y={ry}>
+      <mesh geometry={g.heel} material={M.heel} castShadow receiveShadow />
+      <mesh geometry={g.patty} material={M.patty} position={[0, yP + 0.007, 0]} castShadow receiveShadow />
+      <mesh geometry={g.cheese} material={M.cheese} position={[0, yC, 0]} castShadow />
+      <mesh position={[0.004, yT, 0.002]} material={M.tomato} castShadow><cylinderGeometry args={[0.047, 0.047, 0.006, 40]} /></mesh>
+      <mesh geometry={g.lettuce} material={M.lettuce} position={[0, yL, 0]} castShadow />
+      <mesh geometry={g.crown} material={M.crown} position={[0, yL + 0.002, 0]} rotation-y={0.7} castShadow />
+    </group>
+  );
+};
+
+// ── a dill pickle spear: a quarter of a cucumber, rounded ends, lying on one cut face with the other facing up/out ──────
+export const Pickle = ({ position, ry = 0, L = 0.095, R = 0.016 }) => {
+  const g = useMemo(() => {
+    const rho = (x) => R * Math.pow(Math.max(0, 1 - Math.pow(Math.abs((2 * x) / L), 5)), 0.2);
+    const NX = 40, NA = 10, pos = [], uv = [], idx = [];
+    for (let i = 0; i <= NX; i++) for (let j = 0; j <= NA; j++) {
+      const x = -L / 2 + (L * i) / NX, phi = (j / NA) * (Math.PI / 2), bump = 1 + 0.07 * Math.sin(2 * phi) * Math.sin(x * 420 + j * 1.7) * Math.cos(x * 230 + j);
+      const r = rho(x) * bump; pos.push(x, r * Math.cos(phi), -r * Math.sin(phi)); uv.push(i / NX, j / NA);
+    }
+    for (let i = 0; i < NX; i++) for (let j = 0; j < NA; j++) { const a = i * (NA + 1) + j, b = a + NA + 1; idx.push(a, b, a + 1, b, b + 1, a + 1); }
+    const skin = new THREE.BufferGeometry(); skin.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); skin.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2)); skin.setIndex(idx); skin.computeVertexNormals();
+    // the two cut faces: the outline (x, ρ(x)) — UV v 0 at the skin, 1 at the core
+    const sh = new THREE.Shape(); sh.moveTo(-L / 2, 0); for (let i = 0; i <= NX; i++) { const x = -L / 2 + (L * i) / NX; sh.lineTo(x, rho(x)); } sh.lineTo(L / 2, 0); sh.closePath();
+    const face = new THREE.ShapeGeometry(sh, 2); const fu = face.attributes.uv, fp = face.attributes.position;
+    for (let i = 0; i < fu.count; i++) fu.setXY(i, (fp.getX(i) + L / 2) / L, fp.getY(i) / R);
+    return { skin, face };
+  }, [L, R]);
+  const M = useMemo(() => ({
+    skin: new THREE.MeshPhysicalMaterial({ map: canvasTex("c_df_pskin2", 512, 128, skinDraw), roughness: 0.3, clearcoat: 1, clearcoatRoughness: 0.12, side: THREE.DoubleSide }),
+    flesh: new THREE.MeshPhysicalMaterial({ map: canvasTex("c_df_pflesh2", 1024, 256, fleshDraw), roughness: 0.18, clearcoat: 1, clearcoatRoughness: 0.06, emissive: "#55601A", emissiveIntensity: 0.3, side: THREE.DoubleSide }),
   }), []);
   return (
-    <group rotation-y={ry}>
-      {/* the half cheeseburger (its flat cut face toward −z, i.e. toward the window) */}
-      <group position={[-0.05, y0, -0.025]} rotation-y={0.35}>
-        <mesh geometry={g.half(0.05, hb)} position={[0, hb / 2, 0]} castShadow receiveShadow>
-          <meshStandardMaterial attach="material-0" color="#D9A866" roughness={0.6} />
-          <meshStandardMaterial attach="material-1" map={M.crumb.map} roughness={0.95} />
-          <meshStandardMaterial attach="material-2" color="#C9894A" roughness={0.6} />
-        </mesh>
-        <mesh geometry={g.half(0.051, hp)} position={[0, hb + hp / 2, 0]} material={M.patty} castShadow />
-        <mesh geometry={g.cheese} position={[0, hb + hp + 0.0008, 0]} material={M.cheese} castShadow />
-        <mesh geometry={g.half(0.045, ht)} position={[0, hb + hp + 0.004, 0]} material={M.tomato} />
-        <mesh geometry={g.lettuce} position={[0, hb + hp + ht + 0.004, 0]} material={M.lettuce} castShadow />
-        <mesh geometry={g.crown} position={[0, hb + hp + ht + 0.006, 0]} rotation-y={Math.PI / 2} scale={[1, 0.62, 1]} material={M.bun} castShadow />
-        {/* the cut face, painted with the layers' cross-section */}
-        <mesh position={[-0.0004, (hb + hp + ht + 0.006 + 0.031) / 2, 0]} rotation-y={-Math.PI / 2}><planeGeometry args={[0.1, hb + hp + ht + 0.006 + 0.031]} /><primitive object={M.section} attach="material" /></mesh>
-      </group>
-      {/* steak fries: a heap and a few strays */}
-      {fries.map((o, i) => <mesh key={i} geometry={g.fry} material={M.fry} position={[o.x, y0 + o.y, o.z]} rotation={[0, o.ry, o.rz]} scale={[o.L, 0.0085, 0.0095]} castShadow />)}
-      {/* the pickle spear */}
-      <mesh geometry={g.pickle} material={M.pickle} position={[-0.085, y0 + 0.006, 0.035]} rotation-y={-1.1} castShadow />
-      {/* a paper cup of ketchup and a smear on the rim */}
-      <group position={[-0.02, y0, 0.08]}>
+    <group position={position} rotation-y={ry}>
+      <mesh geometry={g.skin} material={M.skin} castShadow />
+      {/* the upright cut face (z 0, facing +z) and the one it lies on (y 0, facing down) */}
+      <mesh geometry={g.face} material={M.flesh} />
+      <mesh geometry={g.face} material={M.flesh} rotation-x={-Math.PI / 2} scale={[1, 1, 1]} />
+    </group>
+  );
+};
+
+// ── fries: steak-cut wedges of potato, each slightly bent and uneven, in a natural pile ─────────────────────────────────
+const fryGeo = (seed) => {
+  const g = new THREE.BoxGeometry(1, 1, 1, 10, 1, 1), p = g.attributes.position;
+  const bend = (rnd(seed) - 0.5) * 0.12, twist = (rnd(seed + 1) - 0.5) * 0.5;
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), y = p.getY(i), z = p.getZ(i), t = x + 0.5;
+    const taper = 1 - 0.12 * Math.abs(x * 2) ** 3 + 0.05 * Math.sin(t * 9 + seed);
+    const a = twist * x, yy = y * Math.cos(a) - z * Math.sin(a), zz = y * Math.sin(a) + z * Math.cos(a);
+    p.setXYZ(i, x, yy * taper + bend * (1 - 4 * x * x) * 3, zz * taper);
+  }
+  g.computeVertexNormals();
+  return g;
+};
+export const FriesPile = ({ position, n = 15, seed = 1, yaw = 0, spread = 0.018 }) => {
+  const geos = useMemo(() => Array.from({ length: 6 }, (_, i) => fryGeo(i * 7 + 3)), []);
+  const mats = useMemo(() => ["#FFFFFF", "#F2D8B4", "#E2BE8E"].map((col) => new THREE.MeshPhysicalMaterial({ map: canvasTex("c_df_fry3", 512, 128, fryDraw), color: col, roughness: 0.42, clearcoat: 0.3, clearcoatRoughness: 0.4, emissive: "#3A2208", emissiveIntensity: 0.1 })), []);
+  // a pile: the lower layer spread wider, upper ones crossing over them at an angle; all roughly along `yaw` (the plate's tangent)
+  const list = useMemo(() => Array.from({ length: n }, (_, i) => {
+    const layer = i < Math.ceil(n * 0.45) ? 0 : i < Math.ceil(n * 0.8) ? 1 : 2, a = rnd(i * 5 + seed) * Math.PI * 2, rr = (spread - layer * 0.005) * Math.sqrt(rnd(i * 3 + seed));
+    const L = 0.05 + rnd(i * 11 + seed) * 0.03, t = 0.0085 + rnd(i * 13 + seed) * 0.003;
+    return { g: (i + seed) % 6, p: [Math.cos(a) * rr, layer * 0.0082 + t / 2, Math.sin(a) * rr], r: [(rnd(i + 3 + seed) - 0.5) * (layer ? 0.3 : 0.08), yaw + (rnd(i * 7 + seed) - 0.5) * (layer ? 1.1 : 0.6), (rnd(i + 5 + seed) - 0.5) * (layer ? 0.25 : 0.05)], s: [L, t, t * (0.9 + rnd(i + 8) * 0.25)] };
+  }), [n, seed, yaw, spread]);
+  return <group position={position}>{list.map((o, i) => <mesh key={i} geometry={geos[o.g]} material={mats[(i + seed) % 3]} position={o.p} rotation={o.r} scale={o.s} castShadow receiveShadow />)}</group>;
+};
+
+// ── the plate's food (local to the plate centre, on the plate's well at y W): generic diner food ─────────────────────────
+export const PlateFood = ({ W = 0.0105 }) => {
+  const M = useMemo(() => ({
+    ketchup: new THREE.MeshPhysicalMaterial({ color: "#8E1A10", roughness: 0.15, clearcoat: 1 }),
+    paper: new THREE.MeshStandardMaterial({ color: "#F4F2EC", roughness: 0.9, side: THREE.DoubleSide }),
+    crumbM: new THREE.MeshStandardMaterial({ color: "#D9B47A", roughness: 0.9 }),
+  }), []);
+  const g = useMemo(() => ({
+    cup: new THREE.LatheGeometry([[0, 0], [0.019, 0], [0.024, 0.026], [0.0255, 0.0265], [0.0235, 0.0265], [0.0175, 0.002], [0, 0.002]].map(([r, y]) => new THREE.Vector2(r, y)), 32),
+    pleat: new THREE.CylinderGeometry(0.0256, 0.0196, 0.026, 28, 1, true),
+    crumbs: new THREE.IcosahedronGeometry(1, 0),
+  }), []);
+  return (
+    <group>
+      <Burger position={[-0.035, W, -0.02]} ry={0.3} />
+      <FriesPile position={[0.05, W, 0.04]} seed={3} n={14} yaw={2.25} spread={0.016} />
+      <FriesPile position={[0.015, W, 0.088]} seed={11} n={2} yaw={3.14} spread={0.004} />
+      <Pickle position={[0.055, W, -0.045]} ry={0.885} L={0.082} R={0.018} />
+      {/* a pleated paper cup of ketchup */}
+      <group position={[-0.06, W + 0.001, 0.065]}>
         <mesh geometry={g.cup} material={M.paper} castShadow />
-        <mesh position={[0, 0.02, 0]} scale={[1, 0.25, 1]} material={M.ketchup}><sphereGeometry args={[0.022, 24, 12]} /></mesh>
+        <mesh position={[0, 0.0135, 0]} material={M.paper}><primitive object={g.pleat} attach="geometry" /></mesh>
+        <mesh position={[0, 0.021, 0]} scale={[1, 0.28, 1]} material={M.ketchup}><sphereGeometry args={[0.0225, 24, 12]} /></mesh>
       </group>
-      <mesh position={[-0.065, y0 + 0.0006, 0.075]} rotation-x={-Math.PI / 2} scale={[1.8, 0.7, 1]} material={M.ketchup}><circleGeometry args={[0.012, 20]} /></mesh>
       {/* crumbs and sesame on the plate */}
-      {Array.from({ length: 16 }, (_, i) => <mesh key={i} geometry={g.crumbs} material={i % 4 ? M.crumbM : M.bun} position={[(rnd(i * 3) - 0.5) * 0.16, y0 + 0.0012, (rnd(i * 5) - 0.5) * 0.16]} scale={0.0012 + rnd(i) * 0.002} />)}
-      {/* knife and fork in the finished position: tips in the well, handles on the rim at four o'clock */}
-      <group position={[0.02, y0, 0.03]} rotation-y={-0.62}>
-        <group position={[0, 0.0075, 0]} rotation-z={0.065}><mesh geometry={g.knife} material={chrome} position={[0.115, 0, 0]} rotation-y={Math.PI} castShadow /></group>
-      </group>
-      <group position={[0.0, y0, 0.058]} rotation-y={-0.76}>
-        <group position={[0, 0.0075, 0]} rotation-z={0.066}><mesh geometry={g.fork} material={chrome} position={[0.12, 0, 0]} rotation-y={Math.PI} castShadow /></group>
-      </group>
+      {Array.from({ length: 14 }, (_, i) => <mesh key={i} geometry={g.crumbs} material={M.crumbM} position={[(rnd(i * 3) - 0.5) * 0.15, W + 0.0012, (rnd(i * 5) - 0.5) * 0.15]} scale={0.0012 + rnd(i) * 0.0018} />)}
+    </group>
+  );
+};
+
+/** used knife and fork, laid on the table side by side (handle ends toward +z), on a paper napkin */
+export const UsedFlatware = ({ chrome, position, ry = 0 }) => {
+  const g = useMemo(() => ({ knife: knifeGeo(), fork: forkGeo() }), []);
+  const nap = useMemo(() => { const q = new THREE.PlaneGeometry(0.085, 0.22, 10, 18).rotateX(-Math.PI / 2); const p = q.attributes.position; for (let i = 0; i < p.count; i++) p.setY(i, 0.0015 + 0.0015 * Math.sin(p.getX(i) * 90 + p.getZ(i) * 40) * Math.cos(p.getZ(i) * 70)); q.computeVertexNormals(); return q; }, []);
+  const napM = useMemo(() => new THREE.MeshStandardMaterial({ color: "#F3F2EE", roughness: 0.95, side: THREE.DoubleSide }), []);
+  return (
+    <group position={position} rotation-y={ry}>
+      <mesh geometry={nap} material={napM} receiveShadow castShadow />
+      <mesh geometry={g.knife} material={chrome} position={[-0.016, 0.003, 0.1]} rotation-y={Math.PI / 2} castShadow />
+      <mesh geometry={g.fork} material={chrome} position={[0.018, 0.003, 0.098]} rotation-y={Math.PI / 2 + 0.04} castShadow />
     </group>
   );
 };

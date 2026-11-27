@@ -16,7 +16,7 @@ import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { canvasTex, rnd, Glow } from "./kit";
 import { HAND, SANSF, usePropFonts, woodTex, speckTex, noiseTex, tileTex, brushedTex } from "./c_tex";
-import { PlateFood, Mug, WaterGlass, Caddy } from "./c_dfood";
+import { PlateFood, Mug, WaterGlass, Caddy, UsedFlatware } from "./c_dfood";
 import { conifer, maple, house, snowGround } from "./c_scenery";
 
 export const TOP = 0.76, WALL = -0.62;
@@ -354,7 +354,7 @@ const Pendant = ({ M }) => {
   );
 };
 // ── the table props ───────────────────────────────────────────────────────────────────────────────────────────────────
-const PLATE = [[0, 0.0105], [0.07, 0.0105], [0.09, 0.0125], [0.11, 0.018], [0.124, 0.0225], [0.134, 0.0245], [0.138, 0.0232], [0.137, 0.0205], [0.128, 0.0185], [0.105, 0.0125], [0.084, 0.0055], [0.074, 0.0018], [0.068, 0.0], [0.06, 0.0], [0.058, 0.003], [0.0, 0.003]];
+const PLATE = [[0, 0.0105], [0.095, 0.0105], [0.108, 0.0135], [0.12, 0.018], [0.129, 0.0225], [0.135, 0.0245], [0.139, 0.0232], [0.138, 0.0205], [0.129, 0.0185], [0.11, 0.0125], [0.09, 0.0055], [0.08, 0.0018], [0.074, 0.0], [0.066, 0.0], [0.064, 0.003], [0.0, 0.003]];
 const plateBand = () => canvasTex("c_plateband", 4, 512, (c, w, h) => {
   c.fillStyle = "#F4F2EC"; c.fillRect(0, 0, w, h);
   const n = PLATE.length - 1, v0 = 1 - 3.55 / n, v1 = 1 - 3.95 / n;   // the band on the rim (segment 3→4 of the profile; canvas y = 1 − v)
@@ -367,8 +367,9 @@ const Plate = ({ M }) => {
   const paperM = useMemo(() => new THREE.MeshStandardMaterial({ color: "#F2F2EE", roughness: 0.95 }), []);
   return (
     <group position={[-0.13, TOP, -0.1]}>
-      <mesh geometry={g} material={m} castShadow receiveShadow />
-      <PlateFood W={0.0105} chrome={M.chrome} />
+      <mesh geometry={g} material={m} scale={1.12} castShadow receiveShadow />
+      <PlateFood W={0.0105 * 1.12} />
+      <UsedFlatware chrome={M.chrome} position={[0.148, 0, 0.19]} ry={0.05} />
       {/* the paper napkin, crumpled on the table beside the plate */}
       <mesh geometry={napkin} material={paperM} position={[-0.17, 0.02, -0.12]} castShadow />
     </group>

@@ -102,19 +102,48 @@ const signDraw = (c, w, h) => {
   c.fillStyle = "#9AA6B4"; c.fillRect(0, 6, w, 4); c.fillRect(0, h - 10, w, 4);
 };
 // the steel rule: inches with 1/16 graduations, numbered 1–6; 0 sits FLOOR_T above the foot's underside
-export const RULER = { w: 0.026, h: 0.17, t: 0.0018 };
-const RPX = 2048 / RULER.h;
+export const RULER = { w: 0.032, h: 0.17, t: 0.0022 };
+const RW = 384, RH = 2048, RPX = RH / RULER.h;
+const yOf = (inch) => RH - (FLOOR_T + inch * INCH) * RPX;   // canvas y of a reading (0 sits FLOOR_T above the foot's underside)
+// THE STEEL RULE (rev 2026-11-27, Timur: "make the ruler more detailed and more eye-catching"): satin stainless with a cross-grain brush,
+// ENGRAVED graduations (each cut a dark groove with a bright lower lip) — 1/16 in on the left edge, 1/8 on the right — numerals 0–6,
+// a hanging hole at the top, the maker's generic small print up the middle; the 5-inch line and a small "5 IN" plate in the Bankers
+// light blue (their glow comes from rulerGlow, lit as the level line arrives)
+const engrave = (c, x, y, w, h) => { c.fillStyle = "rgba(255,255,255,0.75)"; c.fillRect(x, y + 1.2, w, h); c.fillStyle = "#0E1218"; c.fillRect(x, y, w, h); };
 const rulerDraw = (c, w, h) => {
-  const g = c.createLinearGradient(0, 0, w, 0); g.addColorStop(0, "#C9D2DC"); g.addColorStop(0.5, "#EEF2F6"); g.addColorStop(1, "#B7C1CC"); c.fillStyle = g; c.fillRect(0, 0, w, h);
-  for (let i = 0; i < 1500; i++) { c.fillStyle = `rgba(0,0,0,${0.02 + rnd(i) * 0.04})`; c.fillRect(0, rnd(i + 3) * h, w, 1); }
-  c.fillStyle = "#111418";
-  for (let k = 0; k <= 6 * 16; k++) {
-    const y = h - (FLOOR_T + (k / 16) * INCH) * RPX;
-    const L = k % 16 === 0 ? 0.62 : k % 8 === 0 ? 0.45 : k % 4 === 0 ? 0.33 : k % 2 === 0 ? 0.24 : 0.16;
-    c.fillRect(0, y - (k % 16 === 0 ? 2.5 : 1.4), w * L, k % 16 === 0 ? 5 : 2.8);
-    if (k % 16 === 0 && k > 0) { c.save(); c.font = `700 ${w * 0.42}px ${SANSF}`; c.textAlign = "right"; c.textBaseline = "middle"; c.fillText(String(k / 16), w - 18, y - 2); c.restore(); }
+  const g = c.createLinearGradient(0, 0, w, 0); g.addColorStop(0, "#AEB9C5"); g.addColorStop(0.18, "#E4EAF0"); g.addColorStop(0.5, "#F4F7FA"); g.addColorStop(0.82, "#DCE3EA"); g.addColorStop(1, "#A4AFBB");
+  c.fillStyle = g; c.fillRect(0, 0, w, h);
+  for (let i = 0; i < 4200; i++) { c.fillStyle = `rgba(${rnd(i) < 0.5 ? "255,255,255" : "40,50,60"},${0.03 + rnd(i + 1) * 0.07})`; c.fillRect(0, rnd(i + 3) * h, w, rnd(i + 4) < 0.85 ? 1 : 2); }
+  c.fillStyle = "rgba(255,255,255,0.8)"; c.fillRect(0, 0, 3, h); c.fillRect(w - 3, 0, 3, h); c.fillStyle = "rgba(30,40,50,0.4)"; c.fillRect(3, 0, 2, h); c.fillRect(w - 5, 0, 2, h);
+  for (let k = 0; k <= 6 * 16 + 8; k++) {
+    const y = yOf(k / 16); if (y < 60) break;
+    const L = k % 16 === 0 ? 0.3 : k % 8 === 0 ? 0.22 : k % 4 === 0 ? 0.16 : k % 2 === 0 ? 0.11 : 0.07;
+    const th = k % 16 === 0 ? 5 : 3;
+    engrave(c, 0, y - th / 2, w * L, th);
+    if (k % 2 === 0) { const L2 = k % 16 === 0 ? 0.22 : k % 8 === 0 ? 0.16 : k % 4 === 0 ? 0.12 : 0.08; engrave(c, w - w * L2, y - th / 2, w * L2, th); }
   }
-  c.save(); c.translate(w * 0.78, h - 40); c.rotate(-Math.PI / 2); c.font = `600 ${w * 0.11}px ${SANSF}`; c.textAlign = "left"; c.fillText("INCHES  ·  STAINLESS", 0, 0); c.restore();
+  const mono = `"Liberation Sans", "DejaVu Sans", sans-serif`;
+  c.textAlign = "center"; c.textBaseline = "middle";
+  for (let n = 0; n <= 6; n++) {
+    const y = yOf(n); if (y - w * 0.14 < 200) break;
+    const ny = y - w * 0.14; c.font = `700 ${w * 0.17}px ${mono}`; c.fillStyle = "rgba(255,255,255,0.8)"; c.fillText(String(n), w * 0.56 + 1, ny + 1.5); c.fillStyle = "#0E1218"; c.fillText(String(n), w * 0.56, ny);
+  }
+  // the 5-inch line, inked in the light blue across the full width, and its "5 IN" plate
+  const y5 = yOf(5); c.fillStyle = "#4D8ED9"; c.fillRect(0, y5 - 11, w, 22); c.fillStyle = "#B3CEEF"; c.fillRect(0, y5 - 3, w, 6);
+  c.fillStyle = "#123E73"; c.fillRect(w * 0.33, y5 + 26, w * 0.44, w * 0.19); c.fillStyle = "#7FB4F2"; c.font = `800 ${w * 0.13}px ${mono}`; c.fillText("5 IN", w * 0.55, y5 + 26 + w * 0.095);
+  // the hanging hole near the top: a drilled hole (transparent) with a chamfer ring
+  const hy = 120; c.fillStyle = "rgba(60,70,80,0.9)"; c.beginPath(); c.arc(w / 2, hy, 46, 0, Math.PI * 2); c.fill(); c.fillStyle = "rgba(255,255,255,0.9)"; c.beginPath(); c.arc(w / 2, hy, 40, 0, Math.PI * 2); c.fill();
+  c.save(); c.globalCompositeOperation = "destination-out"; c.beginPath(); c.arc(w / 2, hy, 34, 0, Math.PI * 2); c.fill(); c.restore();
+  // the maker's small print up the middle (generic)
+  c.save(); c.translate(w * 0.38, yOf(2.4)); c.rotate(-Math.PI / 2); c.font = `600 ${w * 0.06}px ${mono}`; c.fillStyle = "#1A2028";
+  c.fillText("TEMPERED STAINLESS  ·  No. 6  ·  1/16  1/8", 0, 0); c.restore();
+  c.save(); c.translate(w * 0.38, yOf(5.75)); c.rotate(-Math.PI / 2); c.font = `700 ${w * 0.06}px ${mono}`; c.fillStyle = "#1A2028"; c.fillText("INCHES", 0, 0); c.restore();
+};
+/** the glow layer (emissive map): only the 5-inch line and the 5 IN plate */
+const rulerGlow = (c, w, h) => {
+  c.fillStyle = "#000"; c.fillRect(0, 0, w, h);
+  const y5 = yOf(5); c.fillStyle = "#7FB4F2"; c.fillRect(0, y5 - 11, w, 22); c.fillStyle = "#FFFFFF"; c.fillRect(0, y5 - 3, w, 6);
+  c.fillStyle = "#7FB4F2"; c.font = `800 ${w * 0.13}px "Liberation Sans", sans-serif`; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText("5 IN", w * 0.55, y5 + 26 + w * 0.095);
 };
 // ── materials ────────────────────────────────────────────────────────────────────────────────────────────────────────
 // terrazzo in 1.2 m squares divided by brass strips (the strips catch the ceiling light)
@@ -369,17 +398,33 @@ const Box = ({ slide, glass, flash }) => {
 // ── the steel rule on its foot ───────────────────────────────────────────────────────────────────────────────────────
 // the rule stands just outside the glass, in line with the stack's FRONT face (so the level line runs straight along x)
 export const rulerPos = (k) => [BOX.x + BOX.w / 2 + 0.022 + 0.5 * (1 - k), TT, boxCentre(1)[2] + STACK_Z + CW / 2];
-const Ruler = ({ k, ready }) => {
-  const tex = useMemo(() => (ready ? canvasTex("c_v_ruler", 256, 2048, rulerDraw) : null), [ready]);
-  const mats = useMemo(() => { const s = new THREE.MeshStandardMaterial({ color: "#B9C3CE", metalness: 0.85, roughness: 0.25 }); return [s, s, s, s, new THREE.MeshStandardMaterial({ map: tex, color: tex ? "#FFFFFF" : "#C9D2DC", metalness: 0.5, roughness: 0.32 }), s]; }, [tex]);
-  const p = rulerPos(k);
+const Ruler = ({ k, ready, level = 0 }) => {
+  const tex = useMemo(() => (ready ? canvasTex("c_v_ruler2", RW, RH, rulerDraw) : null), [ready]);
+  const glow = useMemo(() => (ready ? canvasTex("c_v_ruler2g", RW, RH, rulerGlow) : null), [ready]);
+  const mats = useMemo(() => {
+    const edge = new THREE.MeshStandardMaterial({ color: "#C9D2DC", metalness: 0.92, roughness: 0.18 });
+    const face = new THREE.MeshPhysicalMaterial({ map: tex, emissiveMap: glow, emissive: glow ? "#FFFFFF" : "#000000", emissiveIntensity: 0.3, color: tex ? "#FFFFFF" : "#C9D2DC", metalness: 0.62, roughness: 0.24, clearcoat: 0.6, clearcoatRoughness: 0.12, alphaTest: 0.5, transparent: false });
+    const back = new THREE.MeshStandardMaterial({ map: tex, color: "#B9C3CE", metalness: 0.85, roughness: 0.25, alphaTest: 0.5 });
+    return [edge, edge, edge, edge, face, back];
+  }, [tex, glow]);
+  mats[4].emissiveIntensity = 0.25 + 1.6 * level;
+  const p = rulerPos(k), y5 = FLOOR_T + 5 * INCH;
   return (
     <group position={p} rotation-y={-0.25}>
       <mesh position={[0, RULER.h / 2, 0]} material={mats} castShadow><boxGeometry args={[RULER.w, RULER.h, RULER.t]} /></mesh>
-      {/* the foot: a machined block the rule is clamped in; its height is the box floor's thickness */}
-      <mesh position={[0, FLOOR_T / 2, 0]} castShadow receiveShadow><boxGeometry args={[0.05, FLOOR_T, 0.032]} /><meshStandardMaterial color="#5A6676" metalness={0.8} roughness={0.3} /></mesh>
-      <mesh position={[0, FLOOR_T + 0.006, -0.004]} castShadow><boxGeometry args={[0.036, 0.012, 0.006]} /><meshStandardMaterial color="#5A6676" metalness={0.8} roughness={0.3} /></mesh>
-      <mesh position={[0.012, FLOOR_T + 0.006, -0.009]} rotation-x={Math.PI / 2}><cylinderGeometry args={[0.004, 0.004, 0.006, 12]} /><meshStandardMaterial color="#9AA6B4" metalness={0.9} roughness={0.2} /></mesh>
+      {/* bright chamfers down both long edges */}
+      {[-1, 1].map((s) => <mesh key={s} position={[s * (RULER.w / 2), RULER.h / 2, 0]} rotation-y={Math.PI / 4}><boxGeometry args={[0.0011, RULER.h, 0.0011]} /><meshStandardMaterial color="#F2F6FA" metalness={0.95} roughness={0.1} /></mesh>)}
+      {/* the foot: a machined base block the rule stands in (its height is the box floor's thickness), a clamp jaw, a knurled thumbscrew */}
+      <mesh position={[0, FLOOR_T / 2, 0]} castShadow receiveShadow><boxGeometry args={[0.056, FLOOR_T, 0.036]} /><meshStandardMaterial color="#4F5B6A" metalness={0.85} roughness={0.28} /></mesh>
+      <mesh position={[0, FLOOR_T - 0.0005, 0.0185]}><boxGeometry args={[0.056, 0.001, 0.001]} /><meshStandardMaterial color="#DDE4EA" metalness={0.95} roughness={0.12} /></mesh>
+      <mesh position={[0, FLOOR_T + 0.007, -0.0045]} castShadow><boxGeometry args={[0.04, 0.014, 0.007]} /><meshStandardMaterial color="#5A6676" metalness={0.85} roughness={0.28} /></mesh>
+      <mesh position={[0, FLOOR_T + 0.007, 0.004]} castShadow><boxGeometry args={[0.04, 0.014, 0.0045]} /><meshStandardMaterial color="#5A6676" metalness={0.85} roughness={0.28} /></mesh>
+      <group position={[0.014, FLOOR_T + 0.007, 0.012]} rotation-x={Math.PI / 2}>
+        <mesh><cylinderGeometry args={[0.0018, 0.0018, 0.012, 10]} /><meshStandardMaterial color="#C8D0DA" metalness={0.9} roughness={0.2} /></mesh>
+        <mesh position={[0, 0.008, 0]}><cylinderGeometry args={[0.0055, 0.0055, 0.004, 18]} /><meshStandardMaterial color="#AEB8C4" metalness={0.9} roughness={0.35} /></mesh>
+      </group>
+      {/* the 5-inch mark's light: a small glow at its edge, brightening as the level line arrives */}
+      {level > 0.01 && <Glow position={[-RULER.w * 0.5, y5, 0.003]} size={0.05} color="#B3CEEF" opacity={0.8 * level} />}
     </group>
   );
 };
@@ -407,7 +452,7 @@ export const VaultSet = ({ open, slide, glass, flash, ruler, level }) => {
       <Table M={M} />
       <Door M={M} open={open} />
       <Box slide={slide} glass={glass} flash={flash} />
-      <Ruler k={ruler} ready={ready} />
+      <Ruler k={ruler} ready={ready} level={level} />
       <Level k={level} />
       {/* the vault's ceiling lights: cool panels overhead (their light on the table and the doors) */}
       <pointLight position={[0.1, 2.6, -0.4]} intensity={2.2} distance={6} decay={2} color="#E4EEFA" />

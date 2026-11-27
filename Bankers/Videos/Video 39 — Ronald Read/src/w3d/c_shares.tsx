@@ -2,8 +2,8 @@
 // ★ V39 builder C — HIS KITCHEN TABLE AT NIGHT (station `shares`): "What nobody knew: for decades, he'd quietly bought shares in
 //   companies he understood, and held on to them." Metres; floor y 0; the oak table top at y KT; the back wall at z KWALL.
 //   A warm domestic scene (vs the vault's cold bank): an oak plank table under a small ceramic lamp (the only warm light), a folded
-//   business page (real type: section head, headlines, body text — no figures), reading glasses, a pencil, a stoneware mug, a manila
-//   envelope; café curtains at a window onto the blue night (a neighbour's clapboard house with lit windows, a bare maple).
+//   business page (real type: section head, headlines, body text — no figures), reading glasses, a pencil, a stoneware mug, the steel
+//   document box the certificates are kept in (c_docbox.tsx); café curtains at a window onto the blue night (a neighbour's clapboard house with lit windows, a bare maple).
 //   The share certificates (c_cert.ts) settle one by one onto a growing stack beside the newspaper (CertRain).
 import React, { useMemo } from "react";
 import * as THREE from "three";
@@ -13,6 +13,7 @@ import { SANSF, usePropFonts, woodTex, noiseTex, tileTex } from "./c_tex";
 import { line, para, flow, rule, SERIF } from "./print_type";
 import { CW, CH, certMats, certIndex, certGeo } from "./c_cert";
 import { KitchenRoom } from "./c_kitchen";
+import { DocBox, DBOX } from "./c_docbox";
 
 export const KT = 0.76, KWALL = -0.95;
 // ── the certificate rain ───────────────────────────────────────────────────────────────────────────────────────────────
@@ -22,28 +23,41 @@ export const ORDER = ["pge", "ge", "jnj", "dow", "smucker", "jpm", "cvs", "pg", 
 export const N_CERT = ORDER.length;
 /** the frame sheet i lands (first → last: the gaps shorten as the habit takes hold) */
 export const landAt = (t0, span, i) => t0 + span * Math.pow(i / (N_CERT - 1), 0.85);
-// ★ each certificate comes OUT OF THE MANILA ENVELOPE (certificates were mailed to their buyers) and slides along the table onto the
-//   stack: it is always on a surface (inside the envelope, on the table, on the sheets below) — never in the air.
-export const ENV = { x: 0.13, z: -0.27, ry: 0.1, w: 0.32, d: 0.23, t: 0.007 };
-const SLIDE = 16;
+// ★ (rev 2026-11-27, Timur: "the certificates must come out of an actual spot") each certificate is LIFTED OUT OF THE STEEL DOCUMENT
+//   BOX (c_docbox.tsx) behind the stack: the box's lid opens as the scene arrives; the sheets lie in it face up, PG&E on top, a few
+//   more under them; one by one each rises clear of the box's rim, carries forward over its front wall and settles onto the stack
+//   (landing frames unchanged: landAt). Every sheet on the table came from the box; none appears from nothing.
+export const ENV = DBOX;   // (kept for callers: the box's footprint centre and yaw)
+const FLY = 18, EXTRA = 5;
+const sm = (x) => { const t = clamp01(x); return t * t * t * (t * (t * 6 - 15) + 10); };
 const rest = (i) => [STACK.x + (rnd(i * 7 + 1) - 0.5) * 0.022, KT + (i + 0.5) * SHEET_T, STACK.z + (rnd(i * 7 + 3) - 0.5) * 0.018, STACK.ry + (rnd(i * 7 + 5) - 0.5) * 0.14];
-/** the pose of sheet i at frame f: null while it is still in the envelope; [x, y, z, yaw, tiltX, tiltZ, opacity] */
+/** sheet j's place in the box's pile (j counts from the top: the next to leave is j 0) */
+const pileAt = (j, seed) => {
+  const lx = (rnd(seed * 7 + 11) - 0.5) * 0.004, lz = (rnd(seed * 7 + 13) - 0.5) * 0.004, a = DBOX.ry;
+  return [DBOX.x + lx * Math.cos(a) + lz * Math.sin(a), KT + DBOX.floor + (N_CERT + EXTRA - 1 - j + 0.5) * SHEET_T, DBOX.z - lx * Math.sin(a) + lz * Math.cos(a), a + (rnd(seed * 7 + 17) - 0.5) * 0.012];
+};
+/** the lid's opening (0 shut … 1 open), keyed to the first sheet's lift */
+export const lidOpen = (f, t0) => sm((f - (t0 - FLY - 12)) / 14);
+/** the pose of sheet i at frame f: [x, y, z, yaw, tiltX, tiltZ, opacity] — in the box, in flight, or on the stack */
 export const sheetPose = (i, f, t0, span) => {
-  const L = landAt(t0, span, i), r = rest(i);
-  if (f < L - SLIDE) return null;
+  const L = landAt(t0, span, i), r = rest(i), p = pileAt(i, i);
   if (f >= L) return [r[0], r[1], r[2], r[3], 0, 0, 1];
-  const k = clamp01((f - (L - SLIDE)) / SLIDE);
-  const e = 1 - Math.pow(1 - k, 3);                                  // out of the envelope fast, easing onto the stack
-  const y0 = KT + ENV.t * 0.45, up = 1 - Math.pow(1 - clamp01(k * 1.8), 2);
-  const y = y0 + (r[1] - y0) * up + 0.004 * Math.sin(Math.PI * k);   // it rides up over the sheets already there
-  return [ENV.x + (r[0] - ENV.x) * e, y, ENV.z + (r[2] - ENV.z) * e, ENV.ry + (r[3] - ENV.ry) * e, -0.012 * Math.sin(Math.PI * k), 0, 1];
+  if (f < L - FLY) return [p[0], p[1], p[2], p[3], 0, 0, 1];
+  const k = clamp01((f - (L - FLY)) / FLY);
+  const u = sm(k / 0.4), v = sm((k - 0.22) / 0.78), dn = sm((k - 0.55) / 0.45);
+  const yTop = KT + DBOX.h + 0.11;
+  const y = (p[1] + (yTop - p[1]) * u) * (1 - dn) + r[1] * dn;
+  return [p[0] + (r[0] - p[0]) * v, y, p[2] + (r[2] - p[2]) * v, p[3] + (r[3] - p[3]) * v, -0.05 * Math.sin(Math.PI * v), 0, 1];
 };
 export const stackTop = (f, t0, span) => { let n = 0; for (let i = 0; i < N_CERT; i++) if (f >= landAt(t0, span, i)) n = i + 1; return KT + n * SHEET_T; };
+const EXTRA_ORDER = ["jnj", "pg", "ge", "dow", "jpm"].map(certIndex);
 export const CertRain = ({ f, t0, span }) => {
   const geo = useMemo(() => certGeo(SHEET_T * 0.9), []);
   const mats = useMemo(() => ORDER.map((ci, i) => certMats(ci, { tag: "rain" + i }).map((m) => m.clone())), []);
+  const extraMats = useMemo(() => EXTRA_ORDER.map((ci) => certMats(ci)), []);
   return (
     <group>
+      {EXTRA_ORDER.map((ci, k) => { const p = pileAt(N_CERT + k, 40 + k); return <mesh key={"x" + k} geometry={geo} material={extraMats[k]} position={[p[0], p[1], p[2]]} rotation-y={p[3]} receiveShadow />; })}
       {ORDER.map((ci, i) => {
         const p = sheetPose(i, f, t0, span);
         if (!p) return null;
@@ -157,20 +171,6 @@ const StoneMug = ({ position, ry }) => {
     </group>
   );
 };
-const envDraw = (c, w, h) => {
-  c.fillStyle = "#C9A46A"; c.fillRect(0, 0, w, h);
-  for (let i = 0; i < 9000; i++) { c.fillStyle = `rgba(${rnd(i) < 0.5 ? "90,60,20" : "255,240,200"},${0.03 + rnd(i + 2) * 0.05})`; c.fillRect(rnd(i + 3) * w, rnd(i + 5) * h, 2, 2); }
-  c.fillStyle = "rgba(70,45,15,0.28)"; c.fillRect(0, h - 26, w, 26); c.fillStyle = "rgba(255,240,210,0.35)"; c.fillRect(0, h - 30, w, 4);   // the open mouth (front edge)
-  c.strokeStyle = "rgba(90,60,20,0.3)"; c.lineWidth = 2; c.beginPath(); c.moveTo(w * 0.5, 0); c.lineTo(w * 0.5, h * 0.08); c.stroke(); c.fillStyle = "#B8935A"; c.beginPath(); c.arc(w * 0.5, h * 0.1, 14, 0, Math.PI * 2); c.fill();
-  c.fillStyle = "#3A2A14"; c.font = `700 40px ${SANSF}`; c.textAlign = "left"; c.fillText("STOCK CERTIFICATES", 70, h * 0.62);
-  c.font = `500 30px ${SANSF}`; c.fillText("Keep in a safe place", 70, h * 0.62 + 46);
-  c.fillRect(70, h * 0.62 + 70, 380, 2);
-};
-const Envelope = ({ ready, position, ry }) => {
-  const t = useMemo(() => (ready ? canvasTex("c_sh_env", 1024, 640, envDraw) : null), [ready]);
-  const mats = useMemo(() => { const e = new THREE.MeshStandardMaterial({ color: "#C29C62", roughness: 0.85 }); return [e, e, new THREE.MeshStandardMaterial({ map: t, color: t ? "#FFFFFF" : "#C9A46A", roughness: 0.85 }), e, e, e]; }, [t]);
-  return <mesh position={[position[0], position[1] + ENV.t / 2, position[2]]} rotation-y={ry} material={mats} castShadow receiveShadow><boxGeometry args={[ENV.w, ENV.t, ENV.d]} /></mesh>;
-};
 // the lamp: a turned ceramic base, a brass stem, a linen drum shade lit from inside
 const VASE = [[0, 0], [0.075, 0], [0.08, 0.012], [0.07, 0.03], [0.085, 0.09], [0.09, 0.14], [0.075, 0.2], [0.04, 0.24], [0.026, 0.26], [0.03, 0.27], [0, 0.275]];
 export const KLAMP = [-0.3, KT, -0.36];
@@ -212,8 +212,8 @@ export const SharesSet = ({ f, t0, span }) => {
       <Newspaper ready={ready} position={[-0.17, KT, 0.1]} ry={0.14} />
       <Glasses position={[-0.22, KT + 0.006, 0.17]} ry={0.5} />
       <Pencil position={[-0.08, KT + 0.0098, 0.25]} ry={-0.35} />
-      <StoneMug position={[0.38, KT, -0.22]} ry={-0.6} />
-      <Envelope ready={ready} position={[ENV.x, KT, ENV.z]} ry={ENV.ry} />
+      <StoneMug position={[0.44, KT, -0.12]} ry={-0.6} />
+      <group position={[0, KT, 0]}><DocBox open={lidOpen(f, t0)} /></group>
       <CertRain f={f} t0={t0} span={span} />
     </group>
   );
