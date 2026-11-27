@@ -164,6 +164,60 @@ const STATE_BLOBS = [
   ...[[-22, -5.6], [5.6, 22]].flatMap(([x0, x1]) => { const n = Math.floor((x1 - x0) / 3.2) + 1; return Array.from({ length: n }, (_, k) => floorBlob(x0 + k * (x1 - x0) / (n - 1), 0, -15.2, 0.42, 0.42, 0.5)); })
 ];
 const REPORT_BLOB = [floorBlob(0.05, 0, -9.15, 2.05, 2.55, 0.6)], REPORT_BANDS = footRect(0, 0, -9.2, 1.6, 2.1, 0.22, 0.45);
+// ★ rev 7 (Timur: "Instead of on-screen text like $5 million … just add them somewhere within the scene that actually matches the visual
+//   itself"): "$120 MILLION" is written on a presentation CHEQUE standing on an easel on the terrace before the porch, facing the camera —
+//   the Lottery's Cash WinFall profit paid to the Commonwealth's General Fund (TREAS: the profits "were returned to the Commonwealth's
+//   General Fund"; CBS: "The state made $120 million"). Printed: the issuer, PAY TO THE ORDER OF, the payee, the memo. On "itself made"
+//   its lamp comes up; on "$120 million" the amount is WRITTEN IN, left to right, in blue ink (like the report's checks).
+const CHQ = { w: 3.4, h: 1.5, at: [-2.9, 0.66, -18.9], yaw: 0.06, y0: 0.95 };   // on the terrace before the porch's left arches
+const chequeTex = () => canvasTex("st_cheque7b", 2048, 904, (c, w, h) => {
+  const g = c.createLinearGradient(0, 0, w, h); g.addColorStop(0, "#F4F8FD"); g.addColorStop(1, "#DCE8F7"); c.fillStyle = g; c.fillRect(0, 0, w, h);
+  c.strokeStyle = "rgba(0,93,200,0.10)"; c.lineWidth = 2;                                          // the safety guilloche
+  for (let k = 0; k < 90; k++) { c.beginPath(); for (let x = 0; x <= w; x += 16) { const y = h * 0.5 + Math.sin(x / 70 + k * 0.21) * (h * 0.42) * Math.cos(k * 0.11 + x / 900); x ? c.lineTo(x, y) : c.moveTo(x, y); } c.stroke(); }
+  c.strokeStyle = "#0B2547"; c.lineWidth = 10; c.strokeRect(24, 24, w - 48, h - 48); c.lineWidth = 3; c.strokeRect(44, 44, w - 88, h - 88);
+  c.fillStyle = "#005DC8"; c.fillRect(44, 44, w - 88, 112);
+  pline(c, "MASSACHUSETTS STATE LOTTERY", 90, 122, { w: 900, px: 58, fam: BODY, color: "#FFFFFF", track: 4 });
+  pline(c, "CASH WINFALL", w - 90, 122, { w: 900, px: 58, fam: BODY, color: "#B3CEEF", align: "right", track: 4 });
+  pline(c, "PAY TO THE ORDER OF", 90, 236, { w: 700, px: 40, fam: BODY, color: "#4A5F7E", track: 3 });
+  pline(c, "THE COMMONWEALTH OF MASSACHUSETTS", 610, 240, { w: 800, px: 70, fam: BODY, color: "#0B2547", maxW: w - 700 });
+  c.fillStyle = "#0B2547"; c.fillRect(610, 258, w - 700, 4);
+  // the amount box: printed "$", the figure is written in (chequeInkTex)
+  c.fillStyle = "rgba(255,255,255,0.7)"; c.fillRect(90, 320, w - 180, 420); c.strokeStyle = "#0B2547"; c.lineWidth = 7; c.strokeRect(90, 320, w - 180, 420);
+  pline(c, "$", 140, 660, { w: 800, px: 300, fam: BODY, color: "#0B2547" });
+  pline(c, "MEMO", 90, 830, { w: 800, px: 36, fam: BODY, color: "#4A5F7E", track: 3 }); pline(c, "Cash WinFall profits to the General Fund", 220, 830, { w: 400, px: 44, fam: PSERIF, color: "#14294A", style: "italic" });
+});
+// the written figure (transparent canvas), revealed left to right as the pen crosses the box
+const chequeInkTex = () => canvasTex("st_chequeInk7b", 2048, 904, (c, w, h) => {
+  c.clearRect(0, 0, w, h);
+  pline(c, "120 MILLION", 360, 670, { w: 800, px: 330, fam: BODY, color: "#1747A8", maxW: w - 470 });
+});
+const Cheque = ({ t, f }) => {
+  const face = useMemo(chequeTex, []);
+  const ink = useMemo(() => { const x = chequeInkTex().clone(); x.needsUpdate = true; return x; }, []);
+  const lit = ease(f, t.itself - 4, t.made + 6);
+  const wr = ease(f, t.m120 - 4, t.m120 + 22);          // the pen's progress across the cheque (0 → 1)
+  ink.repeat.set(Math.max(0.001, wr), 1); ink.offset.set(0, 0);
+  const { w, h, y0 } = CHQ;
+  return (
+    <group position={CHQ.at} rotation-y={CHQ.yaw}>
+      {/* the easel: two front legs, a back leg, the ledge */}
+      {[-1, 1].map((sd) => <mesh key={sd} position={[sd * 1.25, 1.2, 0.05]} rotation-z={-sd * 0.06} castShadow><boxGeometry args={[0.07, 2.5, 0.07]} /><meshStandardMaterial color="#2A2F3A" roughness={0.5} metalness={0.5} /></mesh>)}
+      <mesh position={[0, 1.15, -0.5]} rotation-x={-0.36} castShadow><boxGeometry args={[0.06, 2.4, 0.06]} /><meshStandardMaterial color="#2A2F3A" roughness={0.5} metalness={0.5} /></mesh>
+      <mesh position={[0, y0 - 0.04, 0.1]} castShadow><boxGeometry args={[w * 0.92, 0.07, 0.16]} /><meshStandardMaterial color="#2A2F3A" roughness={0.5} metalness={0.5} /></mesh>
+      {/* the board, tipped back a little on the easel, the printed face, the ink */}
+      <group position={[0, y0 + h / 2, 0.12]} rotation-x={-0.08}>
+        <mesh castShadow receiveShadow><boxGeometry args={[w, h, 0.03]} /><meshStandardMaterial color="#E9EFF7" roughness={0.6} /></mesh>
+        <mesh position={[0, 0, 0.016]}><planeGeometry args={[w, h]} /><meshStandardMaterial map={face} roughness={0.55} emissiveMap={face} emissive="#FFFFFF" emissiveIntensity={0.05 + 0.3 * lit} /></mesh>
+        <mesh position={[-w / 2 + (w * wr) / 2, 0, 0.018]} scale={[Math.max(0.001, wr), 1, 1]}><planeGeometry args={[w, h]} /><meshStandardMaterial map={ink} transparent roughness={0.4} emissiveMap={ink} emissive="#7FB4F2" emissiveIntensity={0.25 + 0.45 * lit} depthWrite={false} /></mesh>
+      </group>
+      {/* its lamp: a soft wash and a pool at its foot as it comes up */}
+      <LightWash position={[0, y0 + h / 2, 0.2]} w={w * 1.5} h={h * 2.0} color="#CFE2FF" opacity={0.05 + 0.2 * lit} />
+      <LightPool position={[0, 0.02, 0.9]} r={1.8} sx={1.2} color="#CFE2FF" opacity={0.08 + 0.2 * lit} />
+      <Shade items={CHQ_FOOT} kind="blob" />
+    </group>
+  );
+};
+const CHQ_FOOT = [floorBlob(0, 0, -0.18, 1.6, 0.6, 0.45)];
 // ── pieces ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 const LampPost = ({ x, z }) => (
   <group position={[x, 0, z]}>
@@ -324,6 +378,7 @@ const Scene = ({ f }) => {
       <Shade items={REPORT_BANDS} k={ease(f, t.inv + 14, t.inv + 22)} />
       {/* the report, then the money */}
       <Report t={t} f={f} />
+      <Cheque t={t} f={f} />
       {f > t.made - 6 && f < t.next + 40 && <Cash items={cashItems(t, f)} shadows={false} self={0.45} />}
     </group>
   );
@@ -384,7 +439,7 @@ const sfx = () => {
     cueAt("ov_paper_flutter", t.made, 24, 0.15),                  // rev 6: the strapped bundles in flight …
     cueAt("ov_money_drop", t.made + 28, 16, 0.2), cueAt("ov_money_drop", t.m120 + 22, 16, 0.17),   // … landing inside the door
     cueAt("coin", t.made + 6, 16, 0.35), cueAt("coin", t.m120 + 6, 16, 0.35), cueAt("coin", t.m120 + 20, 16, 0.3),
-    cueAt("pingshort", t.m120 + 28, 12, 0.4)                       // the counter lands
+    cueAt("pingshort", t.m120 + 24, 12, 0.35)                      // rev 7: the amount finishes on the cheque
   ];
 };
 export const ST = { id: "state", origin: O_STATE, from: LEAVE_A - 14, to: wAt("in", wAt("$120", 1700)) + 24, light: { target: [0, 0, -12], shadowBox: 24, keyI: 1.6, fillI: 0.32, rimI: 1.9 }, shots, Scene, Overlay, sfx };

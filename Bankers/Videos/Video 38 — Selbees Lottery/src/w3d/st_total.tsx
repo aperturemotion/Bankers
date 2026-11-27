@@ -14,7 +14,7 @@ import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeom
 import { canvasTex, ease, easeOut, rnd, clamp01, lerp, Sky, Glow } from "./kit";
 import { Tag, Counter } from "./overlays";
 import { cueAt } from "../bnx/SfxLayer";
-import { BODY } from "./fonts3d";
+import { BODY, FIGURE } from "./fonts3d";
 import { Cash, BUNDLE } from "./st_total_cash";
 import { House, PICTURE } from "./st_total_house";
 import { LightPool, LightWash, Tree, Shade, floorBlob, footRing, footRect } from "./st_state_fx";
@@ -91,6 +91,85 @@ const graniteTex = () => canvasTex("tt_granite", 512, 256, (c, w, h) => {
   for (let i = 0; i < 9000; i++) { const g = 40 + rnd(i) * 80; c.fillStyle = `rgba(${g},${g + 10},${g + 26},${0.18 + rnd(i + 1) * 0.25})`; c.fillRect(rnd(i + 2) * w, rnd(i + 3) * h, 2, 2); }
 });
 
+// ★ rev 7 (Timur: figures "within the scene … that actually matches the visual itself", not 2-D text): the column's own labels.
+//   · "$26 MILLION": a brushed-steel plate bolted to the case at eye level — MORE THAN / a mechanical drum counter $ 26,000,000 /
+//     WON · 2003 – 2012 (CBS: "grossed more than $26 million from nine years") — its drums ROLL up from zero on "$26 million" as its
+//     lamp comes up (they wait at 00,000,000 on the sealed case before);
+//   · "$8 MILLION": the lifted profit slab's own wrapper band — NEARLY $8 MILLION / PROFIT BEFORE TAX (CBS: "nearly $8 million in profit
+//     before taxes") — wrapped round the slab on "$8 million", lit with the slab's glow.
+const PLATE = { w: 2.3, h: 0.95, y: 4.3 };
+const plateTex = () => canvasTex("tt_plate7", 1536, 634, (c, w, h) => {
+  const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "#DCE6F2"); g.addColorStop(0.5, "#B7C6D9"); g.addColorStop(1, "#97A8BF");
+  c.fillStyle = g; c.fillRect(0, 0, w, h);
+  for (let i = 0; i < 700; i++) { c.fillStyle = `rgba(255,255,255,${0.04 + rnd(i + 80) * 0.06})`; c.fillRect(0, rnd(i + 81) * h, w, 1); }
+  c.strokeStyle = "rgba(16,35,63,0.8)"; c.lineWidth = 8; c.strokeRect(18, 18, w - 36, h - 36); c.lineWidth = 3; c.strokeRect(34, 34, w - 68, h - 68);
+  c.textAlign = "center"; c.textBaseline = "alphabetic";
+  const eng = (txt, y, px, wt, tr) => { c.font = `${wt} ${px}px ${BODY}`; if ("letterSpacing" in c) c.letterSpacing = `${tr}px`; c.fillStyle = "rgba(255,255,255,0.5)"; c.fillText(txt, w / 2 + 2, y + 3); c.fillStyle = "#10233F"; c.fillText(txt, w / 2, y); if ("letterSpacing" in c) c.letterSpacing = "0px"; };
+  eng("MORE THAN", 128, 70, 800, 12);
+  eng("WON  ·  2003 – 2012", 566, 64, 700, 8);
+  // the drum row's printed frame, its "$" and its commas (the digits are drums behind windows)
+  c.fillStyle = "#0B1E38"; c.fillRect(150, 178, 1336, 278);
+  c.fillStyle = "#DCE6F2"; c.font = `800 190px ${BODY}`; c.fillText("$", 236, 390);
+  [[655, 390], [1095, 390]].forEach(([x, y]) => c.fillText(",", x, y));
+  [[60, 60], [w - 60, 60], [60, h - 60], [w - 60, h - 60]].forEach(([x, y]) => { const sg = c.createRadialGradient(x - 5, y - 5, 2, x, y, 16); sg.addColorStop(0, "#F2F6FB"); sg.addColorStop(1, "#5E6E84"); c.fillStyle = sg; c.beginPath(); c.arc(x, y, 15, 0, Math.PI * 2); c.fill(); });
+});
+const drumTex = () => canvasTex("tt_drum7", 128, 1408, (c, w, h) => {
+  const ch = h / 11;
+  for (let k = 0; k < 11; k++) {
+    const g = c.createLinearGradient(0, k * ch, 0, (k + 1) * ch); g.addColorStop(0, "#0E2647"); g.addColorStop(0.5, "#1B3A66"); g.addColorStop(1, "#0E2647");
+    c.fillStyle = g; c.fillRect(0, k * ch, w, ch);
+    c.fillStyle = "#F2F7FD"; c.font = `800 104px ${BODY}`; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText(String(k % 10), w / 2, k * ch + ch / 2 + 4);
+  }
+});
+const Plate = ({ v, lit }) => {
+  const face = useMemo(plateTex, []);
+  const strip = useMemo(drumTex, []);
+  const tex = useMemo(() => DRUM_POS.map(() => { const x = strip.clone(); x.needsUpdate = true; x.repeat.set(1, 1 / 11); return x; }), [strip]);
+  const V = Math.round(v);
+  DRUM_POS.forEach((_, j) => {
+    const p = DRUM_POS.length - 1 - j;                      // the place value of drum j (j 0 = the leftmost, ten-millions)
+    const r = V / Math.pow(10, p);
+    let d = Math.floor(r) % 10;
+    if (p > 0) { const low = (V % Math.pow(10, p)) / Math.pow(10, p); d += Math.max(0, low * 10 - 9); }   // an odometer: a drum turns as the one below passes 9 → 0
+    else d += v - Math.floor(v);
+    tex[j].offset.set(0, 1 - (d + 1) / 11);
+  });
+  const { w, h } = PLATE;
+  return (
+    <group>
+      <mesh position={[0, 0, -0.012]} castShadow><boxGeometry args={[w + 0.06, h + 0.06, 0.03]} /><meshStandardMaterial color="#5C6B80" metalness={0.8} roughness={0.35} /></mesh>
+      <mesh position={[0, 0, 0.005]}><planeGeometry args={[w, h]} /><meshStandardMaterial map={face} metalness={0.55} roughness={0.36} emissiveMap={face} emissive="#FFFFFF" emissiveIntensity={0.06 + 0.22 * lit} /></mesh>
+      {DRUM_POS.map((x, j) => (
+        <mesh key={j} position={[x * w, (0.5 - 317 / 634) * h, 0.008]}><planeGeometry args={[0.148, 0.3]} /><meshStandardMaterial map={tex[j]} roughness={0.4} emissiveMap={tex[j]} emissive="#FFFFFF" emissiveIntensity={0.15 + 0.6 * lit} /></mesh>
+      ))}
+    </group>
+  );
+};
+// drum centres (fraction of the plate width from its centre): $ at 236 px; drums 2 6 | , | 0 0 0 | , | 0 0 0 on a 1536-px plate
+const DRUM_POS = [380, 520, 790, 900, 1010, 1180, 1290, 1400].map((px) => px / 1536 - 0.5);
+// the profit slab's wrapper band
+const bandTex = () => canvasTex("tt_band7", 1536, 600, (c, w, h) => {
+  c.fillStyle = "#EEF4FC"; c.fillRect(0, 0, w, h);
+  c.fillStyle = "#4D8ED9"; c.fillRect(0, 0, w, 40); c.fillRect(0, h - 40, w, 40);
+  c.textAlign = "center"; c.textBaseline = "alphabetic"; c.fillStyle = "#0B2547";
+  c.font = `700 72px ${BODY}`; if ("letterSpacing" in c) c.letterSpacing = "14px"; c.fillText("NEARLY", w / 2, 150);
+  c.font = `400 250px ${FIGURE}`; if ("letterSpacing" in c) c.letterSpacing = "4px"; c.fillText("$8 MILLION", w / 2, 410);
+  c.font = `700 64px ${BODY}`; if ("letterSpacing" in c) c.letterSpacing = "12px"; c.fillText("PROFIT BEFORE TAX", w / 2, 520);
+  if ("letterSpacing" in c) c.letterSpacing = "0px";
+});
+const BAND = { h: 0.95, zf: BZ / 2 + (BZ + 0.02) / 2 + 0.03 };   // clear of the bundles' ±2 cm jitter
+const Band = ({ k, glow }) => {
+  const tex = useMemo(() => { const x = bandTex().clone(); x.needsUpdate = true; return x; }, []);
+  const W = BX + 0.02;
+  tex.repeat.set(Math.max(0.001, k), 1);
+  return (
+    <group position={[0, PROFIT / 2 * BY, 0]}>
+      {/* the front face (wrapped on from the left), and the band's run round the right side once the front is on */}
+      <mesh position={[-W / 2 + (W * k) / 2, 0, BAND.zf]} scale={[Math.max(0.001, k), 1, 1]}><planeGeometry args={[W, BAND.h]} /><meshStandardMaterial map={tex} roughness={0.55} emissiveMap={tex} emissive="#FFFFFF" emissiveIntensity={0.12 + 0.5 * glow} /></mesh>
+      {k > 0.98 && <mesh position={[W / 2 + 0.03, 0, 0]} rotation-y={Math.PI / 2}><planeGeometry args={[BAND.zf * 2, BAND.h]} /><meshStandardMaterial color="#EEF4FC" roughness={0.55} emissive="#B3CEEF" emissiveIntensity={0.1 + 0.4 * glow} /></mesh>}
+    </group>
+  );
+};
 // the glass case: solid graphite → clear glass, its 12 edges flashing white then holding a faint light-blue rim
 const EDGES = (() => {
   const [x, y, z] = SHELL.map((v) => v / 2), e = [];
@@ -187,10 +266,12 @@ const Scene = ({ f }) => {
         <Cash items={lower} scale={SC} />
         <group position={[0, (LAYERS - PROFIT) * BY + lift, 0]}>
           <Cash items={upper} scale={SC} glow={glow * 0.75} />
+          <Band k={ease(f, t.m8 - 6, t.m8 + 8)} glow={glow} />
           {glow > 0.01 && <Glow position={[0, PROFIT / 2 * BY, 0]} size={9 * glow} color="#7FB4F2" opacity={0.55 * glow} />}
           {glow > 0.01 && <Glow position={[0, PROFIT / 2 * BY, BZ + 0.3]} size={4.5 * glow} color="#CFE4FF" opacity={0.35 * glow} />}
         </group>
         <group position={[0, caseLift, 0]}><Case glass={glass} rim={rim} /></group>
+        <group position={[0, PLATE.y, SHELL[2] / 2 + 0.03]}><Plate v={26e6 * ease(f, t.m26 - 2, t.m26 + 26)} lit={ease(f, t.m26 - 6, t.m26 + 8)} /></group>
       </group>
       {/* the glass's light on the asphalt */}
       <pointLight position={[0, PLINTH_H + COL_H * 0.85 + lift, 2.6]} intensity={14 * glow} distance={12} decay={1.4} color="#9CC6F6" />
@@ -248,7 +329,10 @@ const sfx = () => {
     cueAt("ov_clank", t.company + 10, 14, 0.22),                // rev 6: the column locks at full height on its plinth
     cueAt("pingshort", G0 + 2, 12, 0.5),                        // the shell flashing to glass
     cueAt("ee_whoosh_fast_small_whoosh_01", G0 + 1, 12, 0.3),
+    cueAt("ee_clock_clock_ticking_01", t.m26 - 2, 28, 0.16),    // rev 7: the plate's drums rolling up …
+    cueAt("ee_click_click_01", t.m26 + 26, 6, 0.22),            // … and locking on 26,000,000
     cueAt("coin", t.m26 + 24, 16, 0.35),                        // $26M lands
+    cueAt("ov_paper_unfold", t.m8 - 6, 14, 0.18),               // rev 7: the wrapper band goes round the profit slab
     cueAt("whooshsoft", t.m8 + 6, 20, 0.4),                     // the slab lifting out
     cueAt("ov_money_drop", t.profit + 10, 14, 0.16),            // rev 6: the lifted slab settles (its bundles shift)
     cueAt("pingshort", t.m8 + 14, 12, 0.35),

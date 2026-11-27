@@ -76,19 +76,24 @@ const frontTex = () => canvasTex("g_globeFront2", 1680, 2560, (c, w, h) => {
   });
   // ── the flag: the masthead with its ears
   const my = h * MAST_Y;
-  line(c, "The Boston Globe", w / 2, my + 56, { w: 700, px: 162, fam: SERIF, color: INK, align: "center", maxW: w - 520 });
-  c.strokeStyle = INK; c.lineWidth = 2;
-  c.strokeRect(L, my - 70, 200, 136); c.strokeRect(R - 200, my - 70, 200, 136);
-  line(c, "SUNDAY", L + 100, my - 22, { w: 700, px: 30, fam: SANS, color: INK, align: "center", track: 3 });
-  line(c, "Final", L + 100, my + 16, { w: 400, px: 28, fam: SERIF, color: INK, align: "center", style: "italic" });
-  line(c, "Edition", L + 100, my + 48, { w: 400, px: 28, fam: SERIF, color: INK, align: "center", style: "italic" });
-  line(c, "boston.com", R - 100, my - 14, { w: 700, px: 30, fam: SANS, color: INK, align: "center" });
-  line(c, "Breaking news,", R - 100, my + 22, { w: 400, px: 22, fam: SERIF, color: GREY, align: "center", style: "italic" });
-  line(c, "all day", R - 100, my + 48, { w: 400, px: 22, fam: SERIF, color: GREY, align: "center", style: "italic" });
+  // rev 7 (Timur: figures "within the scene … that actually matches the visual itself"): the YEAR is the paper's own — the left ear is
+  //   the issue's date block (SUNDAY / JULY 31 / 2011, the 2011 set big and bold, legible from the camera's masthead framing), the
+  //   dateline below it is set larger; the right ear keeps the paper's web line
+  const EW = 330;
+  line(c, "The Boston Globe", w / 2, my + 56, { w: 700, px: 162, fam: SERIF, color: INK, align: "center", maxW: w - 2 * EW - 300 });
+  c.strokeStyle = INK; c.lineWidth = 3;
+  c.strokeRect(L, my - 96, EW, 196); c.strokeRect(R - EW, my - 96, EW, 196);
+  c.fillStyle = INK; c.fillRect(L, my - 96, EW, 44);
+  line(c, "SUNDAY", L + EW / 2, my - 62, { w: 700, px: 30, fam: SANS, color: "#FFFFFF", align: "center", track: 5 });
+  line(c, "JULY 31", L + EW / 2, my - 8, { w: 700, px: 44, fam: SANS, color: INK, align: "center", track: 3 });
+  line(c, "2011", L + EW / 2, my + 88, { w: 800, px: 104, fam: SANS, color: INK, align: "center", track: 2 });
+  line(c, "boston.com", R - EW / 2, my - 18, { w: 700, px: 36, fam: SANS, color: INK, align: "center" });
+  line(c, "Breaking news,", R - EW / 2, my + 26, { w: 400, px: 28, fam: SERIF, color: GREY, align: "center", style: "italic" });
+  line(c, "all day", R - EW / 2, my + 60, { w: 400, px: 28, fam: SERIF, color: GREY, align: "center", style: "italic" });
   // the dateline band
   const dy = h * DATE_Y;
-  rule(c, L, dy - 34, R, 5, INK); rule(c, L, dy + 16, R, 2, INK);
-  line(c, "SUNDAY, JULY 31, 2011", L + 4, dy + 2, { w: 700, px: 28, fam: SANS, color: INK, track: 1 });
+  rule(c, L, dy - 40, R, 5, INK); rule(c, L, dy + 18, R, 2, INK);
+  line(c, "SUNDAY, JULY 31, 2011", L + 4, dy + 4, { w: 800, px: 40, fam: SANS, color: INK, track: 1 });
   line(c, "Boston's newspaper", w / 2, dy + 2, { w: 400, px: 28, fam: SERIF, color: INK, align: "center", style: "italic" });
   line(c, "SUNDAY GLOBE", R - 4, dy + 2, { w: 700, px: 28, fam: SANS, color: INK, align: "right", track: 1 });
 
