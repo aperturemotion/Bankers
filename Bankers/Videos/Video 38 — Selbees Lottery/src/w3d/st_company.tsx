@@ -98,8 +98,10 @@ const Chalkboard = ({ f, t }) => {
       <mesh position={[0, -BH / 2 - 0.45, 0.4]} castShadow receiveShadow><boxGeometry args={[BW * 0.9, 0.12, 0.7]} /><meshStandardMaterial color={frame} roughness={0.6} /></mesh>
       <mesh position={[1.8, -BH / 2 - 0.33, 0.45]} rotation-z={Math.PI / 2} rotation-y={0.3} castShadow><cylinderGeometry args={[0.06, 0.06, 0.8, 10]} /><meshStandardMaterial color="#EEF3FA" roughness={0.95} /></mesh>
       <group position={[-2.4, -BH / 2 - 0.22, 0.45]} rotation-y={-0.12}>
-        <mesh castShadow><boxGeometry args={[1.3, 0.28, 0.5]} /><meshStandardMaterial color="#C9D3DF" roughness={0.8} /></mesh>
-        <mesh position={[0, -0.12, 0]}><boxGeometry args={[1.3, 0.08, 0.5]} /><meshStandardMaterial color="#2E3B4C" roughness={0.95} /></mesh>
+        {/* rev 8e (Timur, 1060 f: "the bottom of the eraser … is glitching"): the felt was a box INSIDE the block sharing its front and side
+            faces (z-fight). The block now ends where the felt begins, and the felt is inset 1 cm on every side. */}
+        <mesh castShadow position={[0, 0.03, 0]}><boxGeometry args={[1.3, 0.22, 0.5]} /><meshStandardMaterial color="#C9D3DF" roughness={0.8} /></mesh>
+        <mesh position={[0, -0.12, 0]}><boxGeometry args={[1.28, 0.08, 0.48]} /><meshStandardMaterial color="#2E3B4C" roughness={0.95} /></mesh>
       </group>
       {/* rev 6 fake shadows: the board's drop shadow on the wall (down-right, away from the key), the tray's under it, the eraser and
           chalk on the tray, and the frame's inner corners darkened on the slate */}

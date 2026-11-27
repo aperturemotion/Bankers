@@ -93,13 +93,16 @@ const awningTex = () => canvasTex("st_awning", 512, 64, (c, w, h) => {
   for (let i = 0; i < 16; i++) { c.fillStyle = i % 2 ? "#3D6EA8" : "#0B2F5E"; c.fillRect(i * 32, 0, 32, h); }
   c.fillStyle = "rgba(0,0,0,0.25)"; for (let i = 0; i < 16; i++) c.fillRect(i * 32, 0, 2, h);
 });
-const bladeTex = () => canvasTex("st_blade", 400, 400, (c, w, h) => {
+// rev 8e (Timur, 280 f: the blue sign "glitching"): seen at a steep angle down the street, its lettering sparkled frame to frame
+//   (SwiftShader's anisotropic sampling of a small non-power-of-two canvas). Now 512² with plain trilinear filtering.
+const bladeTex = () => { const t = canvasTex("st_blade2", 512, 512, (c, w, h) => {
+  const k = w / 400; c.scale(k, k); w = 400; h = 400;
   const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "#0E3B73"); g.addColorStop(1, "#082A55"); c.fillStyle = g; c.fillRect(0, 0, w, h);
   c.strokeStyle = "rgba(179,206,239,0.8)"; c.lineWidth = 8; c.strokeRect(16, 16, w - 32, h - 32);
   c.fillStyle = "#F4F8FD"; c.textAlign = "center"; c.textBaseline = "middle";
   c.font = `110px ${FIGURE}`; c.fillText("CORNER", w / 2, 140); c.fillText("STORE", w / 2, 262);
   c.fillStyle = "#7FB4F2"; c.fillRect(70, 330, w - 140, 6);
-});
+}); t.anisotropy = 1; t.needsUpdate = true; return t; };
 // rev 2: the corner store's own signage, shared with the rules station's view of the same store (st_rules_street.tsx)
 export { signTex as storeSignTex, awningTex as storeAwningTex, bladeTex as storeBladeTex, openTex as storeOpenTex };
 // ── small builders ───────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -472,7 +475,9 @@ const Shop = ({ f, t }) => {
         <mesh position={[-0.12, 0.42, 0]} rotation-z={0.8} material={M.frame}><cylinderGeometry args={[0.012, 0.012, 0.55, 6]} /></mesh>
         {[-0.2, -0.7].map((x) => <mesh key={x} position={[x, 0.5, 0]} material={M.frame}><cylinderGeometry args={[0.006, 0.006, 0.2, 4]} /></mesh>)}
         <Box p={[-0.45, 0.0, 0]} s={[0.78, 0.8, 0.06]} m={M.frame} />
-        {[1, -1].map((sd) => <mesh key={sd} position={[-0.45, 0, sd * 0.031]} rotation-y={sd > 0 ? 0 : Math.PI}><planeGeometry args={[0.72, 0.74]} /><meshStandardMaterial map={blade} roughness={0.4} emissiveMap={blade} emissive="#ffffff" emissiveIntensity={0.6} /></mesh>)}
+        {/* rev 8e (Timur, 280 f: the blue sign "glitching"): the faces sat 1 mm off the cabinet's faces (z-fight at street distance) — now 6 mm,
+            with a polygon offset toward the lens */}
+        {[1, -1].map((sd) => <mesh key={sd} position={[-0.45, 0, sd * 0.036]} rotation-y={sd > 0 ? 0 : Math.PI}><planeGeometry args={[0.72, 0.74]} /><meshStandardMaterial map={blade} roughness={0.4} emissiveMap={blade} emissive="#ffffff" emissiveIntensity={0.6} polygonOffset polygonOffsetFactor={-2} polygonOffsetUnits={-2} /></mesh>)}
         <Glow position={[-0.45, 0, 0.2]} size={1.6} color="#7FB4F2" opacity={0.22} />
       </group>
       {/* the display glass, the hanging LOTTERY light box, the WINFALL poster, the neon OPEN */}

@@ -180,7 +180,7 @@ const Store = () => {
       <group position={[3.95, 3.55, 0.05]} rotation-y={-Math.PI / 2}>
         <mesh position={[-0.45, 0.62, 0]}><boxGeometry args={[0.9, 0.04, 0.04]} /><meshStandardMaterial color="#2A3240" metalness={0.75} roughness={0.35} /></mesh>
         <mesh position={[-0.45, 0, 0]}><boxGeometry args={[0.78, 0.8, 0.06]} /><meshStandardMaterial color="#2A3240" metalness={0.75} roughness={0.35} /></mesh>
-        {[1, -1].map((sd) => <mesh key={sd} position={[-0.45, 0, sd * 0.031]} rotation-y={sd > 0 ? 0 : Math.PI}><planeGeometry args={[0.72, 0.74]} /><meshStandardMaterial map={blade} roughness={0.4} emissiveMap={blade} emissive="#ffffff" emissiveIntensity={0.6} /></mesh>)}
+        {[1, -1].map((sd) => <mesh key={sd} position={[-0.45, 0, sd * 0.036]} rotation-y={sd > 0 ? 0 : Math.PI}><planeGeometry args={[0.72, 0.74]} /><meshStandardMaterial map={blade} roughness={0.4} emissiveMap={blade} emissive="#ffffff" emissiveIntensity={0.6} polygonOffset polygonOffsetFactor={-2} polygonOffsetUnits={-2} /></mesh>)}
       </group>
       <mesh position={[2.05, 2.05, -0.1]}><planeGeometry args={[0.7, 0.26]} /><meshBasicMaterial map={open} transparent blending={THREE.AdditiveBlending} opacity={0.9} toneMapped={false} depthWrite={false} /></mesh>
       <Glow position={[2.05, 2.05, 0.0]} size={1.1} color="#FF9F5E" opacity={0.3} />

@@ -741,7 +741,7 @@ export const addProps = (m, list) => {
       for (const sd of [-1, 1]) { m.box("metal", [sd * 0.7, 0.22, -0.02], [0.05, 0.44, 0.42], "#1E2630"); m.box("metal", [sd * 0.7, 0.62, -0.25], [0.05, 0.4, 0.04], "#1E2630"); m.box("metal", [sd * 0.7, 0.58, 0.02], [0.05, 0.04, 0.4], "#1E2630"); }
     } else if (t === "planter") {
       m.box("trim", [0, 0.27, 0], [0.9, 0.54, 0.9], "#8C929C"); m.box("trim", [0, 0.56, 0], [0.98, 0.06, 0.98], "#A3A9B2");
-      m.box("roof", [0, 0.58, 0], [0.82, 0.02, 0.82], "#FFFFFF");
+      m.box("roof", [0, 0.595, 0], [0.82, 0.02, 0.82], "#FFFFFF");   // rev 8e (Timur, 320 f: the planter's dirt "glitching"): its top sat exactly on the rim's top (0.59) — now 1.5 cm proud
       for (let k = 0; k < 5; k++) m.ico("plant", [(rnd(k + q.p[0]) - 0.5) * 0.5, 0.75 + rnd(k + 3) * 0.2, (rnd(k + q.p[2]) - 0.5) * 0.5], [0.26, 0.24, 0.26], pick(["#2C4A48", "#3B5A50", "#284040", "#34524A"], rnd(k)));
     } else if (t === "hydrant") {
       const hc = "#A8873A";
