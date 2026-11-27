@@ -15,9 +15,10 @@ import { Sky, Glow, rnd, canvasTex, ease } from "./kit";
 import { Tag } from "./overlays";
 import { cueAt } from "../bnx/SfxLayer";
 import { WIN, wAt } from "./windows";
-import { Built, addHouse, addStoneWall, addRailFence, addMaple, Pines, Snowfield, Ridges, fbm, smooth, bpick } from "./b_winter";
-import { diplomaTex, wallpaperTex } from "./b_diploma";
+import { Built, addHouse, addStoneWall, addRailFence, Snowfield, Ridges, fbm, smooth, bpick, addLane } from "./b_winter";
+import { diplomaTex, wallpaperTex, glareTex } from "./b_diploma";
 import { Mesher } from "./town_parts";
+import { Conifers, Maples } from "./e_trees";
 
 export const FARM_O = [300, 0, 0];
 const A = (p) => [p[0] + FARM_O[0], p[1] + FARM_O[1], p[2] + FARM_O[2]];
@@ -45,6 +46,76 @@ export const DIPLOMA = { x: PANE_X, y: 1.86, z: BACK_Z + 0.035, w: 0.56, h: 0.42
 const FRAME = { w: 0.7, h: 0.56 };
 const BARN = { x: 8.5, z: -21, len: 14, wid: 10, h: 4.4 };
 
+// ── (E) the farmhouse's front porch (house-local frame, the front wall at z = d/2): a plank deck on fieldstone piers with a lattice
+//   skirt, four turned posts with sawn brackets, a shed roof in standing-seam tin under snow with icicles, a beadboard ceiling, a
+//   railing of square balusters between the posts (open at the steps in front of the door), two plank steps, a bare-bulb porch light
+const addFarmPorch = (m) => {
+  const zf = HOUSE.d / 2, pd = 2.1, x0 = -0.68, x1 = HOUSE.w / 2 + 0.02, dy = 0.46, zo = zf + pd;
+  const posts = [x0 + 0.08, 0.62, 2.3, x1 - 0.08];
+  // the deck: boards running out from the house, a rim joist, piers, the lattice skirt
+  for (let x = x0 + 0.05; x < x1; x += 0.1) m.box("split", [x, dy - 0.02, zf + pd / 2], [0.092, 0.035, pd], bpick(["#8A8276", "#857D71", "#90887C"], rnd(x * 37)), { metric: true });
+  m.box("trimb", [(x0 + x1) / 2, dy - 0.11, zo], [x1 - x0, 0.16, 0.05], "#D8D4CA", { metric: true });
+  for (const x of posts) m.box("stone", [x, (dy - 0.15) / 2 - 0.05, zo - 0.12], [0.3, dy - 0.05, 0.3], "#85878B", { metric: true });
+  for (let k = 0; k < 30; k++) { const x = x0 + 0.1 + k * (x1 - x0 - 0.2) / 29; for (const sd of [-1, 1]) m.box("trimb", [x, (dy - 0.2) / 2, zo - 0.04], [0.03, (dy - 0.2) * 1.42, 0.015], "#BEB9AE", { r: [0, 0, sd * Math.PI / 4] }); }
+  m.box("dark", [(x0 + x1) / 2, (dy - 0.2) / 2, zo - 0.08], [x1 - x0, dy - 0.2, 0.02], "#161412");
+  // snow drifted onto the deck's ends and swept from the middle; a drift along the skirt
+  m.sph("snow", [x1 - 0.35, dy + 0.02, zf + pd * 0.5], [0.45, 0.08, pd * 0.48], "#EEF3FA", { seg: 12 });
+  m.box("snow", [(x0 + x1) / 2 + 0.6, dy + 0.012, zo - 0.08], [x1 - x0 - 1.8, 0.03, 0.14], "#F2F6FB");
+  for (let k = 0; k < 6; k++) m.sph("snow", [x0 + 0.5 + k * 0.8, 0.0, zo + 0.25], [0.6, 0.28 + rnd(k) * 0.1, 0.38], "#EEF3FA", { seg: 12 });
+  // the turned posts: a plinth, a shaft with rings and a vase turning, a capital block; sawn brackets to the beam
+  const top = 2.72;
+  for (const x of posts) {
+    const z = zo - 0.12;
+    m.box("trimb", [x, dy + 0.12, z], [0.15, 0.24, 0.15], "#E4E0D6", { metric: true });
+    m.cyl("trimb", [x, dy + 0.27, z], 0.07, 0.06, "#E4E0D6", { seg: 12 });
+    m.cyl("trimb", [x, (dy + 0.3 + top - 0.35) / 2, z], 0.052, top - 0.35 - dy - 0.3, "#E4E0D6", { seg: 12 });
+    m.cyl("trimb", [x, dy + 0.62, z], 0.07, 0.18, "#E4E0D6", { rt: 0.75, rb: 1, seg: 12 });
+    for (const y of [dy + 0.5, top - 0.5]) m.cyl("trimb", [x, y, z], 0.068, 0.035, "#E4E0D6", { seg: 12 });
+    m.box("trimb", [x, top - 0.25, z], [0.15, 0.2, 0.15], "#E4E0D6", { metric: true });
+    for (const sd of [-1, 1]) if ((sd < 0 && x > x0 + 0.2) || (sd > 0 && x < x1 - 0.2)) m.box("trimb", [x + sd * 0.16, top - 0.22, z], [0.3, 0.04, 0.05], "#E4E0D6", { r: [0, 0, -sd * 0.7] });
+  }
+  // the beam, the frieze, the beadboard ceiling
+  m.box("trimb", [(x0 + x1) / 2, top - 0.06, zo - 0.12], [x1 - x0 + 0.1, 0.2, 0.16], "#E4E0D6", { metric: true });
+  m.box("trimb", [(x0 + x1) / 2, top + 0.06, zf + pd / 2], [x1 - x0, 0.02, pd], "#CFC8B8", { metric: true });
+  for (let z = zf + 0.08; z < zo; z += 0.09) m.box("dark", [(x0 + x1) / 2, top + 0.048, z], [x1 - x0, 0.004, 0.006], "#8A8274");
+  // the shed roof: tin, from 3.2 m at the wall down past the beam, its snow, a cornice of snow lumps, icicles
+  const r0 = 3.08, r1 = top + 0.14, rz1 = zo + 0.28, slope = Math.atan2(r0 - r1, rz1 - zf), L = Math.hypot(r0 - r1, rz1 - zf);
+  m.box("tin", [(x0 + x1) / 2, (r0 + r1) / 2, (zf + rz1) / 2], [x1 - x0 + 0.3, 0.05, L], "#C8CED6", { r: [slope, 0, 0], metric: true });
+  m.box("snow", [(x0 + x1) / 2, (r0 + r1) / 2 + 0.09, (zf + rz1) / 2 - 0.05], [x1 - x0 + 0.24, 0.12, L * 0.94], "#F2F6FB", { r: [slope, 0, 0], metric: true });
+  for (let k = 0; k < 14; k++) { const x = x0 - 0.1 + (k + 0.5) * (x1 - x0 + 0.2) / 14; m.sph("snow", [x, r1 + 0.06, rz1 - 0.05], [0.24, 0.08 + rnd(k + 40) * 0.04, 0.13], "#F2F6FB", { seg: 10 }); }
+  m.box("trimb", [(x0 + x1) / 2, r1 - 0.06, rz1], [x1 - x0 + 0.3, 0.14, 0.035], "#D8D4CA", { metric: true });
+  for (let k = 0; k < 40; k++) { if (rnd(k * 5 + 1) < 0.4) continue; const il = 0.04 + Math.pow(rnd(k * 7 + 3), 2.2) * 0.4; m.cyl("ice", [x0 - 0.1 + k * (x1 - x0 + 0.2) / 40, r1 - 0.14 - il / 2, rz1 + 0.01], 0.012 + il * 0.03, il, "#DCEBFF", { rt: 1, rb: 0.05, seg: 6 }); }
+  // the railing between the posts (open between the first two: the steps), and along both ends back to the wall
+  const rail = (xa, za, xb, zb) => {
+    const L2 = Math.hypot(xb - xa, zb - za), ry = Math.atan2(-(zb - za), xb - xa), cx = (xa + xb) / 2, cz = (za + zb) / 2;
+    m.box("trimb", [cx, dy + 0.1, cz], [L2, 0.06, 0.07], "#E4E0D6", { r: [0, ry, 0] });
+    m.box("trimb", [cx, dy + 0.86, cz], [L2, 0.06, 0.1], "#E4E0D6", { r: [0, ry, 0] });
+    m.box("snow", [cx, dy + 0.905, cz], [L2 * 0.94, 0.035, 0.085], "#F2F6FB", { r: [0, ry, 0] });
+    const n = Math.floor(L2 / 0.12);
+    for (let k = 1; k < n; k++) { const t = k / n; m.box("trimb", [xa + (xb - xa) * t, dy + 0.48, za + (zb - za) * t], [0.035, 0.72, 0.035], "#E4E0D6"); }
+  };
+  rail(posts[1] + 0.08, zo - 0.12, posts[2] - 0.08, zo - 0.12);
+  rail(posts[2] + 0.08, zo - 0.12, posts[3] - 0.08, zo - 0.12);
+  rail(x1 - 0.08, zo - 0.2, x1 - 0.08, zf + 0.1);
+  rail(x0 + 0.08, zo - 0.2, x0 + 0.08, zf + 0.1);
+  // the steps down to the path (in front of the door), their stringers, snow on their ends
+  const sx = (posts[0] + posts[1]) / 2, sw = posts[1] - posts[0] - 0.2;
+  for (let k = 0; k < 2; k++) {
+    const y = dy - (k + 1) * (dy / 3), z = zo + 0.15 + k * 0.28;
+    m.box("split", [sx, y, z], [sw, 0.045, 0.3], "#8A8276", { metric: true });
+    m.box("snow", [sx - sw * 0.33, y + 0.03, z], [sw * 0.3, 0.025, 0.26], "#F2F6FB"); m.box("snow", [sx + sw * 0.36, y + 0.03, z], [sw * 0.26, 0.025, 0.26], "#F2F6FB");
+  }
+  for (const sd of [-1, 1]) m.box("split", [sx + sd * sw / 2, dy / 2 - 0.05, zo + 0.3], [0.05, 0.2, 0.75], "#7A7266", { r: [Math.atan2(dy, 0.6), 0, 0] });
+  // the porch light: a porcelain socket and a bare bulb on the ceiling by the door, lit
+  m.cyl("trimb", [0.6, top + 0.02, zf + 0.45], 0.06, 0.05, "#E8E4DA", { seg: 12 });
+  m.sph("bulb", [0.6, top - 0.06, zf + 0.45], 0.045, "#FFE6BE", { seg: 8 });
+  m.glow([0.6, top - 0.08, zf + 0.45], "#FFD49A", 1.4);
+  // a broom and a snow shovel against the wall, a bench under the window, a milk crate
+  m.box("wood", [3.6, dy + 0.65, zf + 0.12], [0.03, 1.3, 0.03], "#8A6E4E", { r: [0.15, 0, 0] });
+  m.box("metal", [3.6, dy + 0.12, zf + 0.25], [0.38, 0.28, 0.03], "#4A5566", { r: [0.3, 0, 0] });
+  m.box("split", [1.9, dy + 0.42, zf + 0.3], [1.3, 0.05, 0.34], "#7A6A58", { metric: true });
+  for (const dx of [-0.55, 0.55]) m.box("split", [1.9 + dx, dy + 0.2, zf + 0.3], [0.05, 0.42, 0.3], "#6E6052", { metric: true });
+};
 // ── the outdoor set, merged ───────────────────────────────────────────────────────────────────────────────────────────────
 const buildFarm = (m) => {
   // the farmhouse: 1½ storeys, weathered clapboard, 2/2 sash, a fieldstone foundation, tin roof under snow, a brick chimney
@@ -64,8 +135,9 @@ const buildFarm = (m) => {
       { f: "left", x: 1.3, y: WIN_Y, ww: WIN_W, wh: WIN_H, cell: 2 },
       { f: "left", x: 0, y: 4.6, ww: 0.7, wh: 1.0, cell: 1 }
     ],
-    door: [{ f: "front", x: 0, w: 0.92, h: 2.05, cell: 0, steps: 2, stepC: "#7E8085" }]
+    door: [{ f: "front", x: 0, w: 0.92, h: 2.05, cell: 1 }]
   });
+  addFarmPorch(m);
   m.pop();
   // the kitchen ell (lower, set back) with the lit kitchen window and a side door; a woodshed beyond it
   m.push([HOUSE.x + HOUSE.w / 2 + 2.6, 0, HOUSE.z - 0.8]);
@@ -133,12 +205,9 @@ const buildFarm = (m) => {
     m.box("metal", [x, y + 0.02, z], [0.001, 0.001, 0.001], "#000");
   });
   m.pop();
-  // the farm lane: wheel ruts through the snow (two darker trodden bands) from the road up to the ell door
-  // (drawn as thin flattened boxes on the ground, following it)
-  for (let i = 0; i < 46; i++) {
-    const t = i / 45, z = 34 - t * 37, x = 11.6 - 8.4 * t + Math.sin(t * 3) * 0.8, z2 = z - 37 / 45;
-    for (const sd of [-0.75, 0.75]) m.box("snow", [x + sd, hgt(x + sd, z) + 0.012, z - 0.4], [0.42, 0.02, 0.9], "#C8D2E0", { r: [0, -0.22 * (1 - t), 0] });
-  }
+  // the farm lane from the road up to the ell door: a plowed ribbon (packed snow, two ruts worn to frozen gravel, feathered edges) with
+  // the plow's banks along both sides (e_ addLane)
+  addLane(m, Array.from({ length: 48 }, (_, i) => { const t = i / 47; return [11.6 - 8.4 * t + Math.sin(t * 3) * 0.8, 34 - t * 37]; }), 1.55, hgt, 3);
   // a hand pump and a chopping stump by the ell, a sledge leaning on the woodshed
   m.push([HOUSE.x + HOUSE.w / 2 + 1.0, 0, HOUSE.z + 3.6]);
   m.cyl("metal", [0, 0.6, 0], 0.07, 1.2, "#2C3036", { seg: 10 });
@@ -154,15 +223,9 @@ const buildFarm = (m) => {
     if (Math.abs(x - HOUSE.x) < 0.8) continue;
     m.sph("snow", [x, 0.0, FRONT_Z + 0.28], [0.75 + rnd(k) * 0.3, 0.32 + rnd(k + 3) * 0.12, 0.42], "#EEF3FA", { seg: 14 });
   }
-  for (let i = 0; i < 22; i++) {
-    const t = i / 21, x = HOUSE.x + (5.6 - HOUSE.x) * t + Math.sin(t * 3.2) * 0.9, z = FRONT_Z + 0.9 + (7.4 - FRONT_Z - 0.9) * t;
-    m.box("snow", [x, 0.012, z], [0.75, 0.016, 0.62], "#C9D3E1", { r: [0, -0.5 - Math.cos(t * 3.2) * 0.4, 0] });
-  }
-  // bare sugar maples (front yard, by the barn, along the wall)
-  addMaple(m, [-10.5, hgt(-10.5, 1.0), 1.0], 11, 1);
-  addMaple(m, [6.6, 0, 3.2], 9.5, 2);
-  addMaple(m, [-19, hgt(-19, 7), 7], 10, 3);
-  addMaple(m, [24, hgt(24, 7.5), 7.5], 9, 4);
+  // the path shovelled from the porch steps down to the lane
+  addLane(m, Array.from({ length: 16 }, (_, i) => { const t = i / 15; return [HOUSE.x + (5.6 - HOUSE.x) * t + Math.sin(t * 3.2) * 0.9, FRONT_Z + 2.6 + (7.4 - FRONT_Z - 2.6) * t]; }), 0.5, hgt, 5);
+  // (the bare sugar maples are e_trees' <Maples>, grown each from its own seed)
 };
 // the pines: a belt along the ridge behind, a stand on the left, a few behind the barn
 const pineItems = () => {
@@ -212,6 +275,20 @@ const frostTex = () => canvasTex("b_frostPane", 256, 256, (c, w, h) => {
   const g = c.createLinearGradient(0, h * 0.85, 0, h); g.addColorStop(0, "rgba(255,255,255,0)"); g.addColorStop(1, "rgba(255,255,255,0.45)"); c.fillStyle = g; c.fillRect(0, h * 0.85, w, h * 0.15);
   c.fillStyle = "rgba(255,255,255,0.10)"; c.fillRect(0, 0, w, h);   // the glass itself
 });
+// (E) walnut with a hand-rubbed finish: dark figured grain
+const walnutTex = () => { const t = canvasTex("e_walnut", 512, 512, (c, w, h) => {
+  c.fillStyle = "#4A2E1E"; c.fillRect(0, 0, w, h);
+  for (let i = 0; i < 160; i++) { const y = rnd(i) * h, a = 0.08 + rnd(i + 1) * 0.2; c.strokeStyle = rnd(i + 2) < 0.5 ? `rgba(20,10,6,${a})` : `rgba(140,96,60,${a * 0.7})`; c.lineWidth = 1 + rnd(i + 3) * 3; c.beginPath(); for (let x = 0; x <= w; x += 16) c.lineTo(x, y + Math.sin(x / 60 + i) * 6 + Math.sin(x / 17 + i * 3) * 1.5); c.stroke(); }
+  for (let i = 0; i < 6; i++) { c.strokeStyle = "rgba(20,10,6,0.35)"; c.lineWidth = 1.5; const cx = rnd(i * 5) * w, cy = rnd(i * 7) * h; for (let r = 4; r < 30; r += 5) { c.beginPath(); c.ellipse(cx, cy, r * 2.2, r * 0.7, 0, 0, 7); c.stroke(); } }
+}); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(3, 3); return t; };
+// (E) the frame's mouldings: a rectangle with a rectangular window, extruded with a bevel (a mitred moulding at a glance)
+const ringShape = (ow, oh, iw, ih) => { const sh = new THREE.Shape(); sh.moveTo(-ow / 2, -oh / 2); sh.lineTo(ow / 2, -oh / 2); sh.lineTo(ow / 2, oh / 2); sh.lineTo(-ow / 2, oh / 2); sh.closePath(); const hl = new THREE.Path(); hl.moveTo(-iw / 2, -ih / 2); hl.lineTo(-iw / 2, ih / 2); hl.lineTo(iw / 2, ih / 2); hl.lineTo(iw / 2, -ih / 2); hl.closePath(); sh.holes.push(hl); return sh; };
+const FG = (() => {
+  const frame = new THREE.ExtrudeGeometry(ringShape(FRAME.w - 0.016, FRAME.h - 0.016, FRAME.w - 0.09, FRAME.h - 0.09), { depth: 0.014, bevelEnabled: true, bevelThickness: 0.008, bevelSize: 0.008, bevelSegments: 3, curveSegments: 1 });
+  frame.translate(0, 0, -0.004);
+  const liner = new THREE.ExtrudeGeometry(ringShape(FRAME.w - 0.084, FRAME.h - 0.084, FRAME.w - 0.104, FRAME.h - 0.104), { depth: 0.004, bevelEnabled: true, bevelThickness: 0.002, bevelSize: 0.002, bevelSegments: 2, curveSegments: 1 });
+  return { frame, liner };
+})();
 const Parlour = ({ f }) => {
   const mats = useMemo(() => {
     const wp = wallpaperTex(); wp.wrapS = wp.wrapT = THREE.RepeatWrapping; wp.repeat.set(5, 4.8);
@@ -222,9 +299,10 @@ const Parlour = ({ f }) => {
       ceil: new THREE.MeshStandardMaterial({ color: "#C8BCA8", roughness: 0.9 }),
       dip: new THREE.MeshStandardMaterial({ map: diplomaTex(), roughness: 0.75 }),
       mat: new THREE.MeshStandardMaterial({ color: "#E9E1CF", roughness: 0.9 }),
-      frame: new THREE.MeshStandardMaterial({ color: "#3A2416", roughness: 0.45, metalness: 0.05 }),
+      frame: new THREE.MeshStandardMaterial({ map: walnutTex(), color: "#8A6A50", roughness: 0.38, metalness: 0.05 }),
       gilt: new THREE.MeshStandardMaterial({ color: "#B08D4A", roughness: 0.35, metalness: 0.8 }),
-      glassF: new THREE.MeshStandardMaterial({ color: "#FFFFFF", roughness: 0.05, metalness: 0.0, transparent: true, opacity: 0.08, envMapIntensity: 1.2 }),
+      glassF: new THREE.MeshStandardMaterial({ color: "#FFF6E6", roughness: 0.04, metalness: 0.0, transparent: true, opacity: 0.55, alphaMap: glareTex(), envMapIntensity: 1.2, depthWrite: false }),
+      matBevel: new THREE.MeshStandardMaterial({ color: "#F6F0E0", roughness: 0.8 }),
       wood: new THREE.MeshStandardMaterial({ color: "#4A2E1C", roughness: 0.5 }),
       doily: new THREE.MeshStandardMaterial({ color: "#EFE8DA", roughness: 0.9 }),
       lampGlass: new THREE.MeshStandardMaterial({ color: "#C9D8C4", roughness: 0.1, metalness: 0.1, transparent: true, opacity: 0.55 }),
@@ -251,11 +329,15 @@ const Parlour = ({ f }) => {
       <mesh position={[(rx0 + rx1) / 2, y0 + 0.86, BACK_Z + 0.012]} material={mats.wood}><boxGeometry args={[rx1 - rx0, 0.05, 0.025]} /></mesh>
       {/* the framed diploma: moulded dark frame with a gilt lip, cream mat, the diploma, the glass; hung from a picture wire on a nail */}
       <group position={[DIPLOMA.x, DIPLOMA.y, BACK_Z + 0.03]} rotation-z={0.006}>
-        <mesh material={mats.frame} castShadow><boxGeometry args={[FRAME.w, FRAME.h, 0.035]} /></mesh>
-        <mesh position={[0, 0, 0.0185]} material={mats.gilt}><boxGeometry args={[FRAME.w - 0.07, FRAME.h - 0.07, 0.003]} /></mesh>
-        <mesh position={[0, 0, 0.0205]} material={mats.mat}><planeGeometry args={[FRAME.w - 0.085, FRAME.h - 0.085]} /></mesh>
-        <mesh position={[0, -0.004, 0.0215]} material={mats.dip}><planeGeometry args={[DIPLOMA.w, DIPLOMA.h]} /></mesh>
-        <mesh position={[0, 0, 0.024]} material={mats.glassF}><planeGeometry args={[FRAME.w - 0.07, FRAME.h - 0.07]} /></mesh>
+        {/* the moulded walnut frame (a bevelled profile, mitred), the gilt liner inside it, the mat with its bevelled window */}
+        <mesh geometry={FG.frame} material={mats.frame} castShadow />
+        <mesh geometry={FG.liner} position={[0, 0, 0.012]} material={mats.gilt} />
+        <mesh position={[0, 0, 0.0015]} material={mats.mat}><planeGeometry args={[FRAME.w - 0.1, FRAME.h - 0.1]} /></mesh>
+        {[[0, DIPLOMA.h / 2 + 0.012, DIPLOMA.w + 0.048, 0.024, 0.5], [0, -DIPLOMA.h / 2 - 0.012, DIPLOMA.w + 0.048, 0.024, -0.5], [-DIPLOMA.w / 2 - 0.012, 0, 0.024, DIPLOMA.h + 0.048, 0], [DIPLOMA.w / 2 + 0.012, 0, 0.024, DIPLOMA.h + 0.048, 0]].map(([x, y, w, h, t], i) => (
+          <mesh key={i} position={[x, y - 0.004, 0.0055]} rotation={i < 2 ? [t, 0, 0] : [0, (i === 2 ? 0.5 : -0.5), 0]} material={mats.matBevel}><planeGeometry args={[w, h]} /></mesh>
+        ))}
+        <mesh position={[0, -0.004, 0.0035]} material={mats.dip}><planeGeometry args={[DIPLOMA.w, DIPLOMA.h]} /></mesh>
+        <mesh position={[0, 0, 0.0165]} material={mats.glassF} renderOrder={4}><planeGeometry args={[FRAME.w - 0.08, FRAME.h - 0.08]} /></mesh>
         <mesh position={[0, FRAME.h / 2 + 0.07, -0.005]} material={mats.brass}><cylinderGeometry args={[0.006, 0.006, 0.02, 8]} /></mesh>
         {[-1, 1].map((sd) => <mesh key={sd} position={[sd * 0.09, FRAME.h / 2 + 0.035, -0.01]} rotation-z={sd * 0.95} material={mats.brass}><cylinderGeometry args={[0.0012, 0.0012, 0.13, 4]} /></mesh>)}
       </group>
@@ -330,6 +412,8 @@ export const Smoke = ({ f, at, n = 14, rise = 0.035, color = "#AFC0D6" }) => {
   );
 };
 
+// bare sugar maples (front yard, by the barn, along the wall), each from its own seed
+const MAPLES = [{ p: [-10.5, hgt(-10.5, 1.0) - 0.1, 1.0], h: 12, seed: 11 }, { p: [6.6, -0.1, 3.2], h: 10.5, seed: 12 }, { p: [-19, hgt(-19, 7) - 0.1, 7], h: 11, seed: 13 }, { p: [24, hgt(24, 7.5) - 0.1, 7.5], h: 10, seed: 14 }];
 const Scene = ({ f }) => {
   const pines = useMemo(pineItems, []);
   return (
@@ -338,7 +422,8 @@ const Scene = ({ f }) => {
       <Ridges />
       <Snowfield hgt={hgt} size={300} segs={200} />
       <Built build={buildFarm} />
-      <Pines items={pines} />
+      <Conifers items={pines} near={[0, -6]} farDist={30} />
+      <Maples items={MAPLES} />
       <Parlour f={f} />
       <RealWindow />
       {/* the kitchen window glows too; the ell's chimney smokes (the stove is lit) */}

@@ -50,13 +50,32 @@ export const pumpFaceTex = (grade, accent) => canvasTex("b_pumpface_" + grade, 5
   // wear: chips and grime near the bottom
   for (let i = 0; i < 400; i++) { c.fillStyle = `rgba(60,56,50,${rnd(i) * 0.18})`; c.fillRect(rnd(i + 3) * w, h - rnd(i + 4) * 140, 3 + rnd(i) * 6, 2); }
 });
-// the globe: milk glass with the grade lettered on both faces of the band
-const globeTex = (grade, accent) => canvasTex("b_globe_" + grade, 1024, 512, (c, w, h) => {
-  const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "#FFFFFF"); g.addColorStop(0.5, "#FFF8EA"); g.addColorStop(1, "#F0E6D2"); c.fillStyle = g; c.fillRect(0, 0, w, h);
-  c.fillStyle = accent; c.fillRect(0, h * 0.38, w, h * 0.24);
-  c.fillStyle = "#FFFFFF"; c.fillRect(0, h * 0.38, w, 6); c.fillRect(0, h * 0.62 - 6, w, 6);
-  for (const cx of [w * 0.25, w * 0.75]) ctext(c, grade, cx, h * 0.5, F(700, 80, SIGNF), "#FFFFFF", w * 0.4);
+// the globe: a 1950s one-piece milk-glass globe — a lens-shaped body with a lettered glass lens in each face, held in a metal band
+const globeLensTex = (grade, accent) => canvasTex("e_globe_lens_" + grade, 512, 512, (c, w, h) => {
+  const g = c.createRadialGradient(w * 0.45, h * 0.4, 10, w / 2, h / 2, w / 2); g.addColorStop(0, "#FFFFFF"); g.addColorStop(0.8, "#FBF4E4"); g.addColorStop(1, "#EADCC0");
+  c.fillStyle = g; c.fillRect(0, 0, w, h);
+  c.strokeStyle = accent; c.lineWidth = 30; c.beginPath(); c.arc(w / 2, h / 2, w / 2 - 30, 0, 7); c.stroke();
+  c.strokeStyle = "#FFFFFF"; c.lineWidth = 5; c.beginPath(); c.arc(w / 2, h / 2, w / 2 - 50, 0, 7); c.stroke();
+  // a band across the middle with the grade (fitted inside the band, clear of the ring); GASOLINE above it, clear of both
+  c.fillStyle = accent; c.fillRect(60, h / 2 - 70, w - 120, 140);
+  boxText(c, grade, SIGNF, 700, [74, h / 2 - 64, w - 74, h / 2 + 64], "#FFFFFF", 0.12);
+  boxText(c, "GASOLINE", SIGNF, 600, [150, 104, w - 150, 172], accent, 0.08);
 });
+const globeBodyTex = () => canvasTex("e_globe_body", 256, 128, (c, w, h) => { const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "#FFFFFF"); g.addColorStop(1, "#EFE4CE"); c.fillStyle = g; c.fillRect(0, 0, w, h); });
+const GLOBE_LENS = new THREE.CircleGeometry(0.16, 40);
+let GBODY = null;
+const globeBody = () => GBODY ??= (() => { const q = new THREE.SphereGeometry(0.2, 36, 22); q.scale(1, 0.95, 0.5); return q; })();
+/** the nozzle: a cast body with its grip, the trigger lever under it inside a guard, the spout curving down (local: along +x) */
+let NZ = null;
+const nozzleGeos = () => NZ ??= (() => {
+  const body = new THREE.LatheGeometry([[0.001, 0], [0.024, 0], [0.03, 0.02], [0.03, 0.09], [0.026, 0.12], [0.02, 0.14], [0.001, 0.142]].map(([r, y]) => new THREE.Vector2(r, y)), 18);
+  body.rotateZ(-Math.PI / 2);
+  const spout = new THREE.TubeGeometry(new THREE.CatmullRomCurve3([[0.14, 0, 0], [0.2, -0.004, 0], [0.25, -0.03, 0], [0.28, -0.07, 0]].map((p) => new THREE.Vector3(...p))), 16, 0.01, 10, false);
+  const grip = new THREE.TubeGeometry(new THREE.CatmullRomCurve3([[0.0, 0, 0], [-0.06, -0.012, 0], [-0.13, -0.02, 0]].map((p) => new THREE.Vector3(...p))), 12, 0.019, 12, false);
+  const guard = new THREE.TorusGeometry(0.055, 0.005, 6, 20, Math.PI); guard.rotateZ(Math.PI); guard.translate(-0.06, -0.02, 0);
+  const lever = new THREE.BoxGeometry(0.1, 0.012, 0.016); lever.translate(-0.06, -0.045, 0);
+  return { body, spout, grip, guard, lever };
+})();
 let PM = null;
 const pumpMats = () => PM ??= {
   body: new THREE.MeshStandardMaterial({ color: "#E4E1D7", roughness: 0.35, metalness: 0.15, envMapIntensity: 0.9 }),
@@ -69,40 +88,73 @@ const pumpMats = () => PM ??= {
 const PG = {};
 const pumpGeo = () => PG.body ??= new RoundedBoxGeometry(0.62, 1.55, 0.44, 4, 0.09);
 const capGeo = () => PG.cap ??= new RoundedBoxGeometry(0.66, 0.1, 0.48, 3, 0.04);
-/** one gas pump standing on the island (front face toward +z); its hose hangs on the right side into the nozzle holster */
+/** one gas pump standing on the island (front face toward +z): a cast base, the cabinet, the computing head with its dial window
+ *  behind a chrome bezel and glass, the grade band, a louvred lower door, chrome edge strips, the hose from its outlet looping down to
+ *  the nozzle hanging in its boot with the on/off lever beside it, a lamp housing with a cap of snow, the lighted globe */
 export const GasPump = ({ position, ry = 0, grade = "REGULAR", accent = "#1F3A63", lit = 1 }) => {
   const m = pumpMats();
   const face = useMemo(() => pumpFaceTex(grade, accent), [grade]);
-  const glb = useMemo(() => globeTex(grade, accent), [grade]);
+  const lens = useMemo(() => globeLensTex(grade, accent), [grade]);
   const faceMat = useMemo(() => new THREE.MeshStandardMaterial({ map: face, roughness: 0.3, metalness: 0.05 }), [face]);
-  const globeMat = useMemo(() => new THREE.MeshStandardMaterial({ map: glb, emissiveMap: glb, emissive: "#FFE9C8", emissiveIntensity: 0.9 * lit, roughness: 0.25 }), [glb]);
+  const lensMat = useMemo(() => new THREE.MeshStandardMaterial({ map: lens, emissiveMap: lens, emissive: "#FFEBD0", emissiveIntensity: 0.95 * lit, roughness: 0.18 }), [lens]);
+  const gbm = useMemo(() => new THREE.MeshStandardMaterial({ map: globeBodyTex(), emissive: "#FFE6C4", emissiveIntensity: 0.75 * lit, roughness: 0.25 }), []);
+  const glass = useMemo(() => new THREE.MeshStandardMaterial({ color: "#DDE6F2", roughness: 0.03, metalness: 0.1, transparent: true, opacity: 0.18, envMapIntensity: 2, depthWrite: false }), []);
+  const snow = useMemo(() => new THREE.MeshStandardMaterial({ color: "#F2F6FB", roughness: 0.75 }), []);
+  const nz = nozzleGeos();
   const hose = useMemo(() => {
-    const pts = [[0.32, 1.45, 0.02], [0.4, 1.25, 0.12], [0.43, 0.7, 0.2], [0.42, 0.42, 0.18], [0.38, 0.5, 0.06], [0.37, 0.92, 0.02]].map((p) => new THREE.Vector3(...p));
-    return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 48, 0.018, 8, false);
+    const pts = [[0.31, 1.42, -0.06], [0.37, 1.3, 0.02], [0.41, 0.9, 0.16], [0.4, 0.42, 0.26], [0.36, 0.26, 0.2], [0.34, 0.36, 0.08], [0.35, 0.72, 0.05], [0.36, 0.9, 0.07]].map((p) => new THREE.Vector3(...p));
+    return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 64, 0.019, 10, false);
   }, []);
+  const H0 = 0.12, BH = 1.55, FZ = 0.2225;
+  // the dial window on the face texture: px (40..472, 60..440) of 512 × 1024 over the 0.5 × 1.4 m face
+  const dW = 0.5 * (432 / 512), dH = 1.4 * (380 / 1024), dY = H0 + BH / 2 + 0.7 - 1.4 * (250 / 1024);
   return (
     <group position={position} rotation-y={ry}>
+      {/* the cast base with its hold-down bolts */}
       <mesh position={[0, 0.06, 0]} material={m.base} castShadow receiveShadow><boxGeometry args={[0.72, 0.12, 0.54]} /></mesh>
-      <mesh position={[0, 0.12 + 0.775, 0]} geometry={pumpGeo()} material={m.body} castShadow receiveShadow />
-      <mesh position={[0, 0.12 + 1.55 + 0.04, 0]} geometry={capGeo()} material={m.trim} castShadow />
-      {/* the face (front and back) */}
-      <mesh position={[0, 0.12 + 0.775, 0.2225]} material={faceMat}><planeGeometry args={[0.5, 1.4]} /></mesh>
-      <mesh position={[0, 0.12 + 0.775, -0.2225]} rotation-y={Math.PI} material={faceMat}><planeGeometry args={[0.5, 1.4]} /></mesh>
+      {[[-0.31, -0.22], [0.31, -0.22], [-0.31, 0.22], [0.31, 0.22]].map(([x, z], i) => <mesh key={i} position={[x, 0.125, z]} material={m.chrome}><cylinderGeometry args={[0.014, 0.014, 0.02, 6]} /></mesh>)}
+      <mesh position={[0, H0 + BH / 2, 0]} geometry={pumpGeo()} material={m.body} castShadow receiveShadow />
+      <mesh position={[0, H0 + BH + 0.04, 0]} geometry={capGeo()} material={m.trim} castShadow />
+      {/* the faces (front and back) */}
+      <mesh position={[0, H0 + BH / 2, FZ]} material={faceMat}><planeGeometry args={[0.5, 1.4]} /></mesh>
+      <mesh position={[0, H0 + BH / 2, -FZ]} rotation-y={Math.PI} material={faceMat}><planeGeometry args={[0.5, 1.4]} /></mesh>
+      {/* the computing head's chrome bezel and its glass (both faces), standing proud of the cabinet */}
+      {[1, -1].map((sd) => (
+        <group key={sd} position={[0, dY, sd * (FZ + 0.012)]} rotation-y={sd > 0 ? 0 : Math.PI}>
+          {[dH / 2 + 0.012, -dH / 2 - 0.012].map((y, i) => <mesh key={i} position={[0, y, 0]} material={m.chrome}><boxGeometry args={[dW + 0.05, 0.024, 0.03]} /></mesh>)}
+          {[-1, 1].map((q) => <mesh key={q} position={[q * (dW / 2 + 0.012), 0, 0]} material={m.chrome}><boxGeometry args={[0.024, dH + 0.048, 0.03]} /></mesh>)}
+          <mesh position={[0, 0, 0.004]} material={glass} renderOrder={3}><planeGeometry args={[dW, dH]} /></mesh>
+        </group>
+      ))}
       {/* chrome strips down the corners */}
       {[-1, 1].map((sd) => <mesh key={sd} position={[sd * 0.3, 0.9, 0.2]} material={m.ring}><boxGeometry args={[0.02, 1.4, 0.02]} /></mesh>)}
-      {/* the nozzle holster on the right side, the nozzle in it, the hose */}
-      <mesh position={[0.33, 0.95, 0.02]} material={m.trim}><boxGeometry args={[0.06, 0.2, 0.12]} /></mesh>
-      <group position={[0.37, 0.98, 0.02]} rotation-z={-0.35}>
-        <mesh material={m.chrome}><cylinderGeometry args={[0.022, 0.026, 0.16, 10]} /></mesh>
-        <mesh position={[0.0, -0.13, 0]} rotation-z={0.5} material={m.chrome}><cylinderGeometry args={[0.012, 0.012, 0.14, 8]} /></mesh>
-        <mesh position={[0.05, 0.02, 0]} material={m.hose}><boxGeometry args={[0.07, 0.03, 0.03]} /></mesh>
-      </group>
+      {/* the hose outlet, the hose, the nozzle boot on the right side with the nozzle hanging in it, the on/off lever above */}
+      <mesh position={[0.31, 1.42, -0.06]} rotation-z={Math.PI / 2} material={m.chrome}><cylinderGeometry args={[0.03, 0.03, 0.05, 12]} /></mesh>
       <mesh geometry={hose} material={m.hose} castShadow />
-      {/* the globe: a ring base, the milk-glass ball */}
-      <mesh position={[0, 1.78, 0]} material={m.ring}><cylinderGeometry args={[0.09, 0.12, 0.08, 18]} /></mesh>
-      <mesh position={[0, 2.0, 0]} material={globeMat}><sphereGeometry args={[0.2, 32, 20]} /></mesh>
-      <mesh position={[0, 2.2, 0]} material={m.ring}><cylinderGeometry args={[0.05, 0.06, 0.03, 14]} /></mesh>
-      <Glow position={[0, 2.0, 0]} size={1.1} color="#FFE2B0" opacity={0.42 * lit} />
+      <mesh position={[0.335, 0.97, 0.06]} material={m.trim}><boxGeometry args={[0.05, 0.2, 0.13]} /></mesh>
+      <group position={[0.37, 0.9, 0.07]} rotation={[0, 0, -1.15]}>
+        <mesh geometry={nz.body} material={m.chrome} castShadow />
+        <mesh geometry={nz.spout} material={m.chrome} />
+        <mesh geometry={nz.grip} material={m.hose} />
+        <mesh geometry={nz.guard} material={m.chrome} />
+        <mesh geometry={nz.lever} material={m.chrome} />
+      </group>
+      <group position={[0.335, 1.15, 0.06]} rotation-z={-0.4}>
+        <mesh position={[0.03, 0.06, 0]} material={m.chrome}><boxGeometry args={[0.018, 0.14, 0.018]} /></mesh>
+        <mesh position={[0.05, 0.13, 0]} material={m.hose}><sphereGeometry args={[0.018, 10, 8]} /></mesh>
+      </group>
+      {/* the lamp housing, a cap of snow on it, the globe's collar and the globe */}
+      <mesh position={[0, H0 + BH + 0.1, 0]} material={m.trim}><boxGeometry args={[0.5, 0.06, 0.34]} /></mesh>
+      <mesh position={[-0.12, H0 + BH + 0.13, -0.06]} material={snow} scale={[1, 0.22, 0.8]}><sphereGeometry args={[0.13, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2]} /></mesh>
+      <mesh position={[0, 1.83, 0]} material={m.ring}><cylinderGeometry args={[0.07, 0.11, 0.07, 18]} /></mesh>
+      <group position={[0, 2.04, 0]}>
+        <mesh geometry={globeBody()} material={gbm} />
+        <mesh position={[0, 0, 0.101]} geometry={GLOBE_LENS} material={lensMat} />
+        <mesh position={[0, 0, -0.101]} rotation-y={Math.PI} geometry={GLOBE_LENS} material={lensMat} />
+        <mesh material={m.ring} scale={[1, 0.95, 1]}><torusGeometry args={[0.2, 0.016, 8, 40]} /></mesh>
+        {[1, -1].map((sd) => <mesh key={sd} position={[0, 0, sd * 0.1]} material={m.ring}><torusGeometry args={[0.163, 0.008, 6, 36]} /></mesh>)}
+      </group>
+      <Glow position={[0, 2.04, 0.12]} size={1.1} color="#FFE2B0" opacity={0.4 * lit} />
     </group>
   );
 };
@@ -158,17 +210,56 @@ export const Tire = ({ position, rotation = [0, 0, 0] }) => {
   return <mesh geometry={tireGeo()} material={mat} position={position} rotation={rotation} castShadow receiveShadow />;
 };
 // ── the station's signage ─────────────────────────────────────────────────────────────────────────────────────────────────
-/** the fascia sign: HAVILAND'S / SERVICE STATION in plain type, white porcelain enamel with navy letters and a navy edge */
-export const stationSignTex = () => canvasTex("b_haviland_sign_v2", 2048, 768, (c, w, h) => {
-  c.fillStyle = "#1A2F52"; c.fillRect(0, 0, w, h);
-  c.fillStyle = "#F2EFE6"; c.beginPath(); c.roundRect(26, 26, w - 52, h - 52, 22); c.fill();
-  c.strokeStyle = "#1A2F52"; c.lineWidth = 8; c.beginPath(); c.roundRect(52, 52, w - 104, h - 104, 14); c.stroke();
-  ctext(c, "HAVILAND'S", w / 2, h * 0.39, F(700, 300, SIGNF), "#1A2F52", w - 200);
-  c.fillStyle = "#1A2F52"; c.fillRect(w * 0.14, h * 0.63, w * 0.72, 8);
-  ctext(c, "SERVICE STATION", w / 2, h * 0.77, F(600, 132, SIGNF), "#1A2F52", w - 260);
-  for (let i = 0; i < 3000; i++) { c.fillStyle = `rgba(90,80,60,${rnd(i) * 0.06})`; c.fillRect(rnd(i + 1) * w, rnd(i + 2) * h, 3, 2); }
-  // rust weeping from the mounting bolts
-  for (const [x, y] of [[90, 90], [w - 90, 90], [90, h - 90], [w - 90, h - 90]]) { c.fillStyle = "#6E6A62"; c.beginPath(); c.arc(x, y, 9, 0, 7); c.fill(); c.fillStyle = "rgba(120,70,40,0.25)"; c.fillRect(x - 3, y + 8, 6, 40); }
+/** fit a line of text into a box (maxW × maxH of INK, measured): returns the font size */
+export const fitText = (c, s, family, weight, maxW, maxH, start = 400) => {
+  let px = start;
+  for (let k = 0; k < 60; k++) {
+    c.font = `${weight} ${px}px ${family}`;
+    const m = c.measureText(s), wd = m.actualBoundingBoxLeft + m.actualBoundingBoxRight, ht = m.actualBoundingBoxAscent + m.actualBoundingBoxDescent;
+    if (wd <= maxW && ht <= maxH) return { px, ascent: m.actualBoundingBoxAscent, descent: m.actualBoundingBoxDescent };
+    px *= 0.96;
+  }
+  return { px, ascent: px * 0.7, descent: 0 };
+};
+/** draw a line of text with its INK centred in the box [x0,y0,x1,y1] (never touching its edges) */
+export const boxText = (c, s, family, weight, box, color, pad = 0.12) => {
+  const [x0, y0, x1, y1] = box, bw = x1 - x0, bh = y1 - y0;
+  const f = fitText(c, s, family, weight, bw * (1 - 2 * pad), bh * (1 - 2 * pad), bh * 1.6);
+  c.font = `${weight} ${f.px}px ${family}`; c.fillStyle = color; c.textAlign = "center"; c.textBaseline = "alphabetic";
+  const inkH = f.ascent + f.descent, base = y0 + (bh - inkH) / 2 + f.ascent;
+  c.fillText(s, (x0 + x1) / 2, base);
+};
+/** the fascia sign (Timur, 2026-11-27: "make sure the text on the service station doesn't overlap"): a porcelain-enamel panel in a
+ *  steel frame, two lettered BANDS separated by a rule; each line is fitted INSIDE its own band with margins (measured ink, not a
+ *  guessed size), so nothing touches the border, the rule or the other line. 2048 × 768 for a 4.0 × 1.5 m panel. */
+export const SIGN_BANDS = { top: [150, 86, 1898, 452], rule: 486, bottom: [300, 520, 1748, 682] };
+export const stationSignTex = () => canvasTex("e_haviland_sign_v3", 2048, 768, (c, w, h) => {
+  // the enamel: a navy rim, the cream field with a faint gloss band, an inner pinstripe
+  c.fillStyle = "#16294A"; c.fillRect(0, 0, w, h);
+  const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "#F7F4EA"); g.addColorStop(0.45, "#EFEBDF"); g.addColorStop(1, "#E3DED0");
+  c.fillStyle = g; c.beginPath(); c.roundRect(30, 30, w - 60, h - 60, 26); c.fill();
+  c.strokeStyle = "#16294A"; c.lineWidth = 7; c.beginPath(); c.roundRect(58, 58, w - 116, h - 116, 16); c.stroke();
+  // the two bands and the rule between them (the rule is its own band: no letter reaches it)
+  boxText(c, "HAVILAND'S", SIGNF, 700, SIGN_BANDS.top, "#16294A", 0.07);
+  c.fillStyle = "#9E2B25"; c.fillRect(w * 0.2, SIGN_BANDS.rule - 5, w * 0.6, 10);
+  for (const x of [w * 0.2 - 18, w * 0.8 + 18]) { c.beginPath(); c.arc(x, SIGN_BANDS.rule, 9, 0, 7); c.fill(); }
+  boxText(c, "SERVICE STATION", SIGNF, 600, SIGN_BANDS.bottom, "#16294A", 0.1);
+  // porcelain: fine crazing, chips at the edges showing dark steel, grime along the bottom
+  for (let i = 0; i < 3000; i++) { c.fillStyle = `rgba(90,80,60,${rnd(i) * 0.05})`; c.fillRect(rnd(i + 1) * w, rnd(i + 2) * h, 3, 2); }
+  for (let i = 0; i < 14; i++) { const x = rnd(i * 5) < 0.5 ? 34 + rnd(i) * 20 : w - 54 + rnd(i) * 20, y = 80 + rnd(i * 3) * (h - 160); c.fillStyle = "#2A2E36"; c.beginPath(); c.ellipse(x, y, 6 + rnd(i + 2) * 8, 4 + rnd(i + 4) * 6, rnd(i) * 3, 0, 7); c.fill(); }
+  const gr = c.createLinearGradient(0, h - 90, 0, h - 30); gr.addColorStop(0, "rgba(70,60,40,0)"); gr.addColorStop(1, "rgba(70,60,40,0.12)"); c.fillStyle = gr; c.fillRect(30, h - 90, w - 60, 60);
+  // the mounting bolts (in the rim, clear of the lettering), a little rust weeping from each
+  for (const [x, y] of [[44, 44], [w - 44, 44], [44, h - 44], [w - 44, h - 44], [w / 2, 44], [w / 2, h - 44]]) { c.fillStyle = "#5E5A52"; c.beginPath(); c.arc(x, y, 8, 0, 7); c.fill(); c.fillStyle = "rgba(255,255,255,0.35)"; c.beginPath(); c.arc(x - 2, y - 2, 3, 0, 7); c.fill(); }
+});
+/** the pole sign by the road: a double-faced lighted box — HAVILAND'S over a band GAS · OIL · REPAIRS, each in its own panel */
+export const poleSignTex = () => canvasTex("e_pole_sign_v1", 1024, 640, (c, w, h) => {
+  c.fillStyle = "#16294A"; c.fillRect(0, 0, w, h);
+  const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "#FBF8EE"); g.addColorStop(1, "#ECE6D6");
+  c.fillStyle = g; c.beginPath(); c.roundRect(24, 24, w - 48, 380, 18); c.fill();
+  boxText(c, "HAVILAND'S", SIGNF, 700, [48, 40, w - 48, 388], "#16294A", 0.08);
+  c.fillStyle = "#9E2B25"; c.beginPath(); c.roundRect(24, 428, w - 48, 188, 18); c.fill();
+  boxText(c, "GAS · OIL · REPAIRS", SIGNF, 600, [48, 440, w - 48, 604], "#F7F4EA", 0.14);
+  for (let i = 0; i < 1500; i++) { c.fillStyle = `rgba(80,70,50,${rnd(i) * 0.05})`; c.fillRect(rnd(i + 1) * w, rnd(i + 2) * h, 2, 2); }
 });
 /** a small hanging tin sign: OPEN */
 export const openSignTex = () => canvasTex("b_open", 512, 256, (c, w, h) => {

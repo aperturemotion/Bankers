@@ -38,8 +38,8 @@ const splitSideTex = () => { const t = canvasTex("b_splitside", 512, 512, (c, w,
   // patches of bark
   for (let i = 0; i < 6; i++) { c.fillStyle = `rgba(62,48,38,${0.5 + rnd(i) * 0.4})`; c.fillRect(rnd(i * 9) * w, 0, 40 + rnd(i * 11) * 90, h); for (let q = 0; q < 50; q++) { c.fillStyle = "rgba(20,14,10,0.5)"; c.fillRect(rnd(i * 9) * w + rnd(q) * 100, rnd(q * 3) * h, 2, 10 + rnd(q * 5) * 40); } }
 }); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t; };
-const barkTex = () => { const t = canvasTex("b_bark", 512, 512, (c, w, h) => {
-  c.fillStyle = "#4A3C30"; c.fillRect(0, 0, w, h);
+const barkTex = (light = false) => { const t = canvasTex(light ? "e_bark_split" : "b_bark", 512, 512, (c, w, h) => {
+  c.fillStyle = light ? "#6E6052" : "#4A3C30"; c.fillRect(0, 0, w, h);
   for (let i = 0; i < 260; i++) { const x = rnd(i) * w, y = rnd(i + 1) * h, ww = 10 + rnd(i + 2) * 30, hh = 40 + rnd(i + 3) * 120; c.fillStyle = `rgba(${rnd(i + 4) < 0.5 ? "30,22,16" : "120,104,88"},${0.3 + rnd(i + 5) * 0.4})`; c.fillRect(x, y, ww, hh); }
   for (let i = 0; i < 120; i++) { c.fillStyle = "rgba(15,10,6,0.6)"; c.fillRect(rnd(i * 7) * w, 0, 3 + rnd(i) * 4, h); }
   for (let i = 0; i < 60; i++) { c.fillStyle = `rgba(130,140,110,${0.15 + rnd(i) * 0.2})`; c.beginPath(); c.arc(rnd(i * 3) * w, rnd(i * 5) * h, 4 + rnd(i) * 12, 0, 7); c.fill(); }   // lichen
@@ -51,6 +51,8 @@ const blockTopTex = () => canvasTex("b_blocktop", 512, 512, (c, w, h) => {
   for (let k = 0; k < 70; k++) { const a = rnd(k) * Math.PI, x = w / 2 + (rnd(k + 1) - 0.5) * w * 0.6, y = h / 2 + (rnd(k + 2) - 0.5) * h * 0.6, L = 30 + rnd(k + 3) * 90; c.strokeStyle = `rgba(${rnd(k + 4) < 0.5 ? "40,28,16" : "230,210,170"},${0.35 + rnd(k + 5) * 0.4})`; c.lineWidth = 2 + rnd(k + 6) * 2; c.beginPath(); c.moveTo(x - Math.cos(a) * L / 2, y - Math.sin(a) * L / 2); c.lineTo(x + Math.cos(a) * L / 2, y + Math.sin(a) * L / 2); c.stroke(); }
 });
 // ── the splits: cross-sections extruded 0.4 m (along z); caps carry the end grain, the shape is in "log" coordinates (pith at 0) ──
+//   (E) built by hand so each face gets its own material: the END GRAIN on the caps, BARK only on the round outer faces (the log's
+//   surface), raw SPLIT WOOD on the flat faces where the maul split it — those faces are torn: fibrous ridges along the grain.
 const SPLIT_L = 0.4;
 const shapes = () => {
   const R = 0.11;
@@ -60,28 +62,87 @@ const shapes = () => {
   const round = new THREE.Shape(); round.absarc(0, 0, R * 0.55, 0, Math.PI * 2, false);
   return [{ s: quarter, R }, { s: half, R: R * 0.85 }, { s: wedge, R: R * 1.2 }, { s: round, R: R * 0.55 }];
 };
+// the outlines as edge lists: [x0, y0, x1, y1, arc?]
+const outline = (k) => {
+  const R = [0.11, 0.11 * 0.85, 0.11 * 1.2, 0.11 * 0.55][k], E = [];
+  const arc = (a0, a1, n) => { for (let i = 0; i < n; i++) { const t0 = a0 + (a1 - a0) * (i / n), t1 = a0 + (a1 - a0) * ((i + 1) / n); E.push([Math.cos(t0) * R, Math.sin(t0) * R, Math.cos(t1) * R, Math.sin(t1) * R, true]); } };
+  if (k === 0) { E.push([0, 0, R, 0, false]); arc(0, Math.PI / 2, 10); E.push([0, R, 0, 0, false]); }
+  if (k === 1) { E.push([-R, 0, R, 0, false]); arc(0, Math.PI, 16); }
+  if (k === 2) { const a0 = Math.PI * 0.35, a1 = Math.PI * 0.62; E.push([0, 0, Math.cos(a0) * R, Math.sin(a0) * R, false]); arc(a0, a1, 6); E.push([Math.cos(a1) * R, Math.sin(a1) * R, 0, 0, false]); }
+  if (k === 3) arc(0, Math.PI * 2, 18);
+  return { E, R };
+};
 let SG = null;
-const splitGeos = () => SG ??= shapes().map(({ s, R }) => {
-  const g = new THREE.ExtrudeGeometry(s, { depth: SPLIT_L, bevelEnabled: true, bevelThickness: 0.006, bevelSize: 0.005, bevelSegments: 1, curveSegments: 10 });
-  g.translate(0, 0, -SPLIT_L / 2);
-  // cap UVs: the ring texture centred on the pith, its bark rim (0.49 of the texture) at the log's radius
-  const P = g.attributes.position, U = g.attributes.uv, N = g.attributes.normal;
-  for (let i = 0; i < P.count; i++) {
-    if (Math.abs(N.getZ(i)) > 0.7) U.setXY(i, 0.5 + P.getX(i) / (2.04 * R), 0.5 + P.getY(i) / (2.04 * R));
-    else U.setXY(i, (P.getX(i) + P.getY(i)) * 2.0, P.getZ(i) * 2.0);
+const splitGeos = () => SG ??= [0, 1, 2, 3].map((k, gi) => {
+  const { E, R } = outline(k), nz = 6, P = [], N = [], U = [], idx = [], groups = [], keep = [];
+  const push = (x, y, z, nx, ny, nzz, u, v, fixed = true) => { P.push(x, y, z); N.push(nx, ny, nzz); U.push(u, v); const i = P.length / 3 - 1; if (fixed) keep.push(i); return i; };
+  // the caps (end grain): triangulated outline at ±L/2, UVs centred on the pith with the bark rim at the log's radius
+  const pts2 = E.map((e) => new THREE.Vector2(e[0], e[1]));
+  const tris = THREE.ShapeUtils.triangulateShape(pts2, []);
+  const capStart = idx.length;
+  for (const sd of [-1, 1]) {
+    const base = P.length / 3;
+    pts2.forEach((p) => push(p.x, p.y, sd * SPLIT_L / 2, 0, 0, sd, 0.5 + p.x / (2.04 * R), 0.5 + p.y / (2.04 * R)));
+    for (const t of tris) if (sd > 0) idx.push(base + t[0], base + t[1], base + t[2]); else idx.push(base + t[0], base + t[2], base + t[1]);
   }
+  groups.push([capStart, idx.length - capStart, 0]);
+  // the sides: arc faces (bark) then flat faces (split wood, torn)
+  for (const wantArc of [true, false]) {
+    const g0 = idx.length;
+    E.forEach((e, ei) => {
+      if (e[4] !== wantArc) return;
+      const [x0, y0, x1, y1] = e, ex = x1 - x0, ey = y1 - y0, el = Math.hypot(ex, ey) || 1, nx = ey / el, ny = -ex / el;   // outward normal (CCW outline)
+      const nw = wantArc ? 1 : Math.max(3, Math.round(el / 0.012));
+      const rows = [];
+      for (let iz = 0; iz <= nz; iz++) {
+        const z = -SPLIT_L / 2 + (iz / nz) * SPLIT_L, row = [];
+        for (let iw = 0; iw <= nw; iw++) {
+          const t = iw / nw;
+          let x = x0 + ex * t, y = y0 + ey * t, dnx = nx, dny = ny;
+          if (wantArc) { const r = Math.hypot(x, y) || 1; dnx = x / r; dny = y / r; }
+          else if (iw > 0 && iw < nw) {
+            // torn fibres: ridges running along the grain (constant along z, varying across), a little wander along z
+            const d = 0.004 * Math.sin(t * 23 + ei * 3 + gi) + 0.003 * Math.sin(t * 57 + ei) + 0.0015 * Math.sin(z * 40 + t * 9);
+            x += nx * d; y += ny * d;
+          }
+          const u = wantArc ? (Math.atan2(y, x) * R * 3) : t * el * 6, v = z * 2.5;
+          row.push(push(x, y, z, dnx, dny, 0, u, v, wantArc));
+        }
+        rows.push(row);
+      }
+      for (let iz = 0; iz < nz; iz++) for (let iw = 0; iw < nw; iw++) { const a = rows[iz][iw], b = rows[iz][iw + 1], c2 = rows[iz + 1][iw], d = rows[iz + 1][iw + 1]; idx.push(a, b, c2, b, d, c2); }
+    });
+    groups.push([g0, idx.length - g0, wantArc ? 1 : 2]);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(P, 3)); g.setAttribute("normal", new THREE.Float32BufferAttribute(N, 3)); g.setAttribute("uv", new THREE.Float32BufferAttribute(U, 2));
+  g.setIndex(idx);
+  for (const [st, cnt, mi] of groups) if (cnt > 0) g.addGroup(st, cnt, mi);
+  g.computeVertexNormals();
+  // the torn split faces take their computed normals (the ridges catch the light); caps and bark keep their exact normals
+  const NA = g.attributes.normal; for (const i of keep) NA.setXYZ(i, N[i * 3], N[i * 3 + 1], N[i * 3 + 2]);
   g.computeBoundingSphere();
   return g;
 });
+/** freshly split wood: pale, long fibres, darker streaks, a few checks */
+const splitFaceTex = () => { const t = canvasTex("e_splitface", 512, 512, (c, w, h) => {
+  c.fillStyle = "#B89A72"; c.fillRect(0, 0, w, h);
+  for (let i = 0; i < 700; i++) { c.fillStyle = `rgba(${rnd(i) < 0.5 ? "96,70,44" : "236,216,180"},${0.05 + rnd(i + 1) * 0.14})`; c.fillRect(rnd(i + 2) * w, 0, 1 + rnd(i + 3) * 3, h); }
+  for (let i = 0; i < 60; i++) { c.fillStyle = "rgba(60,40,22,0.35)"; c.fillRect(rnd(i * 3) * w, rnd(i * 5) * h, 2, 30 + rnd(i) * 160); }
+  for (let i = 0; i < 12; i++) { const g = c.createLinearGradient(0, 0, w, 0); const x = rnd(i * 7) * w; c.fillStyle = `rgba(140,100,60,${0.08 + rnd(i) * 0.08})`; c.fillRect(x, 0, 20 + rnd(i * 3) * 40, h); }
+  for (let i = 0; i < 400; i++) { c.fillStyle = "rgba(255,240,210,0.2)"; c.fillRect(rnd(i * 11) * w, rnd(i * 13) * h, 1, 6 + rnd(i) * 20); }
+}); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t; };
 /** pieces: [{ p:[x,y,z], k: shape 0–3, rz, s:[sx,sy,sz], ry }] → instanced meshes (one per shape) */
 export const Splits = ({ pieces, seedTex = 1 }) => {
   const meshes = useMemo(() => {
     const geos = splitGeos();
-    const side = new THREE.MeshStandardMaterial({ map: splitSideTex(), roughness: 0.88 });
+    const bt = barkTex(true); bt.repeat.set(1, 1);
+    const bark = new THREE.MeshStandardMaterial({ map: bt, roughness: 0.95 });
+    const side = new THREE.MeshStandardMaterial({ map: splitFaceTex(), roughness: 0.86 });
     return geos.map((g, k) => {
       const ends = new THREE.MeshStandardMaterial({ map: endGrainTex(seedTex + k, 30 + k * 3), roughness: 0.8 });
       const its = pieces.filter((q) => q.k === k);
-      const im = new THREE.InstancedMesh(g, [ends, side], Math.max(1, its.length));
+      const im = new THREE.InstancedMesh(g, [ends, bark, side], Math.max(1, its.length));
       const M = new THREE.Matrix4(), Q = new THREE.Quaternion(), E = new THREE.Euler(), C = new THREE.Color();
       its.forEach((q, i) => {
         Q.setFromEuler(E.set(q.rx ?? 0, q.ry ?? 0, q.rz ?? 0, "YXZ"));

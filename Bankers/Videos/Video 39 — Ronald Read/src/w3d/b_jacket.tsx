@@ -71,6 +71,9 @@ const sleeveGeo = (sd) => {
       P.setXYZ(k, c.x + dx * taper * crease * 1.05, c.y + dy * taper * crease, c.z + dz * taper * 0.78);
     }
   }
+  // (E) the drawing runs ACROSS the sleeve in x and DOWN it in y (the seam, the elbow, the cuff band): TubeGeometry's uv is the other
+  // way round (u along the tube), which laid the cuff band down the sleeve's length — swap it (v = 1 at the shoulder)
+  const UVa = g.attributes.uv; for (let i = 0; i < UVa.count; i++) { const a = UVa.getX(i), b = UVa.getY(i); UVa.setXY(i, b, 1 - a); }
   g.computeVertexNormals();
   return { g, end: pts[pts.length - 1], dir: curve.getTangentAt(1) };
 };
@@ -130,6 +133,18 @@ const sleeveTex = () => canvasTex("b_sleeve", 512, 1024, (c, w, h) => {
   c.fillStyle = "rgba(40,30,18,0.3)"; c.fillRect(0, h - 90, w, 90);
   for (let i = 0; i < 400; i++) { c.strokeStyle = "rgba(230,218,186,0.6)"; c.lineWidth = 1.5; const x = rnd(i + 1) * w; c.beginPath(); c.moveTo(x, h - 3); c.lineTo(x + (rnd(i + 2) - 0.5) * 8, h - rnd(i + 3) * 14); c.stroke(); }
 });
+/** (E) the cotton-duck weave as a bump map (tiled fine): over-under warp and weft, slubs */
+const weaveTex = () => { const t = canvasTex("e_duckweave", 256, 256, (c, w, h) => {
+  c.fillStyle = "#808080"; c.fillRect(0, 0, w, h);
+  const p = 8;
+  for (let y = 0; y < h; y += p) for (let x = 0; x < w; x += p) {
+    const over = ((x + y) / p) % 2 === 0;
+    const g = over ? c.createLinearGradient(x, y, x + p, y) : c.createLinearGradient(x, y, x, y + p);
+    g.addColorStop(0, "#3A3A3A"); g.addColorStop(0.5, "#E8E8E8"); g.addColorStop(1, "#3A3A3A");
+    c.fillStyle = g; c.fillRect(x + 0.5, y + 0.5, p - 1, p - 1);
+  }
+  for (let i = 0; i < 200; i++) { c.fillStyle = `rgba(${rnd(i) < 0.5 ? "255,255,255" : "0,0,0"},0.15)`; c.fillRect(rnd(i + 1) * w, rnd(i + 2) * h, 2 + rnd(i) * 14, 2); }
+}); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.NoColorSpace; t.repeat.set(70, 70); return t; };
 const corduroyTex = () => { const t = canvasTex("b_cord", 256, 64, (c, w, h) => { c.fillStyle = "#4A3424"; c.fillRect(0, 0, w, h); for (let x = 0; x < w; x += 6) { c.fillStyle = "rgba(120,92,64,0.6)"; c.fillRect(x, 0, 3, h); c.fillStyle = "rgba(20,14,8,0.5)"; c.fillRect(x + 4, 0, 1.5, h); } for (let i = 0; i < 2000; i++) { c.fillStyle = `rgba(200,170,130,${rnd(i) * 0.12})`; c.fillRect(rnd(i + 1) * w, rnd(i + 2) * h, 2, 2); } }); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(6, 1); return t; };
 // ── the safety pin ──────────────────────────────────────────────────────────────────────────────────────────────────────
 let PING = null;
@@ -162,15 +177,49 @@ export const SafetyPin = ({ position, rotation = [0, 0, 0], scale = 1 }) => {
     </group>
   );
 };
+// ── (E) patch pockets and flaps in 3-D, laid ON the front surface (its own uv onto the same cloth drawing, so the drawn stitching and
+//   wear sit on them), a rolled edge all round; the flap stands a little proud and overhangs the pocket's mouth ─────────────────────
+const uvAt = (x, y) => { const w = bodyW(y); return [0.5 + Math.asin(cl(x / w, -1, 1)) / (Math.PI * 2), 1 - y / HEM]; };
+const patchGeo = (x0, x1, y0, y1, lift, edge = 0.0035, lip = 0) => {
+  const NX = 14, NY = 12, pos = [], uv = [], idx = [];
+  const P = (x, y, up) => [x, y, frontZ(x, y) + up];
+  // the top face
+  for (let j = 0; j <= NY; j++) for (let i = 0; i <= NX; i++) {
+    const x = x0 + (x1 - x0) * (i / NX), y = y0 + (y1 - y0) * (j / NY), l = lift + lip * (1 - j / NY);
+    const p = P(x, y, l); pos.push(...p); uv.push(...uvAt(x, y));
+  }
+  for (let j = 0; j < NY; j++) for (let i = 0; i < NX; i++) { const a = j * (NX + 1) + i, b = a + 1, c2 = a + NX + 1, d = c2 + 1; idx.push(a, b, c2, b, d, c2); }
+  // the rolled edges down to the coat
+  const ring = [];
+  for (let i = 0; i <= NX; i++) ring.push([x0 + (x1 - x0) * (i / NX), y0]);
+  for (let j = 1; j <= NY; j++) ring.push([x1, y0 + (y1 - y0) * (j / NY)]);
+  for (let i = NX - 1; i >= 0; i--) ring.push([x0 + (x1 - x0) * (i / NX), y1]);
+  for (let j = NY - 1; j >= 1; j--) ring.push([x0, y0 + (y1 - y0) * (j / NY)]);
+  const base = pos.length / 3;
+  ring.forEach(([x, y]) => { const l = lift + lip * (1 - (y - y0) / (y1 - y0)); pos.push(...P(x, y, l)); uv.push(...uvAt(x, y)); pos.push(...P(x, y, l - edge - 0.002)); uv.push(...uvAt(x, y)); });
+  for (let k = 0; k < ring.length; k++) { const a = base + k * 2, b = base + ((k + 1) % ring.length) * 2; idx.push(a, a + 1, b, b, a + 1, b + 1); }
+  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx); g.computeVertexNormals();
+  return g;
+};
+const POCKETS = [
+  // [x0, x1, y0 (bottom), y1 (top)] — the lower patch pockets (both sides) and the chest pocket, where the drawing has them
+  { x0: -0.2355, x1: -0.0862, y0: -0.696, y1: -0.528, flap: true },
+  { x0: 0.0862, x1: 0.2355, y0: -0.696, y1: -0.528, flap: true },
+  { x0: -0.184, x1: -0.078, y0: -0.336, y1: -0.248, flap: true }
+];
 // ── the jacket ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 export const Jacket = () => {
   const geo = useMemo(() => ({ body: bodyGeo(), L: sleeveGeo(-1), R: sleeveGeo(1) }), []);
+  const pk = useMemo(() => POCKETS.map((q) => ({ pocket: patchGeo(q.x0, q.x1, q.y0, q.y1, 0.0035), flap: patchGeo(q.x0 - 0.006, q.x1 + 0.006, q.y1 - 0.045, q.y1 + 0.006, 0.0075, 0.005, 0.003) })), []);
   const mats = useMemo(() => ({
-    body: new THREE.MeshStandardMaterial({ map: jacketTex(), roughness: 0.92, side: THREE.DoubleSide }),
-    sleeve: new THREE.MeshStandardMaterial({ map: sleeveTex(), roughness: 0.92 }),
+    body: new THREE.MeshPhysicalMaterial({ map: jacketTex(), bumpMap: weaveTex(), bumpScale: 0.6, roughness: 0.93, sheen: 0.6, sheenRoughness: 0.7, sheenColor: new THREE.Color("#C9B48A"), side: THREE.DoubleSide }),
+    sleeve: new THREE.MeshPhysicalMaterial({ map: sleeveTex(), bumpMap: weaveTex(), bumpScale: 0.6, roughness: 0.93, sheen: 0.6, sheenRoughness: 0.7, sheenColor: new THREE.Color("#C9B48A") }),
+    patch: new THREE.MeshPhysicalMaterial({ map: jacketTex(), bumpMap: weaveTex(), bumpScale: 0.6, roughness: 0.93, sheen: 0.6, sheenRoughness: 0.7, sheenColor: new THREE.Color("#C9B48A"), side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1 }),
+    cuff: new THREE.MeshPhysicalMaterial({ map: sleeveTex(), bumpMap: weaveTex(), bumpScale: 0.6, roughness: 0.95, color: "#B8A888", sheen: 0.5, sheenColor: new THREE.Color("#C9B48A") }),
     cord: new THREE.MeshStandardMaterial({ map: corduroyTex(), roughness: 0.95, side: THREE.DoubleSide }),
     lining: new THREE.MeshStandardMaterial({ color: "#2E2622", roughness: 0.95, side: THREE.DoubleSide }),
     button: new THREE.MeshStandardMaterial({ color: "#7A6038", roughness: 0.35, metalness: 0.7 }),
+    buttonHi: new THREE.MeshStandardMaterial({ color: "#A88A58", roughness: 0.25, metalness: 0.85 }),
     loop: new THREE.MeshStandardMaterial({ color: "#3A2A1C", roughness: 0.9 })
   }), []);
   // the collar: a folded corduroy band lying on the shoulders, rising to the hanging loop, its two points framing the placket's top
@@ -205,10 +254,22 @@ export const Jacket = () => {
       {/* buttons down the placket; the third is gone (the pin) */}
       {[-0.13, -0.265, -0.535, -0.67].map((y) => (
         <group key={y} position={[px + 0.016, y, surfZ(px + 0.016, y) + 0.003]}>
-          <mesh rotation-x={Math.PI / 2} material={mats.button}><cylinderGeometry args={[0.0105, 0.0105, 0.004, 18]} /></mesh>
-          <mesh position={[0, 0, 0.0025]} rotation-x={Math.PI / 2} material={mats.button}><cylinderGeometry args={[0.006, 0.0075, 0.002, 16]} /></mesh>
+          {/* a stamped brass work-coat button: a rolled rim, a domed cap, a worn highlight; its thread shank under it */}
+          <mesh rotation-x={Math.PI / 2} material={mats.button}><cylinderGeometry args={[0.0105, 0.0108, 0.0035, 20]} /></mesh>
+          <mesh position={[0, 0, 0.0018]} material={mats.button}><torusGeometry args={[0.0094, 0.0013, 6, 22]} /></mesh>
+          <mesh position={[0, 0, 0.0012]} scale={[1, 1, 0.35]} material={mats.buttonHi}><sphereGeometry args={[0.0082, 18, 10, 0, Math.PI * 2, 0, Math.PI / 2]} /></mesh>
         </group>
       ))}
+      {/* the patch pockets and their flaps (with a button each), in 3-D on the coat */}
+      {POCKETS.map((q, i) => (
+        <group key={"pk" + i}>
+          <mesh geometry={pk[i].pocket} material={mats.patch} castShadow receiveShadow />
+          {q.flap && <mesh geometry={pk[i].flap} material={mats.patch} castShadow receiveShadow />}
+          {q.flap && <mesh position={[(q.x0 + q.x1) / 2, q.y1 - 0.03, surfZ((q.x0 + q.x1) / 2, q.y1 - 0.03) + 0.011]} rotation-x={Math.PI / 2} material={mats.button}><cylinderGeometry args={[0.0075, 0.0078, 0.003, 16]} /></mesh>}
+        </group>
+      ))}
+      {/* the cuff bands */}
+      {[geo.L, geo.R].map((s, i) => <mesh key={"cf" + i} position={s.end.clone().sub(s.dir.clone().multiplyScalar(0.03))} quaternion={new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), s.dir)} scale={[1.05, 1, 0.8]} material={mats.cuff} castShadow><cylinderGeometry args={[0.047, 0.045, 0.06, 20, 1, true]} /></mesh>)}
       {/* the safety pin across the closure where the button was: coil on the left front, clasp on the right */}
       <SafetyPin position={[-0.062, PIN_Y + 0.004, surfZ(0, PIN_Y) + 0.0052]} rotation={[0, 0, 0.07]} scale={1.2} />
       {/* the cloth puckers where the pin's point goes in and comes out */}

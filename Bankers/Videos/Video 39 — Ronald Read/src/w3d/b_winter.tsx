@@ -115,7 +115,7 @@ const trimDrawB = (c, w, h) => { c.fillStyle = "#F0EFEA"; c.fillRect(0, 0, w, h)
 //   row 0: windows   0 lit parlour (lace curtains, 2/2)  1 dark 2/2 (frost, sky reflection)  2 dark 2/2, shade drawn  3 lit kitchen (café curtain)
 //                    4 dark 1/1 + blind   5 lit 1/1 (curtains)   6 small dark gable window (2 lites)   7 dusty barn window (4 lites)
 //   row 1: doors     0 farmhouse 4-panel (dark green, worn)  1 house door with a small lit lite  2 dark storm door  3 plank door
-export const BW = { W: 2048, H: 1024, cw: 256, ch: 512 };
+export const BW = { W: 2048, H: 1536, cw: 256, ch: 512 };   // row 2 (E): the same glazing without its painted sash (the 3-D sashes sit in front)
 export const bwRect = (col, row, ins = 3) => { const x = col * BW.cw, y = row * BW.ch; return [(x + ins) / BW.W, 1 - (y + BW.ch - ins) / BW.H, (x + BW.cw - ins) / BW.W, 1 - (y + ins) / BW.H]; };
 const litRoom = (c, x, y, w, h, s, warm = 1) => {
   const g = c.createRadialGradient(x + w * 0.5, y + h * 0.62, 4, x + w * 0.5, y + h * 0.6, h * 0.8);
@@ -168,8 +168,8 @@ const sashB = (c, x, y, w, h, frameC, lu, ll, e, aged = 1) => {
   if (!e && aged) { for (let i = 0; i < 60; i++) { c.fillStyle = `rgba(90,84,76,${rnd(i) * 0.35})`; c.fillRect(x + rnd(i + 1) * w, y + (rnd(i + 2) < 0.5 ? rnd(i + 3) * b : h / 2 - rail / 2 + rnd(i + 3) * rail), 3 + rnd(i) * 10, 2); } }
   if (!e) { c.fillStyle = "rgba(0,0,0,0.3)"; c.fillRect(x + b, y + b, w - 2 * b, 4); c.fillRect(x + b, y + h / 2 + rail / 2, w - 2 * b, 4); }
 };
-const drawBWin = (c, col, e) => {
-  const x = col * BW.cw, y = 0, w = BW.cw, h = BW.ch, gx = x + 12, gy = y + 12, gw = w - 24, gh = h - 24;
+const drawBWin = (c, col, e, bare = false) => {
+  const x = col * BW.cw, y = bare ? 2 * BW.ch : 0, w = BW.cw, h = BW.ch, gx = x + (bare ? 0 : 12), gy = y + (bare ? 0 : 12), gw = w - (bare ? 0 : 24), gh = h - (bare ? 0 : 24);
   if (e) { c.fillStyle = "#000"; c.fillRect(x, y, w, h); }
   const lit = col === 0 || col === 3 || col === 5;
   if (lit) {
@@ -186,6 +186,7 @@ const drawBWin = (c, col, e) => {
     if (col === 7) { c.fillStyle = "rgba(120,110,95,0.35)"; c.fillRect(gx, gy, gw, gh); for (let i = 0; i < 300; i++) { c.fillStyle = `rgba(160,150,130,${rnd(i) * 0.2})`; c.fillRect(gx + rnd(i + 1) * gw, gy + rnd(i + 2) * gh, 4, 4); } }
     frost(c, gx, gy, gw, gh, 1);
   }
+  if (bare) return;
   const fc = col === 7 ? "#6E655A" : col >= 4 && col <= 5 ? "#F2F1EC" : "#E6E3DA";
   if (col === 6) sashB(c, x, y + h * 0.25, w, h * 0.5, fc, 2, 2, e);
   else if (col === 7) { sashB(c, x, y, w, h, fc, 2, 2, e, 0); }
@@ -218,16 +219,137 @@ const drawBDoor = (c, col, e) => {
   c.fillStyle = "#8E7440"; c.fillRect(x + w - 40, y + h * 0.53 + 16, 12, 26);
 };
 
+// ── (E) THE ROOMS behind the lit windows (2048 × 1024: 4 × 2 cells of 512): 0 parlour wall · 1 kitchen wall · 2 sitting-room wall ·
+//   3 a side wall (wallpaper, a door casing) · 4 floor boards with a braided rug · 5 the ceiling with the lamp's pool · 6 kitchen side wall ·
+//   7 bedroom wall. A lived-in 1930s–50s New England farmhouse interior, lamplit (warm practical light only).
+export const roomRect = (k) => { const x = (k % 4) * 512, y = Math.floor(k / 4) * 512; return [(x + 2) / 2048, 1 - (y + 510) / 1024, (x + 510) / 2048, 1 - (y + 2) / 1024]; };
+const paper = (c, x, y, w, h, base, motif, seed) => {
+  c.fillStyle = base; c.fillRect(x, y, w, h);
+  for (let k = 0; k < w; k += 48) { c.fillStyle = "rgba(255,240,215,0.10)"; c.fillRect(x + k, y, 6, h); c.fillStyle = "rgba(90,60,40,0.08)"; c.fillRect(x + k + 24, y, 3, h); }
+  for (let j = 0; j < h / 48; j++) for (let i = 0; i < w / 48; i++) {
+    const cx = x + i * 48 + 24 + (j % 2) * 24, cy = y + j * 48 + 24;
+    if (cx > x + w - 6) continue;
+    c.fillStyle = motif; for (let q = 0; q < 5; q++) { const a = (q / 5) * Math.PI * 2; c.beginPath(); c.arc(cx + Math.cos(a) * 4, cy + Math.sin(a) * 4, 3.2, 0, 7); c.fill(); }
+    c.fillStyle = "rgba(80,100,64,0.4)"; c.beginPath(); c.ellipse(cx - 7, cy + 8, 6, 2.4, -0.7, 0, 7); c.fill(); c.beginPath(); c.ellipse(cx + 7, cy + 9, 6, 2.4, 0.7, 0, 7); c.fill();
+  }
+  for (let i = 0; i < 2500; i++) { c.fillStyle = `rgba(70,50,30,${rnd(seed + i) * 0.05})`; c.fillRect(x + rnd(seed + i * 3) * w, y + rnd(seed + i * 5) * h, 2, 2); }
+};
+const lampLight = (c, x, y, w, h, lx, ly, r = 260) => {
+  const g = c.createRadialGradient(lx, ly, 8, lx, ly, r); g.addColorStop(0, "rgba(255,226,170,0.55)"); g.addColorStop(0.5, "rgba(255,190,120,0.18)"); g.addColorStop(1, "rgba(0,0,0,0)");
+  c.fillStyle = g; c.fillRect(x, y, w, h);
+  const v = c.createLinearGradient(0, y, 0, y + h); v.addColorStop(0, "rgba(30,18,10,0.35)"); v.addColorStop(0.4, "rgba(0,0,0,0)"); v.addColorStop(1, "rgba(30,18,10,0.3)"); c.fillStyle = v; c.fillRect(x, y, w, h);
+};
+const frame = (c, x, y, w, h, inner) => { c.fillStyle = "#3A2416"; c.fillRect(x, y, w, h); c.fillStyle = "#B08D4A"; c.fillRect(x + 4, y + 4, w - 8, h - 8); c.fillStyle = "#2E2014"; c.fillRect(x + 7, y + 7, w - 14, h - 14); inner(x + 9, y + 9, w - 18, h - 18); };
+const scene = (c, x, y, w, h, kind) => {   // little period pictures: a mountain farm, a ship, a portrait-less still life
+  const g = c.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, kind ? "#8FA6B8" : "#C8B48A"); g.addColorStop(1, kind ? "#4E5E52" : "#7A6A48"); c.fillStyle = g; c.fillRect(x, y, w, h);
+  c.fillStyle = kind ? "#3E4E3A" : "#5A4A30"; c.beginPath(); c.moveTo(x, y + h * 0.7); c.lineTo(x + w * 0.35, y + h * 0.35); c.lineTo(x + w * 0.6, y + h * 0.6); c.lineTo(x + w, y + h * 0.4); c.lineTo(x + w, y + h); c.lineTo(x, y + h); c.fill();
+  if (kind) { c.fillStyle = "#E8E2D2"; c.fillRect(x + w * 0.55, y + h * 0.62, w * 0.18, h * 0.14); c.fillStyle = "#7A2A22"; c.beginPath(); c.moveTo(x + w * 0.53, y + h * 0.63); c.lineTo(x + w * 0.64, y + h * 0.52); c.lineTo(x + w * 0.75, y + h * 0.63); c.fill(); }
+};
+const drawRooms = (c, W, H) => {
+  const cell = (k) => [(k % 4) * 512, Math.floor(k / 4) * 512, 512, 512];
+  // 0 the parlour: rose sprig paper, a chair rail, a framed picture, a dresser with a kerosene lamp and a doily, a mantel clock
+  { const [x, y, w, h] = cell(0); paper(c, x, y, w, h, "#C7AE8E", "rgba(150,80,70,0.5)", 1);
+    c.fillStyle = "#4A2E1C"; c.fillRect(x, y + h * 0.62, w, 10); c.fillStyle = "#5A3A26"; c.fillRect(x, y + h * 0.93, w, h * 0.07);
+    frame(c, x + 60, y + 110, 150, 110, (a, b, ww, hh) => scene(c, a, b, ww, hh, 1));
+    frame(c, x + 300, y + 90, 90, 120, (a, b, ww, hh) => scene(c, a, b, ww, hh, 0));
+    c.fillStyle = "#4A2C1A"; c.fillRect(x + 230, y + 300, 230, 170); c.fillStyle = "#5E3A22"; c.fillRect(x + 222, y + 292, 246, 14);
+    for (let k = 0; k < 3; k++) { c.fillStyle = "#3A2214"; c.fillRect(x + 240, y + 320 + k * 50, 210, 3); c.fillStyle = "#C9A060"; c.beginPath(); c.arc(x + 300, y + 345 + k * 50, 4, 0, 7); c.arc(x + 390, y + 345 + k * 50, 4, 0, 7); c.fill(); }
+    c.fillStyle = "#EFE6D2"; c.beginPath(); c.ellipse(x + 345, y + 292, 70, 8, 0, 0, 7); c.fill();
+    c.fillStyle = "#B9D0B4"; c.beginPath(); c.ellipse(x + 330, y + 270, 18, 22, 0, 0, 7); c.fill(); c.fillStyle = "#FFF1D0"; c.fillRect(x + 324, y + 210, 12, 44);
+    c.fillStyle = "#5A3A22"; c.beginPath(); c.roundRect(x + 395, y + 250, 50, 42, 10); c.fill(); c.fillStyle = "#F4EEDC"; c.beginPath(); c.arc(x + 420, y + 268, 13, 0, 7); c.fill();
+    lampLight(c, x, y, w, h, x + 330, y + 230); }
+  // 1 the kitchen: painted beadboard, an open shelf of crockery, a wall cupboard, the stovepipe, a calendar (no year), a towel
+  { const [x, y, w, h] = cell(1); c.fillStyle = "#D9D2B4"; c.fillRect(x, y, w, h);
+    c.fillStyle = "#A8B898"; c.fillRect(x, y + h * 0.55, w, h * 0.45); for (let k = 0; k < w; k += 16) { c.fillStyle = "rgba(60,70,50,0.25)"; c.fillRect(x + k, y + h * 0.55, 2, h * 0.45); }
+    c.fillStyle = "#6E4E30"; c.fillRect(x + 30, y + 150, 220, 10); c.fillRect(x + 30, y + 230, 220, 10);
+    for (let k = 0; k < 7; k++) { c.fillStyle = ["#F4F0E4", "#5E7EA8", "#F4F0E4", "#C9B070"][k % 4]; c.beginPath(); c.ellipse(x + 50 + k * 30, y + 135, 12, 15, 0, 0, 7); c.fill(); }
+    for (let k = 0; k < 5; k++) { c.fillStyle = "#EEE8D8"; c.fillRect(x + 45 + k * 40, y + 196, 24, 34); c.fillStyle = "#7A9AC0"; c.fillRect(x + 45 + k * 40, y + 206, 24, 4); }
+    c.fillStyle = "#9EAE8A"; c.fillRect(x + 300, y + 60, 170, 190); c.strokeStyle = "#6E7E5A"; c.lineWidth = 4; c.strokeRect(x + 310, y + 70, 70, 170); c.strokeRect(x + 390, y + 70, 70, 170);
+    c.fillStyle = "#1A1612"; c.fillRect(x + 200, y, 30, 120); c.beginPath(); c.arc(x + 215, y + 120, 18, 0, 7); c.fill();
+    c.fillStyle = "#F4F0E4"; c.fillRect(x + 40, y + 280, 90, 120); c.fillStyle = "#7A9AC0"; c.fillRect(x + 46, y + 286, 78, 48); c.fillStyle = "#3A3A3A"; for (let r = 0; r < 4; r++) for (let q = 0; q < 6; q++) c.fillRect(x + 48 + q * 13, y + 344 + r * 13, 8, 6);
+    c.fillStyle = "#E8DCC0"; c.fillRect(x + 380, y + 300, 40, 90); for (let k = 0; k < 4; k++) { c.fillStyle = "#A83A30"; c.fillRect(x + 380, y + 310 + k * 20, 40, 5); }
+    lampLight(c, x, y, w, h, x + 256, y + 40, 330); }
+  // 2 the sitting room: striped paper, a sofa back, a floor lamp with its shade lit, a cathedral radio on a table, pictures
+  { const [x, y, w, h] = cell(2); c.fillStyle = "#B9A486"; c.fillRect(x, y, w, h);
+    for (let k = 0; k < w; k += 32) { c.fillStyle = "rgba(120,70,50,0.22)"; c.fillRect(x + k, y, 10, h); c.fillStyle = "rgba(255,240,210,0.1)"; c.fillRect(x + k + 14, y, 3, h); }
+    frame(c, x + 150, y + 80, 200, 130, (a, b, ww, hh) => scene(c, a, b, ww, hh, 1));
+    c.fillStyle = "#5A2E2A"; c.beginPath(); c.roundRect(x + 60, y + 300, 330, 150, 30); c.fill(); c.fillStyle = "#6E3A34"; c.beginPath(); c.roundRect(x + 70, y + 330, 310, 90, 18); c.fill();
+    for (let k = 0; k < 3; k++) { c.fillStyle = "rgba(40,20,16,0.4)"; c.fillRect(x + 160 + k * 100, y + 330, 3, 90); }
+    c.fillStyle = "#2A1A10"; c.fillRect(x + 440, y + 170, 6, 300); c.fillStyle = "#F0D8A8"; c.beginPath(); c.moveTo(x + 410, y + 170); c.lineTo(x + 476, y + 170); c.lineTo(x + 462, y + 120); c.lineTo(x + 424, y + 120); c.fill();
+    c.fillStyle = "#4A2C1A"; c.fillRect(x + 410, y + 330, 80, 140); c.fillStyle = "#6A4024"; c.beginPath(); c.moveTo(x + 420, y + 330); c.quadraticCurveTo(x + 450, y + 250, x + 480, y + 330); c.fill(); c.fillStyle = "#C9A878"; c.beginPath(); c.arc(x + 450, y + 300, 12, 0, 7); c.fill();
+    lampLight(c, x, y, w, h, x + 443, y + 150, 300); }
+  // 3 a side wall: rose paper, a door casing to the next room (dark), a hook with a coat
+  { const [x, y, w, h] = cell(3); paper(c, x, y, w, h, "#C2A889", "rgba(150,80,70,0.45)", 7);
+    c.fillStyle = "#E4DCC6"; c.fillRect(x + 260, y + 120, 180, 392); c.fillStyle = "#2A1C12"; c.fillRect(x + 278, y + 140, 144, 372);
+    c.fillStyle = "#5A3A26"; c.fillRect(x, y + h * 0.93, w, h * 0.07);
+    lampLight(c, x, y, w, h, x, y + 200, 420); }
+  // 4 the floor: worn pine boards and a braided oval rug
+  { const [x, y, w, h] = cell(4);
+    for (let k = 0; k < 8; k++) { c.fillStyle = `hsl(30,${34 + rnd(k) * 10}%,${30 + rnd(k + 3) * 8}%)`; c.fillRect(x, y + k * 64, w, 62); c.fillStyle = "#1E140C"; c.fillRect(x, y + k * 64 + 62, w, 2); for (let i = 0; i < 30; i++) { c.fillStyle = `rgba(0,0,0,${rnd(k * 40 + i) * 0.12})`; c.fillRect(x + rnd(k * 40 + i + 1) * w, y + k * 64 + rnd(i) * 60, 40 + rnd(i + 3) * 120, 1.5); } }
+    for (let r = 0; r < 10; r++) { c.strokeStyle = ["#7A3A30", "#3A4A6A", "#8A7A50", "#4E6040"][r % 4]; c.lineWidth = 12; c.beginPath(); c.ellipse(x + 256, y + 300, 200 - r * 18, 120 - r * 11, 0, 0, 7); c.stroke(); }
+    lampLight(c, x, y, w, h, x + 256, y + 256, 360); }
+  // 5 the ceiling: cracked plaster with the lamp's warm pool
+  { const [x, y, w, h] = cell(5); c.fillStyle = "#C9BDA6"; c.fillRect(x, y, w, h);
+    for (let i = 0; i < 20; i++) { c.strokeStyle = "rgba(90,70,50,0.25)"; c.lineWidth = 1.5; c.beginPath(); let px = x + rnd(i) * w, py = y + rnd(i + 1) * h; c.moveTo(px, py); for (let q = 0; q < 6; q++) { px += (rnd(i * 9 + q) - 0.5) * 60; py += (rnd(i * 7 + q) - 0.5) * 60; c.lineTo(px, py); } c.stroke(); }
+    lampLight(c, x, y, w, h, x + 256, y + 300, 300); }
+  // 6 the kitchen side wall: beadboard, a wood cookstove's side and its warming shelf, a hanging dipper
+  { const [x, y, w, h] = cell(6); c.fillStyle = "#D9D2B4"; c.fillRect(x, y, w, h); c.fillStyle = "#A8B898"; c.fillRect(x, y + h * 0.55, w, h * 0.45);
+    c.fillStyle = "#1E1E22"; c.fillRect(x + 120, y + 300, 280, 212); c.fillStyle = "#3A3A40"; c.fillRect(x + 110, y + 290, 300, 16); c.fillStyle = "#B9C0C8"; c.fillRect(x + 140, y + 330, 240, 6); c.fillRect(x + 140, y + 420, 240, 6);
+    c.fillStyle = "#1E1E22"; c.fillRect(x + 240, y, 26, 290);
+    lampLight(c, x, y, w, h, x + 260, y + 360, 300); }
+  // 7 the bedroom: small blue sprig paper, an iron bedstead's foot, a quilt, a framed sampler (no names)
+  { const [x, y, w, h] = cell(7); paper(c, x, y, w, h, "#B8BCC0", "rgba(70,90,130,0.45)", 13);
+    c.strokeStyle = "#2A2A2E"; c.lineWidth = 8; c.strokeRect(x + 80, y + 300, 340, 180); for (let k = 0; k < 9; k++) { c.beginPath(); c.moveTo(x + 100 + k * 38, y + 300); c.lineTo(x + 100 + k * 38, y + 480); c.stroke(); }
+    for (let k = 0; k < 6; k++) { c.fillStyle = ["#8A3A30", "#E8DCC0", "#3A5A7A", "#C9A050", "#E8DCC0", "#5A7A4A"][k]; c.fillRect(x + 90 + k * 55, y + 400, 55, 80); }
+    frame(c, x + 190, y + 100, 130, 110, (a, b, ww, hh) => { c.fillStyle = "#EFE6D0"; c.fillRect(a, b, ww, hh); for (let r = 0; r < 5; r++) for (let q = 0; q < 8; q++) { c.fillStyle = ["#8A3A30", "#3A5A7A", "#4E6E40"][(r + q) % 3]; c.fillRect(a + 8 + q * 13, b + 10 + r * 17, 7, 7); } });
+    lampLight(c, x, y, w, h, x + 100, y + 200, 360); }
+};
+/** (E) a plowed farm lane / driveway seen from above (u across 0–1, v along): packed snow, two wheel ruts worn to frozen gravel with
+ *  tread prints, a crowned middle, soft feathered edges into the field's snow (alpha) */
+const drawLane = (c, w, h) => {
+  c.clearRect(0, 0, w, h);
+  for (let y = 0; y < h; y++) {
+    for (const [u0, u1, a] of [[0, 0.12, 0], [0.12, 0.88, 1], [0.88, 1, 0]]) {
+      const g = c.createLinearGradient(u0 * w, 0, u1 * w, 0);
+      if (a) { g.addColorStop(0, "rgba(206,216,230,1)"); g.addColorStop(1, "rgba(206,216,230,1)"); }
+      else if (u0 === 0) { g.addColorStop(0, "rgba(206,216,230,0)"); g.addColorStop(1, "rgba(206,216,230,1)"); }
+      else { g.addColorStop(0, "rgba(206,216,230,1)"); g.addColorStop(1, "rgba(206,216,230,0)"); }
+      c.fillStyle = g; c.fillRect(u0 * w, y, (u1 - u0) * w + 1, 1);
+    }
+  }
+  for (let i = 0; i < 20000; i++) { const x = (0.12 + rnd(i) * 0.76) * w; c.fillStyle = `rgba(${rnd(i + 1) < 0.5 ? "110,120,140" : "250,252,255"},${0.06 + rnd(i + 2) * 0.1})`; c.fillRect(x, rnd(i + 3) * h, 2 + rnd(i) * 3, 2); }
+  for (const u of [0.3, 0.7]) {
+    const g = c.createLinearGradient((u - 0.09) * w, 0, (u + 0.09) * w, 0); g.addColorStop(0, "rgba(120,128,142,0)"); g.addColorStop(0.3, "rgba(104,108,116,0.75)"); g.addColorStop(0.7, "rgba(104,108,116,0.75)"); g.addColorStop(1, "rgba(120,128,142,0)");
+    c.fillStyle = g; c.fillRect((u - 0.09) * w, 0, 0.18 * w, h);
+    for (let i = 0; i < 2500; i++) { c.fillStyle = `rgba(${rnd(i * 3) < 0.5 ? "70,62,54" : "160,150,138"},${0.3 + rnd(i * 5) * 0.4})`; c.fillRect((u - 0.05 + rnd(i * 7 + u * 100) * 0.1) * w, rnd(i * 11 + u * 50) * h, 2, 2); }   // gravel
+    c.strokeStyle = "rgba(60,64,72,0.25)"; c.lineWidth = 4; for (let y = 0; y < h; y += 18) { c.beginPath(); c.moveTo((u - 0.06) * w, y); c.lineTo((u + 0.06) * w, y + 8); c.stroke(); }   // tread
+  }
+};
+const drawLace = (c, w, h) => {
+  c.clearRect(0, 0, w, h);
+  for (let y = 0; y < h; y += 3) for (let x = 0; x < w; x += 3) { c.fillStyle = "rgba(255,248,236,0.22)"; c.fillRect(x, y, 1, 1); }
+  for (let j = 0; j < 12; j++) for (let i = 0; i < 4; i++) {
+    const cx = (i + 0.5 + (j % 2) * 0.5) * w / 4, cy = (j + 0.5) * h / 12;
+    c.strokeStyle = "rgba(255,248,236,0.7)"; c.lineWidth = 1.4;
+    for (let k = 0; k < 6; k++) { const a = (k / 6) * Math.PI * 2; c.beginPath(); c.ellipse(cx + Math.cos(a) * 8, cy + Math.sin(a) * 8, 7, 3, a, 0, 7); c.stroke(); }
+  }
+  for (let x = 0; x < w; x += 16) { c.fillStyle = "rgba(255,248,236,0.85)"; c.beginPath(); c.arc(x + 8, h - 10, 8, 0, Math.PI); c.fill(); }
+  for (let k = 0; k < 6; k++) { const g = c.createLinearGradient(k * w / 6, 0, (k + 1) * w / 6, 0); g.addColorStop(0, "rgba(0,0,0,0)"); g.addColorStop(0.5, "rgba(255,250,240,0.2)"); g.addColorStop(1, "rgba(0,0,0,0)"); c.fillStyle = g; c.fillRect(k * w / 6, 0, w / 6, h); }
+};
+
 let BM = null;
 export const bMats = () => {
   if (BM) return BM;
   const T = townMats();
   const std = (o) => new THREE.MeshStandardMaterial({ vertexColors: true, ...o });
-  const winMap = canvasTex("bw_win", BW.W, BW.H, (c) => { for (let k = 0; k < 8; k++) drawBWin(c, k, false); for (let k = 0; k < 4; k++) drawBDoor(c, k, false); });
-  const winE = canvasTex("bw_winE", BW.W, BW.H, (c) => { c.fillStyle = "#000"; c.fillRect(0, 0, BW.W, BW.H); for (let k = 0; k < 8; k++) drawBWin(c, k, true); for (let k = 0; k < 4; k++) drawBDoor(c, k, true); });
+  const winMap = canvasTex("bw_win_e2", BW.W, BW.H, (c) => { for (let k = 0; k < 8; k++) { drawBWin(c, k, false); drawBWin(c, k, false, true); } for (let k = 0; k < 4; k++) drawBDoor(c, k, false); });
+  const winE = canvasTex("bw_winE_e2", BW.W, BW.H, (c) => { c.fillStyle = "#000"; c.fillRect(0, 0, BW.W, BW.H); for (let k = 0; k < 8; k++) { drawBWin(c, k, true); drawBWin(c, k, true, true); } for (let k = 0; k < 4; k++) drawBDoor(c, k, true); });
+  const room = canvasTex("bw_room_e1", 2048, 1024, drawRooms);
+  const laneT = canvasTex("bw_lane_e1", 512, 1024, drawLane); laneT.wrapT = THREE.RepeatWrapping;
+  const laceT = canvasTex("bw_lace_e1", 256, 512, drawLace);
   BM = {
     ...T,
-    clap: std({ map: rep(canvasTex("bw_clap", 512, 1024, clapDraw(false)), 1, 1.6), bumpMap: lin(rep(canvasTex("bw_clapB", 512, 1024, clapDraw(true)), 1, 1.6)), bumpScale: 2.5, roughness: 0.82 }),
+    clap: std({ map: rep(canvasTex("bw_clap_e2", 1024, 2048, clapDraw(false)), 1, 1.6), bumpMap: lin(rep(canvasTex("bw_clapB_e2", 1024, 2048, clapDraw(true)), 1, 1.6)), bumpScale: 3.2, roughness: 0.82 }),
     board: std({ map: rep(canvasTex("bw_board", 1024, 1024, boardDraw(false)), 2), bumpMap: lin(rep(canvasTex("bw_boardB", 1024, 1024, boardDraw(true)), 2)), bumpScale: 3, roughness: 0.92 }),
     tin: std({ map: rep(canvasTex("bw_tin", 512, 1024, tinDraw(false)), 1.8, 3.6), bumpMap: lin(rep(canvasTex("bw_tinB", 512, 1024, tinDraw(true)), 1.8, 3.6)), bumpScale: 2, roughness: 0.48, metalness: 0.55 }),
     snow: std({ map: rep(canvasTex("bw_snowS", 512, 512, snowDraw(false)), 2.5), roughness: 0.78, metalness: 0, envMapIntensity: 0.6 }),
@@ -237,9 +359,20 @@ export const bMats = () => {
     dark: std({ roughness: 0.9, metalness: 0 }),
     wood: std({ roughness: 0.85 }),
     ice: std({ roughness: 0.08, metalness: 0.1, transparent: true, opacity: 0.75, envMapIntensity: 1.4 }),
-    bwin: std({ map: winMap, emissiveMap: winE, emissive: new THREE.Color("#FFFFFF"), emissiveIntensity: 0.9, roughness: 0.14, metalness: 0.2, envMapIntensity: 0.9 })
+    bwin: std({ map: winMap, emissiveMap: winE, emissive: new THREE.Color("#FFFFFF"), emissiveIntensity: 0.9, roughness: 0.14, metalness: 0.2, envMapIntensity: 0.9 }),
+    // (E) the lit rooms behind real window openings, their lace, the glass in the 3-D sashes, painted sash wood, galvanised gutters
+    broom: std({ map: room, emissiveMap: room, emissive: new THREE.Color("#FFFFFF"), emissiveIntensity: 0.62, roughness: 0.85 }),
+    blace: new THREE.MeshStandardMaterial({ map: laceT, vertexColors: true, transparent: true, depthWrite: false, roughness: 0.9, side: THREE.DoubleSide, emissive: new THREE.Color("#FFC58A"), emissiveMap: laceT, emissiveIntensity: 0.35 }),
+    bglass: new THREE.MeshStandardMaterial({ color: "#C8D8EE", transparent: true, opacity: 0.14, roughness: 0.04, metalness: 0.1, envMapIntensity: 1.6, depthWrite: false }),
+    sash: std({ roughness: 0.6 }),
+    galv: std({ roughness: 0.4, metalness: 0.6 }),
+    lane: std({ map: laneT, transparent: true, depthWrite: false, roughness: 0.7, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2 })
   };
+  BM.lane.userData = { cast: false, order: 1 };
   BM.bwin.userData.cast = false; BM.ice.userData.cast = false;
+  BM.broom.userData = { cast: false };
+  BM.blace.userData = { cast: false, recv: false, order: 3 };
+  BM.bglass.userData = { cast: false, recv: false, order: 4 };
   return BM;
 };
 /** <Built build={(m) => …} /> : builds once with the winter materials */
@@ -273,22 +406,126 @@ const wallShape = (w, h, hr, holes = []) => {
   return new THREE.ShapeGeometry(s);
 };
 
+// (E) lites across the upper / lower sash for each atlas window kind
+const LITES = { 0: [2, 2], 1: [2, 2], 2: [2, 2], 3: [2, 2], 4: [1, 1], 5: [1, 1], 6: [2, 0], 7: [2, 2] };
+const LIT = { 0: 0, 3: 1, 5: 2 };   // lit window kinds → their room's back wall (roomRect)
+/** (E) one sash in 3-D: stiles, rails and muntins (lx lites across, ly down) around an opening w × h centred at (x, cy), at depth z */
+const sash3 = (m, x, cy, w, h, z, lx, ly, color, bottom = 0.06, top = 0.045, d = 0.035) => {
+  const st = 0.045;
+  m.box("sash", [x - w / 2 + st / 2, cy, z], [st, h, d], color);
+  m.box("sash", [x + w / 2 - st / 2, cy, z], [st, h, d], color);
+  m.box("sash", [x, cy + h / 2 - top / 2, z], [w, top, d], color);
+  m.box("sash", [x, cy - h / 2 + bottom / 2, z], [w, bottom, d], color);
+  for (let k = 1; k < lx; k++) m.box("sash", [x - w / 2 + (w * k) / lx, cy, z - 0.004], [0.02, h, d * 0.7], color);
+  for (let k = 1; k < ly; k++) m.box("sash", [x, cy - h / 2 + (h * k) / ly, z - 0.004], [w, 0.02, d * 0.7], color);
+};
+/** (E) a lamplit room behind a window opening (wall-local frame: wall face z 0, inside z < −T): wallpapered walls, floor, ceiling,
+ *  a table with a lamp (a glow), a chair, lace curtains just inside the glass */
+const litRoom3 = (m, o, cy, T, kind, seed) => {
+  const rw = o.ww + 1.8, rd = 1.9, yf = cy - o.wh / 2 - 0.78, yc = yf + 2.45, zb = -T - rd, zc = -T - rd / 2, R = (k) => rnd(seed * 31 + k);
+  m.quad("broom", [o.x, (yf + yc) / 2, zb], rw, yc - yf, "#FFFFFF", roomRect(kind === 1 ? 1 : kind === 2 ? 2 : R(1) < 0.5 ? 0 : 7));
+  m.quad("broom", [o.x - rw / 2, (yf + yc) / 2, zc], rd, yc - yf, "#D8D0C8", roomRect(kind === 1 ? 6 : 3), { r: [0, Math.PI / 2, 0] });
+  m.quad("broom", [o.x + rw / 2, (yf + yc) / 2, zc], rd, yc - yf, "#D8D0C8", roomRect(kind === 1 ? 6 : 3), { r: [0, -Math.PI / 2, 0] });
+  m.quad("broom", [o.x, yf, zc], rw, rd, "#E8E0D8", roomRect(4), { r: [-Math.PI / 2, 0, 0] });
+  m.quad("broom", [o.x, yc, zc], rw, rd, "#C8C0B8", roomRect(5), { r: [Math.PI / 2, 0, 0] });
+  // a table under the window's view with a lamp on it, a chair beside it (real depth for the parallax)
+  const tx = o.x + (R(2) - 0.5) * 0.5, tz = -T - 0.75;
+  m.box("wood", [tx, yf + 0.74, tz], [0.7, 0.035, 0.5], "#4A2E1C");
+  for (const [dx, dz] of [[-0.31, -0.21], [0.31, -0.21], [-0.31, 0.21], [0.31, 0.21]]) m.box("wood", [tx + dx, yf + 0.37, tz + dz], [0.035, 0.74, 0.035], "#3E2616");
+  m.box("trimb", [tx, yf + 0.762, tz], [0.5, 0.006, 0.32], "#EFE8DA");
+  m.cyl("trimb", [tx + 0.12, yf + 0.86, tz - 0.05], 0.06, 0.18, "#C9D8C4", { seg: 10 });
+  m.cyl("bulb", [tx + 0.12, yf + 1.0, tz - 0.05], 0.03, 0.1, "#FFE6BE", { seg: 8 });
+  m.cyl("trimb", [tx + 0.12, yf + 1.12, tz - 0.05], 0.13, 0.12, "#F0D8A8", { rt: 0.55, rb: 1, seg: 12, open: true });
+  m.glow([tx + 0.12, yf + 1.02, tz - 0.05], "#FFC98A", 0.9);
+  const chx = tx - 0.55;
+  m.box("wood", [chx, yf + 0.45, tz + 0.1], [0.4, 0.035, 0.4], "#4A2E1C");
+  m.box("wood", [chx, yf + 0.75, tz - 0.08], [0.4, 0.6, 0.03], "#3E2616");
+  for (const [dx, dz] of [[-0.17, -0.07], [0.17, -0.07], [-0.17, 0.27], [0.17, 0.27]]) m.box("wood", [chx + dx, yf + 0.22, tz + dz], [0.03, 0.45, 0.03], "#3E2616");
+  // lace curtains gathered at both sides, a rod (a café curtain across the lower half in the kitchen)
+  if (kind === 1) m.quad("blace", [o.x, cy - o.wh / 4, -T - 0.05], o.ww * 0.96, o.wh / 2, "#FFFFFF", [0, 0, 1, 0.5]);
+  else for (const sd of [-1, 1]) m.quad("blace", [o.x + sd * (o.ww / 2 - 0.1), cy + 0.03, -T - 0.05], 0.3, o.wh + 0.12, "#FFFFFF", [0, 0, 0.6, 1]);
+  m.cyl("galv", [o.x, cy + o.wh / 2 + 0.04, -T - 0.05], 0.007, o.ww + 0.2, "#B89A50", { r: [0, 0, Math.PI / 2], seg: 6 });
+};
+/** (E) a panelled door in 3-D (wall-local frame), recessed in its opening: leaf, raised panels with mouldings, a lit lite (kind 1),
+ *  a plank door with its Z-brace and strap hinges (kind 3), brass knob and escutcheon, butt hinges, a mail slot */
+const DOORC = ["#2E4A3C", "#24364F", "#1E2630", "#5E554A"];
+const door3 = (m, o) => {
+  const x = o.x, w = o.w, h = o.h, z = -0.05, col = o.color ?? DOORC[o.cell ?? 0], cy = h / 2 + 0.02;
+  if ((o.cell ?? 0) === 3) {
+    for (let k = 0; k < 5; k++) m.box("split", [x - w / 2 + (k + 0.5) * w / 5, cy, z], [w / 5 - 0.012, h, 0.045], bpick(["#6E6458", "#625A4E", "#776C5E"], rnd(k + 3)), { metric: true });
+    for (const y of [0.3, h - 0.3]) m.box("split", [x, y, z + 0.035], [w - 0.06, 0.14, 0.03], "#5E554A", { metric: true });
+    m.box("split", [x, h / 2, z + 0.035], [Math.hypot(w - 0.2, h - 0.75), 0.12, 0.028], "#5A5044", { r: [0, 0, Math.atan2(h - 0.75, w - 0.2)], metric: true });
+    for (const y of [0.3, h - 0.3]) { m.box("metal", [x - w / 2 + 0.25, y, z + 0.055], [0.5, 0.04, 0.01], "#1E2024"); m.cyl("metal", [x - w / 2 + 0.03, y, z + 0.05], 0.015, 0.12, "#1E2024", { seg: 6 }); }
+    m.box("metal", [x + w / 2 - 0.12, 1.05, z + 0.05], [0.03, 0.18, 0.02], "#1E2024");
+    return;
+  }
+  m.box("sash", [x, cy, z], [w, h, 0.045], col);
+  const pnl = (px, py, pw, ph) => {
+    m.box("sash", [px, py, z + 0.026], [pw, ph, 0.012], col);
+    for (const [dx, dy, sw, sh] of [[0, ph / 2 + 0.012, pw + 0.05, 0.024], [0, -ph / 2 - 0.012, pw + 0.05, 0.024], [-pw / 2 - 0.012, 0, 0.024, ph], [pw / 2 + 0.012, 0, 0.024, ph]]) m.box("sash", [px + dx, py + dy, z + 0.03], [sw, sh, 0.016], col);
+  };
+  const pw = (w - 0.36) / 2, px = w / 4 - 0.02;
+  if ((o.cell ?? 0) === 1 || o.lite) {
+    // a lit lite in the upper half: the hall lamp's glow through frosted glass behind three muntins
+    m.quad("bwin", [x, h * 0.72, z + 0.024], w - 0.3, h * 0.36, "#FFFFFF", bwRect(5, 2));
+    for (const dx of [-1, 1]) m.box("sash", [x + dx * (w - 0.3) / 6, h * 0.72, z + 0.034], [0.025, h * 0.36, 0.02], col);
+    for (const [dy, hh] of [[h * 0.9 + 0.02, 0.04], [h * 0.54 - 0.02, 0.04]]) m.box("sash", [x, dy, z + 0.032], [w - 0.26, hh, 0.02], col);
+    for (const sd of [-1, 1]) pnl(x + sd * px, h * 0.27, pw, h * 0.34);
+    m.box("sash", [x, h * 0.53, z + 0.03], [w - 0.24, 0.03, 0.03], col);
+  } else {
+    for (const sd of [-1, 1]) { pnl(x + sd * px, h * 0.71, pw, h * 0.38); pnl(x + sd * px, h * 0.25, pw, h * 0.3); }
+  }
+  // hardware: knob and escutcheon (worn brass), a keyhole, three butt hinges, a mail slot
+  const kx = x + w / 2 - 0.1;
+  m.box("galv", [kx, 1.0, z + 0.03], [0.05, 0.2, 0.008], "#B89A58");
+  m.sph("galv", [kx, 1.03, z + 0.07], 0.028, "#C9A860", { seg: 10 });
+  m.cyl("galv", [kx, 1.03, z + 0.045], 0.008, 0.04, "#B89A58", { r: [Math.PI / 2, 0, 0], seg: 6 });
+  m.box("dark", [kx, 0.95, z + 0.035], [0.008, 0.02, 0.004], "#0A0A0A");
+  for (const y of [0.25, h / 2, h - 0.25]) m.box("galv", [x - w / 2 + 0.01, y, z + 0.024], [0.03, 0.1, 0.01], "#8E7C52");
+  if ((o.cell ?? 0) === 0) m.box("galv", [x, h * 0.48, z + 0.03], [0.26, 0.04, 0.012], "#B89A58");
+};
+
 /**
  * addHouse(m, s): a New England gable house in the current frame (front wall on z = d/2 facing +z, x across, ground y = 0).
  * s: { w, d, h (eave above the sill), pitch (rise per run), found, wall, trim, roof: "shingle"|"tin", snow: 0–1, chimney: [x, z] | null,
- *      win: [{ f: "front"|"back"|"left"|"right", x, y, ww, wh, cell }], door: [{ f, x, w, h, cell, steps }], holes: [{ f, x, y, w, h }],
- *      icicles, seed, clap: "clap"|"board" }
+ *      win: [{ f: "front"|"back"|"left"|"right", x, y, ww, wh, cell, real?, flat?, shutters? }], door: [{ f, x, w, h, cell, steps }],
+ *      holes: [{ f, x, y, w, h }], icicles, seed, clap: "clap"|"board", gutters (default: on clapboard houses), sashC }
+ * (E) every window is a real opening with a 3-D double-hung sash (upper sash outside, lower inside, muntins, meeting rails); a dark
+ *  window shows its glazing (frost, the sky's reflection, a dim room) recessed behind the sash; a LIT window (kinds 0, 3, 5) opens onto a
+ *  furnished lamplit room. Doors are 3-D. The foundation is laid in split granite / fieldstone blocks; gutters and downspouts; a lumpy
+ *  snow cornice at the eaves; a corbelled brick chimney with its flashing and flue tile.
  */
 export const addHouse = (m, s) => {
   const R = (k) => rnd((s.seed ?? 1) * 41 + k * 13);
   const { w, d, h } = s, found = s.found ?? 0.45, pitch = s.pitch ?? 0.75, run = d / 2, rise = run * pitch, hr = h + rise;
-  const wallMat = s.clap ?? "clap", wallC = s.wall ?? "#DAD8D0", trimC = s.trim ?? "#E4E1D8";
-  // foundation: fieldstone (or concrete)
-  m.box(s.foundMat ?? "stone", [0, found / 2 - 0.05, 0], [w + 0.08, found + 0.1, d + 0.08], s.foundC ?? "#8E9094", { metric: true });
+  const wallMat = s.clap ?? "clap", wallC = s.wall ?? "#DAD8D0", trimC = s.trim ?? "#E4E1D8", sashC = s.sashC ?? (wallMat === "board" ? "#6E655A" : "#ECEAE2");
+  const fm = s.foundMat ?? "stone";
+  // foundation: split granite / fieldstone laid in courses (stone), or poured concrete
+  if (fm === "stone") {
+    m.box("stone", [0, found / 2 - 0.05, 0], [w + 0.04, found + 0.1, d + 0.04], "#4E5054", { metric: true });   // the mortar behind
+    let k = 0;
+    const courses = Math.max(1, Math.round(found / 0.24)), ch = found / courses;
+    for (const [L, ry, off] of [[w, 0, d / 2], [w, Math.PI, d / 2], [d, Math.PI / 2, w / 2], [d, -Math.PI / 2, w / 2]]) {
+      m.push([0, 0, 0], ry);
+      for (let c = 0; c < courses; c++) {
+        let x = -L / 2 - 0.02 + (c % 2) * 0.18;
+        while (x < L / 2 + 0.02) {
+          const bl = Math.min(L / 2 + 0.04 - x, 0.34 + R(500 + k) * 0.5);
+          if (bl > 0.08) m.box("stone", [x + bl / 2, -0.05 + c * ch + ch / 2 + 0.03, off + 0.025 + R(600 + k) * 0.02], [bl - 0.025, ch - 0.025, 0.07], bpick(["#8E9094", "#7E8186", "#9A9C9E", "#86837C", "#A3A49F"], R(700 + k)), { metric: true, uo: [R(k) * 5, R(k + 1) * 5] });
+          x += bl; k++;
+        }
+      }
+      m.pop();
+    }
+  } else m.box(fm, [0, found / 2 - 0.05, 0], [w + 0.08, found + 0.1, d + 0.08], s.foundC ?? "#8E9094", { metric: true });
   m.push([0, found, 0]);
-  const holes = (f) => (s.holes ?? []).filter((o) => o.f === f).map((o) => ({ x: o.x, y: o.y - found, w: o.w, h: o.h }));
-  // the four walls: front/back rectangles (with any real holes), the gable ends as pentagons
   const T = 0.12;   // wall thickness
+  // every window / door is a real opening (unless flat)
+  const holes = (f) => [
+    ...(s.holes ?? []).filter((o) => o.f === f).map((o) => ({ x: o.x, y: o.y - found, w: o.w, h: o.h })),
+    ...(s.win ?? []).filter((o) => o.f === f && !o.real && !o.flat).map((o) => ({ x: o.x, y: o.y - found, w: o.ww, h: o.wh })),
+    ...(s.door ?? []).filter((o) => o.f === f && !o.flat).map((o) => ({ x: o.x, y: 0.02, w: o.w, h: o.h }))
+  ];
   const walls = [
     { f: "front", L: [0, 0, d / 2], ry: 0, w, hr: h },
     { f: "back", L: [0, 0, -d / 2], ry: Math.PI, w, hr: h },
@@ -298,48 +535,75 @@ export const addHouse = (m, s) => {
   for (const W of walls) {
     m.push(W.L, W.ry);
     m.add(wallMat, wallShape(W.w, h, W.hr, holes(W.f)), new THREE.Matrix4(), wallC, { metric: true, uo: [R(1) * 3, R(2) * 3] });
-    // the inner face (so a hole shows a wall's thickness and nothing sees through it)
     m.push([0, 0, -T], Math.PI); m.add("dark", wallShape(W.w, h, W.hr, holes(W.f).map((o) => ({ ...o, x: -o.x }))), new THREE.Matrix4(), "#2A2520"); m.pop();
-    for (const o of holes(W.f)) {   // the reveals of a real opening
+    for (const o of holes(W.f)) {   // the reveals (jambs, head, stool) of a real opening
       m.box("trimb", [o.x - o.w / 2 - 0.005, o.y + o.h / 2, -T / 2], [0.01, o.h, T], trimC, { metric: true });
       m.box("trimb", [o.x + o.w / 2 + 0.005, o.y + o.h / 2, -T / 2], [0.01, o.h, T], trimC, { metric: true });
       m.box("trimb", [o.x, o.y + o.h + 0.005, -T / 2], [o.w, 0.01, T], trimC, { metric: true });
       m.box("trimb", [o.x, o.y - 0.005, -T / 2], [o.w, 0.01, T], trimC, { metric: true });
     }
-    // corner boards and the water table
+    // corner boards (both faces of the corner), the water table, the frieze board
     if (W.f === "front" || W.f === "back") for (const sd of [-1, 1]) m.box("trimb", [sd * (W.w / 2 - 0.07), h / 2, 0.025], [0.15, h, 0.05], trimC, { metric: true });
+    else for (const sd of [-1, 1]) m.box("trimb", [sd * (W.w / 2 + 0.005), h / 2, 0.025], [0.12, h, 0.05], trimC, { metric: true });
     m.box("trimb", [0, 0.09, 0.03], [W.w + 0.02, 0.18, 0.06], trimC, { metric: true });
-    if (W.f === "front" || W.f === "back") m.box("trimb", [0, h - 0.1, 0.03], [W.w, 0.2, 0.06], trimC, { metric: true });   // the frieze board
+    m.box("trimb", [0, 0.185, 0.065], [W.w + 0.04, 0.025, 0.04], trimC, { metric: true });                                       // its drip cap
+    if (W.f === "front" || W.f === "back") m.box("trimb", [0, h - 0.1, 0.03], [W.w, 0.2, 0.06], trimC, { metric: true });
     m.pop();
   }
-  // windows: glazing from the atlas, casing, a sill with its lip, a drip cap; snow on the sill
-  for (const o of s.win ?? []) {
+  // windows: casing, the 3-D sashes, glazing or a lit room behind, a sill with its lip and snow, a drip cap, (shutters)
+  (s.win ?? []).forEach((o, wi) => {
     const W = walls.find((q) => q.f === o.f);
     m.push(W.L, W.ry);
     const cy = o.y - found + o.wh / 2;
-    if (!o.real) m.quad("bwin", [o.x, cy, 0.01], o.ww, o.wh, "#FFFFFF", bwRect(o.cell, 0));
+    if (o.flat) m.quad("bwin", [o.x, cy, 0.01], o.ww, o.wh, "#FFFFFF", bwRect(o.cell, 0));
+    else if (!o.real) {
+      const lites = LITES[o.cell] ?? [2, 2], lit = LIT[o.cell];
+      const zg = -0.085;
+      if (lit === undefined) m.quad("bwin", [o.x, cy, zg], o.ww, o.wh, "#FFFFFF", bwRect(o.cell, 2));
+      else {
+        litRoom3(m, o, cy, T, lit, (s.seed ?? 1) * 7 + wi);
+        m.quad("bglass", [o.x, cy, -0.045], o.ww - 0.04, o.wh - 0.04, "#FFFFFF");
+        m.glow([o.x, cy, 0.25], "#FFB060", 1.6);
+      }
+      if (o.cell === 7 || o.cell === 6) sash3(m, o.x, cy, o.ww, o.wh, -0.045, lites[0], 2, sashC, 0.05, 0.05, 0.04);
+      else {
+        sash3(m, o.x, cy + o.wh / 4, o.ww, o.wh / 2 + 0.02, -0.03, lites[0], 1, sashC, 0.035, 0.05);                // upper sash (outside)
+        sash3(m, o.x, cy - o.wh / 4, o.ww - 0.01, o.wh / 2 + 0.02, -0.062, lites[1], 1, sashC, 0.075, 0.035);      // lower sash (inside)
+        m.box("galv", [o.x, cy + 0.0, -0.04], [0.07, 0.012, 0.03], "#B89A58");                                       // the sash lock
+      }
+    }
     const cw = 0.11;
     for (const sd of [-1, 1]) m.box("trimb", [o.x + sd * (o.ww / 2 + cw / 2), cy, 0.03], [cw, o.wh + 0.04, 0.05], trimC, { metric: true });
     m.box("trimb", [o.x, cy + o.wh / 2 + 0.08, 0.03], [o.ww + 2 * cw + 0.04, 0.16, 0.05], trimC, { metric: true });
     m.box("trimb", [o.x, cy + o.wh / 2 + 0.17, 0.06], [o.ww + 2 * cw + 0.1, 0.035, 0.1], trimC, { metric: true });       // drip cap
     m.box("trimb", [o.x, cy - o.wh / 2 - 0.03, 0.06], [o.ww + 2 * cw + 0.08, 0.05, 0.12], trimC, { metric: true });      // sill
     m.box("trimb", [o.x, cy - o.wh / 2 - 0.1, 0.03], [o.ww + 2 * cw, 0.1, 0.05], trimC, { metric: true });               // apron
-    if (s.snow !== 0) m.box("snow", [o.x, cy - o.wh / 2 + 0.0, 0.07], [o.ww + 2 * cw + 0.02, 0.035, 0.1], "#F4F7FB", { metric: true });
+    if (s.snow !== 0) {
+      m.box("snow", [o.x, cy - o.wh / 2 + 0.0, 0.07], [o.ww + 2 * cw + 0.02, 0.035, 0.1], "#F4F7FB", { metric: true });
+      m.box("snow", [o.x, cy + o.wh / 2 + 0.2, 0.06], [o.ww + 2 * cw + 0.06, 0.03, 0.09], "#F4F7FB", { metric: true });   // on the drip cap
+    }
     if (o.shutters) for (const sd of [-1, 1]) {
-      m.box("wood", [o.x + sd * (o.ww / 2 + cw + 0.2), cy, 0.04], [0.36, o.wh + 0.04, 0.035], o.shutters);
-      for (let k = 0; k < 14; k++) m.box("wood", [o.x + sd * (o.ww / 2 + cw + 0.2), cy - o.wh / 2 + 0.08 + k * (o.wh - 0.12) / 14, 0.06], [0.3, 0.018, 0.02], o.shutters);
+      // louvred shutters: stiles, rails, a mid rail, two banks of louvres, iron shutter dogs holding them open
+      const sx = o.x + sd * (o.ww / 2 + cw + 0.2), sw = 0.36, shh = o.wh + 0.04;
+      for (const dx of [-1, 1]) m.box("wood", [sx + dx * (sw / 2 - 0.025), cy, 0.045], [0.05, shh, 0.035], o.shutters);
+      for (const y of [cy - shh / 2 + 0.04, cy, cy + shh / 2 - 0.04]) m.box("wood", [sx, y, 0.045], [sw, 0.07, 0.035], o.shutters);
+      for (let k = 0; k < 18; k++) { const y = cy - shh / 2 + 0.1 + k * (shh - 0.2) / 18; if (Math.abs(y - cy) < 0.05) continue; m.box("wood", [sx, y, 0.05], [sw - 0.08, 0.022, 0.02], o.shutters, { r: [0.5, 0, 0] }); }
+      m.box("metal", [sx + sd * (sw / 2 + 0.05), cy - shh / 2 + 0.2, 0.06], [0.06, 0.02, 0.02], "#15181C");
+      m.box("snow", [sx, cy + shh / 2 + 0.01, 0.05], [sw, 0.025, 0.04], "#F4F7FB");
     }
     m.pop();
-  }
-  // doors: leaf from the atlas, casing, threshold, steps
+  });
+  // doors: the 3-D leaf, casing with a crown, the threshold, steps
   for (const o of s.door ?? []) {
     const W = walls.find((q) => q.f === o.f);
     m.push(W.L, W.ry);
-    m.quad("bwin", [o.x, o.h / 2 + 0.02, 0.012], o.w, o.h, "#FFFFFF", bwRect(o.cell, 1));
+    if (o.flat) m.quad("bwin", [o.x, o.h / 2 + 0.02, 0.012], o.w, o.h, "#FFFFFF", bwRect(o.cell, 1));
+    else door3(m, o);
     for (const sd of [-1, 1]) m.box("trimb", [o.x + sd * (o.w / 2 + 0.07), o.h / 2 + 0.02, 0.03], [0.14, o.h + 0.06, 0.05], trimC, { metric: true });
     m.box("trimb", [o.x, o.h + 0.14, 0.03], [o.w + 0.36, 0.22, 0.05], trimC, { metric: true });
     m.box("trimb", [o.x, o.h + 0.27, 0.07], [o.w + 0.46, 0.04, 0.12], trimC, { metric: true });
-    m.box("trimb", [o.x, 0.01, 0.06], [o.w + 0.1, 0.04, 0.14], "#8A8378", { metric: true });   // the threshold
+    if (s.snow !== 0) m.box("snow", [o.x, o.h + 0.3, 0.07], [o.w + 0.4, 0.03, 0.1], "#F4F7FB", { metric: true });
+    m.box("trimb", [o.x, 0.01, 0.03], [o.w + 0.1, 0.04, 0.2], "#8A8378", { metric: true });   // the threshold
     for (let k = 0; k < (o.steps ?? 0); k++) {
       const sh = found / (o.steps ?? 1);
       m.box(o.stepMat ?? "stone", [o.x, -found + sh * (o.steps - k) - sh / 2, 0.3 + k * 0.3], [o.w + 0.5, sh, 0.3], o.stepC ?? "#8A8C90", { metric: true });
@@ -347,48 +611,104 @@ export const addHouse = (m, s) => {
     }
     m.pop();
   }
-  // the roof: two slopes (overhang at the eaves and the rakes), fascia, the snow load on top with a rounded lip, icicles
+  // the roof: two slopes (overhang at the eaves and the rakes), fascia, the snow load on top with a lumpy cornice at the eave, icicles
   const ov = s.over ?? 0.32, rov = s.rake ?? 0.22, ang = Math.atan(pitch), ca = Math.cos(ang), sa = Math.sin(ang);
   const roofMat = s.roof === "tin" ? "tin" : "shingle", roofC = s.roofC ?? "#FFFFFF", rth = 0.07, len = (run + ov) / ca;
+  const gut = s.gutters ?? (wallMat === "clap");
   for (const sd of [-1, 1]) {
-    const n = [0, ca, sd * sa], dn = [0, -sa, sd * ca];                       // slab normal, down-slope direction
-    const mid = [0, hr - (run + ov) * pitch / 2, sd * (run + ov) / 2];           // the roof line's midpoint
+    const n = [0, ca, sd * sa], dn = [0, -sa, sd * ca];
+    const mid = [0, hr - (run + ov) * pitch / 2, sd * (run + ov) / 2];
     const sc = [0, mid[1] + n[1] * rth / 2, mid[2] + n[2] * rth / 2];
     m.box(roofMat, sc, [w + 2 * rov, rth, len], roofC, { r: [sd * ang, 0, 0], metric: true });
+    // the drip edge
+    m.box("galv", [0, h - ov * pitch + 0.0, sd * (d / 2 + ov + 0.005)], [w + 2 * rov + 0.02, 0.05, 0.02], "#8E969F");
     if (s.snow !== 0) {
       const sl = len * (s.snowLen ?? 0.92), sth = s.snowT ?? 0.12, off = (len - sl) / 2;
       const c = [0, sc[1] + n[1] * (rth + sth) / 2 - dn[1] * off, sc[2] + n[2] * (rth + sth) / 2 - dn[2] * off];
       m.box("snow", c, [w + 2 * rov - 0.04, sth, sl], "#F2F6FB", { r: [sd * ang, 0, 0], metric: true });
       const lip = [0, c[1] + dn[1] * sl / 2, c[2] + dn[2] * sl / 2];
-      m.cyl("snow", lip, sth * 0.55, w + 2 * rov - 0.04, "#F2F6FB", { r: [0, 0, Math.PI / 2], seg: 10 });
+      // the cornice: overlapping soft lumps along the eave, a little overhang, uneven
+      const nL = Math.ceil((w + 2 * rov) / 0.38);
+      for (let k = 0; k < nL; k++) {
+        const x = -w / 2 - rov + 0.12 + (k + 0.5) * (w + 2 * rov - 0.24) / nL, r = sth * (0.55 + R(800 + k * 3 + (sd > 0 ? 0 : 1)) * 0.35);
+        m.sph("snow", [x, lip[1] - r * 0.15, lip[2] + sd * r * 0.25], [((w + 2 * rov) / nL) * 0.75, r, r * 1.2], "#F2F6FB", { seg: 10 });
+      }
       if ((s.icicles ?? true) && sd === 1) {
-        const k0 = Math.floor((w + 2 * rov) / 0.14);
+        const k0 = Math.floor((w + 2 * rov) / 0.12);
         for (let k = 0; k < k0; k++) {
-          if (R(100 + k) < 0.5) continue;
-          const ix = -w / 2 - rov + 0.08 + k * 0.14 + R(200 + k) * 0.05, il = 0.05 + Math.pow(R(300 + k), 2.4) * 0.38;
-          m.cyl("ice", [ix, h - ov * pitch - 0.17 - il / 2, d / 2 + ov - 0.03], 0.014 + il * 0.03, il, "#DCEBFF", { rt: 1, rb: 0.06, seg: 6 });
+          if (R(100 + k) < 0.45) continue;
+          const ix = -w / 2 - rov + 0.08 + k * 0.12 + R(200 + k) * 0.05, il = 0.04 + Math.pow(R(300 + k), 2.2) * 0.42;
+          m.cyl("ice", [ix, h - ov * pitch - (gut ? 0.2 : 0.17) - il / 2, d / 2 + ov - 0.03 + (gut ? 0.08 : 0)], 0.012 + il * 0.03, il, "#DCEBFF", { rt: 1, rb: 0.05, seg: 6 });
         }
       }
     }
-    // the fascia along the eave
+    // the fascia along the eave; the gutter (K-style, galvanised) with snow in it; downspouts at both ends with elbows and splash blocks
     m.box("trimb", [0, h - ov * pitch - 0.08, sd * (d / 2 + ov - 0.02)], [w + 2 * rov, 0.18, 0.04], trimC, { metric: true });
+    if (gut) {
+      const gz = sd * (d / 2 + ov + 0.06), gy = h - ov * pitch - 0.1;
+      m.box("galv", [0, gy, gz + sd * 0.055], [w + 0.1, 0.12, 0.012], "#9AA3AD");
+      m.box("galv", [0, gy - 0.055, gz], [w + 0.1, 0.012, 0.11], "#9AA3AD");
+      m.box("galv", [0, gy + 0.06, gz + sd * 0.062], [w + 0.1, 0.018, 0.025], "#A9B2BC");
+      for (const ex of [-1, 1]) m.box("galv", [ex * (w / 2 + 0.05), gy, gz], [0.012, 0.12, 0.12], "#9AA3AD");
+      if (s.snow !== 0) m.box("snow", [0, gy + 0.065, gz], [w + 0.06, 0.05, 0.1], "#F2F6FB");
+      for (let k = 0; k < Math.floor(w / 0.8); k++) m.box("galv", [-w / 2 + 0.4 + k * 0.8, gy + 0.03, gz], [0.02, 0.012, 0.13], "#7E868F");   // hangers
+      for (const ex of [-1, 1]) {
+        const dx = ex * (w / 2 - 0.12), dz = sd * (d / 2 + 0.06);
+        m.cyl("galv", [dx, gy - 0.12, (gz + dz) / 2], 0.035, Math.abs(gz - dz) + 0.06, "#9AA3AD", { r: [Math.PI / 2 - sd * 0.5, 0, 0], seg: 8 });
+        m.cyl("galv", [dx, (gy - 0.18 - found + 0.25) / 2, dz], 0.035, gy - 0.18 + found - 0.25, "#9AA3AD", { seg: 8 });
+        m.cyl("galv", [dx, -found + 0.18, dz + sd * 0.12], 0.035, 0.28, "#9AA3AD", { r: [sd * 1.1, 0, 0], seg: 8 });
+        for (let q = 0; q < 3; q++) m.box("galv", [dx, 0.3 + q * (h - 0.6) / 2, sd * (d / 2 + 0.03)], [0.09, 0.02, 0.05], "#7E868F");
+        m.box("concrete", [dx, -found + 0.02, dz + sd * 0.35], [0.22, 0.05, 0.5], "#8E949C");
+      }
+    }
   }
-  // rake boards up the gables
+  // rake boards up the gables, with a little snow along their tops
   for (const sx of [-1, 1]) for (const sd of [-1, 1]) {
     m.box("trimb", [sx * (w / 2 + rov - 0.02), h + rise - ((run + ov) * pitch) / 2 - 0.06, sd * (run + ov) / 2], [0.04, 0.2, len], trimC, { r: [sd * ang, 0, 0], metric: true });
   }
   // the ridge cap
   m.box(roofMat, [0, hr + 0.06, 0], [w + 2 * rov, 0.05, 0.22], roofC, { metric: true });
   if (s.snow !== 0) m.cyl("snow", [0, hr + 0.13, 0], 0.12, w + 2 * rov - 0.06, "#F2F6FB", { r: [0, 0, Math.PI / 2], seg: 10 });
-  // chimney: brick, a corbelled cap, a little snow on the crown
+  // chimney: brick, its flashing where it meets the roof, two corbelled courses, a cap, the clay flue tile, soot, snow on the crown
   if (s.chimney) {
-    const [cx, cz] = s.chimney, ch = hr + 0.9 - h;
+    const [cx, cz] = s.chimney, ch = hr + 0.9 - h, top = h + ch;
+    const roofAt = h + (run - Math.abs(cz)) * pitch;
     m.box("brick1", [cx, h + ch / 2 - 0.4, cz], [0.6, ch + 0.8, 0.6], "#FFFFFF", { metric: true });
-    m.box("brick1", [cx, h + ch + 0.05, cz], [0.72, 0.12, 0.72], "#FFFFFF", { metric: true });
-    m.box("dark", [cx, h + ch + 0.12, cz], [0.36, 0.04, 0.36], "#0A0A0A");
-    m.box("snow", [cx + 0.18, h + ch + 0.13, cz], [0.18, 0.03, 0.6], "#F2F6FB");
+    m.box("galv", [cx, roofAt + 0.12, cz], [0.66, 0.12, 0.66], "#7E868F");
+    m.box("brick1", [cx, top - 0.22, cz], [0.66, 0.08, 0.66], "#FFFFFF", { metric: true });
+    m.box("brick1", [cx, top - 0.06, cz], [0.72, 0.1, 0.72], "#FFFFFF", { metric: true });
+    m.box("concrete", [cx, top + 0.03, cz], [0.7, 0.06, 0.7], "#8A8E94", { metric: true });
+    m.box("brick2", [cx, top + 0.16, cz], [0.26, 0.22, 0.26], "#C9A27A", { metric: true });
+    m.box("dark", [cx, top + 0.275, cz], [0.18, 0.01, 0.18], "#0A0A0A");
+    m.box("dark", [cx, top + 0.24, cz], [0.27, 0.06, 0.27], "#1A1614");
+    m.box("snow", [cx + 0.22, top + 0.07, cz], [0.2, 0.03, 0.66], "#F2F6FB");
   }
   m.pop();
+};
+
+/** (E) a lane / driveway ribbon over the ground: pts [[x, z], …] (its centre line), half-width hw; banks of plowed snow along both
+ *  edges (lumps, the snow thrown up by the plow), optional on each side */
+export const addLane = (m, pts, hw, hgt = () => 0, seed = 1, banks = [true, true]) => {
+  const P = [], N = [], U = [], I = [];
+  let vacc = 0;
+  for (let i = 0; i < pts.length; i++) {
+    const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)];
+    const tx = b[0] - a[0], tz = b[1] - a[1], L = Math.hypot(tx, tz) || 1, nx = -tz / L, nz = tx / L;
+    if (i > 0) vacc += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+    for (const sd of [-1, 1]) {
+      const x = pts[i][0] + nx * hw * sd, z = pts[i][1] + nz * hw * sd;
+      P.push(x, hgt(x, z) + 0.025, z); N.push(0, 1, 0); U.push(sd < 0 ? 0 : 1, vacc / 3.2);
+      if (banks[sd < 0 ? 0 : 1] && i % 2 === 0) {
+        const bx = pts[i][0] + nx * (hw + 0.35) * sd, bz = pts[i][1] + nz * (hw + 0.35) * sd, r = rnd(seed * 97 + i * 3 + (sd > 0 ? 1 : 0));
+        m.sph("snow", [bx, hgt(bx, bz) - 0.05, bz], [0.9 + r * 0.5, 0.22 + r * 0.18, 0.55 + r * 0.2], "#EEF3FA", { seg: 10, r: [0, Math.atan2(nz, nx) + r, 0] });
+      }
+    }
+    if (i > 0) { const k = (i - 1) * 2; I.push(k, k + 2, k + 1, k + 1, k + 2, k + 3); }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(P, 3)); g.setAttribute("normal", new THREE.Float32BufferAttribute(N, 3)); g.setAttribute("uv", new THREE.Float32BufferAttribute(U, 2));
+  g.setIndex(I);
+  m.add("lane", g, new THREE.Matrix4(), "#FFFFFF");
 };
 
 // ── fieldstone wall along a polyline (points [x, z]), courses of rough stones with snow on the top ─────────────────────────────

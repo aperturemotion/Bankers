@@ -17,6 +17,7 @@ import { Yaris, topY } from "./b_yaris";
 import { PegRail, PIN_Y, frontZ } from "./b_jacket";
 import { Splits, pilePieces, ChoppingBlock, Chips } from "./b_wood";
 import { poolTex } from "./st_farm";
+import { Conifers, Maples } from "./e_trees";
 
 export const YARD_O = [900, 0, 0];
 const A = (p) => [p[0] + YARD_O[0], p[1] + YARD_O[1], p[2] + YARD_O[2]];
@@ -123,9 +124,7 @@ const buildYard = (m) => {
   m.cyl("metal", [0, 1.3, 0], 0.12, 0.5, "#22262C", { r: [Math.PI / 2, 0, 0], seg: 14 });
   m.box("snow", [0, 1.43, 0], [0.2, 0.05, 0.48], "#F2F6FB");
   m.pop();
-  // maples, a neighbour's fence line far left
-  addMaple(m, [-16, hgt(-16, -11), -11], 10, 7);
-  addMaple(m, [13, hgt(13, 1), 1], 9, 9);
+  // (the maples are e_trees' <Maples>)
 };
 const pineItems = () => {
   const out = [];
@@ -189,7 +188,8 @@ const Scene = ({ f }) => {
       <Ridges />
       <Snowfield hgt={hgt} size={260} segs={160} />
       <Built build={buildYard} />
-      <Pines items={pines} />
+      <Conifers items={pines} near={[0, -3]} farDist={28} />
+      <Maples items={[{ p: [-16, hgt(-16, -11) - 0.1, -11], h: 11, seed: 31 }, { p: [13, hgt(13, 1) - 0.1, 1], h: 10, seed: 32 }]} />
       <Yard f={f} />
     </group>
   );

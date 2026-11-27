@@ -14,8 +14,10 @@ import { Tag, Counter } from "./overlays";
 import { cueAt } from "../bnx/SfxLayer";
 import { WIN, wAt } from "./windows";
 import { Built, Pines, Snowfield, Ridges, fbm, smooth, addMaple } from "./b_winter";
-import { GasPump, OilRack, Tire, stationSignTex, openSignTex, officeTex, bayDoorTex, SIGNF } from "./b_pump";
+import { GasPump, OilRack, Tire, stationSignTex, openSignTex, SIGNF } from "./b_pump";
+import { OfficeRoom, BayDoor, PoleSign, lotTex, roadTex } from "./e_gas";
 import { poolTex } from "./st_farm";
+import { Conifers, Maples } from "./e_trees";
 import { BODY } from "./fonts3d";
 
 export const GAS_O = [600, 0, 0];
@@ -30,30 +32,10 @@ const hgt = (x, z) => {
 };
 const FRONT = -3.5, OFF = { x0: -4.6, x1: -0.6, h: 3.3 }, BAY = { x0: -0.6, x1: 4.4, h: 4.0 }, DEPTH = 6;
 const PUMP1 = [-3.3, 0.15, 0.3], PUMP2 = [-1.1, 0.15, 0.3];
-export const SIGN = { x: -0.1, y: 4.75, w: 4.6, h: 1.72 };
-// ── the ground: the plowed lot (packed snow, tyre tracks, a little ice) and the road ───────────────────────────────────────
-const lotTex = () => canvasTex("b_lot", 1024, 1024, (c, w, h) => {
-  c.fillStyle = "#AEB8C6"; c.fillRect(0, 0, w, h);
-  for (let i = 0; i < 30000; i++) { const g = rnd(i); c.fillStyle = `rgba(${g < 0.5 ? "60,70,86" : "235,240,248"},${0.04 + rnd(i + 1) * 0.08})`; c.fillRect(rnd(i + 2) * w, rnd(i + 3) * h, 2 + rnd(i) * 3, 2); }
-  // tyre tracks curving in from the road to the pumps and the bay
-  for (let k = 0; k < 9; k++) {
-    const x0 = w * (0.15 + rnd(k) * 0.7), bend = (rnd(k + 3) - 0.5) * w * 0.4;
-    for (const off of [0, 52]) {
-      c.strokeStyle = `rgba(70,80,96,${0.18 + rnd(k + 5) * 0.12})`; c.lineWidth = 20; c.beginPath();
-      c.moveTo(x0 + off, h); c.quadraticCurveTo(x0 + off + bend, h * 0.5, x0 + off + bend * 0.4, 0); c.stroke();
-      c.strokeStyle = "rgba(40,48,60,0.12)"; c.lineWidth = 3; for (let q = 0; q < 40; q++) { const t = q / 40, x = (1 - t) * (1 - t) * (x0 + off) + 2 * (1 - t) * t * (x0 + off + bend) + t * t * (x0 + off + bend * 0.4), y = h * (1 - t); c.beginPath(); c.moveTo(x - 9, y); c.lineTo(x + 9, y - 6); c.stroke(); }
-    }
-  }
-  for (let k = 0; k < 6; k++) { c.fillStyle = "rgba(200,215,235,0.25)"; c.beginPath(); c.ellipse(rnd(k * 5) * w, rnd(k * 7) * h, 60 + rnd(k) * 80, 30 + rnd(k + 1) * 40, rnd(k + 2) * 3, 0, 7); c.fill(); }   // ice
-});
-const roadTex = () => canvasTex("b_road", 1024, 256, (c, w, h) => {
-  c.fillStyle = "#3A4250"; c.fillRect(0, 0, w, h);
-  for (let i = 0; i < 16000; i++) { const g = 40 + rnd(i) * 60; c.fillStyle = `rgba(${g},${g + 6},${g + 16},0.35)`; c.fillRect(rnd(i + 1) * w, rnd(i + 2) * h, 2, 2); }
-  // packed snow along both edges and in the wheel tracks' gaps
-  for (const [y0, y1] of [[0, 0.16], [0.84, 1]]) { const g = c.createLinearGradient(0, y0 * h, 0, y1 * h); g.addColorStop(y0 === 0 ? 0 : 1, "rgba(220,228,240,0.95)"); g.addColorStop(y0 === 0 ? 1 : 0, "rgba(220,228,240,0)"); c.fillStyle = g; c.fillRect(0, y0 * h, w, (y1 - y0) * h); }
-  c.fillStyle = "rgba(200,210,226,0.18)"; c.fillRect(0, h * 0.3, w, h * 0.06); c.fillRect(0, h * 0.64, w, h * 0.06);
-  c.fillStyle = "#C9A848"; for (let x = 0; x < w; x += 128) c.fillRect(x, h * 0.49, 64, 6);   // the centre line
-});
+// the fascia sign stands IN FRONT of the roofs' snow (its lower edge 0.17 m above the bay's snow lip, its face 0.3 m out from the wall),
+// so no roof, lip or lamp ever crosses its lettering (the old one was cut by the bay roof's snow)
+export const SIGN = { x: -0.1, y: 5.17, w: 4.0, h: 1.5, z: 0.305 };
+// ── the ground: e_gas' lotTex (the plowed lot) and roadTex (the plowed road) ──────────────────────────────────────────────────
 // ── the building, merged ─────────────────────────────────────────────────────────────────────────────────────────────────
 const buildGas = (m) => {
   const wc = "#E4E2DA", trim = "#1F3A63";
@@ -64,8 +46,16 @@ const buildGas = (m) => {
   wallBox(WX0, WX1, 0, WY0); wallBox(WX0, WX1, WY1, OFF.h); wallBox(DX - DW / 2, DX + DW / 2, DH, OFF.h);
   m.box("clap", [OFF.x0 + 0.06, OFF.h / 2, FRONT - DEPTH / 2], [0.12, OFF.h, DEPTH], wc, { metric: true });                 // the office's side and back walls
   m.box("clap", [(OFF.x0 + OFF.x1) / 2, OFF.h / 2, FRONT - DEPTH + 0.06], [OFF.x1 - OFF.x0, OFF.h, 0.12], wc, { metric: true });
-  // the bay: taller, the overhead door
-  m.box("clap", [(BAY.x0 + BAY.x1) / 2, BAY.h / 2, FRONT - DEPTH / 2 - 0.0], [BAY.x1 - BAY.x0, BAY.h, DEPTH], wc, { metric: true });
+  // the bay: taller; its front wall framed round the door opening (the door is e_gas' 3-D <BayDoor>, the lit garage behind it)
+  const BD0 = 0.4, BD1 = 3.4, BDH = 3.0;
+  m.box("clap", [(BAY.x0 + BD0) / 2, BAY.h / 2, FRONT - 0.06], [BD0 - BAY.x0, BAY.h, 0.12], wc, { metric: true });
+  m.box("clap", [(BD1 + BAY.x1) / 2, BAY.h / 2, FRONT - 0.06], [BAY.x1 - BD1, BAY.h, 0.12], wc, { metric: true });
+  m.box("clap", [(BD0 + BD1) / 2, (BDH + BAY.h) / 2, FRONT - 0.06], [BD1 - BD0, BAY.h - BDH, 0.12], wc, { metric: true });
+  m.box("clap", [BAY.x0 + 0.06, BAY.h / 2, FRONT - DEPTH / 2], [0.12, BAY.h, DEPTH], wc, { metric: true });
+  m.box("clap", [BAY.x1 - 0.06, BAY.h / 2, FRONT - DEPTH / 2], [0.12, BAY.h, DEPTH], wc, { metric: true });
+  m.box("clap", [(BAY.x0 + BAY.x1) / 2, BAY.h / 2, FRONT - DEPTH + 0.06], [BAY.x1 - BAY.x0, BAY.h, 0.12], wc, { metric: true });
+  m.box("dark", [(BD0 + BD1) / 2, BDH + 0.2, FRONT - 0.7], [BD1 - BD0, 0.4, 1.3], "#1A1612");                        // the door's coil housing inside
+  m.box("concrete", [(BAY.x0 + BAY.x1) / 2, 0.245, FRONT - DEPTH / 2], [BAY.x1 - BAY.x0 - 0.2, 0.01, DEPTH - 0.2], "#7E868F", { metric: true });
   // foundations, a navy water table and a navy band under the eaves (the station's trim colour)
   m.box("concrete", [(OFF.x0 + BAY.x1) / 2, 0.12, FRONT - DEPTH / 2], [BAY.x1 - OFF.x0 + 0.1, 0.24, DEPTH + 0.1], "#9AA2AE", { metric: true });
   m.box("trimb", [(OFF.x0 + OFF.x1) / 2, 0.3, FRONT + 0.01], [OFF.x1 - OFF.x0, 0.12, 0.05], trim);
@@ -95,19 +85,37 @@ const buildGas = (m) => {
   // the bay door's frame, the bay's side window
   for (const sd of [-1, 1]) m.box("trimb", [1.9 + sd * 1.58, 1.55, FRONT + 0.03], [0.14, 3.1, 0.08], trim);
   m.box("trimb", [1.9, 3.12, FRONT + 0.03], [3.3, 0.14, 0.08], trim);
-  // the sign: on two steel posts standing on the roofs; two gooseneck lamps over it
-  for (const sx of [-1.7, 1.5]) m.box("metal", [SIGN.x + sx, (SIGN.y + OFF.h) / 2, FRONT - 0.15], [0.08, SIGN.y - OFF.h + 0.4, 0.08], "#2A2E35");
-  m.box("metal", [SIGN.x, SIGN.y, FRONT - 0.08], [SIGN.w + 0.12, SIGN.h + 0.12, 0.08], "#1A2F52");
-  for (const sx of [-1.3, 1.3]) {
-    m.cyl("metal", [SIGN.x + sx, SIGN.y + SIGN.h / 2 + 0.25, FRONT + 0.15], 0.018, 0.65, "#1A2F52", { r: [1.1, 0, 0], seg: 6 });
-    m.cyl("metal", [SIGN.x + sx, SIGN.y + SIGN.h / 2 + 0.42, FRONT + 0.48], 0.17, 0.14, "#1A2F52", { rt: 0.25, rb: 1, seg: 14, open: true, r: [0.35, 0, 0] });
-    m.sph("bulb", [SIGN.x + sx, SIGN.y + SIGN.h / 2 + 0.37, FRONT + 0.5], 0.05, "#FFE6BE", { seg: 8 });
-    m.glow([SIGN.x + sx, SIGN.y + SIGN.h / 2 + 0.34, FRONT + 0.52], "#FFD49A", 1.1);
+  // the sign: a steel-framed porcelain panel carried on two steel posts that stand on the roofs (one on the office, one on the bay),
+  // braced back to the parapets; two gooseneck lamps over it, their shades well above its top edge
+  const SZ = FRONT + SIGN.z;
+  for (const [sx, base] of [[-1.55, OFF.h + 0.2], [1.55, BAY.h + 0.2]]) {
+    m.box("metal", [SIGN.x + sx, (SIGN.y + SIGN.h / 2 + base) / 2, SZ - 0.12], [0.09, SIGN.y + SIGN.h / 2 - base, 0.09], "#2A2E35");
+    m.box("metal", [SIGN.x + sx, base + 0.55, SZ - 0.5], [0.05, 0.05, 0.85], "#2A2E35", { r: [-0.6, 0, 0] });
   }
+  m.box("metal", [SIGN.x, SIGN.y, SZ - 0.06], [SIGN.w + 0.14, SIGN.h + 0.14, 0.1], "#16294A");                       // the frame
+  m.box("snow", [SIGN.x, SIGN.y + SIGN.h / 2 + 0.1, SZ - 0.06], [SIGN.w + 0.1, 0.06, 0.1], "#F2F6FB");               // snow on its top
+  for (const sx of [-1.25, 1.25]) {
+    m.cyl("metal", [SIGN.x + sx, SIGN.y + SIGN.h / 2 + 0.3, SZ + 0.12], 0.018, 0.6, "#16294A", { r: [1.1, 0, 0], seg: 6 });
+    m.cyl("metal", [SIGN.x + sx, SIGN.y + SIGN.h / 2 + 0.45, SZ + 0.42], 0.17, 0.14, "#16294A", { rt: 0.25, rb: 1, seg: 14, open: true, r: [0.35, 0, 0] });
+    m.sph("bulb", [SIGN.x + sx, SIGN.y + SIGN.h / 2 + 0.4, SZ + 0.44], 0.05, "#FFE6BE", { seg: 8 });
+    m.glow([SIGN.x + sx, SIGN.y + SIGN.h / 2 + 0.37, SZ + 0.46], "#FFD49A", 1.1);
+  }
+  // a gooseneck lamp over the office door, a downspout at the office's corner, a meter box on the bay wall
+  m.cyl("metal", [-1.22, 2.55, FRONT + 0.15], 0.015, 0.4, "#16294A", { r: [1.1, 0, 0], seg: 6 });
+  m.cyl("metal", [-1.22, 2.62, FRONT + 0.34], 0.12, 0.1, "#16294A", { rt: 0.25, rb: 1, seg: 12, open: true, r: [0.3, 0, 0] });
+  m.sph("bulb", [-1.22, 2.58, FRONT + 0.35], 0.04, "#FFE6BE", { seg: 8 });
+  m.glow([-1.22, 2.55, FRONT + 0.37], "#FFD49A", 0.8);
+  m.cyl("metal", [OFF.x0 + 0.12, OFF.h / 2, FRONT + 0.08], 0.04, OFF.h, "#C9CFD8", { seg: 8 });
+  m.box("metal", [4.0, 1.5, FRONT + 0.06], [0.28, 0.4, 0.12], "#7E868F");
+  m.cyl("metal", [4.0, 1.5, FRONT + 0.13], 0.07, 0.03, "#D6DCE4", { r: [Math.PI / 2, 0, 0], seg: 14 });
   // the pump island: a concrete curb with steel bumper posts at the ends
   m.box("concrete", [-2.2, 0.08, 0.3], [4.4, 0.16, 1.0], "#B5BCC6", { metric: true });
   m.box("trimb", [-2.2, 0.165, 0.3], [4.42, 0.01, 1.02], "#E8E6DE");
   for (const x of [-4.55, 0.15]) { m.cyl("metal", [x, 0.5, 0.3], 0.07, 0.9, "#D8D2BE", { seg: 12 }); m.cyl("snow", [x, 0.96, 0.3], 0.07, 0.03, "#F2F6FB", { seg: 10 }); }
+  // (E) the curb's steel nosing, the island's painted ends, snow shovelled up against both ends and along the back
+  for (const sd of [-1, 1]) m.box("metal", [-2.2, 0.16, 0.3 + sd * 0.505], [4.42, 0.025, 0.02], "#8E969F");
+  for (const x of [-4.4, 0.0]) m.box("trimb", [x, 0.085, 0.3], [0.04, 0.17, 1.02], "#E3C24A");
+  for (const [x, z, sx] of [[-5.0, 0.3, 0.55], [-3.2, -0.45, 0.7], [-1.2, -0.5, 0.6]]) m.sph("snow", [x, 0.02, z], [sx, 0.22, 0.35], "#EEF3FA", { seg: 12 });
   // the air post (AIR plate drawn on the sign atlas below), the water can
   m.box("metal", [0.75, 0.6, 0.3], [0.2, 1.2, 0.2], "#8E3A34");
   m.cyl("metal", [0.75, 1.24, 0.3], 0.11, 0.08, "#8E3A34", { seg: 12 });
@@ -133,9 +141,7 @@ const buildGas = (m) => {
     m.sph("snow", [side * (12.2 + rnd(k) * 0.8), 0.1, z], [1.4 + rnd(k + 1) * 0.6, 0.7 + rnd(k + 2) * 0.4, 1.3], "#EEF3FA", { seg: 12 });
   }
   for (let k = 0; k < 10; k++) { const x = -11 + k * 2.4 + rnd(k) * 0.5; if (Math.abs(x) < 7.5) continue; m.sph("snow", [x, 0.05, 8.7 + rnd(k + 9) * 0.3], [1.3, 0.5 + rnd(k + 3) * 0.25, 0.7], "#EEF3FA", { seg: 12, r: [0, rnd(k) * 3, 0] }); }   // the lot entrance is plowed open
-  // maples by the road
-  addMaple(m, [-9, hgt(-9, -7), -7], 9, 5);
-  addMaple(m, [11.5, hgt(11.5, -4), -4], 8, 6);
+  // (the maples by the road are e_trees' <Maples>)
 };
 const pineItems = () => {
   const out = [];
@@ -145,15 +151,13 @@ const pineItems = () => {
 };
 const Station = ({ f }) => {
   const mats = useMemo(() => {
-    const lot = lotTex(); lot.wrapS = lot.wrapT = THREE.RepeatWrapping; lot.repeat.set(2.5, 1.6);
-    const road = roadTex(); road.wrapS = THREE.RepeatWrapping; road.repeat.set(12, 1);
+    const lot = lotTex(); lot.wrapS = lot.wrapT = THREE.RepeatWrapping; lot.repeat.set(1.3, 1.0);
+    const road = roadTex(); road.wrapS = THREE.RepeatWrapping; road.repeat.set(10, 1);
     return {
       lot: new THREE.MeshStandardMaterial({ map: lot, roughness: 0.6, metalness: 0.05, envMapIntensity: 0.5 }),
       road: new THREE.MeshStandardMaterial({ map: road, roughness: 0.75 }),
       sign: new THREE.MeshStandardMaterial({ map: stationSignTex(), emissiveMap: stationSignTex(), emissive: "#FFE9C8", emissiveIntensity: 0.18, roughness: 0.3, metalness: 0.05 }),
-      office: new THREE.MeshBasicMaterial({ map: officeTex(), toneMapped: true, color: "#E6D2B4" }),
       glass: new THREE.MeshStandardMaterial({ color: "#B9CCE6", roughness: 0.04, metalness: 0.2, transparent: true, opacity: 0.16, envMapIntensity: 1.4, depthWrite: false }),
-      bay: new THREE.MeshStandardMaterial({ map: bayDoorTex(false), emissiveMap: bayDoorTex(true), emissive: "#FFFFFF", emissiveIntensity: 0.85, roughness: 0.5 }),
       open: new THREE.MeshStandardMaterial({ map: openSignTex(), roughness: 0.4, emissive: "#FFE6C0", emissiveMap: openSignTex(), emissiveIntensity: 0.12 }),
       doorLite: new THREE.MeshBasicMaterial({ color: "#E8B878" }),
       tags: new THREE.MeshStandardMaterial({ map: smallSignsTex(), roughness: 0.45 })
@@ -164,23 +168,21 @@ const Station = ({ f }) => {
     <group>
       <mesh position={[0, 0.012, -1]} rotation-x={-Math.PI / 2} material={mats.lot} receiveShadow><planeGeometry args={[25, 19]} /></mesh>
       <mesh position={[0, 0.016, 12.75]} rotation-x={-Math.PI / 2} material={mats.road} receiveShadow><planeGeometry args={[160, 7.5]} /></mesh>
-      {/* the lit office behind the plate window (a backdrop 0.9 m inside), the glass */}
-      <mesh position={[(WX0 + WX1) / 2, (WY0 + WY1) / 2 + 0.05, FRONT - 0.95]} material={mats.office}><planeGeometry args={[3.4, 2.1]} /></mesh>
-      {[-1, 1].map((sd) => <mesh key={sd} position={[(WX0 + WX1) / 2 + sd * 1.15, 1.6, FRONT - 0.5]} rotation-y={-sd * Math.PI / 2}><planeGeometry args={[0.9, 3.2]} /><meshStandardMaterial color="#8A6A48" roughness={0.8} /></mesh>)}
-      <mesh position={[(WX0 + WX1) / 2, 0.9, FRONT - 0.5]} rotation-x={-Math.PI / 2}><planeGeometry args={[2.4, 0.9]} /><meshStandardMaterial color="#5A4030" roughness={0.8} /></mesh>
+      {/* the lit office behind the plate window, built in 3-D (e_gas OfficeRoom), and the glass */}
+      <OfficeRoom front={FRONT - 0.12} x0={OFF.x0 + 0.12} x1={OFF.x1 - 0.12} wx0={WX0} wx1={WX1} depth={DEPTH - 0.24} ceil={OFF.h - 0.12} f={f} />
       <mesh position={[(WX0 + WX1) / 2, (WY0 + WY1) / 2, FRONT - 0.01]} material={mats.glass} renderOrder={3}><planeGeometry args={[WX1 - WX0, WY1 - WY0]} /></mesh>
-      <pointLight position={[(WX0 + WX1) / 2, 2.0, FRONT - 0.6]} color="#FFC07A" intensity={1.2} distance={5} decay={1.6} />
       <mesh position={[(WX0 + WX1) / 2, 0.03, FRONT + 1.4]} rotation-x={-Math.PI / 2} renderOrder={2}><planeGeometry args={[3.6, 2.8]} /><meshBasicMaterial map={poolTex()} color="#FFB46A" transparent opacity={0.2} blending={THREE.AdditiveBlending} depthWrite={false} /></mesh>
       {/* the door's lit glass and the OPEN sign hanging in it on a chain */}
       <mesh position={[DX, 1.62, FRONT - 0.07]} material={mats.doorLite}><planeGeometry args={[0.62, 0.85]} /></mesh>
       <mesh position={[DX, 1.5, FRONT - 0.04]} material={mats.open}><planeGeometry args={[0.42, 0.21]} /></mesh>
       {[-1, 1].map((sd) => <mesh key={sd} position={[DX + sd * 0.1, 1.71, FRONT - 0.045]} rotation-z={sd * 0.7}><cylinderGeometry args={[0.003, 0.003, 0.24, 4]} /><meshStandardMaterial color="#9AA2AC" metalness={0.8} roughness={0.3} /></mesh>)}
       {/* the overhead bay door, lit from inside; the warm pool in front of it */}
-      <mesh position={[1.9, 1.52, FRONT + 0.012]} material={mats.bay}><planeGeometry args={[3.0, 3.0]} /></mesh>
+      <BayDoor x={1.9} front={FRONT} w={3.0} h={3.0} />
       <mesh position={[1.9, 0.03, FRONT + 1.2]} rotation-x={-Math.PI / 2} renderOrder={2}><planeGeometry args={[3.4, 2.2]} /><meshBasicMaterial map={poolTex()} color="#FFB46A" transparent opacity={0.12} blending={THREE.AdditiveBlending} depthWrite={false} /></mesh>
       {/* the fascia sign */}
-      <mesh position={[SIGN.x, SIGN.y, FRONT - 0.035]} material={mats.sign}><planeGeometry args={[SIGN.w, SIGN.h]} /></mesh>
-      <pointLight position={[SIGN.x, SIGN.y + 1.3, FRONT + 0.9]} color="#FFD8A0" intensity={1.4} distance={4} decay={1.4} />
+      <mesh position={[SIGN.x, SIGN.y, FRONT + SIGN.z]} material={mats.sign}><planeGeometry args={[SIGN.w, SIGN.h]} /></mesh>
+      <pointLight position={[SIGN.x, SIGN.y + 1.2, FRONT + SIGN.z + 0.9]} color="#FFD8A0" intensity={1.4} distance={4} decay={1.4} />
+
       {/* the pumps and the oil rack on the island; a light over the island from the pole lamp */}
       <GasPump position={PUMP1} grade="REGULAR" accent="#1F3A63" />
       <GasPump position={PUMP2} grade="PREMIUM" accent="#6E2A2A" />
@@ -220,7 +222,8 @@ const Scene = ({ f }) => {
       <Ridges />
       <Snowfield hgt={hgt} size={260} segs={160} />
       <Built build={buildGas} />
-      <Pines items={pines} />
+      <Conifers items={pines} near={[0, -3]} farDist={28} />
+      <Maples items={[{ p: [-9, hgt(-9, -7) - 0.1, -7], h: 10, seed: 21 }, { p: [11.5, hgt(11.5, -4) - 0.1, -4], h: 9, seed: 22 }]} />
       <Station f={f} />
     </group>
   );
@@ -234,7 +237,7 @@ const shots = () => {
 };
 const Overlay = ({ f, P }) => {
   const t = T();
-  const sign = P([SIGN.x - 0.6, SIGN.y + 0.35, FRONT]);
+  const sign = P([SIGN.x - SIGN.w / 2 + 0.2, SIGN.y + 0.18, FRONT + SIGN.z]);   // (E) the ring sits in the panel's left margin, clear of the lettering
   return (
     <>
       <Tag text="After WWII" at={t.war - 4} out={t.years - 30} x={96} y={500} to={sign.behind ? null : sign} />
