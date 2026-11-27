@@ -24,10 +24,14 @@ export const CLOSE_AT = VO_END + 12;          // the close begins after the last
 //   whose bed was 711): the file as he gave it (public/711.mp3, the copy Videos 11–16 used), ONE volume for the whole film (STYLE 11.3,
 //   2026-10-15 / 10-22), started so its big drop (117.38 s in the source) lands on "In 2003," (frame 212); the volume matches the FOCUS
 //   bed it replaces as heard (both −24.8 LUFS over the body: the 711 body is −10.1 LUFS at 1.0 → 0.18)
-const BED_FILE = "711.mp3";
-// V39: the previous film's song (the song rule), its drop (117.38 s = source frame 3521) on "Ronald Read" — the line after the hook (frame 221)
-const BED_START = 3521 - WIN().farm.start - 4;
-const BED_VOL = 0.18;
+// ★ V39 rev 3 (Timur, 2026-11-27: "change the song to the song that was used in the Powerball video" = Video 32 "Powerball Quarter", whose
+//   song was Radiohead — "Everything In Its Right Place" (Instrumental), public/music_radiohead.mp3, the same file Videos 4/10/11/36 used).
+//   It holds one level from its first second (no intro, no drop), so it plays from its top in one regime; its volume matches the 711 bed it
+//   replaces AS HEARD over the film's 73.4 s (711 at 0.18 from 110.0 s: −25.2 LUFS; Radiohead at 1.0 from 0: −14.7 LUFS → 0.30).
+//   (The 711 settings were: BED_FILE "711.mp3", BED_START 3521 − farm.start − 4, BED_VOL 0.18.)
+const BED_FILE = "music_radiohead.mp3";
+const BED_START = 0;
+const BED_VOL = 0.30;
 // rev 4c: every station but the hook is authored in STORY time (real − S): its shots move by +S
 const real = (s) => (sh) => (s.id === HOOK_ID ? sh : { ...sh, a: sh.a + S, b: sh.b + S });
 const shotsAll = STATIONS.flatMap((s) => s.shots().map(real(s))).sort((p, q) => p.a - q.a);
