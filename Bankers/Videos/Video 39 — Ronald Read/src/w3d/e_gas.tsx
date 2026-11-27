@@ -102,21 +102,50 @@ const garageTex = () => canvasTex("e_garage", 1024, 512, (c, w, h) => {
   c.strokeStyle = "#2A2A2A"; c.lineWidth = 4; c.beginPath(); c.moveTo(w * 0.55, 0); c.lineTo(w * 0.55, h * 0.3); c.stroke();
   c.fillStyle = "#FFF6DC"; c.beginPath(); c.arc(w * 0.55, h * 0.33, 16, 0, 7); c.fill();                         // work lamp
 });
-/** the plowed lot: packed snow over gravel, tyre tracks curving to the pumps and the bay, patches of ice, a scatter of sand */
-export const lotTex = () => canvasTex("e_lot_v2", 2048, 2048, (c, w, h) => {
+/** the plowed lot (Timur, 2026-11-27: "make sure the tracks are placed where a car actually goes — next to the pumps, and into the
+ *  garage"). The texture covers the lot plane ONCE (no repeat), drawn in the station's own metres, so every tyre track follows a real
+ *  car's path: in from the road and straight into the bay; in along the driving lane BESIDE the pump island (stopping at a pump) and
+ *  back out to the road; an older pass along the lane behind the island. No track crosses the island or runs under a pump.
+ *  LOT = the plane's extent in station metres (x −12.5…12.5, z −10.5…8.5). */
+export const LOT = { x0: -12.5, x1: 12.5, z0: -10.5, z1: 8.5 };
+const bez = (p0, p1, p2, p3, n = 40) => Array.from({ length: n + 1 }, (_, i) => { const t = i / n, u = 1 - t; return [u * u * u * p0[0] + 3 * u * u * t * p1[0] + 3 * u * t * t * p2[0] + t * t * t * p3[0], u * u * u * p0[1] + 3 * u * u * t * p1[1] + 3 * u * t * t * p2[1] + t * t * t * p3[1]]; });
+const line = (a, b, n = 20) => Array.from({ length: n + 1 }, (_, i) => [a[0] + (b[0] - a[0]) * (i / n), a[1] + (b[1] - a[1]) * (i / n)]);
+export const CAR_PATHS = [
+  // into the bay (two visits), straight in through the door at x 1.9
+  { pts: bez([4.8, 8.6], [3.6, 4.5], [1.9, 1.5], [1.9, -3.45]), a: 1 },
+  { pts: bez([6.0, 8.6], [4.3, 3.6], [2.05, 1.0], [2.05, -3.45]), a: 0.6 },
+  // the driving lane in front of the island: in from the road, along the island (z 2.05, the pumps' side), out again
+  { pts: [...bez([-7.6, 8.6], [-7.2, 4.0], [-6.2, 2.05], [-4.5, 2.05]), ...line([-4.5, 2.05], [0.6, 2.05]), ...bez([0.6, 2.05], [2.4, 2.05], [3.6, 4.5], [4.2, 8.6])], a: 1 },
+  { pts: [...bez([-8.2, 8.6], [-7.8, 4.2], [-6.6, 2.2], [-4.8, 2.2]), ...line([-4.8, 2.2], [0.2, 2.2]), ...bez([0.2, 2.2], [2.0, 2.2], [3.1, 4.6], [3.6, 8.6])], a: 0.55 },
+  // an older pass along the lane behind the island, out past the bay
+  { pts: [...bez([-8.8, 8.6], [-8.6, 2.0], [-6.8, -1.35], [-5.0, -1.35]), ...line([-5.0, -1.35], [0.2, -1.35]), ...bez([0.2, -1.35], [2.2, -1.35], [3.1, 1.5], [3.4, 8.6])], a: 0.45 }
+];
+export const lotTex = () => canvasTex("e_lot_v4", 3072, 2336, (c, w, h) => {
+  const X = (x) => ((x - LOT.x0) / (LOT.x1 - LOT.x0)) * w, Y = (z) => ((z - LOT.z0) / (LOT.z1 - LOT.z0)) * h, PPM = w / (LOT.x1 - LOT.x0);
   c.fillStyle = "#B4BECB"; c.fillRect(0, 0, w, h);
-  for (let i = 0; i < 90000; i++) { const g = rnd(i); c.fillStyle = `rgba(${g < 0.45 ? "70,78,92" : g < 0.9 ? "235,240,248" : "120,100,78"},${0.04 + rnd(i + 1) * 0.08})`; c.fillRect(rnd(i + 2) * w, rnd(i + 3) * h, 2 + rnd(i) * 3, 2); }
-  for (let k = 0; k < 10; k++) { const x = rnd(k * 5) * w, y = rnd(k * 7) * h; const g = c.createRadialGradient(x, y, 5, x, y, 160 + rnd(k) * 160); g.addColorStop(0, "rgba(200,214,234,0.35)"); g.addColorStop(1, "rgba(200,214,234,0)"); c.fillStyle = g; c.fillRect(x - 330, y - 330, 660, 660); }   // ice
-  for (let k = 0; k < 12; k++) {
-    const x0 = w * (0.1 + rnd(k) * 0.8), bend = (rnd(k + 3) - 0.5) * w * 0.4;
-    for (const off of [0, 104]) {
-      c.strokeStyle = `rgba(80,88,104,${0.16 + rnd(k + 5) * 0.12})`; c.lineWidth = 44; c.beginPath();
-      c.moveTo(x0 + off, h); c.quadraticCurveTo(x0 + off + bend, h * 0.5, x0 + off + bend * 0.4, 0); c.stroke();
-      c.strokeStyle = "rgba(40,48,60,0.10)"; c.lineWidth = 5;
-      for (let q = 0; q < 90; q++) { const t = q / 90, x = (1 - t) * (1 - t) * (x0 + off) + 2 * (1 - t) * t * (x0 + off + bend) + t * t * (x0 + off + bend * 0.4), y = h * (1 - t); c.beginPath(); c.moveTo(x - 18, y); c.lineTo(x + 18, y - 10); c.stroke(); }   // tread
+  for (let i = 0; i < 150000; i++) { const g = rnd(i); c.fillStyle = `rgba(${g < 0.45 ? "70,78,92" : g < 0.9 ? "235,240,248" : "120,100,78"},${0.04 + rnd(i + 1) * 0.08})`; c.fillRect(rnd(i + 2) * w, rnd(i + 3) * h, 2 + rnd(i) * 3, 2); }
+  for (let k = 0; k < 10; k++) { const x = rnd(k * 5) * w, y = rnd(k * 7) * h; const g = c.createRadialGradient(x, y, 5, x, y, 200 + rnd(k) * 200); g.addColorStop(0, "rgba(200,214,234,0.3)"); g.addColorStop(1, "rgba(200,214,234,0)"); c.fillStyle = g; c.fillRect(x - 420, y - 420, 840, 840); }   // ice
+  // the tyre tracks: each wheel 0.72 m either side of the car's path, packed darker snow with a tread pattern; a faint packed band
+  // between the wheels
+  c.lineCap = "round"; c.lineJoin = "round";
+  for (const P of CAR_PATHS) {
+    const L = P.pts, nrm = L.map((p, i) => { const a = L[Math.max(0, i - 1)], b = L[Math.min(L.length - 1, i + 1)], dx = b[0] - a[0], dz = b[1] - a[1], l = Math.hypot(dx, dz) || 1; return [-dz / l, dx / l]; });
+    c.strokeStyle = `rgba(110,120,140,${0.16 * P.a})`; c.lineWidth = 1.2 * PPM; c.beginPath(); L.forEach((p, i) => c.lineTo(X(p[0]), Y(p[1]))); c.stroke();
+    for (const sd of [-0.72, 0.72]) {
+      const W2 = L.map((p, i) => [p[0] + nrm[i][0] * sd, p[1] + nrm[i][1] * sd]);
+      c.strokeStyle = `rgba(70,78,94,${0.62 * P.a})`; c.lineWidth = 0.22 * PPM; c.beginPath(); W2.forEach((p) => c.lineTo(X(p[0]), Y(p[1]))); c.stroke();
+      c.strokeStyle = `rgba(240,244,250,${0.45 * P.a})`; c.lineWidth = 0.035 * PPM; for (const e of [-1, 1]) { c.beginPath(); W2.forEach((p, i) => c.lineTo(X(p[0] + nrm[i][0] * e * 0.12), Y(p[1] + nrm[i][1] * e * 0.12))); c.stroke(); }   // the ridges thrown up at its edges
+      // tread: short bars across the track every ~6 cm
+      c.strokeStyle = `rgba(36,42,54,${0.38 * P.a})`; c.lineWidth = 0.025 * PPM;
+      for (let i = 0; i < W2.length - 1; i++) {
+        const a = W2[i], b = W2[i + 1], seg = Math.hypot(b[0] - a[0], b[1] - a[1]), n = Math.max(1, Math.round(seg / 0.06));
+        for (let q = 0; q < n; q++) { const t = q / n, x = a[0] + (b[0] - a[0]) * t, z = a[1] + (b[1] - a[1]) * t, nx = nrm[i][0], nz = nrm[i][1]; c.beginPath(); c.moveTo(X(x - nx * 0.09), Y(z - nz * 0.09)); c.lineTo(X(x + nx * 0.09 + (b[0] - a[0]) / seg * 0.03), Y(z + nz * 0.09 + (b[1] - a[1]) / seg * 0.03)); c.stroke(); }
+      }
     }
   }
-  for (let i = 0; i < 9000; i++) { c.fillStyle = `rgba(110,86,60,${0.2 + rnd(i) * 0.3})`; c.fillRect(rnd(i * 3 + 1) * w, rnd(i * 3 + 2) * h, 2, 2); }   // sand
+  // the attendant's boot prints: from behind the island to the office door
+  for (let i = 0; i < 26; i++) { const t = i / 25, x = -1.6 + (-1.22 + 1.6) * t + (i % 2 ? 0.12 : -0.12), z = -0.4 + (-3.2 + 0.4) * t; c.fillStyle = "rgba(96,106,124,0.35)"; c.beginPath(); c.ellipse(X(x), Y(z), 0.055 * PPM, 0.14 * PPM, 0.1, 0, 7); c.fill(); }
+  for (let i = 0; i < 14000; i++) { c.fillStyle = `rgba(110,86,60,${0.2 + rnd(i) * 0.3})`; c.fillRect(rnd(i * 3 + 1) * w, rnd(i * 3 + 2) * h, 2, 2); }   // sand
 });
 /** the plowed winter road (u along the road, v across: 0 = the station side) */
 export const roadTex = () => canvasTex("e_road_v3", 2048, 512, (c, w, h) => {

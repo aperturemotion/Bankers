@@ -14,12 +14,21 @@ const cl = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
 const ss = (a, b, x) => { const t = cl((x - a) / (b - a)); return t * t * (3 - 2 * t); };
 const HEM = -0.8;
 /** half-width, half-depth of the body at height y (the sleeves are separate) */
+// (E, Timur 2026-11-27: "the jacket kind of overlaps with the hanger and with the wall … make it more three-dimensional") the coat now
+//   HANGS from the peg: the back of the neck rises over the peg like a tent (the peg and its knob wholly inside the cloth, the cloth's
+//   ridge above it), the coat leans back from there so its back rests 6 mm off the clapboards (contact shadow, never through them),
+//   and the fronts stand out ~10 cm from the wall with real volume. TOP: the ridge of cloth over the peg.
+const TOP = 0.05;
 const bodyW = (y) => {
-  if (y > -0.05) return 0.045 + (0.05 - 0.045) * 0;
-  if (y > -0.2) return 0.05 + 0.17 * ss(-0.05, -0.2, y);
+  if (y > -0.2) return 0.04 + 0.18 * Math.pow(ss(TOP, -0.2, y), 0.75);   // the shoulders slope straight down from the peg (no 'neck')
   return 0.22 + 0.055 * ss(-0.2, -0.36, y) + 0.015 * ss(-0.5, HEM, y);
 };
 const bodyD = (y) => 0.035 + 0.045 * ss(-0.03, -0.3, y) - 0.008 * ss(-0.5, HEM, y);
+/** the back plane (resting toward the wall: the wall is at z −0.027 in this frame, the peg board's face at −0.004) */
+const backZ = (y) => 0.002 - 0.023 * ss(-0.06, -0.26, y);
+/** the front centre (before the folds): out over the peg's knob at the top, ~10 cm off the wall at the pin, a little less at the hem */
+const frontC = (y) => y > -0.01 ? 0.12 - 0.015 * ss(0.04, TOP, y) : y > -0.2 ? 0.12 - 0.022 * ss(-0.01, -0.2, y) : 0.098 - 0.026 * ss(-0.45, HEM, y);
+const sideZ = (y) => backZ(y) + 0.45 * (frontC(y) - backZ(y));
 export const PIN_Y = -0.4;
 /** the fold / pin relief added to the front of the body at (x, y) */
 const relief = (x, y) => {
@@ -30,21 +39,21 @@ const relief = (x, y) => {
   return z;
 };
 /** the front surface's z at (x, y) (for buttons, the pin, the puckers) */
-export const frontZ = (x, y) => { const w = bodyW(y) * 1.0, a = Math.asin(cl(x / w, -1, 1)), front = Math.max(0, Math.cos(a)); return Math.cos(a) * bodyD(y) + 0.35 * bodyD(y) + 0.006 + front * relief(x, y); };
+export const frontZ = (x, y) => { const w = bodyW(y) * 1.0, a = Math.asin(cl(x / w, -1, 1)), front = Math.max(0, Math.cos(a)), S = sideZ(y); return S + Math.cos(a) * (frontC(y) - S) + front * relief(x, y); };
 /** the body surface: rings round the jacket, lofted top to hem; folds hang from the shoulders and pull toward the pin */
 const bodyGeo = () => {
   const NY = 110, NU = 120, pos = [], uv = [], idx = [];
   for (let j = 0; j <= NY; j++) {
-    const v = j / NY, y = 0.0 + (HEM - 0.0) * v;
-    const w = bodyW(y), d = bodyD(y), cz = 0.35 * d + 0.006;
+    const v = j / NY, y = TOP + (HEM - TOP) * v;
+    const w = bodyW(y), S = sideZ(y), F = frontC(y) - S, B = S - backZ(y);
     for (let i = 0; i <= NU; i++) {
       const u = i / NU, a = (u - 0.5) * Math.PI * 2;   // a = 0 → the front centre
       const front = Math.max(0, Math.cos(a));
-      let x = Math.sin(a) * w, z = Math.cos(a) * d;
-      if (Math.cos(a) < 0) { z *= 0.35; x *= 1 + 0.12 * (1 - Math.abs(Math.cos(a))); }     // a flat back against the wall
+      let x = Math.sin(a) * w, z = Math.cos(a) * (Math.cos(a) >= 0 ? F : B);
+      if (Math.cos(a) < 0) x *= 1 + 0.12 * (1 - Math.abs(Math.cos(a)));                    // the back flattens toward the wall
       z += front * relief(x, y);
       x *= 1 + 0.03 * ss(-0.6, HEM, y) * Math.sin(u * 20) * (1 - front);                   // the hem waves a little at the sides
-      pos.push(x, y, z + cz); uv.push(u, 1 - v);
+      pos.push(x, y, z + S); uv.push(u, 1 - y / HEM);
     }
   }
   for (let j = 0; j < NY; j++) for (let i = 0; i < NU; i++) {
@@ -58,13 +67,13 @@ const bodyGeo = () => {
 };
 /** a sleeve: a flattened tube from the shoulder down to the cuff, hanging a little in front, bent at the elbow */
 const sleeveGeo = (sd) => {
-  const pts = [[0.18, -0.15, 0.06], [0.235, -0.25, 0.075], [0.255, -0.42, 0.085], [0.25, -0.56, 0.1], [0.245, -0.7, 0.095]].map(([x, y, z]) => new THREE.Vector3(sd * x, y, z));
+  const pts = [[0.18, -0.15, 0.075], [0.235, -0.25, 0.072], [0.255, -0.42, 0.064], [0.25, -0.56, 0.055], [0.245, -0.7, 0.046]].map(([x, y, z]) => new THREE.Vector3(sd * x, y, z));
   const curve = new THREE.CatmullRomCurve3(pts);
   const g = new THREE.TubeGeometry(curve, 48, 0.056, 20, false);
   // taper toward the cuff, flatten front-to-back, a few creases at the elbow
   const P = g.attributes.position, N = 48, R = 20;
   for (let s = 0; s <= N; s++) {
-    const t = s / N, c = curve.getPointAt(t), taper = 1 - 0.22 * t, crease = 1 + 0.06 * Math.sin(t * 40) * ss(0.4, 0.6, t) * (1 - ss(0.6, 0.8, t));
+    const t = s / N, c = curve.getPointAt(t), taper = 1 - 0.22 * t, crease = 1 + 0.06 * Math.sin(t * 40) * ss(0.4, 0.6, t) * (1 - ss(0.6, 0.8, t)) + 0.025 * Math.sin(t * 23 + sd);
     for (let r = 0; r <= R; r++) {
       const k = s * (R + 1) + r;
       const dx = P.getX(k) - c.x, dy = P.getY(k) - c.y, dz = P.getZ(k) - c.z;
@@ -145,6 +154,12 @@ const weaveTex = () => { const t = canvasTex("e_duckweave", 256, 256, (c, w, h) 
   }
   for (let i = 0; i < 200; i++) { c.fillStyle = `rgba(${rnd(i) < 0.5 ? "255,255,255" : "0,0,0"},0.15)`; c.fillRect(rnd(i + 1) * w, rnd(i + 2) * h, 2 + rnd(i) * 14, 2); }
 }); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.NoColorSpace; t.repeat.set(70, 70); return t; };
+/** a red-and-black blanket plaid (the lining of a Vermont chore coat) */
+const liningTex = () => { const t = canvasTex("e_lining", 256, 256, (c, w, h) => {
+  c.fillStyle = "#5A1E1A"; c.fillRect(0, 0, w, h);
+  for (let k = 0; k < 4; k++) { c.fillStyle = "rgba(14,10,10,0.55)"; c.fillRect(k * 64, 0, 28, h); c.fillRect(0, k * 64, w, 28); }
+  for (let i = 0; i < 3000; i++) { c.fillStyle = `rgba(${rnd(i) < 0.5 ? "0,0,0" : "200,120,100"},${rnd(i + 1) * 0.12})`; c.fillRect(rnd(i + 2) * w, rnd(i + 3) * h, 2, 2); }
+}); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(6, 6); return t; };
 const corduroyTex = () => { const t = canvasTex("b_cord", 256, 64, (c, w, h) => { c.fillStyle = "#4A3424"; c.fillRect(0, 0, w, h); for (let x = 0; x < w; x += 6) { c.fillStyle = "rgba(120,92,64,0.6)"; c.fillRect(x, 0, 3, h); c.fillStyle = "rgba(20,14,8,0.5)"; c.fillRect(x + 4, 0, 1.5, h); } for (let i = 0; i < 2000; i++) { c.fillStyle = `rgba(200,170,130,${rnd(i) * 0.12})`; c.fillRect(rnd(i + 1) * w, rnd(i + 2) * h, 2, 2); } }); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(6, 1); return t; };
 // ── the safety pin ──────────────────────────────────────────────────────────────────────────────────────────────────────
 let PING = null;
@@ -209,10 +224,19 @@ const POCKETS = [
 ];
 // ── the jacket ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 export const Jacket = () => {
-  const geo = useMemo(() => ({ body: bodyGeo(), L: sleeveGeo(-1), R: sleeveGeo(1) }), []);
+  const geo = useMemo(() => {
+    // the collar roll: a soft corduroy tube round the neck opening, riding just outside the cloth over the peg
+    const yR = TOP - 0.012, wR = bodyW(yR) * 1.25, S = sideZ(yR), F = frontC(yR) - S + 0.01, Bb = S - backZ(yR) + 0.004;
+    const ring = Array.from({ length: 33 }, (_, i) => { const a = (i / 32) * Math.PI * 2; return new THREE.Vector3(Math.sin(a) * wR, yR + 0.004 * Math.cos(a), S + Math.cos(a) * (Math.cos(a) >= 0 ? F : Bb)); });
+    const roll = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(ring, true), 64, 0.011, 10, true);
+    // the inverted V where the fronts part at the hem (lining showing): a thin patch just proud of the front
+    const px0 = 0.0075, yA = -0.715, pts = [[px0, yA], [px0 - 0.03, HEM + 0.004], [px0 + 0.034, HEM + 0.004]];
+    const hemV = new THREE.BufferGeometry(); hemV.setAttribute("position", new THREE.Float32BufferAttribute(pts.flatMap(([x, y]) => [x, y, frontZ(x, y) + 0.0035]), 3)); hemV.setIndex([0, 1, 2]); hemV.computeVertexNormals();
+    return { body: bodyGeo(), L: sleeveGeo(-1), R: sleeveGeo(1), roll, hemV };
+  }, []);
   const pk = useMemo(() => POCKETS.map((q) => ({ pocket: patchGeo(q.x0, q.x1, q.y0, q.y1, 0.0035), flap: patchGeo(q.x0 - 0.006, q.x1 + 0.006, q.y1 - 0.045, q.y1 + 0.006, 0.0075, 0.005, 0.003) })), []);
   const mats = useMemo(() => ({
-    body: new THREE.MeshPhysicalMaterial({ map: jacketTex(), bumpMap: weaveTex(), bumpScale: 0.6, roughness: 0.93, sheen: 0.6, sheenRoughness: 0.7, sheenColor: new THREE.Color("#C9B48A"), side: THREE.DoubleSide }),
+    body: new THREE.MeshPhysicalMaterial({ map: jacketTex(), bumpMap: weaveTex(), bumpScale: 0.6, roughness: 0.93, sheen: 0.6, sheenRoughness: 0.7, sheenColor: new THREE.Color("#C9B48A"), side: THREE.FrontSide }),
     sleeve: new THREE.MeshPhysicalMaterial({ map: sleeveTex(), bumpMap: weaveTex(), bumpScale: 0.6, roughness: 0.93, sheen: 0.6, sheenRoughness: 0.7, sheenColor: new THREE.Color("#C9B48A") }),
     patch: new THREE.MeshPhysicalMaterial({ map: jacketTex(), bumpMap: weaveTex(), bumpScale: 0.6, roughness: 0.93, sheen: 0.6, sheenRoughness: 0.7, sheenColor: new THREE.Color("#C9B48A"), side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1 }),
     cuff: new THREE.MeshPhysicalMaterial({ map: sleeveTex(), bumpMap: weaveTex(), bumpScale: 0.6, roughness: 0.95, color: "#B8A888", sheen: 0.5, sheenColor: new THREE.Color("#C9B48A") }),
@@ -220,7 +244,9 @@ export const Jacket = () => {
     lining: new THREE.MeshStandardMaterial({ color: "#2E2622", roughness: 0.95, side: THREE.DoubleSide }),
     button: new THREE.MeshStandardMaterial({ color: "#7A6038", roughness: 0.35, metalness: 0.7 }),
     buttonHi: new THREE.MeshStandardMaterial({ color: "#A88A58", roughness: 0.25, metalness: 0.85 }),
-    loop: new THREE.MeshStandardMaterial({ color: "#3A2A1C", roughness: 0.9 })
+    loop: new THREE.MeshStandardMaterial({ color: "#3A2A1C", roughness: 0.9 }),
+    liningIn: new THREE.MeshStandardMaterial({ map: liningTex(), roughness: 0.95, side: THREE.BackSide }),
+    liningIn2: new THREE.MeshStandardMaterial({ map: liningTex(), roughness: 0.95, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2 })
   }), []);
   // the collar: a folded corduroy band lying on the shoulders, rising to the hanging loop, its two points framing the placket's top
   const collar = useMemo(() => {
@@ -249,8 +275,10 @@ export const Jacket = () => {
       <mesh geometry={collar} material={mats.cord} castShadow />
       {/* the collar's rolled edge */}
       {[-1, 1].map((sd) => <mesh key={sd} position={[sd * 0.085, -0.095, frontZ(sd * 0.085, -0.095) + 0.006]} rotation-z={sd * 0.35} scale={[0.55, 1, 0.4]} material={mats.cord}><cylinderGeometry args={[0.012, 0.012, 0.16, 10]} /></mesh>)}
-      {/* the hanging loop over the peg */}
-      <mesh position={[0, 0.006, 0.018]} rotation-x={Math.PI / 2 - 0.3} material={mats.loop}><torusGeometry args={[0.014, 0.003, 6, 16]} /></mesh>
+      {/* (E) the blanket lining on the inside of the coat (seen at the neck and the hem), the collar's roll round the neck over the peg,
+          the fronts parting below the last button to show the lining's edge */}
+      <mesh geometry={geo.body} material={mats.liningIn} />
+      <mesh geometry={geo.hemV} material={mats.liningIn2} />
       {/* buttons down the placket; the third is gone (the pin) */}
       {[-0.13, -0.265, -0.535, -0.67].map((y) => (
         <group key={y} position={[px + 0.016, y, surfZ(px + 0.016, y) + 0.003]}>
@@ -277,6 +305,75 @@ export const Jacket = () => {
     </group>
   );
 };
+const contactTex = () => canvasTex("e_coat_contact2", 256, 320, (c, w, h) => {
+  c.clearRect(0, 0, w, h);
+  c.save(); c.translate(w / 2, h / 2); c.scale(1, h / w);
+  const g = c.createRadialGradient(0, 0, 2, 0, 0, w / 2); g.addColorStop(0, "rgba(0,0,0,0.42)"); g.addColorStop(0.55, "rgba(0,0,0,0.3)"); g.addColorStop(0.8, "rgba(0,0,0,0.1)"); g.addColorStop(1, "rgba(0,0,0,0)");
+  c.fillStyle = g; c.beginPath(); c.arc(0, 0, w / 2, 0, 7); c.fill(); c.restore();
+});
+// ── (E, Timur 2026-11-27: "do the same thing for the hat") THE WATCH CAP on the third peg, hung like the coat: its folded rib-knit
+//   cuff hooked over the peg (the peg and its knob wholly INSIDE the cap, the cloth's top edge above them), the crown hanging down with
+//   gravity and resting against the clapboards 4 mm off them (contact shadow), a gathered crown, real thickness. PegRail frame: the
+//   board's face at z 0.022, the wall at z −0.001, the third peg at x 0.54 (its knob centre ≈ (0.54, 0.011, 0.109), radius 0.017).
+const CAP = { x: 0.54, top: 0.05, crown: -0.25 };
+const capW = (y) => { const t = (CAP.top - y) / (CAP.top - CAP.crown); return (0.03 + 0.068 * ss(0, 0.3, t) - 0.012 * ss(0.4, 0.75, t)) * Math.sqrt(Math.max(0, 1 - Math.pow(ss(0.6, 1.0, t), 2))) + 0.002; };
+const capBack = (y) => 0.038 - 0.034 * ss(-0.05, -0.1, y);   // clear of the board (face 0.022, foot −0.045), then resting 4 mm off the wall
+const capFront = (y) => y > -0.01 ? 0.146 : 0.146 - 0.06 * ss(-0.01, -0.08, y) - 0.03 * ss(-0.08, -0.2, y) - 0.02 * ss(-0.18, CAP.crown, y);
+const capRing = (y, a, grow = 0) => {
+  const S = capBack(y) + 0.5 * (capFront(y) - capBack(y)), F = capFront(y) - S, B = S - capBack(y), c = Math.cos(a);
+  const t = (CAP.top - y) / (CAP.top - CAP.crown);
+  const sag = 0.006 * Math.sin(a * 5 + 1) * ss(0.25, 0.7, t) * Math.max(0, c);                     // soft folds down the front
+  const gather = 1 - 0.12 * ss(0.8, 1, t) * (0.5 + 0.5 * Math.sin(a * 7));                       // the crown gathered in pleats
+  const w = capW(y) * gather + grow;
+  return [CAP.x + Math.sin(a) * w * (c < 0 ? 1.06 : 1), y, S + c * ((c >= 0 ? F : B) + grow) + sag];
+};
+const capLoft = (y0, y1, grow, NY = 40, NU = 48, close = false) => {
+  const pos = [], uv = [], idx = [];
+  for (let j = 0; j <= NY; j++) { const y = y0 + (y1 - y0) * (j / NY); for (let i = 0; i <= NU; i++) { const a = (i / NU) * Math.PI * 2; pos.push(...capRing(y, a, grow)); uv.push((i / NU) * 7, (CAP.top - y) * 22); } }
+  for (let j = 0; j < NY; j++) for (let i = 0; i < NU; i++) { const a = j * (NU + 1) + i, b = a + NU + 1; idx.push(a, b, a + 1, b, b + 1, a + 1); }
+  if (close) { const c0 = pos.length / 3; const yb = y1; pos.push(CAP.x, yb - 0.004, capBack(yb) + 0.5 * (capFront(yb) - capBack(yb))); uv.push(0.5, 0.5); for (let i = 0; i < NU; i++) { const a = NY * (NU + 1) + i; idx.push(a, c0, a + 1); } }
+  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx); g.computeVertexNormals();
+  return g;
+};
+/** knit textures: the cuff's 1×1 rib (vertical ribs) and the crown's stockinette (rows of little V stitches); colour + bump */
+const knitDraw = (rib, bump) => (c, w, h) => {
+  c.fillStyle = bump ? "#606060" : "#2E3E58"; c.fillRect(0, 0, w, h);
+  if (rib) {
+    for (let x = 0; x < w; x += 16) { const g = c.createLinearGradient(x, 0, x + 16, 0); g.addColorStop(0, bump ? "#202020" : "rgba(30,8,8,0.55)"); g.addColorStop(0.5, bump ? "#F0F0F0" : "rgba(150,170,200,0.3)"); g.addColorStop(1, bump ? "#202020" : "rgba(30,8,8,0.55)"); c.fillStyle = g; c.fillRect(x, 0, 16, h); }
+    for (let y = 0; y < h; y += 8) { c.fillStyle = bump ? "rgba(0,0,0,0.25)" : "rgba(0,0,0,0.12)"; c.fillRect(0, y, w, 2); }
+  } else {
+    for (let y = 0; y < h; y += 12) for (let x = 0; x < w; x += 12) {
+      for (const sd of [-1, 1]) { c.fillStyle = bump ? "#E8E8E8" : "rgba(140,160,190,0.35)"; c.beginPath(); c.ellipse(x + 6 + sd * 2.6, y + 6, 2.6, 5.4, sd * 0.45, 0, 7); c.fill(); }
+      c.fillStyle = bump ? "#101010" : "rgba(20,6,6,0.5)"; c.fillRect(x + 5.5, y, 1, 12);
+    }
+  }
+  for (let i = 0; i < 2500; i++) { c.fillStyle = bump ? `rgba(255,255,255,${rnd(i) * 0.2})` : `rgba(${rnd(i) < 0.5 ? "10,14,24" : "190,200,215"},${rnd(i + 1) * 0.14})`; c.fillRect(rnd(i + 2) * w, rnd(i + 3) * h, 1.5, 1.5); }   // fuzz / pilling
+};
+const knitTex = (rib, bump) => { const t = canvasTex(`e_knit2_${rib ? "rib" : "st"}${bump ? "B" : ""}`, 256, 256, knitDraw(rib, bump)); t.wrapS = t.wrapT = THREE.RepeatWrapping; if (bump) t.colorSpace = THREE.NoColorSpace; return t; };
+const WatchCap = () => {
+  const g = useMemo(() => {
+    const body = capLoft(CAP.top - 0.005, CAP.crown, 0, 50, 48, true);
+    const cuff = capLoft(CAP.top, -0.035, 0.007, 16, 48);
+    const lip = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(Array.from({ length: 48 }, (_, i) => new THREE.Vector3(...capRing(-0.035, (i / 48) * Math.PI * 2, 0.008))), true), 96, 0.0055, 8, true);
+    const top = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(Array.from({ length: 48 }, (_, i) => new THREE.Vector3(...capRing(CAP.top, (i / 48) * Math.PI * 2, 0.004))), true), 96, 0.006, 8, true);
+    return { body, cuff, lip, top };
+  }, []);
+  const m = useMemo(() => {
+    const wool = (rib) => new THREE.MeshPhysicalMaterial({ map: knitTex(rib, false), bumpMap: knitTex(rib, true), bumpScale: 1.4, roughness: 0.96, sheen: 0.8, sheenRoughness: 0.8, sheenColor: new THREE.Color("#9AAAC4"), side: THREE.DoubleSide });
+    return { st: wool(false), rib: wool(true), pom: new THREE.MeshPhysicalMaterial({ map: knitTex(false, false), bumpMap: knitTex(true, true), bumpScale: 3, roughness: 1, sheen: 1, sheenColor: new THREE.Color("#B8C4D8"), color: "#D8DCE4" }), shadow: new THREE.MeshBasicMaterial({ map: contactTex(), transparent: true, depthWrite: false, color: "#000000" }) };
+  }, []);
+  return (
+    <group>
+      <mesh geometry={g.body} material={m.st} castShadow receiveShadow />
+      <mesh geometry={g.cuff} material={m.rib} castShadow receiveShadow />
+      <mesh geometry={g.lip} material={m.rib} castShadow />
+      <mesh geometry={g.top} material={m.rib} castShadow />
+      {/* the pom on the crown: a fluffy ball of yarn */}
+      <mesh position={[CAP.x, CAP.crown - 0.02, capBack(CAP.crown) + 0.5 * (capFront(CAP.crown) - capBack(CAP.crown)) + 0.014]} material={m.pom} castShadow><icosahedronGeometry args={[0.032, 3]} /></mesh>
+      <mesh position={[CAP.x, -0.1, 0.0015]} renderOrder={2} material={m.shadow}><planeGeometry args={[0.32, 0.38]} /></mesh>
+    </group>
+  );
+};
 /** the peg rail on the wall (a board with three Shaker pegs), the jacket on the first peg, a wool cap on the third */
 export const PegRail = ({ withJacket = true }) => {
   const mats = useMemo(() => ({ wood: new THREE.MeshStandardMaterial({ color: "#7A5A3C", roughness: 0.55 }), cap: new THREE.MeshStandardMaterial({ color: "#5A2A26", roughness: 0.95 }), capBand: new THREE.MeshStandardMaterial({ color: "#2A2A30", roughness: 0.9 }) }), []);
@@ -286,11 +383,10 @@ export const PegRail = ({ withJacket = true }) => {
       <mesh position={[0.25, 0, 0.011]} material={mats.wood} castShadow receiveShadow><boxGeometry args={[0.95, 0.09, 0.022]} /></mesh>
       {[0, 0.27, 0.54].map((x) => <mesh key={x} geometry={peg} position={[x, 0, 0.02]} rotation-x={Math.PI / 2 - 0.12} material={mats.wood} castShadow />)}
       {withJacket && <group position={[0, -0.01, 0.026]}><Jacket /></group>}
-      {/* a knitted wool cap on the third peg */}
-      <group position={[0.54, -0.07, 0.07]} rotation-z={0.1}>
-        <mesh material={mats.cap} scale={[1, 1.05, 0.7]} castShadow><sphereGeometry args={[0.095, 20, 14, 0, Math.PI * 2, 0, Math.PI / 1.7]} /></mesh>
-        <mesh position={[0, -0.03, 0]} material={mats.capBand} scale={[1, 1, 0.72]}><cylinderGeometry args={[0.098, 0.1, 0.05, 20, 1, true]} /></mesh>
-      </group>
+      {/* (E) the coat's soft contact shadow on the clapboards where its back rests near them */}
+      {withJacket && <mesh position={[0, -0.43, 0.0015]} renderOrder={2}><planeGeometry args={[0.78, 0.98]} /><meshBasicMaterial map={contactTex()} transparent depthWrite={false} color="#000000" /></mesh>}
+      {/* (E) the knitted watch cap hung on the third peg by its folded cuff: the peg goes in under the cuff, the cap droops down the wall */}
+      <WatchCap />
     </group>
   );
 };

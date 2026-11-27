@@ -15,7 +15,7 @@ import { cueAt } from "../bnx/SfxLayer";
 import { WIN, wAt } from "./windows";
 import { Built, Pines, Snowfield, Ridges, fbm, smooth, addMaple } from "./b_winter";
 import { GasPump, OilRack, Tire, stationSignTex, openSignTex, SIGNF } from "./b_pump";
-import { OfficeRoom, BayDoor, PoleSign, lotTex, roadTex } from "./e_gas";
+import { OfficeRoom, BayDoor, PoleSign, lotTex, roadTex, LOT } from "./e_gas";
 import { poolTex } from "./st_farm";
 import { Conifers, Maples } from "./e_trees";
 import { BODY } from "./fonts3d";
@@ -151,7 +151,7 @@ const pineItems = () => {
 };
 const Station = ({ f }) => {
   const mats = useMemo(() => {
-    const lot = lotTex(); lot.wrapS = lot.wrapT = THREE.RepeatWrapping; lot.repeat.set(1.3, 1.0);
+    const lot = lotTex();   // drawn once over the whole lot in station metres (e_gas LOT): the tracks follow real cars' paths
     const road = roadTex(); road.wrapS = THREE.RepeatWrapping; road.repeat.set(10, 1);
     return {
       lot: new THREE.MeshStandardMaterial({ map: lot, roughness: 0.6, metalness: 0.05, envMapIntensity: 0.5 }),
@@ -166,7 +166,7 @@ const Station = ({ f }) => {
   const WX0 = -4.25, WX1 = -1.95, WY0 = 0.95, WY1 = 2.45, DX = -1.22;
   return (
     <group>
-      <mesh position={[0, 0.012, -1]} rotation-x={-Math.PI / 2} material={mats.lot} receiveShadow><planeGeometry args={[25, 19]} /></mesh>
+      <mesh position={[(LOT.x0 + LOT.x1) / 2, 0.012, (LOT.z0 + LOT.z1) / 2]} rotation-x={-Math.PI / 2} material={mats.lot} receiveShadow><planeGeometry args={[LOT.x1 - LOT.x0, LOT.z1 - LOT.z0]} /></mesh>
       <mesh position={[0, 0.016, 12.75]} rotation-x={-Math.PI / 2} material={mats.road} receiveShadow><planeGeometry args={[160, 7.5]} /></mesh>
       {/* the lit office behind the plate window, built in 3-D (e_gas OfficeRoom), and the glass */}
       <OfficeRoom front={FRONT - 0.12} x0={OFF.x0 + 0.12} x1={OFF.x1 - 0.12} wx0={WX0} wx1={WX1} depth={DEPTH - 0.24} ceil={OFF.h - 0.12} f={f} />

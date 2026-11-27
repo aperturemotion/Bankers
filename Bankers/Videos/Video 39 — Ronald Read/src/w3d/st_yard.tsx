@@ -53,7 +53,7 @@ const buildYard = (m) => {
       { f: "right", x: 0, y: 4.0, ww: 0.75, wh: 1.0, cell: 4 },
       { f: "right", x: -1.5, y: 1.25, ww: 0.85, wh: 1.35, cell: 4 }
     ],
-    door: [{ f: "front", x: DOOR_X, w: 0.92, h: 2.05, cell: 1 }]
+    door: [{ f: "front", x: DOOR_X, w: 0.92, h: 2.05, cell: 1, color: "#33506F" }]
   });
   m.pop();
   // the porch: a plank deck on stone piers, two steps, a small gable roof on two turned posts
@@ -80,8 +80,9 @@ const buildYard = (m) => {
   m.pop();
   m.box("trimb", [cx, hy - 0.04, z0 + hd / 2], [hx1 - hx0, 0.1, hd], "#ECEBE6");                         // the soffit / tie
   for (const x of [hx0 + 0.1, hx1 - 0.1]) {
-    m.box("trimb", [x, hy - 0.45, z0 + 0.05], [0.09, 0.8, 0.09], "#ECEBE6");                                 // the wall post of the bracket
-    m.box("trimb", [x, hy - 0.42, z0 + 0.45], [0.07, 0.09, 1.0], "#ECEBE6", { r: [-0.78, 0, 0] });         // the knee brace
+    // (E) the bracket shortened so it stops above the peg rail (it came down into the cap on the third peg)
+    m.box("trimb", [x, hy - 0.27, z0 + 0.05], [0.09, 0.45, 0.09], "#ECEBE6");                                // the wall post of the bracket
+    m.box("trimb", [x, hy - 0.28, z0 + 0.3], [0.07, 0.09, 0.6], "#ECEBE6", { r: [-0.78, 0, 0] });          // the knee brace
   }
   // the porch light by the door (a black lantern)
   m.box("metal", [DOOR_X - 0.75, 2.42, FRONT_Z + 0.04], [0.1, 0.2, 0.06], "#15181C");
@@ -89,8 +90,14 @@ const buildYard = (m) => {
   m.sph("bulb", [DOOR_X - 0.75, 2.38, FRONT_Z + 0.13], 0.05, "#FFE6BE", { seg: 8 });
   m.box("metal", [DOOR_X - 0.75, 2.26, FRONT_Z + 0.13], [0.15, 0.02, 0.15], "#15181C");
   m.glow([DOOR_X - 0.75, 2.38, FRONT_Z + 0.16], "#FFD49A", 1.3);
-  // the house number by the door (a plain plaque) and a mailbox on the porch wall
-  m.box("metal", [DOOR_X + 0.75, 1.42, FRONT_Z + 0.02], [0.28, 0.32, 0.06], "#1E2530");
+  // (E) a coir doormat in front of the door (a dark bound edge), 
+  m.box("wood", [DOOR_X, y + 0.011, FRONT_Z + 0.42], [0.86, 0.022, 0.52], "#2A2420");
+  m.box("wood", [DOOR_X, y + 0.014, FRONT_Z + 0.42], [0.78, 0.022, 0.44], "#8A6A44");
+  // (E) a black wall-mount mailbox on the door's other side (the old dark plaque sat behind the coat and read as a hole in the wall)
+  m.box("metal", [DOOR_X - 0.88, 1.42, FRONT_Z + 0.06], [0.3, 0.3, 0.1], "#15181C");
+  m.box("metal", [DOOR_X - 0.88, 1.585, FRONT_Z + 0.075], [0.33, 0.03, 0.14], "#1E2228", { r: [0.25, 0, 0] });
+  m.box("galv", [DOOR_X - 0.88, 1.5, FRONT_Z + 0.115], [0.08, 0.02, 0.01], "#B89A58");
+  m.box("snow", [DOOR_X - 0.88, 1.61, FRONT_Z + 0.075], [0.3, 0.025, 0.12], "#F2F6FB", { r: [0.25, 0, 0] });
   // a boot tray under the jacket with a pair of rubber boots, a snow shovel leaning by the post
   m.box("dark", [RAIL.x + 0.05, y + 0.012, FRONT_Z + 0.3], [0.62, 0.025, 0.38], "#1A1C20");
   for (const dx of [-0.12, 0.12]) {
@@ -98,8 +105,8 @@ const buildYard = (m) => {
     m.box("dark", [RAIL.x + 0.05 + dx, y + 0.06, FRONT_Z + 0.33], [0.11, 0.1, 0.26], "#2A2E26");
     m.box("dark", [RAIL.x + 0.05 + dx, y + 0.37, FRONT_Z + 0.25], [0.12, 0.03, 0.14], "#6E3A2A");
   }
-  m.box("wood", [x1 - 0.25, y + 0.72, FRONT_Z + 0.16], [0.035, 1.35, 0.035], "#8A6E4E", { r: [0.12, 0, 0] });
-  m.box("metal", [x1 - 0.25, y + 0.1, FRONT_Z + 0.27], [0.4, 0.3, 0.03], "#4A5566", { r: [0.25, 0, 0] });
+  m.box("wood", [x1 - 0.05, y + 0.72, FRONT_Z + 0.16], [0.035, 1.35, 0.035], "#8A6E4E", { r: [0.12, 0, 0] });   // (E) moved clear of the cap
+  m.box("metal", [x1 - 0.05, y + 0.1, FRONT_Z + 0.27], [0.4, 0.3, 0.03], "#4A5566", { r: [0.25, 0, 0] });
   // the driveway: plowed, packed snow and gravel; snowbanks along both sides
   // (plowed to the far side; the near side only a low windrow behind the car)
   for (let k = 0; k < 14; k++) {

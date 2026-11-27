@@ -459,30 +459,63 @@ const door3 = (m, o) => {
     m.box("metal", [x + w / 2 - 0.12, 1.05, z + 0.05], [0.03, 0.18, 0.02], "#1E2024");
     return;
   }
-  m.box("sash", [x, cy, z], [w, h, 0.045], col);
-  const pnl = (px, py, pw, ph) => {
-    m.box("sash", [px, py, z + 0.026], [pw, ph, 0.012], col);
-    for (const [dx, dy, sw, sh] of [[0, ph / 2 + 0.012, pw + 0.05, 0.024], [0, -ph / 2 - 0.012, pw + 0.05, 0.024], [-pw / 2 - 0.012, 0, 0.024, ph], [pw / 2 + 0.012, 0, 0.024, ph]]) m.box("sash", [px + dx, py + dy, z + 0.03], [sw, sh, 0.016], col);
+  // (E, Timur 2026-11-27: "make the door more realistic and more detailed") a real exterior door: the slab behind, stiles and rails
+  // standing proud so the panels are recessed, a quarter-round moulding round every panel opening, a raised bevelled field in each,
+  // a six-lite glazed top (the hall's lamp and its lace curtain behind frosted glass) on a lock rail, a brass kick plate on the
+  // bottom rail, knob and rose with a deadbolt above, three butt hinges with their knuckles, the weatherstrip shadow round the leaf
+  const T2 = 0.045, fz = z + T2 / 2;                                    // the leaf's front face
+  const lighten = (hex, k) => { const c2 = new THREE.Color(hex); c2.lerp(new THREE.Color("#FFFFFF"), k); return "#" + c2.getHexString(); };
+  const colM = lighten(col, 0.07), colF = lighten(col, 0.03);
+  m.box("dark", [x, cy, z - 0.012], [w + 0.02, h + 0.01, 0.02], "#0C0E10");       // the weatherstrip / jamb gap round the leaf
+  m.box("sash", [x, cy, z - 0.004], [w, h, T2 - 0.008], col);                       // the slab (the panels' ground)
+  const st = 0.13, topR = 0.12, lockY = h * 0.5, botR = 0.24;
+  const frameBox = (bx, by, bw, bh) => m.box("sash", [bx, by, fz], [bw, bh, 0.014], col);
+  frameBox(x - w / 2 + st / 2, h / 2 + 0.02, st, h); frameBox(x + w / 2 - st / 2, h / 2 + 0.02, st, h);                  // stiles
+  frameBox(x, h + 0.02 - topR / 2, w - 2 * st, topR); frameBox(x, 0.02 + botR / 2, w - 2 * st, botR);                   // top and bottom rails
+  const lit = (o.cell ?? 0) === 1 || o.lite;
+  const panel = (px, py, pw, ph) => {
+    // the panel opening: quarter-round moulding (proud, lighter), the recessed ground, the raised field with its bevel
+    for (const [dx, dy, sw, sh2] of [[0, ph / 2 - 0.008, pw, 0.016], [0, -ph / 2 + 0.008, pw, 0.016], [-pw / 2 + 0.008, 0, 0.016, ph], [pw / 2 - 0.008, 0, 0.016, ph]]) m.box("sash", [px + dx, py + dy, fz - 0.002], [sw, sh2, 0.012], colM);
+    m.box("sash", [px, py, fz - 0.003], [pw - 0.09, ph - 0.09, 0.01], colF);
+    m.box("sash", [px, py, fz + 0.001], [pw - 0.16, ph - 0.16, 0.008], col);
+    for (const [dx, dy, sw, sh2, rx, ry] of [[0, (ph - 0.125) / 2, pw - 0.125, 0.04, -0.5, 0], [0, -(ph - 0.125) / 2, pw - 0.125, 0.04, 0.5, 0], [-(pw - 0.125) / 2, 0, 0.04, ph - 0.125, 0, 0.5], [(pw - 0.125) / 2, 0, 0.04, ph - 0.125, 0, -0.5]]) m.box("sash", [px + dx, py + dy, fz - 0.001], [sw, sh2, 0.004], col, { r: [rx * 0.6, ry * 0.6, 0] });
   };
-  const pw = (w - 0.36) / 2, px = w / 4 - 0.02;
-  if ((o.cell ?? 0) === 1 || o.lite) {
-    // a lit lite in the upper half: the hall lamp's glow through frosted glass behind three muntins
-    m.quad("bwin", [x, h * 0.72, z + 0.024], w - 0.3, h * 0.36, "#FFFFFF", bwRect(5, 2));
-    for (const dx of [-1, 1]) m.box("sash", [x + dx * (w - 0.3) / 6, h * 0.72, z + 0.034], [0.025, h * 0.36, 0.02], col);
-    for (const [dy, hh] of [[h * 0.9 + 0.02, 0.04], [h * 0.54 - 0.02, 0.04]]) m.box("sash", [x, dy, z + 0.032], [w - 0.26, hh, 0.02], col);
-    for (const sd of [-1, 1]) pnl(x + sd * px, h * 0.27, pw, h * 0.34);
-    m.box("sash", [x, h * 0.53, z + 0.03], [w - 0.24, 0.03, 0.03], col);
+  const iw = w - 2 * st, mid = 0.1;
+  if (lit) {
+    const gy0 = lockY + mid / 2, gy1 = h + 0.02 - topR, gh = gy1 - gy0, gcy = (gy0 + gy1) / 2;
+    frameBox(x, lockY, iw, mid);                                                                                  // the lock rail
+    m.quad("bwin", [x, gcy, fz - 0.007], iw, gh, "#FFFFFF", bwRect(5, 2));                                         // lit hall, lace, frost (in front of the slab)
+    m.quad("bglass", [x, gcy, fz - 0.004], iw, gh, "#FFFFFF");
+    for (const dx of [-1, 1]) m.box("sash", [x + dx * iw / 6, gcy, fz - 0.002], [0.022, gh, 0.014], colM);       // muntins (2 × 3 lites)
+    m.box("sash", [x, gcy, fz - 0.002], [iw, 0.022, 0.014], colM);
+    for (const [dy, s2] of [[gy1 - 0.008, 1], [gy0 + 0.008, -1]]) m.box("sash", [x, dy, fz], [iw, 0.016, 0.016], colM);   // glazing beads
+    for (const sd of [-1, 1]) m.box("sash", [x + sd * (iw / 2 - 0.008), gcy, fz], [0.016, gh, 0.016], colM);
+    const pw2 = (iw - 0.1) / 2, py0 = 0.02 + botR, py1 = lockY - mid / 2, ph2 = py1 - py0;
+    frameBox(x, (py0 + py1) / 2, 0.1, ph2);                                                                       // the centre muntin of the lower panels
+    for (const sd of [-1, 1]) panel(x + sd * (pw2 / 2 + 0.05), (py0 + py1) / 2, pw2, ph2);
   } else {
-    for (const sd of [-1, 1]) { pnl(x + sd * px, h * 0.71, pw, h * 0.38); pnl(x + sd * px, h * 0.25, pw, h * 0.3); }
+    const pw2 = (iw - 0.1) / 2, mid2 = h * 0.42;
+    frameBox(x, mid2, iw, mid); frameBox(x, (0.02 + botR + h + 0.02 - topR) / 2, 0.1, h - botR - topR);
+    for (const sd of [-1, 1]) {
+      panel(x + sd * (pw2 / 2 + 0.05), (mid2 + mid / 2 + h + 0.02 - topR) / 2, pw2, h + 0.02 - topR - mid2 - mid / 2);
+      panel(x + sd * (pw2 / 2 + 0.05), (0.02 + botR + mid2 - mid / 2) / 2, pw2, mid2 - mid / 2 - 0.02 - botR);
+    }
   }
-  // hardware: knob and escutcheon (worn brass), a keyhole, three butt hinges, a mail slot
-  const kx = x + w / 2 - 0.1;
-  m.box("galv", [kx, 1.0, z + 0.03], [0.05, 0.2, 0.008], "#B89A58");
-  m.sph("galv", [kx, 1.03, z + 0.07], 0.028, "#C9A860", { seg: 10 });
-  m.cyl("galv", [kx, 1.03, z + 0.045], 0.008, 0.04, "#B89A58", { r: [Math.PI / 2, 0, 0], seg: 6 });
-  m.box("dark", [kx, 0.95, z + 0.035], [0.008, 0.02, 0.004], "#0A0A0A");
-  for (const y of [0.25, h / 2, h - 0.25]) m.box("galv", [x - w / 2 + 0.01, y, z + 0.024], [0.03, 0.1, 0.01], "#8E7C52");
-  if ((o.cell ?? 0) === 0) m.box("galv", [x, h * 0.48, z + 0.03], [0.26, 0.04, 0.012], "#B89A58");
+  // hardware (worn brass): the kick plate, knob on its rose, the deadbolt above, a keyhole, three butt hinges with knuckles, a mail slot
+  const brass = "#B89A58", kx = x + w / 2 - 0.075;
+  if (lit || o.kick) m.box("galv", [x, 0.02 + 0.11, fz + 0.009], [w - 0.06, 0.2, 0.004], "#C2A462");
+  m.cyl("galv", [kx, 0.95, fz + 0.006], 0.03, 0.012, brass, { r: [Math.PI / 2, 0, 0], seg: 16 });
+  m.cyl("galv", [kx, 0.95, fz + 0.025], 0.009, 0.03, brass, { r: [Math.PI / 2, 0, 0], seg: 8 });
+  m.sph("galv", [kx, 0.95, fz + 0.055], 0.029, "#CDAE66", { seg: 14 });
+  m.cyl("galv", [kx, 1.12, fz + 0.007], 0.03, 0.014, brass, { r: [Math.PI / 2, 0, 0], seg: 16 });
+  m.cyl("galv", [kx, 1.12, fz + 0.016], 0.013, 0.008, "#9E8448", { r: [Math.PI / 2, 0, 0], seg: 12 });
+  m.box("dark", [kx, 1.12, fz + 0.021], [0.003, 0.012, 0.002], "#0A0A0A");
+  for (const y of [0.24, h / 2 + 0.05, h - 0.2]) {
+    m.box("galv", [x - w / 2 + 0.03, y, fz + 0.002], [0.05, 0.1, 0.004], "#8E7C52");
+    m.cyl("galv", [x - w / 2 - 0.004, y, fz + 0.004], 0.009, 0.1, "#9E8A5A", { seg: 8 });
+    for (const dy of [-0.05, 0.05]) m.cyl("galv", [x - w / 2 - 0.004, y + dy, fz + 0.004], 0.006, 0.01, "#9E8A5A", { seg: 8 });
+  }
+  if (!lit) m.box("galv", [x, h * 0.42, fz + 0.012], [0.26, 0.04, 0.012], brass);
 };
 
 /**
@@ -601,9 +634,19 @@ export const addHouse = (m, s) => {
     else door3(m, o);
     for (const sd of [-1, 1]) m.box("trimb", [o.x + sd * (o.w / 2 + 0.07), o.h / 2 + 0.02, 0.03], [0.14, o.h + 0.06, 0.05], trimC, { metric: true });
     m.box("trimb", [o.x, o.h + 0.14, 0.03], [o.w + 0.36, 0.22, 0.05], trimC, { metric: true });
+    if (!o.flat && (o.cell ?? 0) !== 3) {
+      // (E) the casing's backband (a proud outer moulding), plinth blocks at its feet, a bed moulding under the head
+      for (const sd of [-1, 1]) {
+        m.box("trimb", [o.x + sd * (o.w / 2 + 0.155), o.h / 2 + 0.06, 0.05], [0.035, o.h + 0.1, 0.08], trimC, { metric: true });
+        m.box("trimb", [o.x + sd * (o.w / 2 + 0.085), 0.12, 0.045], [0.19, 0.2, 0.07], trimC, { metric: true });
+      }
+      m.box("trimb", [o.x, o.h + 0.04, 0.06], [o.w + 0.36, 0.03, 0.04], trimC, { metric: true });
+      m.box("trimb", [o.x, o.h + 0.255, 0.06], [o.w + 0.4, 0.03, 0.07], trimC, { metric: true });
+    }
     m.box("trimb", [o.x, o.h + 0.27, 0.07], [o.w + 0.46, 0.04, 0.12], trimC, { metric: true });
     if (s.snow !== 0) m.box("snow", [o.x, o.h + 0.3, 0.07], [o.w + 0.4, 0.03, 0.1], "#F4F7FB", { metric: true });
-    m.box("trimb", [o.x, 0.01, 0.03], [o.w + 0.1, 0.04, 0.2], "#8A8378", { metric: true });   // the threshold
+    m.box("wood", [o.x, 0.015, 0.03], [o.w + 0.12, 0.045, 0.22], "#7A6448", { metric: true });   // the oak threshold, worn
+    m.box("galv", [o.x, 0.04, 0.0], [o.w, 0.008, 0.03], "#9A8A62");                             // its brass weather bar
     for (let k = 0; k < (o.steps ?? 0); k++) {
       const sh = found / (o.steps ?? 1);
       m.box(o.stepMat ?? "stone", [o.x, -found + sh * (o.steps - k) - sh / 2, 0.3 + k * 0.3], [o.w + 0.5, sh, 0.3], o.stepC ?? "#8A8C90", { metric: true });
