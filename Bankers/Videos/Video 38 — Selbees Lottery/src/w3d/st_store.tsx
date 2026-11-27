@@ -22,6 +22,7 @@ import { Brochure, BrochureStack, broPt, pxToDesign, RULE } from "./st_store_bro
 import { aud } from "../bnx/aud";
 import { Town, addProps, addGoods } from "./town_parts";
 import { HOOK_SHIFT } from "./shift";
+import { ShadeLayer, keyDir } from "./fakeshade";
 
 const O = [0, 0, -58];
 const W = (p) => [p[0] + O[0], p[1] + O[1], p[2] + O[2]];
@@ -334,6 +335,57 @@ const CounterSpot = () => {
     </>
   );
 };
+// ★ rev 6 (Timur: "if you're not going to add shadows to things … at least add those fake shadows … a dark subtle shape under it, the
+//   correct one … you can see the corners better … we don't want unlit objects"): the store's contact shadows and darkened corners
+//   (fakeshade.tsx, three merged meshes) — the foot of the facade and the ICE chest / news box / bin on the sidewalk; inside, every
+//   wall–floor and wall–ceiling junction and the back corners, the shelving's and the cooler's feet, the shadow each shelf board throws
+//   on the pegboard under it and the dark where each shelf meets the back, the gondola's shelves, the counter's foot, and the register,
+//   card reader, terminal and brochure stand on the counter top. Outside they lean with the key (up-left-front); inside they sit square
+//   under the ceiling panels.
+const SKD = keyDir([-9, 14, 8]);
+const buildStoreShade = (s) => {
+  const zc = (Z0 + Z1) / 2, FL = SIDE + 0.004, IN0 = FX + WALL, ZA = Z0 + 0.16, ZB = Z1 - 0.16;
+  // outside: the facade's foot on the sidewalk, the ICE chest, the news box and the bin
+  s.edge([FX - 0.02, FL, zc], [0, 0, 1], [-1, 0, 0], Z1 - Z0 + 0.2, 0.7, 0.5);
+  s.floor("rect", [FX - 0.55 + SKD[0] * 0.14, FL, Z0 - 0.32 + SKD[1] * 0.14], 1.05, 1.15, 0, 0.62);
+  s.floor("rect", [5.95 + SKD[0] * 0.1, FL, 5.55 + SKD[1] * 0.1], 0.66, 0.74, -Math.PI / 2, 0.6);
+  s.floor("blob", [5.1 + SKD[0] * 0.12, FL, -0.95 + SKD[1] * 0.12], 0.82, 0.82, 0, 0.62);
+  // inside: wall–floor junctions (front, back, both sides), wall–ceiling junctions, the two back corners
+  s.edge([IN0, FL, zc], [0, 0, 1], [1, 0, 0], ZB - ZA, 0.45, 0.4);
+  s.edge([BACK, FL, zc], [0, 0, 1], [-1, 0, 0], ZB - ZA, 0.5, 0.42);
+  for (const [z, o] of [[ZA, 1], [ZB, -1]]) {
+    s.edge([(IN0 + BACK) / 2, FL, z], [1, 0, 0], [0, 0, o], BACK - IN0, 0.5, 0.42);
+    s.edge([(IN0 + BACK) / 2, CEIL - 0.004, z + o * 0.002], [1, 0, 0], [0, -1, 0], BACK - IN0, 0.55, 0.32);   // under the ceiling, on the side wall
+    s.edge([BACK - 0.002, (FL + CEIL) / 2, z], [0, 1, 0], [0, 0, o], CEIL - FL, 0.45, 0.3);                   // the back corner, on the back wall
+    s.edge([BACK - 0.45 * 0 - 0.002, (FL + CEIL) / 2, z + o * 0.002], [0, 1, 0], [-1, 0, 0], CEIL - FL, 0.45, 0.3);   // … and on the side wall
+  }
+  s.edge([BACK - 0.003, CEIL - 0.004, zc], [0, 0, 1], [0, -1, 0], ZB - ZA, 0.55, 0.32);
+  s.edge([IN0 + 0.003, CEIL - 0.004, zc], [0, 0, 1], [0, -1, 0], ZB - ZA, 0.4, 0.28);
+  // the shelving: its foot on the tiles, each board's shadow on the pegboard below it, the dark where each board meets the back
+  s.edge([BACK - 0.39, FL, (SHELF.z0 + SHELF.z1) / 2], [0, 0, 1], [-1, 0, 0], SHELF.z1 - SHELF.z0 + 0.1, 0.42, 0.55);
+  SHELF.ys.forEach((y) => {
+    s.edge([BACK - 0.045, y - 0.016, (SHELF.z0 + SHELF.z1) / 2], [0, 0, 1], [0, -1, 0], SHELF.z1 - SHELF.z0 - 0.04, 0.24, 0.5);
+    s.edge([BACK - 0.045, y + 0.0165, (SHELF.z0 + SHELF.z1) / 2], [0, 0, 1], [-1, 0, 0], SHELF.z1 - SHELF.z0 - 0.04, 0.3, 0.42);
+    s.floor("rect", [BACK - 0.21, y + 0.0165, (SHELF.z0 + SHELF.z1) / 2], 0.42, SHELF.z1 - SHELF.z0 + 0.06, 0, 0.3);   // under the goods
+  });
+  // the cooler's foot, the gondola (its foot, and each shelf's shadow on the spine, both faces)
+  s.edge([BACK - 0.55, FL, (COOL.z0 + COOL.z1) / 2], [0, 0, 1], [-1, 0, 0], COOL.z1 - COOL.z0 + 0.1, 0.4, 0.5);
+  s.floor("rect", [(GON.x0 + GON.x1) / 2, FL, GON.z], GON.x1 - GON.x0 + 0.45, 1.15, 0, 0.6);
+  for (let r = 0; r < 3; r++) for (const sd of [-1, 1]) {
+    s.edge([(GON.x0 + GON.x1) / 2, 0.4 + r * 0.46 - 0.016, GON.z + sd * 0.032], [1, 0, 0], [0, -1, 0], GON.x1 - GON.x0 - 0.04, 0.2, 0.45);
+    s.edge([(GON.x0 + GON.x1) / 2, 0.4 + r * 0.46 + 0.0165, GON.z + sd * 0.032], [1, 0, 0], [0, 0, sd], GON.x1 - GON.x0 - 0.04, 0.22, 0.38);
+  }
+  // the counter: its foot on the tiles (both faces), the dark under the steel nosing on the customer face
+  s.floor("rect", [(COUNTER.x0 + COUNTER.x1) / 2 + 0.02, FL, (COUNTER.z0 + COUNTER.z1) / 2], COUNTER.x1 - COUNTER.x0 + 0.5, COUNTER.z1 - COUNTER.z0 + 0.45, 0, 0.58);
+  s.edge([COUNTER.x0 - 0.082, COUNTER.top - 0.002, (COUNTER.z0 + COUNTER.z1) / 2], [0, 0, 1], [0, -1, 0], COUNTER.z1 - COUNTER.z0, 0.16, 0.4);
+  // on the counter top: the register (+ printer), the card reader, the lottery terminal, the brochure stand
+  const CT = COUNTER.top + 0.0312;
+  s.floor("rect", [8.9, CT, 0.95], 0.6, 0.62, 0, 0.6);
+  s.floor("rect", [8.93, CT, 1.27], 0.3, 0.26, 0, 0.5);   // the receipt printer (the register's local +x is world +z)
+  s.floor("rect", [8.72, CT, 1.36], 0.16, 0.24, 0.3, 0.5);
+  s.floor("rect", [8.9, CT, 3.45], 0.56, 0.64, 0, 0.62);
+  s.floor("rect", [8.97, CT, 2.85], 0.46, 0.3, 0, 0.55);
+};
 // ── the shop ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
 const Shop = ({ f, t }) => {
   const W_ = Z1 - Z0;
@@ -348,6 +400,7 @@ const Shop = ({ f, t }) => {
   return (
     <group>
       <Town build={buildShop} />
+      <ShadeLayer build={buildStoreShade} />
       {/* the sign panel and its gooseneck lamps */}
       <mesh position={[FX - 0.06 - 0.041, 3.62, zc + 0.15]} rotation-y={-Math.PI / 2}><planeGeometry args={[6.3, 0.88]} /><meshStandardMaterial map={sign} roughness={0.4} emissiveMap={sign} emissive="#ffffff" emissiveIntensity={0.55} /></mesh>
       {[-0.4, 1.6, 3.6].map((z, i) => <Lamp key={i} z={z + 0.15} />)}
@@ -526,6 +579,7 @@ const shots = () => {
 const CHIP_BG = "rgba(4, 18, 38, 0.86)";
 const Timer = ({ at, land, out, x, y }) => {
   const f = useCurrentFrame();
+  if (!COUNTERS) return null;   // rev 6 (builder P): a panel like the Year — off with the others (Main's BIG "3 MINUTES" carries the figure)
   const kIn = easeOut(f, at, at + 12), kOut = ease(f, out, out + 8);
   const vis = kIn * (1 - kOut);
   if (vis <= 0.001) return null;
@@ -582,8 +636,9 @@ const sfx = () => {
     cueAt("whooshlong", t.in2003 + 4, 50, 0.45),   // rev 5: the slow glide down main street (fastest at its middle)
     cueAt("pingshort", t.y2003 - 2, 12, 0.35),
     cueAt("whooshsoft", Math.round((t.read - 4 + t.newG + 23) / 2) - 6, 30, 0.42), // rev 5: through the window, down onto the leaflet
-    cueAt("ee_whoosh_fast_small_whoosh_01", t.newG + 8, 14, 0.35),  // the left flap swings open
-    cueAt("ee_whoosh_fast_small_whoosh_01", t.winfall - 4, 14, 0.3), // the right flap
+    // rev 6: the leaflet's paper — the left flap opens over (newG − 2 … the midpoint of broOpen), the right one after it
+    cueAt("ov_paper_unfold", t.newG + 1, 22, 0.32),
+    cueAt("ov_paper_unfold", Math.round((t.newG - 2 + t.winfall + 6) / 2) + 1, 22, 0.28),
     cueAt("ee_click_click_01", t.loophole - 3, 6, 0.4),          // the highlighter's cap
     cueAt("pingshort", t.loophole + 6, 12, 0.35),
     cueAt("ee_clock_clock_ticking_01", t.three - 10, 26, 0.45),

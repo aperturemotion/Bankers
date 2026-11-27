@@ -16,6 +16,7 @@ import { BODY, FIGURE } from "./fonts3d";
 import { drawTicket } from "./ticket_art";
 import { LABEL_STYLE } from "./label_style";
 import { Town, addBuilding, addProps, Mesher, townMats } from "./town_parts";
+import { ShadeLayer, MovingBlob, keyDir } from "./fakeshade";
 
 const T = () => ({ town: wf("town"), retired: wf("retired"), couple: wf("couple"), lottery: wf("lottery."), legally: wf("legally."), years: wf("9"), next: wf("in", 2) });
 // rev 4c (builder I): the retired couple walks toward the camera on the right-hand sidewalk, from just in front of the Evart sign
@@ -33,6 +34,42 @@ const RIGHT = [{ sign: 0, kind: "brick", brick: 0, awn: 1 }, { sign: 1, kind: "b
   null, { sign: 4, kind: "brick", brick: 0, awn: 6 }, { sign: 5, kind: "clap" }, { sign: 14, kind: "brick", brick: 3 }, { sign: 12, kind: "brick", brick: 2 }];
 const LEFT = [{ sign: 8, kind: "brick", brick: 1, awn: 0 }, { sign: 13, kind: "clap", awn: 2 }, { sign: 7, kind: "brick", brick: 0 }, { sign: 6, kind: "brick", brick: 2, awn: 4 },
   { sign: 10, kind: "clap" }, { sign: 11, kind: "brick", brick: 3 }, { sign: 9, kind: "brick", brick: 0 }, { sign: 15, kind: "clap" }, { sign: 2, kind: "brick", brick: 1 }];
+// street furniture on both sidewalks (clear of the lamps at z = −8 − 9k and the town sign at z = −12); rev 6: a function, shared with the
+//   fake-shadow builder below
+const hookProps = () => {
+  const R = (sd, z, type, off = 0.55) => ({ type, p: [sd * (ROAD_W / 2 + off), 0.16, z], ry: sd < 0 ? Math.PI / 2 : -Math.PI / 2 });
+  return [
+    R(1, -21.5, "hydrant", 0.45), R(1, -24, "sign", 0.35), R(1, -29.5, "bench", 1.7), R(1, -31.2, "planter", 0.75), R(1, -35.8, "trash", 0.5), R(1, -38.6, "pole", 2.05),
+    R(1, -39.6, "news", 0.6), R(1, -42.6, "meter", 0.35), R(1, -45.2, "planter", 0.75), R(1, -47, "bench", 1.7), R(1, -66, "mailbox", 0.6), R(1, -70.5, "planter", 0.75),
+    R(-1, -22, "planter", 0.75), R(-1, -28.5, "bench", 1.7), R(-1, -30.5, "trash", 0.5), R(-1, -34.5, "hydrant", 0.45), R(-1, -40.5, "planter", 0.75), R(-1, -46, "news", 0.6),
+    R(-1, -49.5, "meter", 0.35), R(-1, -52.2, "bench", 1.7), R(-1, -57.6, "planter", 0.75), R(-1, -63.5, "mailbox", 0.6)
+  ].map((q) => q.type === "pole" ? { ...q, p: [q.p[0] - 0.1, 2.2, q.p[2]] } : q);
+};
+// ★ rev 6 (Timur: "at least add those fake shadows … a dark subtle shape under it, the correct one … you can see the corners better"):
+//   the street's contact shadows (fakeshade.tsx) — every prop, lamp, tree grate and sign post gets its soft footprint, nudged the way
+//   the key throws it (the key is up-left-front, so shadows lean to +x / −z); the foot of every facade and the curb faces get a soft
+//   dark strip (the corners where wall meets sidewalk and curb meets road)
+const KD = keyDir([-9, 14, 8]);
+const FOOT = { bench: [1.75, 0.75, "rect", 0.5, 0.5], planter: [1.2, 1.2, "rect", 0.62, 0.55], hydrant: [0.6, 0.6, "blob", 0.62, 0.7], trash: [0.8, 0.8, "blob", 0.62, 0.9],
+  news: [0.7, 0.62, "rect", 0.6, 0.8], meter: [0.34, 0.34, "blob", 0.5, 1.2], mailbox: [0.75, 0.8, "rect", 0.6, 1.1], sign: [0.32, 0.32, "blob", 0.5, 2.7], pole: [0.3, 0.3, "blob", 0.4, 0.5] };
+const buildHookShade = (s, blds) => {
+  const at = (x, z, h) => [x + KD[0] * 0.12 * Math.min(h, 1.2), z + KD[1] * 0.12 * Math.min(h, 1.2)];
+  for (const q of hookProps()) {
+    const F = FOOT[q.type]; if (!F) continue;
+    const [x, z] = at(q.p[0], q.p[2], F[4]);
+    s.floor(F[2], [x, 0.164, z], F[0], F[1], q.ry, F[3]);
+  }
+  // lamp posts (a foot plate) and tree grates
+  for (let i = 0; i < 10; i++) { if (i === 5) continue; const x = (i % 2 ? 1 : -1) * (ROAD_W / 2 + 0.6), z = -8 - i * 9; s.floor("blob", [x + KD[0] * 0.08, 0.164, z + KD[1] * 0.08], 0.55, 0.55, 0, 0.6); }
+  for (const [x, z, sc] of TREES()) if (z > -85) s.floor("blob", [x + KD[0] * 0.3, 0.164, z + KD[1] * 0.3], 2.4 * sc, 2.4 * sc, 0, 0.42);
+  // the town-limit sign's two posts
+  for (const lx of [-0.9, 0.9]) { const c = Math.cos(-0.32), sn = Math.sin(-0.32); s.floor("blob", [ROAD_W / 2 + 0.9 + lx * c + KD[0] * 0.1, 0.164, -12 - lx * sn + KD[1] * 0.1], 0.42, 0.42, 0, 0.6); }
+  // the foot of each facade (sidewalk side) and the curb faces (road side)
+  for (const sd of [-1, 1]) {
+    for (const b of blds.filter((b) => b.side === sd)) s.edge([sd * (ROAD_W / 2 + 2.2), 0.164, b.z], [0, 0, 1], [-sd, 0, 0], b.w + 0.4, 0.75, 0.46);
+    s.edge([sd * ROAD_W / 2, 0.004, -60], [0, 0, 1], [-sd, 0, 0], 220, 0.32, 0.34);
+  }
+};
 export const buildHookStreet = (m, blds) => {
   // sidewalks (concrete slabs with tooled joints) and granite curbs
   for (const sd of [-1, 1]) {
@@ -45,14 +82,7 @@ export const buildHookStreet = (m, blds) => {
     addBuilding(m, { w: b.w, h: b.h, d: b.d, seed: b.i + 3, lit: 0.6, ...spec });
     m.pop();
   }
-  // street furniture on both sidewalks (clear of the lamps at z = −8 − 9k and the town sign at z = −12)
-  const R = (sd, z, type, off = 0.55) => ({ type, p: [sd * (ROAD_W / 2 + off), 0.16, z], ry: sd < 0 ? Math.PI / 2 : -Math.PI / 2 });
-  addProps(m, [
-    R(1, -21.5, "hydrant", 0.45), R(1, -24, "sign", 0.35), R(1, -29.5, "bench", 1.7), R(1, -31.2, "planter", 0.75), R(1, -35.8, "trash", 0.5), R(1, -38.6, "pole", 2.05),
-    R(1, -39.6, "news", 0.6), R(1, -42.6, "meter", 0.35), R(1, -45.2, "planter", 0.75), R(1, -47, "bench", 1.7), R(1, -66, "mailbox", 0.6), R(1, -70.5, "planter", 0.75),
-    R(-1, -22, "planter", 0.75), R(-1, -28.5, "bench", 1.7), R(-1, -30.5, "trash", 0.5), R(-1, -34.5, "hydrant", 0.45), R(-1, -40.5, "planter", 0.75), R(-1, -46, "news", 0.6),
-    R(-1, -49.5, "meter", 0.35), R(-1, -52.2, "bench", 1.7), R(-1, -57.6, "planter", 0.75), R(-1, -63.5, "mailbox", 0.6)
-  ].map((q) => q.type === "pole" ? { ...q, p: [q.p[0] - 0.1, 2.2, q.p[2]] } : q));
+  addProps(m, hookProps());
   // rev 5 (Timur, 252 f: "the distance looks flat … nothing in the distance … add some fog, blue fog"): the street now RECEDES into the
   //   blue fog in layers — curb trees down both sidewalks, a church steeple and the town's water tower over the roofs, a far tree line and
   //   low hills closing the end of the street (all 30–70 m out, where the fog takes them from a silhouette to nothing)
@@ -181,7 +211,9 @@ const ticketPose = (t, f) => {
   // while it falls from the sky, lift the pivot so the rocked/tilted corners clear the road (zero once it has landed)
   const clear = half * (1 - Math.cos(rock)) + halfW * Math.abs(Math.sin(rock)) + half * Math.abs(Math.sin(Math.min(0, sway * 0.6)));
   const pivot = [TICKET_AT[0] + (1 - k) * 2.2 * Math.sin((f - t.lottery) / 9), REST + clear + 13 * (1 - k) * (1 - k), TICKET_AT[2]];
-  const yaw = -0.35 + (1 - k) * 2.4;
+  // rev 6 (Timur: "the Winfall ticket at 229 frames, it should actually face the camera"): it lands square to the lens — its face
+  //   normal points at the camera at 229 f (0.34 rad) and stays within ~6° of it from the landing (170) to the tip (236)
+  const yaw = 0.34 + (1 - k) * 2.4;
   // the ticket's centre (for the tag): pivot + yaw-rotated (0, half·cos, −half·sin)
   const cz = -half * Math.sin(-tilt), cy = half * Math.cos(tilt);
   const pos = [pivot[0] + Math.sin(yaw) * cz, pivot[1] + cy, pivot[2] + Math.cos(yaw) * cz];
@@ -250,10 +282,13 @@ const Scene = ({ f }) => {
       <mesh rotation-x={-Math.PI / 2} position={[0, -0.02, -60]} receiveShadow><planeGeometry args={[400, 400]} /><meshStandardMaterial color="#0d2238" roughness={0.95} /></mesh>
       <Town build={(m) => buildHookStreet(m, blds)} />
       <Trees />
+      <ShadeLayer build={(s) => buildHookShade(s, blds)} />
       {/* rev 5: lamp 5 (z −53) stood right in front of the corner store and cut its landing shot in two — it is left out */}
       {Array.from({ length: 10 }, (_, i) => i !== 5 && <Lamp key={i} x={(i % 2 ? 1 : -1) * (ROAD_W / 2 + 0.6)} z={-8 - i * 9} light={i < 6} />)}
       {/* rev 4c: the retired couple, walking toward the camera from the Evart sign; she glances at him on "retired couple" */}
       <Couple f={f} x={COUPLE_X} y={0.16} z0={COUPLE_Z0} look={[t.retired - 4, t.couple + 10]} />
+      {/* rev 6: their contact shadows on the sidewalk, walking with them (he at COUPLE_X, she 0.58 m beside him), leaning with the key */}
+      {[0, 0.58].map((dx, i) => <MovingBlob key={i} p={[COUPLE_X + dx + KD[0] * 0.12, 0.166, coupleZ(f, COUPLE_Z0) - 0.04 * i + KD[1] * 0.12]} w={0.62} d={0.8} k={0.55} />)}
       {/* the town-limit sign, right verge */}
       <group position={[ROAD_W / 2 + 0.9, 0, -12]} rotation-y={-0.32}>
         {[-0.9, 0.9].map((x) => <mesh key={x} position={[x, 1.4, -0.05]} castShadow><cylinderGeometry args={[0.07, 0.07, 2.8, 10]} /><meshStandardMaterial color="#9aa7b8" metalness={0.7} roughness={0.35} /></mesh>)}
@@ -281,8 +316,8 @@ const shots = () => {
     { a: 0, b: 0, pos: [8.4, 1.66, -3.2], target: [5.55, 1.36, -12.6], fov: 34 },
     { a: 0, b: t.retired - 1, pos: [8.15, 1.62, -1.5], target: [5.6, 1.16, cz(t.retired - 1) - 1.6], fov: 31 },
     { a: t.retired - 17, b: t.couple + 22, pos: [7.65, 1.55, -0.5], target: [5.6, 1.0, cz(t.couple + 22) - 0.6], fov: 26 },
-    { a: t.couple + 12, b: t.lottery + 20, pos: [7.6, 1.9, 0.5], target: [3.2, 2.1, -11.6], fov: 38 },
-    { a: t.lottery + 12, b: t.next - 4, pos: [3.3, 3.2, -3.4], target: [0.1, 2.3, -14.5], fov: 36 }   // a slow crane up and in: the ticket centre-low, 9 YEARS clear above it
+    { a: t.couple + 12, b: t.lottery + 20, pos: [7.6, 1.9, 0.5], target: [3.2, 3.05, -11.6], fov: 48 },
+    { a: t.lottery + 12, b: t.next - 4, pos: [4.4, 3.0, -0.8], target: [0.6, 3.55, -14], fov: 52 }   // rev 6: the ticket square to the lens between the big words (above) and the subtitles (below)   // a slow crane up and in: the ticket centre-low, 9 YEARS clear above it
   ];
 };
 const COUNTER_X = 790;   // rev 5: upper RIGHT — the crane onto the ticket keeps the ticket left of centre while it stands
@@ -304,8 +339,15 @@ const Overlay = ({ f, P }) => {
 const sfx = () => {
   const t = T();
   return [
-    cueAt("whooshsoft", t.lottery - 20, 30, 0.6),
-    cueAt("thud", t.lottery + 4, 14, 0.5),
+    // rev 6: the couple's footsteps on the sidewalk while they walk in frame (from frame 0 until they pass out of the right of the frame,
+    //   ~205), quieter as the camera turns away; the ticket's paper flutter as it drops into frame, its tap on the road as it lands
+    //   (lottery + 6), the flutter of the tip and the slap as it lies flat (next − 12)
+    cueAt("ov_steps", 0, 120, 0.22),
+    cueAt("ov_steps", 120, 86, 0.16),
+    cueAt("ov_paper_flutter", t.lottery - 28, 34, 0.3),
+    cueAt("whooshsoft", t.lottery - 20, 30, 0.45),
+    cueAt("thud", t.lottery + 5, 14, 0.38),
+    cueAt("ov_paper_flutter", t.next - 26, 14, 0.18),
     cueAt("thud", t.next - 12, 12, 0.2),                      // rev 4b: the ticket slaps down flat on the road
     cueAt("pingshort", t.legally, 12, 0.5),
     cueAt("coin", t.years, 16, 0.45)

@@ -16,7 +16,7 @@ import { BigWord } from "./overlays";
 // ★ rev 6: the BIG WORDS — the film's key figures (and "Legally.") as large Anton text, no panel, no label (overlays.tsx BigWord). Keyed to
 //   the karaoke chips' keywords in REAL time; in from the word's onset − 4, out at the chip's end. $3,600 / $6,300 stay the kitchen's 3-D plaques.
 const BIG_SPEC = {
-  "1,903": { value: 1903, unit: "PEOPLE" }, "Legally.": { text: "LEGALLY" }, "9 years.": { value: 9, unit: "YEARS" }, "2003,": { text: "2003" },
+  /* "1,903" is said by the scene's own EVART sign (POP. 1,903) — no big word over it */ "Legally.": { text: "LEGALLY" }, "9 years.": { value: 9, unit: "YEARS" }, "2003,": { text: "2003" },
   "3 minutes.": { value: 3, unit: "MINUTES" }, "$5 million": { value: 5, prefix: "$", unit: "MILLION" }, "12": { value: 12, unit: "ROLL-DOWNS" },
   "6 years,": { value: 6, unit: "YEARS" }, "900 miles": { value: 900, unit: "MILES" }, "$600,000.": { value: 600000, prefix: "$", size: 230 },
   "2011,": { text: "2011" }, "$120 million": { value: 120, prefix: "$", unit: "MILLION" }, "$26 million,": { value: 26, prefix: "$", unit: "MILLION", size: 250 },
