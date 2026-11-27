@@ -301,9 +301,12 @@ induction loop. All 720×1280 at 30 fps, 63–98 s, −14.1 LUFS.
 10. **(rev 6) LABELS: "NAMED BY THE SCENE"** — Timur picked option C: places and things are named by their own signage in the world (the
     EVART / MICHIGAN / POP. 1,903 city-limit sign), never a floating label; and NO panel counters at all ("the 2003 to 2012, 9 years, all of those
     … remove them"). Rule 6's panel exception is withdrawn.
-11. **(rev 6) BIG WORDS:** the key figures ("$600,000", "9 YEARS", "$26 MILLION" …) appear as LARGE bold Anton text in a prominent place (upper
-    middle), white with the unit in light blue — no panel, no small label, "even larger sometimes" (overlays.tsx `BigWord`, Main `BIG_SPEC`).
-    Skip a big word where the scene itself shows the figure.
+11. **(rev 7, replaces rev 6's big words) FIGURES LIVE IN THE SCENE.** Timur, 2026-11-27: "Instead of on-screen text like $5 million, like the
+    $1 million numbers, just add them somewhere within the scene that actually matches the visual itself and the scene itself." A key figure
+    is printed ON an object that would really carry it, in its real typography: a jackpot meter over the counter, chalk on the board, an LED
+    trailer sign, a gantry, a clipboard, a newspaper's dateline, a cheque, a plate on the money drum, a band on a stack, a store banner. No
+    floating text over the picture at all (`BigWord` stays in overlays.tsx but Main `BIG_ON = false`). Pick the object from the sentence,
+    never a generic sign; it lands on the spoken word like any other action.
 12. **(rev 6) SUBTITLES = THE ORIGINAL BANKERS CAPTIONS, AT THE BOTTOM:** each chunk appears whole (Figtree 400, 50 px, white, no pill, no
     keyword box), centred low (y ≈ 1500), over a subtle smooth black fade at the foot of the frame. This replaces rule 7's word-by-word karaoke.
 13. **(rev 6) NO UNLIT OBJECTS:** every opaque object casts and receives the key's shadow; where a real shadow can't reach (background shelves,
