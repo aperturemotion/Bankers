@@ -29,6 +29,7 @@ import { LightPool, LightWash } from "./d_fx";
 import { letters, advances, lobbyTex, libInteriorTex, orTex, officeTex, hospitalSignTex, librarySignTex, bookReturnTex, hSignTex, concreteTex, paverTex, sheenTex,
   soldierTex, stoneTex, snowTex, bankTex, spinesTex, rangeEndTex, roadTex } from "./d_bratt_tex";
 import { treeMats, addMaple, addSpruce } from "./d_trees";
+import { hospMats, hRoom, hLobby, blind, roomKind, LD, LW } from "./d_hosp";
 import { addLamp, addBench, addHydrant, addTrash, addPlanterBox, addSnowbank, addCurb, snowLedge, mound, LAMP_ARM } from "./d_street";
 
 export const PL = 0.15;
@@ -55,7 +56,7 @@ const setMats = () => {
   const gr = stoneTex().clone(); gr.needsUpdate = true; gr.repeat.set(1.5, 1.5);
   const sp = spinesTex();
   DM = {
-    ...T, ...treeMats(),
+    ...T, ...treeMats(), ...hospMats(),
     lobby: em(lobbyTex(), 0.5, { color: "#9FB0C8" }), libint: em(libInteriorTex(), 0.5, { color: "#A9B8D0" }), or: em(orTex(), 0.72, { color: "#A9B8D0" }), office: em(officeTex(), 0.5, { color: "#A9B8D0" }),
     conc: new THREE.MeshStandardMaterial({ map: conc, color: "#FFFFFF", roughness: 0.85, vertexColors: true }),
     alu: new THREE.MeshStandardMaterial({ color: "#FFFFFF", roughness: 0.32, metalness: 0.75, vertexColors: true, envMapIntensity: 0.9 }),
@@ -78,6 +79,8 @@ const setMats = () => {
   for (const k of ["lobby", "libint", "or", "office", "lamp", "lampglass", "spines", "rangeEnd", "lit"]) DM[k].userData.cast = false;
   DM.sheen = new THREE.MeshBasicMaterial({ map: sheenTex(), transparent: true, depthWrite: false, vertexColors: true });
   DM.sheen.userData = { cast: false, recv: false, order: 3 };
+  DM.sheenL = new THREE.MeshBasicMaterial({ map: sheenTex(), transparent: true, opacity: 0.55, depthWrite: false, vertexColors: true });   // lighter glass over the 3-D rooms
+  DM.sheenL.userData = { cast: false, recv: false, order: 3 };
   return DM;
 };
 const MT = (uo = [0, 0]) => ({ metric: true, uo });
@@ -108,8 +111,9 @@ const STONE = "#D9D2C4", STONE2 = "#C7BFB0";
 const RECESS = 0.16;
 const winUnit = (m, x, cy, ww, wh, cell, o = {}) => {
   const zg = -RECESS + 0.01, fc = o.frame ?? "#D6D2C8";
-  m.quad("win", [x, cy, zg], ww, wh, "#FFFFFF", winRect(cell[0], cell[1]));
-  m.quad("sheen", [x, cy, zg + 0.012], ww, wh, "#FFFFFF", [0, 0, 1, 1]);
+  if (!o.open) m.quad("win", [x, cy, zg], ww, wh, "#FFFFFF", winRect(cell[0], cell[1]));   // open: real 3-D room behind (d_hosp)
+  else if (o.blind > 0) blind(m, o.L, x, cy, ww, wh, o.blind);
+  m.quad(o.open ? "sheenL" : "sheen", [x, cy, zg + 0.012], ww, wh, "#FFFFFF", [0, 0, 1, 1]);
   for (const sd of [-1, 1]) m.box("trim", [x + sd * (ww / 2 - 0.035), cy, zg + 0.03], [0.07, wh, 0.07], fc);
   for (const sd of [-1, 1]) m.box("trim", [x, cy + sd * (wh / 2 - 0.035), zg + 0.03], [ww - 0.14, 0.07, 0.07], fc);
   m.box("trim", [x, cy, zg + 0.035], [ww - 0.1, 0.05, 0.05], fc);
@@ -154,12 +158,26 @@ const buildHospital = (m) => {
   const ENT = { x0: -3.85, x1: 3.85, y0: 0, y1: 3.8 };
   const upper = FLOORS.flatMap((fy, fl) => [0, 1, 2, 3, 4, 5, 6, 7].map((i) => ({ x: -10.5 + i * 3, cy: fy + 1.85, w: 1.35, h: 2.0, cell: roomCell(fl * 8 + i) })));
   const ground = [-11, -8.4, -5.9, 5.9, 8.4, 11].map((x) => ({ x, cy: 2.15, w: 1.5, h: 2.2, cell: roomCell(40 + x * 3) }));
-  // the block behind the skins, the inner layer round the entrance recess, the front skin (dressed-stone base, brick above)
-  m.box(BR, [0, H / 2, (-1.2 - D) / 2], [W - 0.5, H, D - 1.2], BRC, MT(uo));
-  skin(m, BR, BRC, -W / 2 + 0.25, W / 2 - 0.25, 0, H, -0.25, 0.95, [ENT], uo);
+  // the core behind the rooms, the west and back walls, the fill over the top-floor ceilings, the entrance recess's side walls
+  const XE = W / 2 - 0.25, XC = 8.0, ZR = -4.2, ZB = -D + 0.25, TOP = FLOORS[2] + 3.56;
+  const core = (x0, x1, y0, y1, z0, z1) => m.box(BR, [(x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2], [x1 - x0, y1 - y0, z0 - z1], BRC, MT(uo));
+  const LX = LW + 0.1, LZ = -LD - 0.1, LY = 3.98;   // the lobby's volume is kept out of the core
+  core(-XE, -LX, 0, H, ZR, ZB); core(LX, XC, 0, H, ZR, ZB); core(-LX, LX, 0, H, LZ, ZB); core(-LX, LX, LY, H, ZR, LZ);
+  m.box(BR, [-W / 2 + 0.125, H / 2, (-0.25 - D) / 2], [0.25, H, D - 0.25], BRC, MT(uo));
+  m.box(BR, [0, H / 2, -D + 0.125], [W, H, 0.25], BRC, MT(uo));
+  m.box(BR, [0, (TOP + H) / 2, (-0.25 + ZR) / 2], [2 * XE, H - TOP, -0.25 - ZR], BRC, MT(uo));
+  m.box(BR, [(XC + XE) / 2, (TOP + H) / 2, (ZR + ZB) / 2], [XE - XC, H - TOP, ZR - ZB], BRC, MT(uo));
+  for (const sd of [-1, 1]) m.box(BR, [sd * (3.85 + 0.375), 1.9, -0.485], [0.75, 3.8, 0.47], BRC, MT(uo));
+  // the rooms behind the windows (real 3-D interiors, d_hosp): upper floors 3 m bays, the ground floor either side of the lobby
+  const room = (x0, x1, y0, ch, k, o = {}) => { m.push([0, y0, 0], 0); m.push([(x0 + x1) / 2, 0, 0], 0); hRoom(m, { xl: (x1 - x0) / 2, xr: (x1 - x0) / 2, d: -ZR, ch, ...k, ...o }); m.pop(); m.pop(); };
+  const kinds = {};
+  upper.forEach((w, i) => { const k = (kinds["u" + i] = roomKind(i + 3)); room(Math.max(-XE, w.x - 1.5), Math.min(XE, w.x + 1.5), w.cy - 1.85, 3.5, k, { openR: w.x + 1.5 > XE }); });
+  const gB = [[-XE, -9.7], [-9.7, -7.15], [-7.15, -4.6], [4.6, 7.15], [7.15, 9.7], [9.7, XE]];
+  ground.forEach((w, i) => { const r = rnd(i * 2.7 + 5); const k = (kinds["g" + i] = { L: r < 0.25 ? "rmD" : r < 0.65 ? "rmW" : "rmC", kind: rnd(i * 4.1) < 0.5 ? "station" : "office", seed: 70 + i }); room(gB[i][0], gB[i][1], 0, 3.85, k, { openR: i === 5 }); });
+  m.push([0, 0, 0], 0); hLobby(m); m.pop();
   const holes = [ENT, ...[...upper, ...ground].map((w) => hole(w.x, w.cy, w.w, w.h))];
   skin(m, "stone", "#CFC8BA", -W / 2 - 0.04, W / 2 + 0.04, 0, 0.9, 0.04, 0.29, holes);
-  m.box("stone", [0, 0.92, 0.02], [W + 0.12, 0.06, 0.34], STONE2, MT());                          // the water table
+  for (const sd of [-1, 1]) m.box("stone", [sd * (W / 2 + 0.06 + 3.85) / 2, 0.92, 0.02], [W / 2 + 0.06 - 3.85, 0.06, 0.34], STONE2, MT());   // the water table (stopped at the entrance: it ran across the doors)
   skin(m, BR, BRC, -W / 2, W / 2, 0.9, H, 0, 0.25, holes, uo);
   // belt course over the ground floor, the cornice (frieze, modillions, dentils, crown), the coping
   const band = (y, h, out, c = "#B7B0A3") => m.box("stone", [0, y, -D / 2], [W + 2 * out, h, D + 2 * out], c, MT());
@@ -174,13 +192,13 @@ const buildHospital = (m) => {
   // brick pilasters (corners and the centre bay) with stone caps
   for (const x of [-W / 2 + 0.25, W / 2 - 0.25, -3.0, 3.0]) { m.box(BR, [x, (4.37 + H - 0.78) / 2, 0.08], [0.5, H - 0.78 - 4.37, 0.16], BRC, MT(uo)); m.box("stone", [x, H - 0.72, 0.12], [0.62, 0.12, 0.26], STONE, MT()); }
   // the windows
-  for (const w of upper) winUnit(m, w.x, w.cy, w.w, w.h, w.cell, { lintel: "soldier" });
-  for (const w of ground) winUnit(m, w.x, w.cy, w.w, w.h, w.cell, { lintel: "stone", mull: true });
+  const bl = (i, L) => (L === "rmD" ? 0.92 : rnd(i * 9.1 + 2) < 0.45 ? 0.25 + rnd(i * 3.7) * 0.4 : 0);
+  upper.forEach((w, i) => winUnit(m, w.x, w.cy, w.w, w.h, w.cell, { lintel: "soldier", open: true, L: kinds["u" + i].L, blind: bl(i, kinds["u" + i].L) }));
+  ground.forEach((w, i) => winUnit(m, w.x, w.cy, w.w, w.h, w.cell, { lintel: "stone", mull: true, open: true, L: kinds["g" + i].L, blind: bl(i + 40, kinds["g" + i].L) }));
   // the entrance recess: lobby behind, a storefront with sliding doors, its floor, ceiling and downlights
-  m.quad("lobby", [0, 1.9, -1.16], 7.7, 3.8, "#FFFFFF", [0, 0, 1, 1]);
   m.quad("sheen", [0, 1.9, -0.66], 7.6, 3.6, "#FFFFFF", [0, 0, 1, 1]);
-  m.box("trim", [0, 0.03, -0.6], [7.7, 0.06, 1.2], "#8E97A4");
-  m.box("dark", [0, 3.78, -0.6], [7.7, 0.04, 1.2], "#2A3340");
+  m.box("trim", [0, 0.03, -0.36], [7.7, 0.06, 0.72], "#8E97A4");
+  m.box("dark", [0, 3.78, -0.36], [7.7, 0.04, 0.72], "#2A3340");
   for (const x of [-2.4, 0, 2.4]) { m.cyl("lamp", [x, 3.75, -0.35], 0.08, 0.02, "#FFF2DC", { seg: 10 }); }
   for (let k = 0; k <= 5; k++) m.box("alu", [-3.5 + k * 1.4, 1.8, -0.68], [0.08, 3.5, 0.12], "#2A3340");
   m.box("alu", [0, 2.6, -0.68], [7.1, 0.1, 0.12], "#2A3340"); m.box("alu", [0, 0.09, -0.68], [7.1, 0.12, 0.14], "#2A3340"); m.box("alu", [0, 3.52, -0.68], [7.1, 0.12, 0.14], "#2A3340");
@@ -207,7 +225,15 @@ const buildHospital = (m) => {
   const sh = sideW.map((w) => hole(w.x, w.cy, w.w, w.h));
   skin(m, "stone", "#CFC8BA", -D / 2 + 0.25, D / 2, 0, 0.9, 0.04, 0.29, sh);
   skin(m, BR, BRC, -D / 2 + 0.25, D / 2, 0.9, H, 0, 0.25, sh, uo);
-  for (const w of sideW) winUnit(m, w.x, w.cy, w.w, w.h, w.cell, { lintel: w.fl ? "soldier" : "stone" });
+  // the side rooms (bands between the front rooms' back wall and the back wall; the first window opens into the corner front room)
+  const bands = [[-4.2, -6.5], [-6.5, -9.5], [-9.5, -12.5], [-12.5, -D + 0.25]];
+  sideW.forEach((w, j) => {
+    const i = j % 5, wz = -D / 2 - w.x, y0 = w.fl ? FLOORS[w.fl - 1] : 0;
+    const k = i === 0 ? null : roomKind(100 + j);
+    if (k) { const [zt, zb] = bands[i - 1]; m.push([w.x, y0, 0], 0); hRoom(m, { xl: zt - wz, xr: wz - zb, d: W / 2 - XC, ch: w.fl ? 3.5 : 3.85, ...k, openL: true }); m.pop(); }
+    const L = k ? k.L : (w.fl ? kinds["u" + ((w.fl - 1) * 8 + 7)] : kinds["g5"]).L;
+    winUnit(m, w.x, w.cy, w.w, w.h, w.cell, { lintel: w.fl ? "soldier" : "stone", open: true, L, blind: bl(200 + j, L) });
+  });
   downspout(m, D / 2 - 0.3, H - 0.5, 0.0);
   m.pop();
   // the roof: a brick penthouse with its coping, condensers, vents — all under snow
@@ -462,6 +488,58 @@ const Monument = ({ t, p, ry, i }) => (
     <LightWash position={[0, 1.3, 0.3]} w={3.2} h={1.8} color="#FFE2B8" opacity={0.18} />
   </group>
 );
+/** the library's BOOK RETURN: a real US drop box — a steel cabinet with an EXTRUDED curved top (one profile: a rectangle under a
+ *  semicircle, extruded across the width; no spherical shapes), on a concrete plinth with anchor bolts; on its front the pull-down
+ *  chute door in its slot plate (hinge, pull handle on standoffs), the enamel BOOK RETURN / BOOKS & MEDIA plate, a service lock;
+ *  snow lying on the curved top as an extruded band */
+const BD_W = 0.9, BD_D = 0.76, BD_S = 1.02;
+const bdGeo = () => {
+  const r = BD_D / 2, sh = new THREE.Shape();
+  sh.moveTo(-r, 0.1); sh.lineTo(r, 0.1); sh.lineTo(r, BD_S); sh.absarc(0, BD_S, r, 0, Math.PI, false); sh.lineTo(-r, 0.1);
+  const g = new THREE.ExtrudeGeometry(sh, { depth: BD_W, bevelEnabled: true, bevelThickness: 0.012, bevelSize: 0.012, bevelSegments: 2, curveSegments: 28 });
+  g.rotateY(-Math.PI / 2); g.translate(BD_W / 2, 0, 0); return g;
+};
+const bdSnowGeo = () => {
+  const r = BD_D / 2 + 0.012, a0 = 0.42, a1 = Math.PI - 0.42, sh = new THREE.Shape();
+  sh.absarc(0, BD_S, r, a0, a1, false);
+  for (let k = 0; k <= 20; k++) { const a = a1 - (k / 20) * (a1 - a0), rr = r + 0.012 + 0.05 * Math.sin(((a - a0) / (a1 - a0)) * Math.PI); sh.lineTo(Math.cos(a) * rr, BD_S + Math.sin(a) * rr); }
+  const g = new THREE.ExtrudeGeometry(sh, { depth: BD_W - 0.04, bevelEnabled: true, bevelThickness: 0.015, bevelSize: 0.012, bevelSegments: 2, curveSegments: 20 });
+  g.rotateY(-Math.PI / 2); g.translate((BD_W - 0.04) / 2, 0, 0); return g;
+};
+const BookDrop = ({ position, ry, tex }) => {
+  const G = useMemo(() => ({ body: bdGeo(), snow: bdSnowGeo(),
+    paint: new THREE.MeshStandardMaterial({ color: "#1F3A5F", roughness: 0.42, metalness: 0.35, envMapIntensity: 0.9 }),
+    steel: new THREE.MeshStandardMaterial({ color: "#B9C3CF", roughness: 0.28, metalness: 0.85 }),
+    dark: new THREE.MeshStandardMaterial({ color: "#14243A", roughness: 0.5, metalness: 0.3 }),
+    snowM: new THREE.MeshStandardMaterial({ color: "#E6EDF6", roughness: 0.85 }),
+    conc: new THREE.MeshStandardMaterial({ color: "#8E949C", roughness: 0.9 }) }), []);
+  const fz = BD_D / 2 + 0.012;   // the front face (with its bevel)
+  return (
+    <group position={position} rotation-y={ry}>
+      <mesh position={[0, 0.05, 0]} material={G.conc} receiveShadow><boxGeometry args={[1.04, 0.1, 0.9]} /></mesh>
+      {[[-1, -1], [-1, 1], [1, -1], [1, 1]].map(([a, b]) => <mesh key={a + "" + b} position={[a * 0.42, 0.12, b * 0.34]} material={G.steel}><cylinderGeometry args={[0.018, 0.018, 0.04, 6]} /></mesh>)}
+      <mesh geometry={G.body} material={G.paint} castShadow receiveShadow />
+      {/* the slot plate, the pull-down chute door (tilted out a hair), its hinge and pull handle */}
+      <mesh position={[0, 0.9, fz + 0.004]} material={G.dark}><boxGeometry args={[0.74, 0.3, 0.008]} /></mesh>
+      <group position={[0, 0.78, fz + 0.012]} rotation-x={-0.1}>
+        <mesh position={[0, 0.12, 0.012]} material={G.paint}><boxGeometry args={[0.66, 0.24, 0.024]} /></mesh>
+        <mesh position={[0, 0.232, 0.03]} material={G.paint}><boxGeometry args={[0.68, 0.02, 0.05]} /></mesh>
+        <mesh position={[0, 0.0, 0.01]} rotation-z={Math.PI / 2} material={G.steel}><cylinderGeometry args={[0.012, 0.012, 0.62, 8]} /></mesh>
+        {[-0.2, 0.2].map((x) => <mesh key={x} position={[x, 0.2, 0.055]} rotation-x={Math.PI / 2} material={G.steel}><cylinderGeometry args={[0.01, 0.01, 0.06, 6]} /></mesh>)}
+        <mesh position={[0, 0.2, 0.085]} rotation-z={Math.PI / 2} material={G.steel}><cylinderGeometry args={[0.014, 0.014, 0.46, 10]} /></mesh>
+        {[[-0.3, 0.03], [0.3, 0.03], [-0.3, 0.21], [0.3, 0.21]].map(([x, y]) => <mesh key={x + "" + y} position={[x, y, 0.026]} rotation-x={Math.PI / 2} material={G.steel}><cylinderGeometry args={[0.008, 0.008, 0.006, 6]} /></mesh>)}
+      </group>
+      {/* the enamel lettering plate in its frame, the service door's lock */}
+      <mesh position={[0, 0.47, fz + 0.003]} material={G.steel}><boxGeometry args={[0.76, 0.4, 0.006]} /></mesh>
+      <mesh position={[0, 0.47, fz + 0.007]}><planeGeometry args={[0.72, 0.36]} /><meshStandardMaterial map={tex} roughness={0.35} metalness={0.1} /></mesh>
+      <mesh position={[0.34, 0.2, fz + 0.01]} rotation-x={Math.PI / 2} material={G.steel}><cylinderGeometry args={[0.018, 0.018, 0.02, 10]} /></mesh>
+      <mesh position={[0.34, 0.2, fz + 0.021]} material={G.dark}><boxGeometry args={[0.004, 0.018, 0.002]} /></mesh>
+      {/* the snow lying on the curved top, a little drift on the plinth */}
+      <mesh geometry={G.snow} material={G.snowM} />
+      <mesh position={[0, 0.11, BD_D / 2 + 0.04]} material={G.snowM}><boxGeometry args={[0.95, 0.03, 0.06]} /></mesh>
+    </group>
+  );
+};
 /** the Brattleboro set. era: "will" (2015: the old annex) or "pav" (2023: the Ronald Read Pavilion stands) */
 export const BrattSet = ({ era = "will" }) => {
   const tx = useMemo(() => {
@@ -512,17 +590,8 @@ export const BrattSet = ({ era = "will" }) => {
         <mesh position={[0, 2.45, 0.006]}><planeGeometry args={[0.6, 0.6]} /><meshStandardMaterial map={tx.h} roughness={0.4} /></mesh>
         <mesh position={[0, 2.8, -0.012]}><boxGeometry args={[0.64, 0.04, 0.05]} /><meshStandardMaterial color="#EAF0F8" roughness={0.85} /></mesh>
       </group>
-      {/* the library's BOOK RETURN: a steel drop box on a plinth — hood, chute door with its pull, the label panel, snow on top */}
-      <group position={[LIB.x - 2.6, PL, LIB.z + 1.6]} rotation-y={0.35}>
-        <mesh position={[0, 0.06, 0]}><boxGeometry args={[1.0, 0.12, 0.84]} /><meshStandardMaterial color="#16222F" roughness={0.6} /></mesh>
-        <mesh position={[0, 0.66, 0]} castShadow><boxGeometry args={[0.9, 1.08, 0.75]} /><meshStandardMaterial color="#24476E" roughness={0.45} metalness={0.4} /></mesh>
-        <mesh position={[0, 1.2, 0]} rotation-x={Math.PI / 2}><cylinderGeometry args={[0.375, 0.375, 0.9, 20, 1, false, 0, Math.PI]} /><meshStandardMaterial color="#24476E" roughness={0.45} metalness={0.4} /></mesh>
-        <mesh position={[0, 1.12, 0.38]}><boxGeometry args={[0.7, 0.2, 0.06]} /><meshStandardMaterial color="#1A3554" roughness={0.45} metalness={0.4} /></mesh>
-        <mesh position={[0, 1.07, 0.41]}><boxGeometry args={[0.56, 0.05, 0.02]} /><meshStandardMaterial color="#0A1626" /></mesh>
-        <mesh position={[0, 0.66, 0.376]}><planeGeometry args={[0.86, 0.43]} /><meshStandardMaterial map={tx.br} roughness={0.45} /></mesh>
-        <mesh position={[0, 0.36, 0.38]}><boxGeometry args={[0.5, 0.04, 0.04]} /><meshStandardMaterial color="#C9D3DE" metalness={0.8} roughness={0.3} /></mesh>
-        <mesh position={[0, 1.42, 0]} scale={[0.42, 0.1, 0.36]}><sphereGeometry args={[1, 14, 6, 0, Math.PI * 2, 0, Math.PI / 2]} /><meshStandardMaterial color="#EAF0F8" roughness={0.85} /></mesh>
-      </group>
+      {/* the library's BOOK RETURN drop box (BookDrop) */}
+      <BookDrop position={[LIB.x - 2.6, PL, LIB.z + 1.6]} ry={0.35} tex={tx.br} />
       {/* the lamps' light pools on the sidewalks */}
       {LAMPS_N.map((x) => <LightPool key={"n" + x} position={[x, PL + 0.03, 2.55 + LAMP_ARM]} r={3.4} color="#FFB867" opacity={0.26} />)}
       {LAMPS_S.map((x) => <LightPool key={"s" + x} position={[x, PL + 0.03, 13.45 - LAMP_ARM]} r={3.4} color="#FFB867" opacity={0.26} />)}

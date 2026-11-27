@@ -117,11 +117,29 @@ export const monumentTex = (key, lines, { bg = "#E8E4DA", ink = "#1E3554" } = {}
 });
 export const hospitalSignTex = () => { const l = [{ t: "BRATTLEBORO", px: 92, y: 140 }, { t: "MEMORIAL HOSPITAL", px: 76, y: 240 }, { t: "MAIN ENTRANCE", px: 38, w: 600, y: 320, track: 0.18 }]; l.rule = 270; return monumentTex("bmh", l); };
 export const librarySignTex = () => { const l = [{ t: "BROOKS MEMORIAL", px: 84, y: 140 }, { t: "LIBRARY", px: 96, y: 245 }, { t: "BRATTLEBORO, VERMONT", px: 36, w: 600, y: 330, track: 0.18 }]; l.rule = 275; return monumentTex("brooks", l, { bg: "#DCD6C8", ink: "#2A2620" }); };
-export const bookReturnTex = () => canvasTex("d_bookret", 512, 256, (c, w, h) => {
-  c.fillStyle = "#24476E"; c.fillRect(0, 0, w, h);
-  c.fillStyle = "#16314F"; c.fillRect(60, 40, w - 120, 50); c.fillStyle = "#0A1626"; c.fillRect(80, 58, w - 160, 14);   // the slot
-  c.fillStyle = "#FFFFFF"; c.textAlign = "center"; c.textBaseline = "middle"; c.font = `800 56px ${BODY}`; c.fillText("BOOK RETURN", w / 2, 150);
-  c.font = `600 24px ${BODY}`; c.fillText("BOOKS · AUDIO · DVDs", w / 2, 205);
+/** the book drop's lettering panel: a framed enamel plate, BOOK RETURN / BOOKS & MEDIA, real margins */
+export const bookReturnTex = () => canvasTex("d_bookret2", 1024, 512, (c, w, h) => {
+  c.fillStyle = "#1F3A5F"; c.fillRect(0, 0, w, h);
+  c.fillStyle = "#F4F1E8"; c.fillRect(36, 36, w - 72, h - 72);
+  c.strokeStyle = "#1F3A5F"; c.lineWidth = 6; c.strokeRect(58, 58, w - 116, h - 116);
+  c.fillStyle = "#1F3A5F"; c.textAlign = "center"; c.textBaseline = "alphabetic";
+  c.font = `800 118px ${BODY}`; if ("letterSpacing" in c) c.letterSpacing = "6px"; c.fillText("BOOK RETURN", w / 2 + 3, 250, w - 180);
+  c.fillRect(w / 2 - 170, 292, 340, 6);
+  c.font = `600 58px ${BODY}`; if ("letterSpacing" in c) c.letterSpacing = "10px"; c.fillText("BOOKS & MEDIA", w / 2 + 5, 388, w - 200);
+  if ("letterSpacing" in c) c.letterSpacing = "0px";
+  for (const [x, y] of [[76, 76], [w - 76, 76], [76, h - 76], [w - 76, h - 76]]) { c.fillStyle = "#8E96A2"; c.beginPath(); c.arc(x, y, 9, 0, 7); c.fill(); c.fillStyle = "#5A626E"; c.fillRect(x - 6, y - 1.5, 12, 3); }
+});
+/** hospital wayfinding (generic): 4 sign faces of 1024 × 128 — INFORMATION, REGISTRATION, EMERGENCY →, ELEVATORS */
+export const WAY = ["INFORMATION", "REGISTRATION", "EMERGENCY  →", "ELEVATORS"];
+export const wayRect = (i) => [0.003, 1 - (i + 1) * 0.25 + 0.006, 0.997, 1 - i * 0.25 - 0.006];
+export const hospWayTex = () => canvasTex("d_hosp_way", 1024, 512, (c, w, h) => {
+  WAY.forEach((t, i) => {
+    const y = i * 128;
+    c.fillStyle = i === 2 ? "#A8261E" : "#1F4E8C"; c.fillRect(0, y, w, 128);
+    c.strokeStyle = "rgba(255,255,255,0.85)"; c.lineWidth = 4; c.strokeRect(14, y + 14, w - 28, 100);
+    c.fillStyle = "#FFFFFF"; c.textAlign = "center"; c.textBaseline = "middle"; c.font = `700 64px ${BODY}`;
+    if ("letterSpacing" in c) c.letterSpacing = "8px"; c.fillText(t, w / 2 + 4, y + 66, w - 120); if ("letterSpacing" in c) c.letterSpacing = "0px";
+  });
 });
 export const hSignTex = () => canvasTex("d_hsign", 256, 256, (c, w, h) => {
   c.fillStyle = "#1F5FB4"; c.fillRect(0, 0, w, h); c.strokeStyle = "#FFFFFF"; c.lineWidth = 8; c.strokeRect(12, 12, w - 24, h - 24);
