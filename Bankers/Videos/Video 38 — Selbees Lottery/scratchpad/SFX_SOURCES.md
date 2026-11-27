@@ -12,6 +12,9 @@
 | ov_chalk.wav | Chalk writing on board.mp3 | mrrap4food | CC0 | https://freesound.org/people/mrrap4food/sounds/619018 |
 | ov_steps.wav | Walking footsteps on pavement.WAV | thomasanthony321 | CC0 | https://freesound.org/people/thomasanthony321/sounds/682773 |
 | ov_paper_flutter.wav | Paper Rustle | BenjaminNelan | CC0 | https://freesound.org/people/BenjaminNelan/sounds/353125 |
+| ov_coins.wav | coin drop into coins | kinglseyzissou | CC0 | https://freesound.org/people/kinglseyzissou/sounds/435780 |
+| ov_money_drop.wav | Thump.mp3 | mpuffenbarger | CC0 | https://freesound.org/people/mpuffenbarger/sounds/683031 |
+| ov_stamp.wav | es-stamp.wav | eddies2000 | CC0 | https://freesound.org/people/eddies2000/sounds/448474 |
 
 Each was trimmed (from its first onset, or around its loudest hit), faded out over 0.15 s, peak-normalised to −3 dBFS, mono 48 kHz,
 and its SfxLayer EVEN set so its active mean level matches the film's existing effects (≈ −38 dB effective).
