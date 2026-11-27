@@ -16,6 +16,32 @@
 import React, { useMemo } from "react";
 import * as THREE from "three";
 import { canvasTex, rnd } from "./kit";
+import { mannequinField, meshField, fieldBox } from "./i_mannequin";
+
+// ★ rev 6 STYLE FRAMES (Timur, 2026-11-27): the couple as smooth, faceless, all-blue MANNEQUINS (see i_mannequin.ts). false = the
+//   realistic couple (as approved for rev 5). "sleek" = one smooth body each, one Bankers blue; "sleek2" = the same in two close blues
+//   (he deeper, she lighter) so the two figures read apart; "dressed" = featureless blue heads and mitt hands with simplified, smooth,
+//   untextured blue clothes (his jacket and slacks, her knee-length coat, scarf and slacks) — no zips, pockets, buttons, hair or glasses.
+export const MANNEQUIN: false | "sleek" | "sleek2" | "dressed" = false;
+const MQ = !!MANNEQUIN, MQ_SLEEK = MANNEQUIN === "sleek" || MANNEQUIN === "sleek2", DR = MANNEQUIN === "dressed";
+const MQ_AP = 0.5;      // the A-pose the sleek bodies are meshed (and bound) in, radians at the shoulder
+const MQ_H = 0.006;     // the sleek bodies' mesh resolution, metres
+const MQ_BODY = MANNEQUIN === "sleek2" ? ["#2A62B0", "#4A86D4"] : MANNEQUIN === "dressed" ? ["#3A76C6", "#4683CF"] : ["#2F6FC0", "#2F6FC0"];   // [him, her]
+const MQ_SHEEN = "#A9CCFF";
+// the dressed variant's garments: each original garment colour → a Bankers blue
+const DR_COL = {
+  "#34445F": "#2A5FAD", "#26324A": "#2A5FAD", "#46352B": "#25569E", "#5D636B": "#1E4885", "#4A2E1E": "#173A70", "#1E1510": "#12305E",
+  "#8796AA": "#5B95DD", "#7F8EA3": "#5B95DD", "#232B3A": "#214E8E", "#15171C": "#173A70", "#0C0D10": "#12305E", "#E9E3D7": "#A9CCF6", "#1B1F28": "#1E4885",
+};
+let AO_RAMP = null;
+const aoRamp = () => {
+  if (AO_RAMP) return AO_RAMP;
+  const d = new Uint8Array(256 * 4); for (let i = 0; i < 256; i++) { d[4 * i] = d[4 * i + 1] = d[4 * i + 2] = i; d[4 * i + 3] = 255; }
+  AO_RAMP = new THREE.DataTexture(d, 256, 1); AO_RAMP.magFilter = AO_RAMP.minFilter = THREE.LinearFilter; AO_RAMP.colorSpace = THREE.NoColorSpace; AO_RAMP.needsUpdate = true;
+  return AO_RAMP;
+};
+const satin = () => new THREE.MeshPhysicalMaterial({ aoMap: aoRamp(), aoMapIntensity: 1, vertexColors: true, roughness: 0.42, metalness: 0, clearcoat: DR ? 0.35 : 0.6, clearcoatRoughness: 0.24,
+  sheen: DR ? 0.25 : 0.8, sheenRoughness: 0.42, sheenColor: new THREE.Color(MQ_SHEEN), envMapIntensity: 1.0 });
 
 const PI = Math.PI, TAU = 2 * PI;
 const cl = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
@@ -118,7 +144,24 @@ const grid = (nu, nv, pt, uvf, wrap = true) => {
   return mkGeo(P, UV, nu, nv, wrap);
 };
 // a loft: rings [{ c:[x,y,z], sec:(θ)→[a,b], t?:tangent, f?:front reference }]; θ = 0 is the front (+b); UVs in METRES (u around, v along)
+const CR = (a, b, c, d, t) => { const t2 = t * t, t3 = t2 * t; return 0.5 * (2 * b + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (-a + 3 * b - 3 * c + d) * t3); };
+const densify = (rings0, sub) => {
+  // coincident rings (e.g. her knee: y = −0.4 and −S.thigh) would make the spline loop back on itself: keep only the first
+  const rings = rings0.filter((r, i) => i === 0 || Math.hypot(r.c[0] - rings0[i - 1].c[0], r.c[1] - rings0[i - 1].c[1], r.c[2] - rings0[i - 1].c[2]) > 0.003);
+  const n = rings.length, out = [];
+  const R = (i) => rings[Math.max(0, Math.min(n - 1, i))];
+  for (let r = 0; r < n - 1; r++) for (let q = 0; q < sub; q++) {
+    const t = q / sub; if (q === 0) { out.push(rings[r]); continue; }
+    const a = R(r - 1), b = R(r), c = R(r + 1), d = R(r + 2);
+    const lv = (k) => (b[k] && c[k] ? b[k].map((v, i) => lerp(v, c[k][i], t)) : b[k] ?? c[k]);
+    out.push({ c: [0, 1, 2].map((i) => CR(a.c[i], b.c[i], c.c[i], d.c[i], t)), t: lv("t"), f: lv("f"),
+      sec: (th) => { const A = a.sec(th), Bq = b.sec(th), Cq = c.sec(th), Dq = d.sec(th); return [CR(A[0], Bq[0], Cq[0], Dq[0], t), CR(A[1], Bq[1], Cq[1], Dq[1], t)]; } });
+  }
+  out.push(rings[n - 1]);
+  return out;
+};
 const loft = (rings, nu, opts = {}) => {
+  if (DR && !opts.raw) { rings = densify(rings, 3); nu *= 2; }
   const P = [], UV = [];
   let vacc = 0;
   const n = rings.length;
@@ -156,15 +199,18 @@ const wrapA = (a) => Math.atan2(Math.sin(a), Math.cos(a));
 // the accumulator: per material, positions/normals/uv/colour + 4 skin influences per vertex
 class Acc {
   constructor(segs) { this.segs = segs; this.m = {}; }
-  add(mat, g, M, bones, color = "#ffffff", uvConst = null) {
+  add(mat, g, M, bones, color = "#ffffff", uvConst = null, shade = null) {
     const k = (this.m[mat] ??= { p: [], n: [], uv: [], c: [], si: [], sw: [], i: [] });
     const base = k.p.length / 3, P = g.attributes.position, N = g.attributes.normal, U = g.attributes.uv;
     const nm = new THREE.Matrix3().getNormalMatrix(M), flip = M.determinant() < 0;
-    const [cr, cg, cb] = col(color);
+    const [cr, cg, cb] = col(DR ? DR_COL[color] ?? color : color);
     for (let i = 0; i < P.count; i++) {
       const p = v3(P.getX(i), P.getY(i), P.getZ(i)).applyMatrix4(M), n = v3(N.getX(i), N.getY(i), N.getZ(i)).applyMatrix3(nm).normalize();
-      k.p.push(p.x, p.y, p.z); k.n.push(n.x, n.y, n.z); k.c.push(cr, cg, cb);
-      if (uvConst) k.uv.push(uvConst[0], uvConst[1]); else k.uv.push(U.getX(i), U.getY(i));
+      // rev 6 dressed: the undersides of the plain clothes (hems' inner lips) take a little occlusion, or they read as a pale lining
+      const ao = (DR && mat !== "mq" ? 1 - 0.5 * cl(-n.y * 1.4) : 1) * (shade ? shade(p, n) : 1);
+      k.p.push(p.x, p.y, p.z); k.n.push(n.x, n.y, n.z); k.c.push(cr * ao, cg * ao, cb * ao);
+      if (MQ) k.uv.push(ao, 0.5);   // rev 6: the mannequins' u carries the occlusion (their aoMap is a black → white ramp; no textures use uv)
+      else if (uvConst) k.uv.push(uvConst[0], uvConst[1]); else k.uv.push(U.getX(i), U.getY(i));
       let w;
       if (typeof bones === "number") w = [[bones, 1]];
       else if (typeof bones === "function") w = bones(p);
@@ -315,6 +361,11 @@ const SKIN_UV = [0.5, 0.97];   // a plain patch of the skin map (the crown): for
 const buildPerson = (S) => {
   const P = bindPos(S), segs = segsOf(S, P), A = new Acc(segs);
   const fem = S.fem;
+  if (MQ_SLEEK) {   // rev 6: one smooth implicit body, meshed in the A-pose and bound in it
+    const fld = mannequinField(S, P, B, { parts: "body", ap: MQ_AP }), [lo, hi] = fieldBox(S, P, B, "body", MQ_AP);
+    A.add("mq", meshField(fld.f, lo, hi, MQ_H), new THREE.Matrix4(), fld.weights, MQ_BODY[fem ? 1 : 0]);
+    return rig(S, P, A, MQ_AP);
+  }
   const W = (...a) => a;   // readability
   // ── torso garment (jacket / coat) ──
   const rows = fem
@@ -336,13 +387,19 @@ const buildPerson = (S) => {
     const wl = wT * cl(0.5 + p.x / 0.1), wr = wT * cl(0.5 - p.x / 0.1);
     return [[B.hips, 1 - wT], [B.thL, wl], [B.thR, wr]].filter((q) => q[1] > 1e-4);
   };
-  A.add("coat", loft(rows.map(([y, w, f, b, n]) => ({ c: [0, y, 0], sec: se(w, f, b, n ?? 2.4) })), 40, { uTheta: 1.0 }), new THREE.Matrix4(), fem ? torsoW : jacketW, fem ? "#8796AA" : "#34445F");
+  A.add("coat", loft(rows.map(([y, w, f, b, n]) => ({ c: [0, y, 0], sec: se(w, f, b, n ?? 2.4) })), 40, { uTheta: 1.0 }), new THREE.Matrix4(), fem ? torsoW : jacketW, fem ? "#8796AA" : "#34445F", null,
+    DR ? (p, n) => (n.x * p.x + n.z * p.z < 0 ? 0.25 : 1) : null);   // rev 6 dressed: the hem's inner lip in shade (else it reads as a pale lining)
   // the front surface z at (x, y) — for placing pockets, buttons, the zip
   const rowAt = (y) => { let i = 1; while (i < rows.length - 1 && rows[i][0] < y) i++; const a = rows[i - 1][0] < rows[i][0] ? rows[i - 1] : rows[i], b = rows[i]; const t = cl((y - a[0]) / Math.max(1e-6, b[0] - a[0])); return [lerp(a[1], b[1], t), lerp(a[2], b[2], t), lerp(a[4] ?? 2.4, b[4] ?? 2.4, t)]; };
   const frontZ = (x, y) => { const [w, f, n] = rowAt(y); const s = cl(Math.abs(x) / w, 0, 0.999); const th = Math.asin(s ** (n / 2)); return f * Math.cos(th) ** (2 / n); };
   const onFront = (x, y, d = 0.002) => [x, y, frontZ(x, y) + d];
   const slope = (x, y) => Math.atan2(frontZ(x + 0.01, y) - frontZ(x - 0.01, y), 0.02);
-  if (!fem) {
+  if (!fem && DR) {
+    // rev 6 dressed mannequin: of his jacket's details only the collar stays (smooth, in the jacket's blue)
+    A.add("cord", loft([[1.49, 0.08, 0.074], [1.5, 0.082, 0.076], [1.525, 0.079, 0.073], [1.548, 0.077, 0.07], [1.55, 0.07, 0.063], [1.535, 0.069, 0.062]].map(([y, rx, rz]) => ({ c: [0, y, 0.006], sec: circ(rx, rz) })), 28), new THREE.Matrix4(), [[B.chest, 1], [B.neck, 1.2]], "#46352B");
+  } else if (DR) {
+    // rev 6 dressed mannequin: her coat without its edge, buttons, flaps and seams
+  } else if (!fem) {
     // hem binding, the zip, the corduroy collar, a blue shirt collar inside it, two flap pockets
     A.add("coat", loft([[0.79, 0.195, 0.145, 0.135], [0.8, 0.196, 0.146, 0.136], [0.82, 0.193, 0.144, 0.133]].map(([y, w, f, b]) => ({ c: [0, y, 0], sec: se(w, f, b) })), 40), new THREE.Matrix4(), jacketW, "#26324A");
     const zipRows = []; for (let y = 0.8; y <= 1.5; y += 0.035) zipRows.push({ c: onFront(0, y, 0.001), sec: (th) => [0.0045 * Math.sin(th), 0.0025 * Math.cos(th)] });
@@ -382,7 +439,9 @@ const buildPerson = (S) => {
     // cuff: a rib band (him) / a turned-back cuff (her), with an inner lip
     const cf = fem ? [[-L + 0.065, 0.05, 0.048], [-L + 0.06, 0.053, 0.051], [-L + 0.012, 0.052, 0.05], [-L + 0.008, 0.048, 0.046], [-L + 0.02, 0.04, 0.038]]
                    : [[-L + 0.02, 0.047, 0.045], [-L + 0.015, 0.047, 0.045], [-L - 0.006, 0.045, 0.043], [-L - 0.008, 0.04, 0.038], [-L + 0.01, 0.034, 0.032]];
-    A.add(fem ? "coat" : "cord", loft(cf.map(([y, rx, rz]) => ({ c: [0, y, 0], sec: circ(rx, rz) })), 18), M, [[fo, 1], [ha, 0.25]], fem ? "#7F8EA3" : "#26324A");
+    A.add(fem ? "coat" : "cord", loft(cf.map(([y, rx, rz]) => ({ c: [0, y, 0], sec: circ(rx, rz) })), 18), M, [[fo, 1], [ha, 0.25]], fem ? "#7F8EA3" : "#26324A", null,
+      DR ? (p, n) => (n.x * (p.x - sh[0]) + n.z * (p.z - sh[2]) < 0 ? 0.3 : 1) : null);
+    if (DR) continue;   // rev 6: the dressed mannequin's mitt hands are meshed below
     // the hand: palm, four slightly curled fingers, a thumb (built for the left; mirrored for the right)
     const HM = T4(P[ha], [0, 0, 0], [s, 1, 1]), k = fem ? 0.9 : 1;
     const palm = [[0.012, 0.024, 0.017], [-0.02, 0.031, 0.02], [-0.05, 0.04, 0.019], [-0.08, 0.043, 0.016], [-0.095, 0.042, 0.013], [-0.102, 0.034, 0.008], [-0.105, 0.0, 0.0]];
@@ -429,8 +488,24 @@ const buildPerson = (S) => {
     A.add("leather", loft(upper, 18), FM, ft, fem ? "#15171C" : "#4A2E1E");
     const sole = shoeRows.map(([z, w]) => { const th2 = fem ? 0.011 : z < 0.0 ? 0.024 : 0.014, b0 = bot(z); return { c: [0, b0 + th2 / 2, z], t: [0, 0, 1], f: [0, 1, 0], sec: (t) => { const q = se(w + 0.003, th2 / 2, th2 / 2, 5)(t); return [q[0], q[1]]; } }; });
     A.add("leather", loft(sole, 18), FM, ft, fem ? "#0C0D10" : "#1E1510");
-    if (!fem) for (let j = 0; j < 4; j++) { const z = 0.0 + j * 0.026; A.add("leather", new THREE.BoxGeometry(0.03, 0.004, 0.005), FM.clone().multiply(T4([0, -0.012 - j * 0.008 + 0.004, z], [-0.35, 0, 0])), ft, "#1A120C"); }
+    if (DR) {} else if (!fem) for (let j = 0; j < 4; j++) { const z = 0.0 + j * 0.026; A.add("leather", new THREE.BoxGeometry(0.03, 0.004, 0.005), FM.clone().multiply(T4([0, -0.012 - j * 0.008 + 0.004, z], [-0.35, 0, 0])), ft, "#1A120C"); }
     else A.add("metal", new THREE.BoxGeometry(0.03, 0.005, 0.006), FM.clone().multiply(T4([0, -0.038, 0.085], [-0.25, 0, 0])), ft, "#B8BEC6");
+  }
+  if (DR) {   // rev 6: a smooth featureless head on its neck, and two mitt hands (the clothes cover the rest)
+    const fh = mannequinField(S, P, B, { parts: "headneck" }), [hl, hh] = fieldBox(S, P, B, "headneck");
+    A.add("mq", meshField(fh.f, hl, hh, 0.004), new THREE.Matrix4(), fh.weights, MQ_BODY[fem ? 1 : 0]);
+    const fd = mannequinField(S, P, B, { parts: "hands" });
+    for (const sd of [1, -1]) { const [al, ah] = fieldBox(S, P, B, "hand", 0, sd); A.add("mq", meshField(fd.f, al, ah, 0.0035), new THREE.Matrix4(), fd.weights, MQ_BODY[fem ? 1 : 0]); }
+    if (fem) {   // her scarf stays, smooth and pale blue
+      const wrap = (y0, Rx, Rz, a, b, tilt) => loft([...Array(29)].map((_, i) => { const ph = (i / 28) * TAU; return { c: [Rx * Math.sin(ph), y0 - tilt * Math.cos(ph), Rz * Math.cos(ph) + 0.006], t: [Math.cos(ph) * Rx, tilt * Math.sin(ph), -Math.sin(ph) * Rz], f: [0, 1, 0], sec: circ(a, b) }; }), 12);
+      A.add("knit", wrap(1.378, 0.086, 0.082, 0.03, 0.024, 0.014), new THREE.Matrix4(), [[B.chest, 1], [B.neck, 0.7]], "#E9E3D7");
+      A.add("knit", wrap(1.412, 0.074, 0.072, 0.025, 0.02, 0.01), new THREE.Matrix4(), [[B.chest, 0.6], [B.neck, 1]], "#E9E3D7");
+      for (const [x0, len, dx, tw] of [[0.045, 0.24, 0.01, 0.036], [-0.01, 0.17, -0.012, 0.032]]) {
+        const tail = [...Array(9)].map((_, i) => { const y = 1.37 - (i / 8) * len, x = x0 + dx * i / 8; return { c: onFront(x, y, 0.024 + (x0 > 0 ? 0.006 : 0) - 0.008 * i / 8), t: [0, -1, 0], sec: (t) => [tw * Math.sin(t), 0.007 * Math.cos(t)] }; });
+        A.add("knit", loft(tail, 10), new THREE.Matrix4(), [[B.chest, 1], [B.spine, 0.35]], "#E9E3D7");
+      }
+    }
+    return rig(S, P, A, 0);
   }
   // ── neck, head, ears, nose ──
   const NM = T4(P[B.neck]);
@@ -513,13 +588,17 @@ const buildPerson = (S) => {
       A.add("knit", loft(tail, 10), new THREE.Matrix4(), [[B.chest, 1], [B.spine, 0.35]], "#E9E3D7");
     }
   }
-  // ── the skeleton ──
+  return rig(S, P, A, 0);
+};
+// ── the skeleton (bound with the arms rotated out by ap: the sleek mannequin is meshed in that A-pose; the poses stay world-absolute) ──
+const rig = (S, P, A, ap) => {
   const bones = BONES.map((n) => { const b = new THREE.Bone(); b.name = n; return b; });
   bones.forEach((b, i) => {
     const p = PARENT[i] >= 0 ? P[PARENT[i]] : [0, 0, 0];
     b.position.set(P[i][0] - p[0], P[i][1] - p[1], P[i][2] - p[2]);
     if (PARENT[i] >= 0) bones[PARENT[i]].add(b);
   });
+  if (ap) { bones[B.upL].quaternion.copy(qa("z", ap)); bones[B.upR].quaternion.copy(qa("z", -ap)); }
   const group = new THREE.Group();
   group.add(bones[0]);
   group.updateMatrixWorld(true);
@@ -529,6 +608,7 @@ const buildPerson = (S) => {
 
 // ── materials ────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 const mats = (fem) => {
+  if (MQ) { const m = satin(); return Object.fromEntries(["mq", "skin", "coat", "cord", "twill", "tweed", "knit", "hair", "leather", "metal", "lens"].map((k) => [k, m])); }
   const t = (k) => TEX[k]();
   const m = (k, extra) => { const x = k ? t(k) : null; return new THREE.MeshStandardMaterial({ vertexColors: true, ...(x ? { map: x.map, bumpMap: x.bump, bumpScale: 1.2 } : {}), ...extra }); };
   const face = faceTex(fem);
@@ -548,15 +628,17 @@ const mats = (fem) => {
 // the handbag: a structured cognac leather bag with two handles and a clasp (rigid; hung from her hand each frame)
 const buildBag = () => {
   const g = new THREE.Group(), pend = new THREE.Group();
-  const leather = new THREE.MeshStandardMaterial({ color: "#8A5232", roughness: 0.4, metalness: 0.05, ...(() => { const x = TEX.leather(); return { map: x.map, bumpMap: x.bump, bumpScale: 0.6 }; })() });
-  const metal = new THREE.MeshStandardMaterial({ color: "#C9B47A", roughness: 0.3, metalness: 0.9 });
+  const leather = MQ ? Object.assign(satin(), { vertexColors: false, color: new THREE.Color("#22508F"), aoMap: null }) : new THREE.MeshStandardMaterial({ color: "#8A5232", roughness: 0.4, metalness: 0.05, ...(() => { const x = TEX.leather(); return { map: x.map, bumpMap: x.bump, bumpScale: 0.6 }; })() });
+  const metal = MQ ? leather : new THREE.MeshStandardMaterial({ color: "#C9B47A", roughness: 0.3, metalness: 0.9 });
   const body = loft([[0, 0.12, 0.04], [0.004, 0.13, 0.046], [0.02, 0.134, 0.05], [0.16, 0.124, 0.042], [0.172, 0.118, 0.034], [0.174, 0.0, 0.0]].map(([y, w, d]) => ({ c: [0, y, 0], sec: (t) => { const q = se(d, w, w, 4)(t); return [q[0], q[1]]; } })), 24);
   const add = (geo, mat, M) => { const me = new THREE.Mesh(geo, mat); me.applyMatrix4(M); me.castShadow = true; me.receiveShadow = true; pend.add(me); };
   // the bag hangs below the grip: handles peak at the grip (0,0,0), the body's top 0.085 below
   add(body, leather, T4([0, -0.26, 0]));
-  for (const z of [-0.05, 0.05]) add(new THREE.TorusGeometry(0.05, 0.0055, 6, 14, PI), leather, T4([0.0, -0.086, z * 0.0], [0, PI / 2, 0], [1, 1.6, 1]).multiply(T4([z, 0, 0])));
-  add(new THREE.BoxGeometry(0.008, 0.022, 0.03), metal, T4([0.05, -0.105, 0]));
-  add(new THREE.BoxGeometry(0.004, 0.006, 0.26), metal, T4([0.046, -0.12, 0]));
+  for (const z of [-0.05, 0.05]) add(new THREE.TorusGeometry(0.05, 0.0055, MQ ? 12 : 6, MQ ? 28 : 14, PI), leather, T4([0.0, -0.086, z * 0.0], [0, PI / 2, 0], [1, 1.6, 1]).multiply(T4([z, 0, 0])));
+  if (!MQ) {   // rev 6: the mannequins' bag is a plain blue shape (no clasp)
+    add(new THREE.BoxGeometry(0.008, 0.022, 0.03), metal, T4([0.05, -0.105, 0]));
+    add(new THREE.BoxGeometry(0.004, 0.006, 0.26), metal, T4([0.046, -0.12, 0]));
+  }
   g.add(pend);
   return { g, pend };
 };
