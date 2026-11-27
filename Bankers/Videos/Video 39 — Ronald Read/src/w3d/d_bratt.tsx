@@ -228,7 +228,7 @@ const buildAnnex = (m) => {
   downspout(m, W / 2 - 0.2, H, 0.0);
 };
 // ── THE RONALD READ PAVILION (frame: the front face z = 0, centred on x = 0) ────────────────────────────────────────────────────
-const IN = 4.2;   // how deep the lit floors are seen behind the glass
+const IN = 4.2, SET = 0.12;   // SET: the interior's slabs, floors and ceilings stop 12 cm behind the glass plane (no face coplanar with a spandrel or the glass); IN: how deep the lit floors are seen behind the glass
 const buildWing = (m) => {
   const { W, D, H, glass0 } = WING, x0 = -W / 2, x1 = W / 2, FL = 4.2, gx = (glass0 + x1) / 2, gw = x1 - glass0;
   // the brick mass (west) with framed slot windows (real openings), stone coping
@@ -250,9 +250,9 @@ const buildWing = (m) => {
   const rows = [["lobby", 0], ["or", 1], ["or", 2], ["office", 3]];
   for (const [mat, fl] of rows) {
     const y0 = fl * FL, yc = (fl + 1) * FL - (fl === 0 ? 0.4 : 0.45);
-    m.box("conc", [gx, y0 - 0.15 + (fl ? 0 : 0.15), -IN / 2], [gw - 0.1, fl ? 0.3 : 0.04, IN], "#C9C4BA", MT());          // the slab
-    m.box("interior", [gx, y0 + 0.02, -IN / 2], [gw - 0.12, 0.01, IN - 0.05], fl === 0 ? "#B8B2A6" : "#9FB3B8");          // the floor finish
-    m.box("lit", [gx, yc, -IN / 2], [gw - 0.12, 0.04, IN], "#E8ECF0");                                                      // the ceiling
+    m.box("conc", [gx, y0 - 0.15 + (fl ? 0 : 0.15), -(IN + SET) / 2], [gw - 0.1, fl ? 0.3 : 0.04, IN - SET], "#C9C4BA", MT());   // the slab (set back: its edge was coplanar with the spandrel face and z-fought)
+    m.box("interior", [gx, y0 + 0.02, -(IN + SET) / 2], [gw - 0.12, 0.01, IN - SET], fl === 0 ? "#B8B2A6" : "#9FB3B8");          // the floor finish
+    m.box("lit", [gx, yc, -(IN + SET) / 2], [gw - 0.12, 0.04, IN - SET], "#E8ECF0");                                         // the ceiling (set back from the glass plane)
     for (let i = 0; i < 8; i++) for (const z of [-0.9, -2.2, -3.5]) m.box("lamp", [glass0 + 0.9 + i * (gw - 1.6) / 7, yc - 0.025, z], [0.9, 0.01, 0.5], mat === "office" ? "#FFF2DC" : "#EEF6FF");
     m.quad(mat, [gx, (y0 + yc) / 2, -IN + 0.05], gw - 0.12, yc - y0, "#FFFFFF", [0, 0, 1, 1]);
     if (fl > 0) for (const px of [glass0 + gw * 0.33, glass0 + gw * 0.66]) m.box("lit", [px, (y0 + yc) / 2, -IN / 2 - 0.6], [0.12, yc - y0, IN - 1.2], "#DCE4E8");   // partitions
@@ -314,8 +314,8 @@ const buildLibrary = (m) => {
   // the two lit floors: floor finish, ceiling with light rows, the stacks on the back wall, ranges, tables
   const floors = [[0, 4.05, [0, 0, 1, 0.5]], [4.53, 8.2, [0, 0.5, 1, 1]]];
   floors.forEach(([y0, yc, rect], fi) => {
-    m.box("interior", [0, y0 + 0.01, -LDEEP / 2], [iw, 0.02, LDEEP], fi ? "#6E5A48" : "#5A4A3E");
-    m.box("lit", [0, yc, -LDEEP / 2], [iw, 0.04, LDEEP], "#E8DCC8");
+    m.box("interior", [0, y0 + 0.01, -(LDEEP + SET) / 2], [iw, 0.02, LDEEP - SET], fi ? "#6E5A48" : "#5A4A3E");
+    m.box("lit", [0, yc, -(LDEEP + SET) / 2], [iw, 0.04, LDEEP - SET], "#E8DCC8");
     for (const z of [-1.1, -2.9, -4.7]) for (let i = 0; i < 6; i++) m.box("lamp", [-7.5 + i * 3, yc - 0.03, z], [2.2, 0.02, 0.22], "#FFF0D6");
     m.quad("libint", [0, (y0 + yc) / 2, -LDEEP + 0.05], iw, yc - y0, "#FFFFFF", rect);
     // double-faced ranges, their ends toward the glass (spines on both long sides), a wood cap, the range-end card
