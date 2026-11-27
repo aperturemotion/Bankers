@@ -11,7 +11,7 @@ import React, { useMemo } from "react";
 import * as THREE from "three";
 import { canvasTex, rnd, std, Glow } from "./kit";
 import { BODY, FIGURE } from "./fonts3d";
-import { LightPool, LightWash } from "./st_state_fx";
+import { LightPool, LightWash, Shade, wallBand, floorBand, floorBlob } from "./st_state_fx";
 import { Town, addBuilding, addProps, addGoods, STRIPS, GR } from "./town_parts";
 import { storeSignTex, storeAwningTex, storeBladeTex, storeOpenTex } from "./st_store";
 
@@ -120,6 +120,47 @@ const buildStore = (m) => {
   }
   addGoods(m, goods);
 };
+
+// ★ rev 6 (Timur at ~2201 f: "at least add those fake shadows … a dark subtle shape under it, but the correct one … You can see the
+//   corners better that way. We don't really want unlit objects"): the store's shade, placed where this station's key (upper RIGHT,
+//   front: st_rules light.key [6, 14, 7]) and the room's ceiling panels are blocked — under every shelf board on the back panel (a
+//   little to the left of the board, as the key throws it), at the foot of every product row on its board, on the board behind the
+//   goods, beside every upright, in the back corners, along the floor/wall and ceiling/wall junctions, round the counter's kick and under
+//   its nosing, under the terminal. Subtle (0.25–0.55), two merged meshes.
+const SHELF_Y = [0, 1, 2, 3].map((k) => 0.6 + k * 0.52);
+const STORE_BANDS = (() => {
+  const b = [];
+  for (const y of SHELF_Y) {
+    b.push(wallBand(-0.16, y - 0.02, -6, 7.3, 0.34, 0.55, "+z", "top"));             // the board's shadow on the back panel
+    b.push(floorBand(-0.1, y + 0.02, -5.75, 7.3, 0.2, 0.5, "-z"));                    // the board's top, darker where it meets the wall
+    b.push(floorBand(-0.1, y + 0.02, -5.41, 7.3, 0.05, 0.38, "-z"));                  // the contact line in front of the product row
+    b.push(wallBand(-0.1, y + 0.02, -5.404, 7.2, 0.07, 0.34, "+z", "bottom"));        // the foot of the product row (its own occlusion)
+    b.push(wallBand(-0.1, y - 0.02, -5.344, 7.4, 0.035, 0.45, "+z", "top"));          // the board's front lip, its underside edge
+  }
+  for (const x of [-3.7, -1.9, -0.1, 1.7, 3.5]) b.push(wallBand(x - 0.03, 1.45, -6, 2.4, 0.16, 0.42, "+z", "right"));   // each upright's shadow (to its left)
+  b.push(wallBand(-4, 1.6, -6, 3.2, 0.55, 0.5, "+z", "left"), wallBand(4, 1.6, -6, 3.2, 0.55, 0.42, "+z", "right"));   // the back corners
+  b.push(wallBand(-4, 1.6, -6, 3.2, 0.55, 0.45, "+x", "right"), wallBand(4, 1.6, -6, 3.2, 0.55, 0.45, "-x", "left"));
+  b.push(wallBand(0, 3.2, -6, 8, 0.4, 0.35, "+z", "top"));                             // ceiling / back wall
+  b.push(floorBand(0, 0, -6, 8, 0.45, 0.55, "-z"), floorBand(-4, 0, -3, 6, 0.4, 0.42, "-x"), floorBand(4, 0, -3, 6, 0.4, 0.42, "+x"));   // floor junctions
+  b.push(floorBand(-0.1, 0, -5.35, 7.4, 0.3, 0.4, "-z"));                             // the floor in front of the shelving's plinth
+  // the counter (x −3.0…0.6, z −1.05…−0.45): the floor round its kick, the shade under its nosing on both faces
+  b.push(floorBand(-1.2, 0, -0.43, 3.7, 0.32, 0.55, "-z"), floorBand(-1.2, 0, -1.07, 3.7, 0.32, 0.5, "+z"));
+  b.push(floorBand(-3.06, 0, -0.75, 0.66, 0.3, 0.45, "+x"), floorBand(0.66, 0, -0.75, 0.66, 0.3, 0.45, "-x"));
+  b.push(wallBand(-1.2, 0.94, -0.41, 3.62, 0.16, 0.5, "+z", "top"), wallBand(-1.2, 0.94, -1.06, 3.62, 0.16, 0.45, "-z", "top"));
+  return b;
+})();
+const STORE_BLOBS = [floorBlob(-0.35, COUNTER_TOP, -0.83, 0.26, 0.22, 0.5), floorBlob(-1.2, 0.0, -0.75, 2.2, 0.55, 0.35)];
+// rev 6: the street furniture's contact shade on the sidewalks (benches, planters, hydrants, bins, news boxes, meters), the lamps'
+//   feet, and the storefront's foot on the sidewalk (the shadow box of the station key only covers the store front)
+const PROP_R = { bench: [0.95, 0.4], planter: [0.55, 0.55], hydrant: [0.26, 0.26], trash: [0.36, 0.36], news: [0.36, 0.3], meter: [0.16, 0.16], mailbox: [0.36, 0.3] };
+const STREET_BLOBS = [
+  ...[[-8.5, "bench", 1.0], [-11, "planter", 2.6], [-13.2, "hydrant", 3.0], [-19, "trash", 3.0], [-21.5, "news", 0.9], [-24, "meter", 3.0], [-29, "planter", 2.6], [5.2, "planter", 2.6], [9.5, "bench", 1.0], [12.5, "hydrant", 3.0],
+      [-12, "bench", 15.0], [-21, "trash", 13.0], [-26, "hydrant", 13.0], [9, "meter", 13.0], [3.4, "news", 0.9], [-4.6, "trash", 0.8]]
+    .map(([x, k, z]) => floorBlob(x + 0.06, 0.16, z - 0.04, PROP_R[k][0] * 1.25, PROP_R[k][1] * 1.4, 0.55)),
+  ...[-6, -16, -26, 7, 17, 27].map((x) => floorBlob(x, 0.16, 3.1, 0.42, 0.42, 0.6)),
+  ...[-23, -13, 9, 19, 29].map((x) => floorBlob(-x, 0.16, 12.9, 0.42, 0.42, 0.6))
+];
+const FRONT_BANDS = [floorBand(0, 0.16, 0.0, 8.2, 0.55, 0.5, "-z"), wallBand(-1.1, 0.75, 0.0, 4.5, 0.12, 0.4, "+z", "bottom")];
 const Store = () => {
   const sign = useMemo(storeSignTex, []), awn = useMemo(storeAwningTex, []), blade = useMemo(storeBladeTex, []), open = useMemo(storeOpenTex, []);
   const decal = useMemo(decalTex, []), tile = useMemo(() => { const t = tileTex(); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(4, 3); return t; }, []);
@@ -127,6 +168,9 @@ const Store = () => {
   return (
     <group>
       <Town build={buildStore} />
+      <Shade items={STORE_BANDS} />
+      <Shade items={FRONT_BANDS} />
+      <Shade items={STORE_BLOBS} kind="blob" />
       {/* the hook store's dress: its CORNER STORE sign, the blue striped awning over the window, the blade sign, the neon OPEN */}
       <mesh position={[0, 3.62, 0.025]}><planeGeometry args={[6.3, 0.88]} /><meshStandardMaterial map={sign} roughness={0.4} emissiveMap={sign} emissive="#FFFFFF" emissiveIntensity={0.55} /></mesh>
       <group position={[-1.1, 2.98, 0.36]} rotation-x={0.38}>
@@ -201,6 +245,7 @@ export const Street = () => {
       {/* the store's own depth behind its facade */}
       <mesh position={[0, 4.45, -3.2]} castShadow><boxGeometry args={[8.1, 0.3, 6.2]} /><meshStandardMaterial color="#232D3C" roughness={0.7} /></mesh>
       <Town build={(m) => buildStreet(m, shops)} />
+      <Shade items={STREET_BLOBS} kind="blob" />
       {/* across the street: its lamps (its row of shops is in the merged street above) */}
       <group position={[0, 0, 16]} rotation-y={Math.PI}>
         {[-23, -13, 9, 19, 29].map((x) => <Lamp key={x} x={x} z={3.1} />)}

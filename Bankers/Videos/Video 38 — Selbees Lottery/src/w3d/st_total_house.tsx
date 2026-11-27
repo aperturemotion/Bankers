@@ -15,6 +15,7 @@ import * as THREE from "three";
 import { canvasTex, rnd, Glow } from "./kit";
 import { Town, winRect } from "./town_parts";
 import { HomeRooms } from "./h_home_room";
+import { Shade, wallBand, floorBand, floorBlob, footRect } from "./st_state_fx";
 
 export const PICTURE = [1.6, 1.75, 3.5];
 // a lit room seen through the front window: a warm wall with a lamp, a framed picture, a bookcase, a sofa back, curtains drawn aside
@@ -168,6 +169,21 @@ const buildHouse = (m, siding, sideLit, open = false) => {
   m.box("roof", [-1.0, 0.05, 4.1], [9.6, 0.06, 0.9], "#8C6E5A", MT);
   [-4.1, -2.0, 0.6, 2.4, 3.9].forEach((x, i) => { for (let k = 0; k < 3; k++) m.ico("plant", [x + (k - 1) * 0.32, 0.38 + (k % 2) * 0.12, 4.1 + (rnd(i * 3 + k) - 0.5) * 0.2], [0.42, 0.36 + rnd(i + k) * 0.1, 0.38], ["#1F3A4E", "#24424C", "#2A4650"][k]); });
 };
+// rev 6 (Timur: "we don't really want unlit objects … You can see the corners better that way"): the house's shade — under the eaves
+//   and the porch roof on the front wall, the foundation's foot on the lawn, the porch slab and steps on the walk, each shrub cluster on
+//   its bed, the garage door's head and its foot on the drive (every house wears it, the neighbours too)
+const HOUSE_BANDS = [
+  wallBand(0, 3.06, 3.535, 10, 0.55, 0.45, "+z", "top"),
+  wallBand(-0.8, 2.86, 3.6, 2.7, 0.8, 0.5, "+z", "top"),
+  floorBand(-1.0, 0.085, 3.62, 9.6, 0.55, 0.5, "-z"),
+  ...footRect(-0.8, 0.0, 4.6, 1.3, 0.85, 0.35, 0.42),
+  floorBand(-0.8, 0.0, 6.07, 1.9, 0.45, 0.45, "-z"),
+  wallBand(-0.8, 0.24, 5.455, 2.5, 0.09, 0.45, "+z", "bottom"), wallBand(-0.8, 0.14, 5.785, 1.8, 0.09, 0.45, "+z", "bottom"),
+  wallBand(7.6, 2.28, 3.53, 3.9, 0.28, 0.4, "+z", "top"),
+  floorBand(7.6, 0.0, 3.6, 5.4, 0.5, 0.45, "-z"),
+  floorBand(0, 0.0, -3.62, 10.3, 0.5, 0.4, "+z")
+];
+const HOUSE_BLOBS = [-4.1, -2.0, 0.6, 2.4, 3.9].map((x) => floorBlob(x, 0.08, 4.12, 0.75, 0.42, 0.5)).concat([floorBlob(-5.8, 0.0, 1.2, 0.75, 0.75, 0.5)]);
 export const House = ({ lit = 1, siding = "#6C7B92" }) => {
   const open = lit > 0.8;                     // the hero house (lit 1) shows its real rooms; the neighbours in the haze keep the painted ones
   const room1 = useMemo(() => roomTex("a", true), []), room2 = useMemo(() => roomTex("b", false), []);
@@ -176,6 +192,8 @@ export const House = ({ lit = 1, siding = "#6C7B92" }) => {
   return (
     <group>
       <Town build={(m) => buildHouse(m, siding, lit > 0.8, open)} deps={[siding, lit > 0.8, open]} />
+      <Shade items={HOUSE_BANDS} />
+      <Shade items={HOUSE_BLOBS} kind="blob" />
       {open && <HomeRooms lit={lit} />}
       {/* the lit rooms behind the two front windows, and their glass */}
       {[[-3.0, 1.75, 1.5, 1.3, room2], [PICTURE[0], PICTURE[1], 2.6, 1.45, room1]].map(([x, y, w, h, tex], i) => (

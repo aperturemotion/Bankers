@@ -17,7 +17,7 @@ import { cueAt } from "../bnx/SfxLayer";
 import { BODY } from "./fonts3d";
 import { Cash, BUNDLE } from "./st_total_cash";
 import { House, PICTURE } from "./st_total_house";
-import { LightPool, LightWash, Tree } from "./st_state_fx";
+import { LightPool, LightWash, Tree, Shade, floorBlob, footRing, footRect } from "./st_state_fx";
 import { wAt, wEndAt } from "./st_state";
 
 // rev 2 (builder B, Timur 2026-11-26: the 1:00 transition "is great, but make it more smooth"): the street now lies 40 m to the
@@ -117,6 +117,11 @@ const Case = ({ glass, rim }) => {
     </group>
   );
 };
+// rev 6 (Timur: "we don't really want unlit objects … a dark subtle shape under it"): the plinth's foot on the asphalt (a ring), the
+//   street lamp's foot; the money column's foot on the plinth (four bands, shown as the column stands), its glass case's foot
+const TOTAL_BANDS = footRing(0, 0, 0, 3.7, 0.9, 0.5, 24);
+const TOTAL_BLOBS = [floorBlob(-7.5, 0, -6.5, 0.5, 0.5, 0.6)];
+const COLUMN_FOOT = [...footRect(0, PLINTH_H + 0.025, 0, BX / 2 + 0.02, BZ + 0.03, 0.42, 0.55), ...footRect(0, PLINTH_H + 0.02, 0, SHELL[0] / 2, SHELL[2] / 2, 0.3, 0.35)];
 const Scene = ({ f }) => {
   const t = useMemo(T, []);
   const asphalt = useMemo(() => { const a = asphaltTex(); a.wrapS = a.wrapT = THREE.RepeatWrapping; a.repeat.set(8, 8); return a; }, []);
@@ -172,6 +177,9 @@ const Scene = ({ f }) => {
         <mesh position={[0, 0, -0.03]} castShadow><boxGeometry args={[PLAQUE.w + 0.08, PLAQUE.h + 0.08, 0.06]} /><meshStandardMaterial color="#5C6B80" metalness={0.8} roughness={0.35} /></mesh>
         <mesh position={[0, 0, 0.002]}><planeGeometry args={[PLAQUE.w, PLAQUE.h]} /><meshStandardMaterial map={plaque} metalness={0.55} roughness={0.38} emissiveMap={plaque} emissive="#FFFFFF" emissiveIntensity={0.12} /></mesh>
       </group>
+      <Shade items={TOTAL_BANDS} />
+      <Shade items={TOTAL_BLOBS} kind="blob" />
+      <Shade items={COLUMN_FOOT} k={ease(f, t.company - 6, t.company + 10)} />
       {/* the light ring around the plinth's foot */}
       <LightPool position={[0, 0.02, 0]} r={6} color="#7FB4F2" opacity={0.22 + 0.25 * glass} />
       {/* the monolith: the column of bundles and its case, rising out of the plinth */}
@@ -237,10 +245,12 @@ const sfx = () => {
     cueAt("whooshlong", t.s0 - 9, 30, 0.4),                    // the arrival truck (rev 5: its fastest frame ≈ s0 + 3)
     cueAt("sub", t.s0 + 2, 40, 0.45),                           // the monolith rising
     cueAt("chainshort", t.all, 30, 0.22),
+    cueAt("ov_clank", t.company + 10, 14, 0.22),                // rev 6: the column locks at full height on its plinth
     cueAt("pingshort", G0 + 2, 12, 0.5),                        // the shell flashing to glass
     cueAt("ee_whoosh_fast_small_whoosh_01", G0 + 1, 12, 0.3),
     cueAt("coin", t.m26 + 24, 16, 0.35),                        // $26M lands
     cueAt("whooshsoft", t.m8 + 6, 20, 0.4),                     // the slab lifting out
+    cueAt("ov_money_drop", t.profit + 10, 14, 0.16),            // rev 6: the lifted slab settles (its bundles shift)
     cueAt("pingshort", t.m8 + 14, 12, 0.35),
     cueAt("airwoosh", t.tax - 5, 30, 0.4),                     // the glide to the house (rev 5: fastest ≈ 2053; airwoosh peaks 21 f in)
     cueAt("whooshsoft", t.family + 8, 14, 0.3)                  // the push in toward the window

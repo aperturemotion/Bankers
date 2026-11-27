@@ -16,6 +16,7 @@ import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { Glow, canvasTex, rnd } from "./kit";
 import { Kit, srgbTex, linTex, mould, cymaPts, lathe, leaf } from "./bld_kit";
+import { Shade, floorBlob, footRect, wallBand } from "./st_state_fx";
 import { roomMat, lamMat, bake, cell, inRect, drawPlaster, drawOak, drawWeave, drawLandscape, drawSeascape, drawAbstract, drawGeo, drawRug, drawSpine, SPINES, drawClock, grain } from "./h_tex";
 
 const F = 0.4, C = 2.75, ZB = -1.9, ZF = 3.38;
@@ -307,6 +308,12 @@ const useRooms = () => useMemo(() => {
 }, []);
 
 /** The two lit rooms. `lit` 0..1 scales their light (the hero house is lit 1). */
+// rev 6 (Timur: "a dark subtle shape under it, but the correct one … We don't really want unlit objects"): contact shade in the
+//   lit living room — under the sofa and its feet, under the coffee table, the side table, the floor lamp's base, the wall behind the
+//   sofa (the lamps are in front of it), the skirting junction
+const ROOM_BLOBS = [floorBlob(1.55, F + 0.006, -1.38, 1.25, 0.58, 0.55), floorBlob(1.55, F + 0.008, -0.22, 0.68, 0.38, 0.45),
+  floorBlob(TLAMP[0], F + 0.008, TLAMP[2], 0.34, 0.34, 0.5), floorBlob(FLAMP[0], F + 0.008, FLAMP[2], 0.24, 0.24, 0.5)];
+const ROOM_BANDS = [wallBand(1.55, F + 0.05, ZB, 2.6, 0.55, 0.35, "+z", "bottom"), wallBand(1.55, F + 0.95, ZB, 2.4, 0.4, 0.25, "+z", "bottom")];
 export const HomeRooms = ({ lit = 1 }) => {
   const { meshes, mats } = useRooms();
   const k = 0.55 + 0.45 * lit;
@@ -314,6 +321,8 @@ export const HomeRooms = ({ lit = 1 }) => {
   return (
     <group>
       {meshes.map((o, i) => <primitive key={i} object={o} />)}
+      <Shade items={ROOM_BLOBS} kind="blob" />
+      <Shade items={ROOM_BANDS} />
       <Glow position={[TLAMP[0], TLAMP[1], TLAMP[2] + 0.05]} size={0.9} color="#FFD8A0" opacity={0.45 * k} />
       <Glow position={[FLAMP[0], FLAMP[1], FLAMP[2] + 0.05]} size={0.95} color="#FFD8A0" opacity={0.45 * k} />
       <Glow position={[PEND[0], PEND[1] - 0.1, PEND[2]]} size={0.8} color="#FFD8A0" opacity={0.45 * k} />

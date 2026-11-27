@@ -18,6 +18,7 @@ import { Ticket } from "./st_hook";
 import { wAt, wEndAt } from "./st_state";
 import { Street, COUNTER_TOP, COUNTER_Z } from "./st_rules_street";
 import { Brochure, BrochureStack, RULE, pxToDesign, BRO } from "./st_rules_brochure";
+import { Shade, floorBlob } from "./st_state_fx";
 import { O_TOTAL, PIC_WORLD } from "./st_total";
 
 // ★ rev 5 (Timur: "seamless transitions … preferably no fade outs"; at ~2,274 f "it just randomly wanders around … That can't happen"):
@@ -45,6 +46,7 @@ const ticketPose = (t, f) => {
   // rev 5: it slides off the page DOWN the frame, toward the window (it slid right into the leaflet stand)
   return { pos: [p0[0] + 0.06 * k, p0[1] + 0.0068 + 0.003 * Math.sin(Math.PI * k) - 0.0062 * clamp01((k - 0.72) / 0.28), p0[2] + 0.34 * k * k], yaw: 0.22 + 0.5 * k };   // (down onto the counter once off the page)
 };
+const COUNTER_BLOBS = [floorBlob(BP[0] + 0.45, COUNTER_TOP, BP[2] - 0.02, 0.17, 0.25, 0.55, 0.18), floorBlob(BP[0] - 0.01, COUNTER_TOP, BP[2] + 0.01, 0.3, 0.2, 0.28)];
 const Scene = ({ f }) => {
   const t = useMemo(T, []);
   const tp = ticketPose(t, f);
@@ -53,6 +55,8 @@ const Scene = ({ f }) => {
     <group>
       <Sky />
       <Street />
+      {/* rev 6: the leaflet stand's and the open brochure's contact shade on the counter (the key throws it down-left) */}
+      <Shade items={COUNTER_BLOBS} kind="blob" />
       <Brochure p={BP} open={1} hi={hi} glow={1 - ease(f, t.rules + 6, t.rulesE + 8)} yaw={YAW} />
       <group position={[BP[0] + 0.47, COUNTER_TOP, BP[2] - 0.02]} rotation-y={-0.18}>
         <mesh position={[0, 0.006, 0]} castShadow receiveShadow><boxGeometry args={[0.2, 0.012, 0.36]} /><meshStandardMaterial color="#DCE8F6" transparent opacity={0.4} roughness={0.05} /></mesh>
@@ -100,7 +104,8 @@ const sfx = () => {
   const t = T();
   return [
     cueAt("whooshlong", t.next - 2, 40, 0.4),                       // rev 5: the crane over the roof (fastest ≈ next + 12)
-    cueAt("ee_whoosh_fast_small_whoosh_01", t.luck + 2, 14, 0.25),  // the ticket sliding off the page
+    cueAt("ov_paper_flutter", t.luck - 2, 18, 0.15),                // rev 6: the ticket sliding off the page …
+    cueAt("ee_click_click_01", t.luckE + 8, 6, 0.15),              // … and coming to rest on the counter
     cueAt("whooshsoft", t.its + 2, 16, 0.3),                         // the lean in
     cueAt("pingshort", t.reading + 4, 12, 0.3),                      // the highlight starts
     cueAt("pingshort", t.rules + 2, 12, 0.35),                       // …and completes

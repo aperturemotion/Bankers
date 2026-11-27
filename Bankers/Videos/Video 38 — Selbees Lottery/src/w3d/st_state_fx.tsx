@@ -77,12 +77,83 @@ const buildTree = (v) => {
 };
 const woodMat = new THREE.MeshStandardMaterial({ color: "#1E2836", roughness: 0.92 });
 const leafMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.88, envMapIntensity: 0.4 });
+const TREE_FOOT = [{ p: [0, 0.006, 0], s: [4.4, 4.4], r: [-Math.PI / 2, 0, 0], o: 0.42 }, { p: [0, 0.008, 0], s: [1.1, 1.1], r: [-Math.PI / 2, 0, 0], o: 0.45 }];   // rev 6: the canopy's soft shade + the trunk's contact
 export const Tree = ({ x, z, s = 1, i = 0, y = 0 }) => {
   const g = buildTree(i % 4);
   return (
     <group position={[x, y, z]} scale={s} rotation-y={tr(i + 3) * 6.28}>
+      <Shade items={TREE_FOOT} kind="blob" />
       <mesh geometry={g.wood} material={woodMat} castShadow receiveShadow />
       <mesh geometry={g.leaf} material={leafMat} castShadow receiveShadow />
     </group>
   );
 };
+
+// ★ rev 6 (Timur, 2026-11-27: "if you're not going to add shadows to things like the food shelves … at least add those fake shadows
+//   … a dark subtle shape under it, but the correct one … You can see the corners better that way. We don't really want unlit
+//   objects"): SHADE DECALS — soft dark quads laid on a surface where real light would be blocked: under a shelf board, in a corner,
+//   at the foot of a wall, a step, a post, a product row. Two shapes: a BAND (dark at one edge, an eased fall-off to nothing) and a
+//   BLOB (a soft ellipse). Every quad of one shape is merged into ONE mesh (alpha in the vertex colour), so a whole store of shade costs
+//   one draw call. They never cast or receive, never write depth, sit 2–5 mm off their surface (polygon offset) and fade with the fog.
+const shadeTex = (kind) => canvasTex("rev6_shade_" + kind, 128, 128, (c, w, h) => {
+  const img = c.createImageData(w, h);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const u = (x + 0.5) / w, v = (y + 0.5) / h;
+    let a;
+    if (kind === "blob") { const r = Math.hypot(u - 0.5, v - 0.5) * 2; a = Math.exp(-3.2 * r * r) * (1 - Math.min(1, Math.max(0, (r - 0.82) / 0.18))); }
+    else { const t = v; const ends = Math.min(1, Math.min(u, 1 - u) / 0.06); a = Math.pow(1 - t, 2.2) * (ends * ends * (3 - 2 * ends)); }   // v = 0 is the dark edge (canvas top)
+    const i = (y * w + x) * 4; img.data[i] = 255; img.data[i + 1] = 255; img.data[i + 2] = 255; img.data[i + 3] = Math.round(255 * a);
+  }
+  c.putImageData(img, 0, 0);
+});
+const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _e = new THREE.Euler(), _v = new THREE.Vector3(), _s = new THREE.Vector3();
+const buildShade = (items) => {
+  const n = items.length, pos = new Float32Array(n * 12), uv = new Float32Array(n * 8), col = new Float32Array(n * 16), idx = [];
+  const corners = [[-0.5, 0.5, 0, 1], [0.5, 0.5, 1, 1], [-0.5, -0.5, 0, 0], [0.5, -0.5, 1, 0]];   // the +y edge maps to uv v = 1 (the texture's dark top)
+  items.forEach((it, i) => {
+    _e.set(it.r?.[0] ?? 0, it.r?.[1] ?? 0, it.r?.[2] ?? 0); _q.setFromEuler(_e); _m.compose(_v.set(...it.p), _q, _s.set(it.s[0], it.s[1], 1));
+    corners.forEach(([x, y, a, b], k) => {
+      const p = new THREE.Vector3(x, y, 0).applyMatrix4(_m);
+      pos.set([p.x, p.y, p.z], (i * 4 + k) * 3); uv.set([a, b], (i * 4 + k) * 2); col.set([1, 1, 1, it.o ?? 0.4], (i * 4 + k) * 4);
+    });
+    const o = i * 4; idx.push(o, o + 2, o + 1, o + 2, o + 3, o + 1);
+  });
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.BufferAttribute(pos, 3)); g.setAttribute("uv", new THREE.BufferAttribute(uv, 2)); g.setAttribute("color", new THREE.BufferAttribute(col, 4)); g.setIndex(idx);
+  return g;
+};
+/** <Shade items kind> — items: [{ p, s:[w,h], r:[euler], o }] (a quad in its local XY, facing +z; for a band the local +y edge is the dark one) */
+export const Shade = ({ items, kind = "band", color = "#00060F", k = 1 }) => {
+  const geo = useMemo(() => buildShade(items), [items]);
+  const mat = useMemo(() => new THREE.MeshBasicMaterial({ map: canvasTexFlip(shadeTex(kind)), color, vertexColors: true, transparent: true, depthWrite: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 }), [kind, color]);
+  mat.opacity = k;
+  return <mesh geometry={geo} material={mat} renderOrder={1} userData={{ noShadow: true }} frustumCulled={false} />;
+};
+const canvasTexFlip = (t) => { t.flipY = true; return t; };
+// ── helpers that place shade where the light really is blocked ────────────────────────────────────────────────────────────
+const H = Math.PI / 2;
+/** a band on a vertical wall that faces `face` ("+z" | "-z" | "+x" | "-x"); dark edge at `edge` ("top" | "bottom" | "left" | "right" as
+ *  seen looking at the wall), the band's dark edge line through (x, y, z) ... w along the edge, h the fall-off depth */
+export const wallBand = (x, y, z, w, h, o, face = "+z", edge = "top") => {
+  const ry = { "+z": 0, "-z": Math.PI, "+x": H, "-x": -H }[face];
+  const rz = { top: 0, bottom: Math.PI, left: H, right: -H }[edge];
+  const vert = edge === "top" || edge === "bottom";
+  const dir = { top: [0, -1], bottom: [0, 1], left: [1, 0], right: [-1, 0] }[edge];   // from the dark edge into the band, in wall (u, y)
+  const off = 0.004, ux = Math.cos(ry), uz = -Math.sin(ry), nx = Math.sin(ry), nz = Math.cos(ry);
+  const cu = dir[0] * h / 2, cy = dir[1] * h / 2;
+  return { p: [x + ux * cu + nx * off, y + cy, z + uz * cu + nz * off], s: vert ? [w, h] : [h, w].reverse(), r: [0, ry, rz], o, _vert: vert };
+};
+/** a band on the floor (y), dark edge along a line through (x, z) on the side `edge` ("-z" = dark edge is the band's −z side …) */
+export const floorBand = (x, y, z, w, d, o, edge = "-z") => {
+  const rz = { "-z": 0, "+z": Math.PI, "+x": -H, "-x": H }[edge];
+  const dir = { "-z": [0, 1], "+z": [0, -1], "+x": [-1, 0], "-x": [1, 0] }[edge];   // into the band (x, z)
+  return { p: [x + dir[0] * d / 2, y + 0.004, z + dir[1] * d / 2], s: [w, d], r: [-H, 0, rz], o };
+};
+/** a soft ellipse on the floor */
+export const floorBlob = (x, y, z, rx, rz, o, rot = 0) => ({ p: [x, y + 0.004, z], s: [rx * 2, rz * 2], r: [-H, 0, rot], o });
+/** a floor band whose dark edge runs through (x, z), the band extending in direction (dx, dz) (any angle) */
+export const floorBandDir = (x, y, z, w, d, o, dx, dz) => { const n = Math.hypot(dx, dz) || 1; const ux = dx / n, uz = dz / n; return { p: [x + ux * d / 2, y + 0.004, z + uz * d / 2], s: [w, d], r: [-H, 0, Math.atan2(ux, uz)], o }; };
+/** a ring of floor bands round a circular foot of radius R (a plinth, a post, a drum) */
+export const footRing = (x, y, z, R, d, o, n = 16) => Array.from({ length: n }, (_, i) => { const a = (i / n) * Math.PI * 2, dx = Math.sin(a), dz = Math.cos(a); return floorBandDir(x + dx * R, y, z + dz * R, (2 * Math.PI * R) / n * 1.12, d, o, dx, dz); });
+/** four floor bands round a rectangular foot (cx, cz, half sizes hx, hz) */
+export const footRect = (x, y, z, hx, hz, d, o) => [floorBand(x, y, z + hz, hx * 2 + d * 0.6, d, o, "-z"), floorBand(x, y, z - hz, hx * 2 + d * 0.6, d, o, "+z"), floorBand(x + hx, y, z, hz * 2, d, o, "-x"), floorBand(x - hx, y, z, hz * 2, d, o, "+x")];

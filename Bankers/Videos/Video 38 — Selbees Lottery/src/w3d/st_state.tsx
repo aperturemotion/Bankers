@@ -20,7 +20,7 @@ import { cueAt } from "../bnx/SfxLayer";
 import { BODY, FIGURE } from "./fonts3d";
 import { StateHouse } from "./st_state_house";
 import { Cash } from "./st_total_cash";
-import { LightPool, LightWash, Tree } from "./st_state_fx";
+import { LightPool, LightWash, Tree, Shade, floorBand, floorBlob, footRect, footRing } from "./st_state_fx";
 import { LEAVE_A } from "./st_globe";
 import { SERIF as PSERIF, line as pline, para as ppara, rule as prule, grain as pgrain } from "./print_type";
 
@@ -151,6 +151,19 @@ const pageEdgeTex = () => canvasTex("st_pedge", 256, 64, (c, w, h) => {
   for (let y = 0; y < h; y += 2) { c.fillStyle = `rgba(60,80,110,${0.10 + rnd(y) * 0.18})`; c.fillRect(0, y, w, 1); }
 });
 
+// rev 6 (Timur: "we don't really want unlit objects … a dark subtle shape under it, but the correct one"): contact shade on the plaza —
+//   every lamp post's foot, both iron fences' kerbs (both faces) and their granite posts, the foot of the State House's flight (the
+//   plaza in front of the bottom step, the cheek walls' feet); the report gets its own, which appears as it lands
+const STATE_BANDS = [
+  ...[[-22, -5.6], [5.6, 22]].flatMap(([x0, x1]) => [floorBand((x0 + x1) / 2, 0, -15.2 + 0.25, x1 - x0, 0.5, 0.42, "-z"), floorBand((x0 + x1) / 2, 0, -15.2 - 0.25, x1 - x0, 0.45, 0.35, "+z")]),
+  floorBand(0, 0, -22 + 12 * 0.55, 16 * 0.55, 0.7, 0.5, "-z"),
+  ...[-1, 1].flatMap((sd) => footRect(sd * 8.45 * 0.55, 0, -22 + 10.1 * 0.55, 0.5 * 0.55, 2.4 * 0.55, 0.45, 0.42))
+];
+const STATE_BLOBS = [
+  ...[-12.5, -3.5, 5.5, 14.5].flatMap((z) => [-5.6, 5.6].map((x) => floorBlob(x, 0.0, z, 0.55, 0.55, 0.6))),
+  ...[[-22, -5.6], [5.6, 22]].flatMap(([x0, x1]) => { const n = Math.floor((x1 - x0) / 3.2) + 1; return Array.from({ length: n }, (_, k) => floorBlob(x0 + k * (x1 - x0) / (n - 1), 0, -15.2, 0.42, 0.42, 0.5)); })
+];
+const REPORT_BLOB = [floorBlob(0.05, 0, -9.15, 2.05, 2.55, 0.6)], REPORT_BANDS = footRect(0, 0, -9.2, 1.6, 2.1, 0.22, 0.45);
 // ── pieces ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 const LampPost = ({ x, z }) => (
   <group position={[x, 0, z]}>
@@ -305,6 +318,10 @@ const Scene = ({ f }) => {
       <LightWash position={[0, 4.2, HOUSE_Z + 4.4 * HS]} w={12} h={7} color="#BFD6FF" opacity={0.14} />
       {[-1, 1].map((sd) => <LightWash key={sd} position={[sd * 10, 3.2, HOUSE_Z + 0.06]} w={9} h={7} color="#BFD6FF" opacity={0.16} />)}
       <LightWash position={[0, 9.6, HOUSE_Z - 5 * HS + 3.05]} w={7} h={4} color="#FFE2B0" opacity={0.08 + 0.2 * domeK} />
+      <Shade items={STATE_BANDS} />
+      <Shade items={STATE_BLOBS} kind="blob" />
+      <Shade items={REPORT_BLOB} kind="blob" k={ease(f, t.inv + 14, t.inv + 22)} />
+      <Shade items={REPORT_BANDS} k={ease(f, t.inv + 14, t.inv + 22)} />
       {/* the report, then the money */}
       <Report t={t} f={f} />
       {f > t.made - 6 && f < t.next + 40 && <Cash items={cashItems(t, f)} shadows={false} self={0.45} />}
@@ -358,10 +375,14 @@ const sfx = () => {
     cueAt("whooshlong", t.s0 + 5, 30, 0.45),                      // rev 5: the truck from MIT (its fastest frame ≈ s0 + 17)
     cueAt("ee_whoosh_fast_small_whoosh_01", t.inv + 10, 14, 0.35), // the report falling
     cueAt("thud", t.inv + 20, 14, 0.55),                          // …and landing
-    cueAt("ee_paper_paper_tear_01", t.inv + 24, 12, 0.18),        // the cover swinging open (a soft paper sound)
+    cueAt("ov_paper_unfold", t.inv + 24, 16, 0.25),               // rev 6: the cover swinging open
     cueAt("ee_click_click_01", t.legal - 6, 6, 0.4),              // check 1
     cueAt("ee_click_click_01", t.no - 11, 6, 0.4),                // check 2
+    cueAt("ov_stamp", t.legal + 2, 10, 0.2),                      // rev 6: check 1 pressed home as its stroke ends
+    cueAt("ov_stamp", t.no - 3, 10, 0.18),                        // rev 6: check 2
     cueAt("whooshsoft", t.hurt + 22, 24, 0.45),                   // the pull-back
+    cueAt("ov_paper_flutter", t.made, 24, 0.15),                  // rev 6: the strapped bundles in flight …
+    cueAt("ov_money_drop", t.made + 28, 16, 0.2), cueAt("ov_money_drop", t.m120 + 22, 16, 0.17),   // … landing inside the door
     cueAt("coin", t.made + 6, 16, 0.35), cueAt("coin", t.m120 + 6, 16, 0.35), cueAt("coin", t.m120 + 20, 16, 0.3),
     cueAt("pingshort", t.m120 + 28, 12, 0.4)                       // the counter lands
   ];

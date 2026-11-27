@@ -413,6 +413,11 @@ const fxHouse = (x, y, z, nx, ny, nz, u) => {
     if (ny < -0.5 && y > LOG1 - 0.2 && y < LOG1 + 2 && Math.abs(x) < 10.5) g = 0.5;            // the entablature soffit
   }
   if (ny < -0.5) ao *= 0.75;
+  // rev 6 ("we don't really want unlit objects"): each step's riser darker at its foot, each tread at its back (vertex shade)
+  if (Math.abs(x) < 8.05 && y < 1.25 && z > 7.85 && z < 12.05) {
+    if (nz > 0.5) { const i = Math.round((12 - z) / 0.7); if (Math.abs(y - i * 0.2) < 0.01) ao *= 0.5; }
+    else if (ny > 0.5) { const m = (12 - z) / 0.7; if (m - Math.floor(m) < 0.5 && m > 0.5) ao *= 0.55; }
+  }
   if (Math.abs(x) < PAV - 0.3 && z > -0.05 && z < 3.25 && y < 5.15) ao *= 0.68;                  // inside the porch
   if (Math.abs(x) < PAV && z > -0.05 && z < 3.0 && y > 5.4 && y < LOG1) ao *= 0.78;            // the loggia's back wall
   ao *= 0.85 + 0.15 * smoothstep(0, 3, y);

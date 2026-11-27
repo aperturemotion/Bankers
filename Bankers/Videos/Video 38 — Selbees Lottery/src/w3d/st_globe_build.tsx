@@ -17,6 +17,7 @@ import * as THREE from "three";
 import { Glow, rnd } from "./kit";
 import { Kit, kitMat, srgbTex, linTex, flatTex, blackTex, mould, arcPts, cymaPts, lathe, flutedShaft, volute, smoothstep } from "./bld_kit";
 import { SERIF } from "./print_type";
+import { Shade, floorBand, floorBlob, footRect } from "./st_state_fx";
 
 // ── textures ───────────────────────────────────────────────────────────────────────────────────────────────────────────
 // ashlar limestone: 512 px = 4 units (uv scale 0.25); courses 0.5 u, blocks 1.5 u, staggered
@@ -380,11 +381,18 @@ const fxMIT = (x, y, z, nx, ny, nz, u) => {
     if (y > SH_TOP && y < SH_TOP + 4.2 && nz > 0.5) g = Math.max(g, 0.32 * (0.5 + 0.5 * near) * (1 - smoothstep(SH_TOP, SH_TOP + 4.2, y)) + 0.12);   // the entablature catches the floods
   }
   if (ny < -0.5) ao *= 0.78;
+  // rev 6 (Timur: "we don't really want unlit objects … you can see the corners better"): each step's riser darkens at its foot and
+  //   each tread at its back, where it meets the next riser (vertex shade; the planes have a vertex at each edge)
+  if (Math.abs(x) < 16.05 && y <= PODIUM + 0.01 && z > STEP_Z0 - 0.02 && z < STEP_Z0 + STEP_N * STEP_RUN + 0.05) {
+    if (nz > 0.5) { const k = Math.round(STEP_N - (z - STEP_Z0) / STEP_RUN); if (Math.abs(y - k * (PODIUM / STEP_N)) < 0.01) ao *= 0.5; }
+    else if (ny > 0.5) { const m = (z - STEP_Z0) / STEP_RUN; if (m - Math.floor(m) > 0.5) ao *= 0.55; }
+  }
   if (z < 0.05 && z > -0.5 && Math.abs(x) < 14.4 && y > 1.5 && y < 12.6 && u.tag !== 1) ao *= 0.62;   // the wall in the portico's shade
   ao *= 0.86 + 0.14 * smoothstep(0, 2.5, y);
   return [g, ao];
 };
 const SH_TOP = 12.5;
+const STEP_N = 8, STEP_RUN = 0.42, STEP_Z0 = 4.4;   // (= buildMIT's NST, RUN, PODIUM_FRONT)
 
 // a mesh for each merged material, built once
 const useMIT = () => useMemo(() => {
@@ -422,6 +430,12 @@ const useMIT = () => useMemo(() => {
 }, []);
 
 export const MIT_PARTS = () => buildMIT().count;   // (the part count, for the report)
+const MIT_BANDS = [
+  floorBand(0, 0, STEP_Z0 + STEP_N * STEP_RUN, 32, 1.0, 0.5, "-z"),
+  ...[-1, 1].flatMap((sd) => footRect(sd * 16.8, 0, 6.08, 0.88, 2.48, 0.6, 0.45)),
+  floorBand(0, PODIUM, 0.02, 28.8, 1.0, 0.45, "-z")
+];
+const MIT_BLOBS = COLS.map((cx) => floorBlob(cx + 0.15, PODIUM, COL_Z - 0.1, 1.25, 1.05, 0.55));
 export const DomeBuilding = ({ lampsOn = 1 }) => {
   const meshes = useMIT();
   const LTOP = 27.6;
@@ -429,6 +443,10 @@ export const DomeBuilding = ({ lampsOn = 1 }) => {
     <group>
       <group rotation-y={-Math.PI / 2}>
         {meshes.map((m, i) => <primitive key={i} object={m} />)}
+        {/* rev 6: contact shade — the plaza at the foot of the flight, the cheek blocks' feet, each column's foot on the podium,
+            the portico floor along the wall (the key comes from the front left) */}
+        <Shade items={MIT_BANDS} />
+        <Shade items={MIT_BLOBS} kind="blob" />
         {/* the lantern's glow, and the floodlight fixtures at the column feet (cool white) */}
         <Glow position={[0, LTOP - 0.8, DOME_Z]} size={4.2} color="#FFC97A" opacity={0.42 * lampsOn} />
         {COLS.map((cx) => <Glow key={cx} position={[cx, PODIUM + 0.25, COL_Z + 1.25]} size={0.9} color="#DCEBFF" opacity={0.55} />)}

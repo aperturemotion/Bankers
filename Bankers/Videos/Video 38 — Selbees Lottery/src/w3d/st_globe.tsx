@@ -24,7 +24,7 @@ import { wa, wAt, undrift, Tub, TUB, heroCam, Stars } from "./st_road_parts";
 import { ROAD_CUT } from "./st_road";
 import { DomeBuilding } from "./st_globe_build";
 import { Newspaper, PAPER_H, PAPER_W, DATE_Y } from "./st_globe_paper";
-import { Tree } from "./st_state_fx";
+import { Tree, Shade, floorBlob } from "./st_state_fx";
 
 export const GLOBE_O = [1500, 0, 0];
 const ROT = (p) => [p[2], p[1], -p[0]];        // the same quarter turn as the road (camera looks down world −z)
@@ -117,6 +117,12 @@ const paperPose = (f, t) => {
   const tilt = (1 - k) * 0.5 * Math.sin((f - a) / 4);
   return { y: TABLE_H + 0.003 + (1 - k) * (1 - k) * 3.2 + (PAPER_H / 2) * Math.abs(Math.sin(tilt)), yaw: (1 - k) * 1.4, tilt, slide: (1 - easeOut(f, b, b + 10)) * 0.0 + (1 - k) * 0.8, vis: f >= a - 1 };
 };
+const GLOBE_BLOBS = [
+  floorBlob(0.04, 0, -0.04, 0.82, 0.9, 0.62), floorBlob(0.0, 0, 0.0, 0.62, 0.68, 0.5),
+  floorBlob(PAPER_AT[0] + 0.05, 0, PAPER_AT[2] - 0.05, 0.95, 0.68, 0.32),
+  ...[[-1, -1], [-1, 1], [1, -1], [1, 1]].map(([a, b]) => floorBlob(PAPER_AT[0] + a * (TABLE_TOP[0] / 2 - 0.12), 0, PAPER_AT[2] + b * (TABLE_TOP[1] / 2 - 0.1), 0.09, 0.09, 0.6)),
+  ...[[6, 6.5], [6, -6.5], [16, 6.5], [16, -6.5], [-3, 6.5]].map(([x, z]) => floorBlob(x, 0, z, 0.45, 0.45, 0.55))
+];
 const Scene = ({ f }) => {
   const t = useMemo(T, []);
   const paving = useMemo(pavingTex, []);
@@ -152,6 +158,8 @@ const Scene = ({ f }) => {
       {/* dark trees framing the court */}
       {/* rev 5: only the west row — the east row stood in the truck to the State House (a flat-shaded canopy filled the frame) */}
       {[[8, -13], [14, -14], [20, -13], [26, -15]].map(([x, z], i) => <Tree key={"tr" + i} x={x} z={z} s={1.45 + rnd(i) * 0.3} i={i + 2} />)}
+      {/* rev 6: contact shade — the pallet on the paving, the folding table and its feet, the lamp posts */}
+      <Shade kind="blob" items={GLOBE_BLOBS} />
       {/* the MIT group's stack */}
       {/* rev 4 (Timur: the stand under the stack "is fully the same as the floor … change the color"): a real WOODEN pallet — seven
           pale pine deck boards, three stringers on nine blocks, bottom boards — warm and light against the blue granite */}
@@ -244,7 +252,8 @@ const sfx = () => {
     cueAt("thud", t.played + 2, 12, 0.45),                        // … and lands
     cueAt("thud", t.too, 12, 0.4),                                // another
     cueAt("whooshsoft", t.y2011 + 12, 24, 0.45),                  // up over the plaza as the paper falls
-    cueAt("ee_paper_paper_tear_01", t.boston - 2, 16, 0.35),      // the paper lands
+    cueAt("ov_paper_flutter", t.y2011 + 8, 20, 0.16),             // rev 6: the Globe flutters down …
+    cueAt("ov_newspaper", t.boston - 2, 16, 0.3),                 // rev 6: … and slaps onto the table
     cueAt("pingshort", t.boston + 4, 18, 0.35),                  // JULY 2011
     cueAt("whooshsoft", t.many + 28, 24, 0.35),                   // rev 5: the crane up off the stack onto MIT (fastest ≈ many + 36)
     cueAt("sub", t.rigged, 26, 0.5)                               // RIGGED?
