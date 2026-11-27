@@ -775,7 +775,12 @@ const sfx = () => {
     cue("ov_paper_flutter", t.enough - 6, 24, 0.2),                 // the ticket bundles drop onto the left pan
     cueAt("thud", t.enough + 2, 8, 0.14), cueAt("thud", t.enough + 16, 8, 0.12), cueAt("thud", t.enough + 30, 8, 0.12),   // bundles landing (674 → 714)
     cue("ov_clank", t.tickets + 10, 12, 0.16),                      // the left pan settles low
-    cue("ov_coins", t.put, 26, 0.3),                                // the prize coins pour onto the right pan
+    cue("ov_coins", t.put + 4, 26, 0.75),                           // the prize coins pour onto the right pan (rev 8: audible, still under the voice)
+    // rev 8 (Timur, 25 s: "subtle sound effects … like coins dropping … synced, proper sound effects, but not loud"): a clink on the landing
+    //   frame of eight of the pan's 60 coins — the SAME schedule the heap draws (heap(): coin j lands at lerp(put, math + 4, j/60) + rnd·3,
+    //   flat by +5), so each clink is a coin touching down.
+    ...[[2, 1.1], [9, 0.9], [17, 1.0], [24, 0.8], [32, 0.95], [40, 0.75], [48, 0.85], [56, 0.7]].map(([j, v]) =>
+      cueAt("coin", lerp(t.put, t.math + 4, j / 60) + rnd(900 + j) * 3 + 4, 10, v)),
     cue("ov_clank", t.math + 8, 14, 0.3)                            // the beam tips over and the right pan bottoms out
   ];
 };
