@@ -18,25 +18,32 @@ import { Ticket } from "./st_hook";
 import { wAt, wEndAt } from "./st_state";
 import { Street, COUNTER_TOP, COUNTER_Z } from "./st_rules_street";
 import { Brochure, BrochureStack, RULE, pxToDesign, BRO } from "./st_rules_brochure";
-import { TOTAL_PUSH_END } from "./st_total";
+import { O_TOTAL, PIC_WORLD } from "./st_total";
 
-export const O_RULES = [2400, 0, 0];
+// ★ rev 5 (Timur: "seamless transitions … preferably no fade outs"; at ~2,274 f "it just randomly wanders around … That can't happen"):
+//   Evart's main street now runs BEHIND the family home of the total station (the across-the-street sidewalk borders its back yard),
+//   so the film leaves the home's lit window by ONE crane up the facade, over the roof ridge and down onto the corner store's lit
+//   display window — no cross-dissolve. The close is seen from the STREET now (the brochure turned to read from outside the glass):
+//   the push to the brochure, the lean on the roll-down rule, and one slow pull back across the street onto the whole lit storefront
+//   (the sign, the window, the brochure on the counter) — the camera always on the store, never wandering down an empty street.
+export const O_RULES = [O_TOTAL[0] + 12, 0, -38.5];
 const T = () => {
   const s0 = wAt("sometimes", 2090);
-  return { s0, edge: wAt("edge", s0), isnt: wAt("isn't", s0), luck: wAt("luck", s0), luckE: wEndAt("luck", s0), its: wAt("it's", wAt("luck", s0)), reading: wAt("reading", s0), rules: wAt("rules", s0), rulesE: wEndAt("rules", s0), cut: TOTAL_PUSH_END() };
+  return { s0, edge: wAt("edge", s0), isnt: wAt("isn't", s0), luck: wAt("luck", s0), luckE: wEndAt("luck", s0), its: wAt("it's", wAt("luck", s0)), reading: wAt("reading", s0), rules: wAt("rules", s0), rulesE: wEndAt("rules", s0), next: wAt("sometimes", 2090) };
 };
-// the brochure on the counter, its page top toward the display window: it reads upright from behind the counter, the street beyond
+// the brochure on the counter (rev 5: its page top away from the window — it reads upright from the street, through the glass)
 const BP = [-2.05, COUNTER_TOP + 0.001, COUNTER_Z - 0.02];
-const YAW = -Math.PI / 2;
-// brochure design coords (dx along the spread, dy up the page) → station-local (yaw −π/2: dx → −x, dy → +z)
-const bro = (dx, dy, dz = 0.002) => [BP[0] - dx, BP[1] + dz, BP[2] + dy];
+const YAW = Math.PI / 2;   // rev 5: it reads from the street, through the window
+// brochure design coords (dx along the spread, dy up the page) → station-local (yaw +π/2: dx → +x, dy → −z)
+const bro = (dx, dy, dz = 0.002) => [BP[0] + dx, BP[1] + dz, BP[2] - dy];
 const brPx = (px, py) => { const [dx, dy] = pxToDesign(px, py); return bro(dx, dy); };
 const RULE_PT = () => brPx(1440, 330);                 // the middle of the rule's lines (THE ROLL-DOWN panel)
-// the ticket: lying on THE ROLL-DOWN panel, then sliding off to the right and away on "luck"
+// the ticket: lying on THE ROLL-DOWN panel, then sliding off the page on "luck"
 const ticketPose = (t, f) => {
-  const k = ease(f, t.isnt - 4, t.luckE + 2);
+  const k = ease(f, t.luck - 4, t.luckE + 8);   // rev 5: on "luck", once the camera has arrived
   const p0 = brPx(1450, 400);
-  return { pos: [p0[0] - 0.3 * k, p0[1] + 0.0068 + 0.003 * Math.sin(Math.PI * k), p0[2] - 0.1 * k * k], yaw: Math.PI + 0.22 + 0.7 * k };
+  // rev 5: it slides off the page DOWN the frame, toward the window (it slid right into the leaflet stand)
+  return { pos: [p0[0] + 0.06 * k, p0[1] + 0.0068 + 0.003 * Math.sin(Math.PI * k) - 0.0062 * clamp01((k - 0.72) / 0.28), p0[2] + 0.34 * k * k], yaw: 0.22 + 0.5 * k };   // (down onto the counter once off the page)
 };
 const Scene = ({ f }) => {
   const t = useMemo(T, []);
@@ -47,7 +54,7 @@ const Scene = ({ f }) => {
       <Sky />
       <Street />
       <Brochure p={BP} open={1} hi={hi} glow={1 - ease(f, t.rules + 6, t.rulesE + 8)} yaw={YAW} />
-      <group position={[BP[0] + 0.47, COUNTER_TOP, BP[2] + 0.02]} rotation-y={0.18}>
+      <group position={[BP[0] + 0.47, COUNTER_TOP, BP[2] - 0.02]} rotation-y={-0.18}>
         <mesh position={[0, 0.006, 0]} castShadow receiveShadow><boxGeometry args={[0.2, 0.012, 0.36]} /><meshStandardMaterial color="#DCE8F6" transparent opacity={0.4} roughness={0.05} /></mesh>
         <BrochureStack p={[0, 0.013, 0]} n={7} yaw={YAW} />
       </group>
@@ -57,23 +64,24 @@ const Scene = ({ f }) => {
 };
 const W = (p) => [p[0] + O_RULES[0], p[1] + O_RULES[1], p[2] + O_RULES[2]];
 const add = (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
-const LEAN = [-0.08, 0.75, -0.6];   // rev 2: the lean-in on the rule from ~1 m (0.38 m made the fly-out whip: image jerk 30 → 16 px/f²)
+// the family home's lit picture window in this station's local frame (the crane leaves from it)
+const PICL = () => [PIC_WORLD[0] - O_RULES[0], PIC_WORLD[1] - O_RULES[1], PIC_WORLD[2] - O_RULES[2]];
 const shots = () => {
   const t = T();
-  const r = RULE_PT(), c = brPx(1300, 560);
+  const r = RULE_PT(), c = brPx(1300, 560), h = PICL();
   return [
-    // the cut: close over the ticket on THE ROLL-DOWN panel, from behind the counter, under the pendant lamp
-    { a: t.cut, b: t.cut, cut: true, pos: W(add(c, [-0.07, 0.42, -0.34])), target: W(add(c, [-0.03, 0, 0.01])), fov: 34 },
-    // a slow drift up and back: the whole spread, the leaflet stand at its side, the lit street through the window beyond
-    { a: t.cut + 1, b: t.isnt + 6, pos: W(add(bro(0.03, -0.1), [-0.05, 0.6, -0.56])), target: W(bro(0.03, 0.05)), fov: 34 },
-    // lean in on the rule as the ticket is gone
-    { a: t.luck + 2, b: t.rules - 2, pos: W(add(r, LEAN)), target: W(add(r, [0, 0, 0.01])), fov: 34 },
-    // fly forward over the counter, out through the display window into main street, turning to look down the road (the hook's street);
-    // rev 2: a slow 62-f move (it was a 35-f whip from a 0.35-m close-up: Timur, no fast back-and-forth)
-    { a: t.rules - 4, b: t.rules + 40, pos: W([-1.7, 2.0, 2.6]), target: W([-6.5, 1.7, 14]), fov: 40, raw: true },   // rev 4f: starts 6 f later, after the tags have gone
-    // rev 3: …looking OUT through the window as it passes (turning left while still inside showed the brick beside the window), then,
-    //   outside, the turn down main street
-    { a: t.rules + 34, b: t.rules + 80, pos: W([0.4, 2.4, 8.4]), target: W([-30, 2.2, 7.4]), fov: 40, raw: true }
+    // ★ the crane, part 1 (rev 5): up the home's facade and over its roof ridge (≥ 3 m clear), turning to the corner store across
+    //   main street; the store's lit window is the subject from the moment it clears the ridge
+    { a: t.next - 16, b: t.edge + 2, pos: W([h[0] - 0.4, 9.6, 19]), target: W([-1.1, 2.0, 0]), fov: 38, arc: 2.5 },
+    // part 2: down over the far sidewalk and the street to the display window, the brochure and the ticket on the counter inside
+    { a: t.edge - 10, b: t.luck - 2, pos: W([c[0] + 0.05, 1.8, 2.5]), target: W(add(c, [0, 0, 0])), fov: 36 },
+    // the push to the brochure as the ticket slides off it on "luck" (from outside the glass, ~1.5 m, looking steeply down)
+    { a: t.luck - 8, b: t.its + 6, pos: W(add(c, [0.04, 1.2, 0.98])), target: W(add(c, [0, 0, 0.02])), fov: 28 },
+    // lean in on THE ROLL-DOWN rule (~1.5 m, narrower lens; from outside the glass: a close-up the camera must leave is framed from ≥ ~1 m)
+    { a: t.its - 2, b: t.rules + 6, pos: W(add(r, [0.05, 1.25, 0.86])), target: W(add(r, [0, 0, 0])), fov: 26 },   // the lens stays outside the glass; steeper, so the page fills the frame, not the floor
+    // the close: one slow pull back across the street onto the whole lit storefront — the sign, the window, the brochure on the
+    //   counter under its lamp. raw: the zoom-out keeps its authored path (no smoothing reaching back into the lean)
+    { a: t.rulesE - 8, b: t.rulesE + 46, pos: W([-0.3, 2.1, 17.4]), target: W([-0.3, 2.3, 0]), fov: 38, raw: true }   // the whole sign, window and door
   ];
 };
 const Overlay = ({ f, P }) => {
@@ -91,12 +99,15 @@ const Overlay = ({ f, P }) => {
 const sfx = () => {
   const t = T();
   return [
-    cueAt("ee_whoosh_fast_small_whoosh_01", t.isnt + 4, 14, 0.25),   // the ticket sliding off the page
+    cueAt("whooshlong", t.next - 2, 40, 0.4),                       // rev 5: the crane over the roof (fastest ≈ next + 12)
+    cueAt("ee_whoosh_fast_small_whoosh_01", t.luck + 2, 14, 0.25),  // the ticket sliding off the page
     cueAt("whooshsoft", t.its + 2, 16, 0.3),                         // the lean in
     cueAt("pingshort", t.reading + 4, 12, 0.3),                      // the highlight starts
     cueAt("pingshort", t.rules + 2, 12, 0.35),                       // …and completes
-    cueAt("airwoosh", t.rules + 12, 26, 0.35)                        // the pull back out through the window
+    cueAt("airwoosh", t.rulesE - 6, 26, 0.3)                         // the pull back across the street
   ];
 };
 // mounted from the cut to the end: the outro lifts the camera from this station's last framing (the world stays under the veil)
-export const ST = { id: "rules", origin: O_RULES, from: TOTAL_PUSH_END() - 2, to: 2400, light: { target: [-2.0, 1, -0.8], shadowBox: 3.2, keyI: 1.6, fillI: 0.36, rimI: 1.6 }, shots, Scene, Overlay, sfx };
+// rev 5: mounted from before the total station's truck (it is the fogged town behind the family home in every total view); the key
+//   comes from the upper RIGHT, through the window over the awning, so the brochure and the ticket get a clean, visible cast shadow
+export const ST = { id: "rules", origin: O_RULES, from: wAt("$120", 1700) + 10, to: 2400, light: { target: [-1.2, 1, -0.2], key: [6, 14, 7], shadowBox: 7, keyI: 1.7, fillI: 0.36, rimI: 1.6 }, shots, Scene, Overlay, sfx };

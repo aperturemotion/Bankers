@@ -17,14 +17,14 @@ import { cueAt } from "../bnx/SfxLayer";
 import { BODY } from "./fonts3d";
 import { Cash, BUNDLE } from "./st_total_cash";
 import { House, PICTURE } from "./st_total_house";
-import { LightPool, LightWash } from "./st_state_fx";
+import { LightPool, LightWash, Tree } from "./st_state_fx";
 import { wAt, wEndAt } from "./st_state";
 
 // rev 2 (builder B, Timur 2026-11-26: the 1:00 transition "is great, but make it more smooth"): the street now lies 40 m to the
 //   right of the State House plaza (it was 300 m away, crossed in ~25 frames through an empty navy haze). The camera trucks right
 //   in ONE eased move from the dome to the plinth, both places in view the whole way; nothing of either place is ever on screen
 //   when it mounts or unmounts (checked from the cameras: the nearest other-station object sits ≥ 19° outside the frame edge).
-export const O_TOTAL = [1840, 0, 0];
+export const O_TOTAL = [1600, 0, 0];   // rev 5: 40 m east of the State House plaza (which moved with it)
 const T = () => {
   const s0 = wAt("in", 1852);
   return {
@@ -41,6 +41,7 @@ const COL_H = LAYERS * BY;                                   // ≈ 8.4
 const SHELL = [BX + 0.5, COL_H + 0.5, BZ * 2 + 0.5];
 const HOUSE_AT = [9, 0, -15];                                 // the home, set back across the lawn (faces +z)
 const PIC = [HOUSE_AT[0] + PICTURE[0], PICTURE[1], HOUSE_AT[2] + PICTURE[2]];
+export const PIC_WORLD = [PIC[0] + O_TOTAL[0], PIC[1] + O_TOTAL[1], PIC[2] + O_TOTAL[2]];   // the lit picture window (the rules crane leaves from it)
 const layerItems = (from, to, y0) => {
   const out = [];
   for (let L = from; L < to; L++) for (let a = 0; a < 1; a++) for (let b = 0; b < 2; b++) {
@@ -148,8 +149,8 @@ const Scene = ({ f }) => {
       <mesh rotation-x={-Math.PI / 2} position={[HOUSE_AT[0] - 0.8, 0.012, -7.6]} receiveShadow><planeGeometry args={[1.3, 6]} /><meshStandardMaterial color="#3E4858" roughness={0.7} /></mesh>
       {/* the home and its neighbours down the street in the haze */}
       <group position={HOUSE_AT}><House lit={1} /></group>
-      <group position={[-12, 0, -21]} rotation-y={0.25} scale={0.95}><House lit={0.7} siding="#6F7F96" /></group>
-      <group position={[28, 0, -19]} rotation-y={-0.3}><House lit={0.6} siding="#8794A8" /></group>
+      <group position={[-12, 0, -18.5]} rotation-y={0.25} scale={0.95}><House lit={0.7} siding="#6F7F96" /></group>
+      <group position={[29, 0, -16]} rotation-y={-0.3}><House lit={0.6} siding="#8794A8" /></group>
       {/* the warm spill of the windows and the porch light on the lawn */}
       <LightPool position={[PIC[0], 0.03, PIC[2] + 2.2]} r={2.8} sx={1.3} color="#FFB867" opacity={0.3 + 0.1 * homeK} />
       <LightPool position={[HOUSE_AT[0] - 3, 0.03, HOUSE_AT[2] + 5.4]} r={1.8} color="#FFB867" opacity={0.25} />
@@ -163,12 +164,7 @@ const Scene = ({ f }) => {
       </group>
       <LightPool position={[-6.3, 0.02, -6.5]} r={4} color="#FFB867" opacity={0.28} />
       {/* trees in the yards */}
-      {[[-6, -14, 1.3], [20, -12, 1.4], [3, -22, 1.6], [-16, -8, 1.2]].map(([x, z, s], i) => (
-        <group key={i} position={[x, 0, z]} scale={s} rotation-y={rnd(i) * 6}>
-          <mesh position={[0, 1.4, 0]} castShadow><cylinderGeometry args={[0.16, 0.26, 2.8, 8]} /><meshStandardMaterial color="#1B2533" roughness={0.9} /></mesh>
-          {[[0, 3.4, 0, 1.6], [0.9, 2.9, 0.3, 1.1], [-0.8, 3.0, -0.4, 1.2], [0.2, 4.2, -0.3, 1.0]].map(([a, b, c2, r], k) => <mesh key={k} position={[a, b, c2]} castShadow><icosahedronGeometry args={[r, 1]} /><meshStandardMaterial color={k % 2 ? "#1E3A52" : "#24425C"} roughness={0.95} flatShading /></mesh>)}
-        </group>
-      ))}
+      {[[-6, -14, 1.3], [20, -12, 1.4], [3, -19.5, 1.6], [-16, -8, 1.2]].map(([x, z, s], i) => <Tree key={i} x={x} z={z} s={s} i={i + 5} />)}
       {/* the plinth: polished granite drum, a brushed steel ring, the plaque */}
       <mesh position={[0, PLINTH_H / 2, 0]} castShadow receiveShadow><cylinderGeometry args={[3.5, 3.7, PLINTH_H, 64]} /><meshStandardMaterial map={granite} color="#C5D2E4" roughness={0.18} metalness={0.25} /></mesh>
       <mesh position={[0, PLINTH_H + 0.02, 0]}><cylinderGeometry args={[3.52, 3.52, 0.05, 64]} /><meshStandardMaterial color="#A9BBD3" metalness={0.9} roughness={0.25} /></mesh>
@@ -195,26 +191,27 @@ const Scene = ({ f }) => {
 };
 // ── the camera (WORLD) ─────────────────────────────────────────────────────────────────────────────────────────────────────
 const W = (p) => [p[0] + O_TOTAL[0], p[1] + O_TOTAL[1], p[2] + O_TOTAL[2]];
-export const TOTAL_PUSH_END = () => T().next - 2;              // the frame the push into the window lands (the cut follows)
+export const TOTAL_PUSH_END = () => T().next - 2;              // (rev 3's dissolve frame; rev 5 crane-transition: Main.tsx no longer uses it)
+// ★ rev 5 (Timur: slower, cinematic; "seamless transitions … preferably no fade outs"): six long overlapping moves, each from a
+//   subject to a subject — the truck east from the dome (62 f, was 45), the low angle as the monolith climbs, the push on the glass,
+//   the rise to the profit slab, the glide to the home (54 f, was 42) and a slow push on its lit picture window. The film then leaves
+//   the window by the RULES station's first shot: a crane up the facade, over the roof ridge and down onto Evart's main street, which
+//   runs behind the house (st_rules O_RULES) — no cross-dissolve.
 const shots = () => {
   const t = T();
   return [
-    // arrival (rev 2): ONE eased truck from the State House framing (st_state's last shot lands at it − 8) across the plaza's edge
-    //   to the plinth 40 m to the right, a crane up over the plaza's trees at its middle; it starts while the money still streams into the door and
-    //   lands low before the plinth with the plaque in the frame's lower band (above the watermark)
-    { a: t.s0 - 23, b: t.s0 + 22, pos: W([-4.5, 2.4, 17.5]), target: W([0, 3.7, 0]), fov: 36, arc: 5.5 },
-    // the monolith rises: a low angle easing in as it climbs (it begins as the truck settles, so the speed never drops to zero)
-    { a: t.s0 + 17, b: t.m26 + 8, pos: W([-3.0, 1.8, 14.5]), target: W([0, 5.2, 0]), fov: 36 },
+    // arrival: ONE eased truck from the State House framing across the plaza's edge to the plinth 40 m east, a crane over the trees
+    { a: wEndAt("$120", 1700) - 8, b: t.s0 + 34, pos: W([-4.5, 2.4, 17.5]), target: W([0, 3.7, 0]), fov: 36, arc: 6.0 },
+    // the monolith rises: a low angle easing in as it climbs
+    { a: t.s0 + 24, b: t.m26 + 14, pos: W([-3.0, 1.8, 14.5]), target: W([0, 5.2, 0]), fov: 36 },
     // the glass reveal: push in toward the bundles
-    { a: t.m26 + 8, b: t.nearly, pos: W([2.4, 4.6, 12.6]), target: W([0, 5.4, 0]), fov: 36 },
+    { a: t.m26 + 10, b: t.nearly + 6, pos: W([2.4, 4.6, 12.6]), target: W([0, 5.4, 0]), fov: 36 },
     // the profit: rise to the glowing slab as it lifts out
-    { a: t.nearly, b: t.tax, pos: W([3.8, 9.6, 12.8]), target: W([0, 11.2, 0]), fov: 36 },
+    { a: t.nearly, b: t.tax - 8, pos: W([3.4, 5.6, 16.6]), target: W([0, 8.3, 0]), fov: 36 },   // rev 5: from further back and lower (less climb, no up-then-down swing into the glide)
     // to the home: glide right across the lawn, the case passing on the left, the house front with its lit windows
-    //   (rev 2: it leaves earlier and lands nearer, so FAMILY is in before its word and reads ~1.1 s before the push)
-    { a: t.tax - 10, b: t.theirs + 10, pos: W([PIC[0] - 2.0, 2.5, PIC[2] + 12]), target: W([PIC[0] - 1.0, 2.1, PIC[2]]), fov: 40 },
-    // …and in toward the lit picture window (rev 3: it stops outside — through the clear pane it ended on the blank back wall, 8 f
-    //   of grey before the cut); the window CROSS-DISSOLVES into the brochure (Main.tsx DISSOLVES), still drifting in
-    { a: t.theirs + 2, b: t.next + 8, pos: W([PIC[0] - 0.2, PIC[1] + 0.1, PIC[2] + 3.4]), target: W([PIC[0] - 0.1, PIC[1], PIC[2]]), fov: 36 }
+    { a: t.tax - 18, b: t.went + 12, pos: W([PIC[0] - 2.0, 2.5, PIC[2] + 12]), target: W([PIC[0] - 1.0, 2.1, PIC[2]]), fov: 40 },
+    // a slow push on the lit picture window ("Theirs went to family"); the rules station's crane leaves from it
+    { a: t.went + 2, b: t.family + 18, pos: W([PIC[0] - 0.6, 2.3, PIC[2] + 7.0]), target: W([PIC[0] - 0.4, 2.0, PIC[2]]), fov: 38 }
   ];
 };
 const Overlay = ({ f, P }) => {
@@ -237,7 +234,7 @@ const sfx = () => {
   const t = T();
   const G0 = t.m26 + 16;
   return [
-    cueAt("whooshlong", t.s0 - 13, 30, 0.45),                   // the arrival truck (its fastest frame ≈ its middle, s0 − 1)
+    cueAt("whooshlong", t.s0 - 9, 30, 0.4),                    // the arrival truck (rev 5: its fastest frame ≈ s0 + 3)
     cueAt("sub", t.s0 + 2, 40, 0.45),                           // the monolith rising
     cueAt("chainshort", t.all, 30, 0.22),
     cueAt("pingshort", G0 + 2, 12, 0.5),                        // the shell flashing to glass
@@ -245,8 +242,10 @@ const sfx = () => {
     cueAt("coin", t.m26 + 24, 16, 0.35),                        // $26M lands
     cueAt("whooshsoft", t.m8 + 6, 20, 0.4),                     // the slab lifting out
     cueAt("pingshort", t.m8 + 14, 12, 0.35),
-    cueAt("airwoosh", t.tax - 10, 30, 0.45),                    // the glide to the house (fastest ≈ 2048; airwoosh peaks 21 f in)
+    cueAt("airwoosh", t.tax - 5, 30, 0.4),                     // the glide to the house (rev 5: fastest ≈ 2053; airwoosh peaks 21 f in)
     cueAt("whooshsoft", t.family + 8, 14, 0.3)                  // the push in toward the window
   ];
 };
-export const ST = { id: "total", origin: O_TOTAL, from: wAt("in", 1852) - 22, to: wAt("sometimes", 1852) + 2, light: { target: [2, 0, -4], shadowBox: 22, keyI: 1.7, fillI: 0.34, rimI: 1.8 }, shots, Scene, Overlay, sfx };
+// rev 5 (Timur: the main visual "needs to have shadows … not bright and unlit"): the key comes from the LEFT and high (the bundles'
+//   left faces lit, their fronts in half light, the right in shade, each layer's edge reading), the fill is lower
+export const ST = { id: "total", origin: O_TOTAL, from: wAt("$120", 1700) + 10, to: wAt("sometimes", 1852) + 40, light: { target: [2, 0, -4], key: [-13, 13, 4], shadowBox: 22, keyI: 2.0, fillI: 0.24, rimI: 1.4 }, shots, Scene, Overlay, sfx };

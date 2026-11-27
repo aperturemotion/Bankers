@@ -393,28 +393,30 @@ const useMIT = () => useMemo(() => {
   const T = (draw, k, w = 512, h = 512) => ({ map: srgbTex("mit_" + k, w, h, (c, W, H) => draw(c, W, H, false)), bump: linTex("mit_" + k + "_b", w, h, (c, W, H) => draw(c, W, H, true)) });
   const ash = T(drawAshlar, "ashlar"), sm = T(drawSmooth, "smooth"), ru = T(drawRustic, "rustic"), dm = T(drawDome, "dome", 1024, 512);
   const COOL = "#C6D9F5";
+  // rev 5: the baked uplight is lower (1.0 → 0.62), so the station key's real shadows (the columns on the wall behind) read
   const mats = {
-    ashlar: kitMat({ map: ash.map, bumpMap: ash.bump, bumpScale: 1.2, color: "#A9B5C6", roughness: 0.86, glow: COOL, glowI: 1.0 }),
-    smooth: kitMat({ map: sm.map, bumpMap: sm.bump, bumpScale: 0.6, color: "#B4BFCF", roughness: 0.78, glow: COOL, glowI: 1.0 }),
-    rustic: kitMat({ map: ru.map, bumpMap: ru.bump, bumpScale: 2.2, color: "#9EAABC", roughness: 0.88, glow: COOL, glowI: 1.0 }),
-    granite: kitMat({ map: sm.map, bumpMap: sm.bump, bumpScale: 0.8, color: "#7E8BA0", roughness: 0.7, glow: COOL, glowI: 0.6 }),
-    dome: kitMat({ map: dm.map, bumpMap: dm.bump, bumpScale: 1.4, color: "#B0BCCD", roughness: 0.74, glow: COOL, glowI: 1.0 }),
+    ashlar: kitMat({ map: ash.map, bumpMap: ash.bump, bumpScale: 1.2, color: "#9FB0CB", roughness: 0.86, glow: COOL, glowI: 0.62 }),
+    smooth: kitMat({ map: sm.map, bumpMap: sm.bump, bumpScale: 0.6, color: "#A9B9D3", roughness: 0.78, glow: COOL, glowI: 0.62 }),
+    rustic: kitMat({ map: ru.map, bumpMap: ru.bump, bumpScale: 2.2, color: "#9EAABC", roughness: 0.88, glow: COOL, glowI: 0.62 }),
+    granite: kitMat({ map: sm.map, bumpMap: sm.bump, bumpScale: 0.8, color: "#7E8BA0", roughness: 0.7, glow: COOL, glowI: 0.4 }),
+    dome: kitMat({ map: dm.map, bumpMap: dm.bump, bumpScale: 1.4, color: "#A6B7D2", roughness: 0.74, glow: COOL, glowI: 0.62 }),
     bronze: kitMat({ map: flatTex(), bumpMap: flatTex(true), color: "#2C333E", roughness: 0.42, metalness: 0.65, envMapIntensity: 0.8 }),
     glass: kitMat({ map: glassTex(), emissiveMap: blackTex(), emissive: "#000000", color: "#9FB2CC", roughness: 0.12, metalness: 0.55, envMapIntensity: 1.3 }),
     glassLit: kitMat({ map: interiorTex(), emissiveMap: interiorTex(), emissive: "#FFFFFF", emissiveIntensity: 1.05, color: "#FFFFFF", roughness: 0.3 })
   };
+  // rev 5: the main visual casts and takes real shadows (the colonnade on the wall, the drum on the roof); glass neither
   // draw order front to back (renderOrder sorts before material), so the depth test rejects the walls hidden behind the columns
   const ORDER = { granite: 1, smooth: 2, bronze: 3, glass: 4, glassLit: 5, rustic: 6, ashlar: 7, dome: 8 };
-  const meshes = parts.map(({ key, geometry }) => { const [mk, back] = key.split("@"); const m = new THREE.Mesh(geometry, mats[mk]); m.receiveShadow = false; m.renderOrder = back ? 30 : 10 + ORDER[mk]; return m; });
+  const meshes = parts.map(({ key, geometry }) => { const [mk, back] = key.split("@"); const m = new THREE.Mesh(geometry, mats[mk]); m.castShadow = !mk.startsWith("glass"); m.receiveShadow = !mk.startsWith("glass"); m.renderOrder = back ? 30 : 10 + ORDER[mk]; return m; });
   // the frieze inscription (own UVs; incised letters in the map and the bump)
   const fr = { map: srgbTex("mit_frieze", 4096, 120, (c, w, h) => drawFrieze(c, w, h, false)), bump: linTex("mit_frieze_b", 4096, 120, (c, w, h) => drawFrieze(c, w, h, true)) };
   [fr.map, fr.bump].forEach((t) => { t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping; });
   const fg = new THREE.PlaneGeometry(FRIEZE_W, FRIEZE_H);
   const F = new Float32Array(fg.attributes.position.count * 2); for (let i = 0; i < F.length; i += 2) { F[i] = 0.36; F[i + 1] = 1; }
   fg.setAttribute("fx", new THREE.Float32BufferAttribute(F, 2));
-  const frieze = new THREE.Mesh(fg, kitMat({ map: fr.map, bumpMap: fr.bump, bumpScale: 2.5, color: "#B4BFCF", roughness: 0.8, glow: COOL, glowI: 1.0 }));
+  const frieze = new THREE.Mesh(fg, kitMat({ map: fr.map, bumpMap: fr.bump, bumpScale: 2.5, color: "#B4BFCF", roughness: 0.8, glow: COOL, glowI: 0.62 }));
   frieze.position.set(0, FR0 + FRIEZE_H / 2, EZ - 0.04);
-  frieze.renderOrder = 12;
+  frieze.renderOrder = 12; frieze.receiveShadow = true;
   meshes.push(frieze);
   return meshes;
 }, []);

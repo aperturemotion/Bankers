@@ -20,10 +20,13 @@ import { cueAt } from "../bnx/SfxLayer";
 import { BODY, FIGURE } from "./fonts3d";
 import { StateHouse } from "./st_state_house";
 import { Cash } from "./st_total_cash";
-import { LightPool, LightWash } from "./st_state_fx";
+import { LightPool, LightWash, Tree } from "./st_state_fx";
+import { LEAVE_A } from "./st_globe";
 import { SERIF as PSERIF, line as pline, para as ppara, rule as prule, grain as pgrain } from "./print_type";
 
-export const O_STATE = [1800, 0, 0];
+// rev 5: 60 m east of MIT's plaza (it was 300 m): the camera TRUCKS here from the RIGGED stack over the plaza's trees in one slow eased
+//   move (the 300-m flight in 24 f was the film's fastest zip, 2,066 px/f); the total street stays 40 m further east
+export const O_STATE = [1560, 0, 0];
 const nrm = (s) => s.toLowerCase().replace(/[^a-z0-9$']/g, "");
 // the first word starting with `t` at or after frame `after` (so repeated words resolve to THIS station's line)
 export const wAt = (t, after = 0) => { const q = nrm(t); const w = WORDS.find((w) => w.at >= after && nrm(w.t).startsWith(q)); if (!w) throw new Error("st_state: no word " + t); return w.at; };
@@ -160,14 +163,7 @@ const LampPost = ({ x, z }) => (
     <Glow position={[0, 3.95, 0]} size={0.7} color="#FFE8C4" opacity={0.9} />
   </group>
 );
-const Tree = ({ x, z, s = 1, i }) => (
-  <group position={[x, 0, z]} scale={s} rotation-y={rnd(i) * 6}>
-    <mesh position={[0, 1.4, 0]} castShadow><cylinderGeometry args={[0.16, 0.26, 2.8, 8]} /><meshStandardMaterial color="#1B2533" roughness={0.9} /></mesh>
-    {[[0, 3.4, 0, 1.6], [0.9, 2.9, 0.3, 1.1], [-0.8, 3.0, -0.4, 1.2], [0.2, 4.2, -0.3, 1.0]].map(([a, b, c2, r], k) => (
-      <mesh key={k} position={[a, b, c2]} castShadow><icosahedronGeometry args={[r, 1]} /><meshStandardMaterial color={k % 2 ? "#1E3A52" : "#24425C"} roughness={0.95} flatShading /></mesh>
-    ))}
-  </group>
-);
+// (rev 5: the trees are st_state_fx's detailed Tree)
 // the iron fence: granite posts and a run of pickets (instanced)
 const Fence = ({ x0, x1, z }) => {
   const n = Math.floor((x1 - x0) / 0.22);
@@ -273,7 +269,7 @@ const Scene = ({ f }) => {
   const lawn = useMemo(() => { const p = lawnTex(); p.wrapS = p.wrapT = THREE.RepeatWrapping; p.repeat.set(4, 8); return p; }, []);
   const domeK = ease(f, t.m120 - 6, t.it);
   const doorK = ease(f, t.made - 18, t.made + 4);
-  const moonK = ease(f, t.s0 - 12, t.s0 + 2) * (1 - ease(f, t.it - 18, t.it - 4));
+  const moonK = ease(f, LEAVE_A + 16, LEAVE_A + 50) * (1 - ease(f, t.it - 18, t.it - 4));
   return (
     <group>
       <Sky />
@@ -298,7 +294,12 @@ const Scene = ({ f }) => {
       <Fence x0={-22} x1={-5.6} z={-15.2} />
       <Fence x0={5.6} x1={22} z={-15.2} />
       {[-12.5, -3.5, 5.5, 14.5].map((z) => [-5.6, 5.6].map((x) => <LampPost key={x + "_" + z} x={x} z={z} />))}
-      {[[-10, -10, 1.1], [-15, -3, 1.3], [-11, 6, 1.2], [-17, 13, 1.4], [10.5, -9, 1.2], [15, -1, 1.35], [11, 8, 1.15], [17, 15, 1.3]].map(([x, z, s], i) => <Tree key={i} x={x} z={z} s={s} i={i} />)}
+      {/* rev 5: the west lawn keeps one tree by the fence — the truck from MIT sweeps this lawn and nearer trees wiped the whole frame; the
+          east lawn likewise (the truck east to the total street passed right through its two nearer trees) */}
+      {[[-10, -10, 1.05], [10.5, -9, 1.2], [18.5, 19.5, 1.3]].map(([x, z, s], i) => <Tree key={i} x={x} z={z} s={s} i={i} />)}
+      {/* rev 5: a row of tall trees along the lawn's west edge (beside MIT's plaza; none north of z −9: the truck east passes in front of them): the end of MIT's
+          wing is never seen against empty fog */}
+      {[-40, -33, -26, -19.5, -9].map((z, i) => <Tree key={"w" + i} x={-22.6 + (i % 2) * 0.8} z={z} s={1.45 + rnd(i + 40) * 0.35} i={i + 9} />)}
       {[-12.5, -3.5, 5.5, 14.5].map((z) => [-5.6, 5.6].map((x) => <LightPool key={x + "p" + z} position={[x, 0.02, z]} r={3.2} color="#FFB867" opacity={0.32} />))}
       <LightPool position={[DOOR[0], 0.72, DOOR[2] + 2.6]} r={2.6} sz={1.4} color="#FFB867" opacity={0.15 + 0.35 * doorK} />
       <LightWash position={[0, 4.2, HOUSE_Z + 4.4 * HS]} w={12} h={7} color="#BFD6FF" opacity={0.14} />
@@ -313,21 +314,28 @@ const Scene = ({ f }) => {
 
 // ── the camera (WORLD coordinates) ─────────────────────────────────────────────────────────────────────────────────────────
 const W = (p) => [p[0] + O_STATE[0], p[1] + O_STATE[1], p[2] + O_STATE[2]];
+// ★ rev 5 (Timur: slower, cinematic, always on a subject): five long moves, each overlapping the last so the camera never settles
+//   and restarts — the truck in from MIT (66 f; the report falls into the frame as it lands), the descent onto the opening report,
+//   one slow drift across the findings while both checks draw, the pull back and rise to the door and the dome as the money streams
+//   in, the slow push on the dome (the total station's truck east starts from it)
 const shots = () => {
   const t = T();
   return [
-    // arrival (held 10 f so RIGGED? reads to the end of "game."): a flight out of the haze, high and craning down the plaza toward the dome
-    { a: t.s0 - 12, b: t.s0 + 12, pos: W([5, 17, 75]), target: W([0, 9, -22]), fov: 36, arc: 12 },
-    { a: t.s0, b: t.state + 18, pos: W([1.5, 9.5, 24]), target: W([0, 8.5, -22]), fov: 36 },
-    // the report drops: the camera eases down and in, tilting with it
-    { a: t.state + 14, b: t.inv + 30, pos: W([1.2, 6.2, 6.5]), target: W([0, 2.2, -14]), fov: 36 },
-    // the findings: above the open report, the lit arcade and door at the top of frame; a slow orbit while the checks land
-    { a: t.inv + 26, b: t.legal + 2, pos: W([2.4, 6.8, 3.2]), target: W([-0.2, -0.4, -9.2]), fov: 34 },
-    { a: t.legal + 2, b: t.hurt + 4, pos: W([-0.7, 6.3, 2.0]), target: W([-0.3, -0.5, -9.0]), fov: 34 },
-    // the money: pull back and rise; the stream, the door, the dome (slow push while it fills)
-    { a: t.hurt + 10, b: t.m120 + 12, pos: W([-3.2, 4.0, 11.5]), target: W([0, 8.6, -18]), fov: 40 },
-    // (rev 2) the slow push lands at it − 8, as the total station's truck to the right begins (one continuous move, no haze)
-    { a: t.m120 + 8, b: t.it - 8, pos: W([-1.6, 3.7, 8.6]), target: W([0, 9.4, -18]), fov: 40 }
+    // the truck from MIT's stack: east over the plaza's trees, rising, to the State House plaza (lands as the report hits the stone)
+    //   in two overlapping parts so the camera always has a subject and never pans fast: first it cranes up and back off the RIGGED
+    //   stack onto MIT's colonnade and dome (the stack and the paper's table sinking out of the bottom of the frame), then it trucks
+    //   east along the building line — MIT's east wing, the row of trees, then the State House sliding in, the report falling onto its
+    //   plaza
+    { a: LEAVE_A, b: t.s0 + 12, pos: [1496.5, 7.0, 11.0], target: [1501, 5.0, -22], fov: 36 },
+    { a: t.s0 - 14, b: t.inv + 40, pos: W([1.5, 8.2, 21.5]), target: W([0, 5.2, -15]), fov: 36 },
+    // down and in over the report as its cover swings open; the lit arcade and door at the top of the frame
+    { a: t.inv + 28, b: t.legal + 10, pos: W([2.0, 6.7, 3.6]), target: W([-0.2, -0.4, -9.2]), fov: 34 },
+    // one slow drift across the findings while the two checks draw
+    { a: t.legal - 2, b: t.hurt + 8, pos: W([-0.7, 6.3, 2.0]), target: W([-0.3, -0.5, -9.0]), fov: 34 },
+    // the money: pull back and rise; the stream, the door, the dome
+    { a: t.hurt + 2, b: t.m120 + 14, pos: W([-3.2, 4.0, 11.5]), target: W([0, 8.6, -18]), fov: 40 },
+    // the slow push on the dome (the total station's truck east leaves from it)
+    { a: t.m120 + 8, b: t.it - 6, pos: W([-1.6, 3.7, 8.6]), target: W([0, 9.4, -18]), fov: 40 }
   ];
 };
 const Overlay = ({ f, P }) => {
@@ -347,7 +355,7 @@ const Overlay = ({ f, P }) => {
 const sfx = () => {
   const t = T();
   return [
-    cueAt("whooshlong", t.s0 + 2, 30, 0.55),                      // the arrival flight (fastest ≈ its middle)
+    cueAt("whooshlong", t.s0 + 5, 30, 0.45),                      // rev 5: the truck from MIT (its fastest frame ≈ s0 + 17)
     cueAt("ee_whoosh_fast_small_whoosh_01", t.inv + 10, 14, 0.35), // the report falling
     cueAt("thud", t.inv + 20, 14, 0.55),                          // …and landing
     cueAt("ee_paper_paper_tear_01", t.inv + 24, 12, 0.18),        // the cover swinging open (a soft paper sound)
@@ -358,4 +366,4 @@ const sfx = () => {
     cueAt("pingshort", t.m120 + 28, 12, 0.4)                       // the counter lands
   ];
 };
-export const ST = { id: "state", origin: O_STATE, from: wAt("the", 1612) - 24, to: wAt("in", wAt("$120", 1700)) + 14, light: { target: [0, 0, -12], shadowBox: 24, keyI: 1.6, fillI: 0.32, rimI: 1.9 }, shots, Scene, Overlay, sfx };
+export const ST = { id: "state", origin: O_STATE, from: LEAVE_A - 14, to: wAt("in", wAt("$120", 1700)) + 24, light: { target: [0, 0, -12], shadowBox: 24, keyI: 1.6, fillI: 0.32, rimI: 1.9 }, shots, Scene, Overlay, sfx };

@@ -16,6 +16,7 @@ import { Town, addBuilding, addProps, addGoods, STRIPS, GR } from "./town_parts"
 import { storeSignTex, storeAwningTex, storeBladeTex, storeOpenTex } from "./st_store";
 
 export const COUNTER_TOP = 0.96, COUNTER_Z = -0.75;
+const STREET_X0 = -30, STREET_X1 = 40;   // rev 5: the street's extent (it runs on into the fog both ways)
 // ── print ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 const brickTex = (key, base) => canvasTex("rs_brick_" + key, 512, 512, (c, w, h) => {
   c.fillStyle = base; c.fillRect(0, 0, w, h);
@@ -51,23 +52,20 @@ const NEAR_SIGNS = [13, 0, 6, 8, 3, 11, 5, 9, 15, 10, 14], NEAR_KIND = ["brick",
 const FAR_SIGNS = [1, 4, 2, 7, 12, 0, 6, 13, 10, 5, 11, 3, 8, 9, 15, 14];
 const buildStreet = (m, shops) => {
   // sidewalks (concrete slabs) and curbs, both sides of the road
-  for (const z of [1.75, 14.25]) m.box("concrete", [-15, 0.08, z], [200, 0.16, 3.5], "#FFFFFF", { metric: true });
-  for (const z of [3.43, 12.57]) m.box("trim", [-15, 0.085, z], [200, 0.17, 0.14], "#A3ABB6", { metric: true });
+  for (const z of [1.75, 14.25]) m.box("concrete", [5, 0.08, z], [STREET_X1 - STREET_X0, 0.16, 3.5], "#FFFFFF", { metric: true });
+  for (const z of [3.43, 12.57]) m.box("trim", [5, 0.085, z], [STREET_X1 - STREET_X0, 0.17, 0.14], "#A3ABB6", { metric: true });
   shops.forEach((s, k) => {
     m.push([s.x, 0.16, 0], 0);
     addBuilding(m, { w: s.w - 0.05, h: s.h, d: 6, seed: s.i + 40, kind: NEAR_KIND[k % NEAR_KIND.length], brick: k % 4, sign: NEAR_SIGNS[k % NEAR_SIGNS.length], lit: 0.6 });
     m.pop();
   });
-  shops.filter((s) => s.x > -60).forEach((s, k) => {
-    m.push([s.x - 2.5, 0.16, 16], Math.PI);
-    addBuilding(m, { w: s.w - 0.05, h: s.h + (s.i % 3 === 1 ? 2.2 : 0), d: 6, seed: s.i + 90, kind: k % 3 === 1 ? "clap" : "brick", brick: (k + 2) % 4, sign: FAR_SIGNS[k % FAR_SIGNS.length], lit: 0.6 });
-    m.pop();
-  });
+  // rev 5: no shop row across the street — the family home and its neighbours' back yards (st_total) are there; the camera cranes
+  //   over that roof into this street
   const N = (x, type, z = 3.0) => ({ type, p: [x, 0.16, z], ry: 0 }), X = (x, type, z = 13.0) => ({ type, p: [x, 0.16, z], ry: Math.PI });
   addProps(m, [
-    N(-8.5, "bench", 1.0), N(-11, "planter", 2.6), N(-13.2, "hydrant"), N(-19, "trash"), N(-21.5, "news", 0.9), N(-24, "meter"), N(-29, "planter", 2.6), N(-31.5, "bench", 1.0), N(-39, "mailbox", 0.9), N(-42, "sign", 3.15),
+    N(-8.5, "bench", 1.0), N(-11, "planter", 2.6), N(-13.2, "hydrant"), N(-19, "trash"), N(-21.5, "news", 0.9), N(-24, "meter"), N(-29, "planter", 2.6),
     N(5.2, "planter", 2.6), N(9.5, "bench", 1.0), N(12.5, "hydrant"),
-    X(-12, "bench", 15.0), X(-14.5, "planter", 13.4), X(-21, "trash"), X(-26, "hydrant"), X(-33.5, "planter", 13.4), X(-3.5, "news", 15.1), X(3.5, "planter", 13.4), X(9, "meter")
+    X(-12, "bench", 15.0), X(-21, "trash"), X(-26, "hydrant"), X(9, "meter")
   ]);
 };
 const Lamp = ({ x, z }) => (
@@ -187,27 +185,27 @@ const Store = () => {
 };
 // ── the street ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
 export const Street = () => {
-  const asphalt = useMemo(() => { const t = asphaltTex(); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(30, 3); return t; }, []);
+  const asphalt = useMemo(() => { const t = asphaltTex(); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(13.5, 3); return t; }, []);
   const shops = useMemo(() => {
     const out = []; let x = -4.15, i = 0;
-    while (x > -70) { const w = 6.4 + rnd(i + 2) * 2; out.push({ x: x - w / 2, w, h: 6.2 + Math.floor(rnd(i + 4) * 3) * 2.2, i }); x -= w + 0.05; i++; }
-    x = 4.15; while (x < 40) { const w = 6.4 + rnd(i + 2) * 2; out.push({ x: x + w / 2, w, h: 6.2 + Math.floor(rnd(i + 4) * 3) * 2.2, i }); x += w + 0.05; i++; }
+    while (x > STREET_X0) { const w = 6.4 + rnd(i + 2) * 2; out.push({ x: x - w / 2, w, h: 6.2 + Math.floor(rnd(i + 4) * 3) * 2.2, i }); x -= w + 0.05; i++; }
+    x = 4.15; while (x < STREET_X1) { const w = 6.4 + rnd(i + 2) * 2; out.push({ x: x + w / 2, w, h: 6.2 + Math.floor(rnd(i + 4) * 3) * 2.2, i }); x += w + 0.05; i++; }
     return out;
   }, []);
   return (
     <group>
-      <mesh rotation-x={-Math.PI / 2} position={[0, -0.03, 0]} receiveShadow><planeGeometry args={[400, 400]} /><meshStandardMaterial color="#0d2238" roughness={0.95} /></mesh>
-      <mesh rotation-x={-Math.PI / 2} position={[-15, 0, 8]} receiveShadow><planeGeometry args={[200, 9]} /><meshStandardMaterial map={asphalt} color="#7a8aa3" roughness={0.3} metalness={0.15} /></mesh>
-      {Array.from({ length: 30 }, (_, i) => <mesh key={i} rotation-x={-Math.PI / 2} position={[30 - i * 7, 0.005, 8]}><planeGeometry args={[3.2, 0.16]} /><meshStandardMaterial color="#E8C766" emissive="#6b5520" emissiveIntensity={0.3} roughness={0.5} /></mesh>)}
+      <mesh rotation-x={-Math.PI / 2} position={[0, -0.045, 0]} receiveShadow><planeGeometry args={[400, 400]} /><meshStandardMaterial color="#0C1F33" roughness={0.95} /></mesh>
+      <mesh rotation-x={-Math.PI / 2} position={[5, 0, 8]} receiveShadow><planeGeometry args={[STREET_X1 - STREET_X0 + 20, 9]} /><meshStandardMaterial map={asphalt} color="#7a8aa3" roughness={0.3} metalness={0.15} /></mesh>
+      {Array.from({ length: 13 }, (_, i) => <mesh key={i} rotation-x={-Math.PI / 2} position={[44 - i * 7, 0.005, 8]}><planeGeometry args={[3.2, 0.16]} /><meshStandardMaterial color="#E8C766" emissive="#6b5520" emissiveIntensity={0.3} roughness={0.5} /></mesh>)}
       <Store />
       {/* the store's own depth behind its facade */}
       <mesh position={[0, 4.45, -3.2]} castShadow><boxGeometry args={[8.1, 0.3, 6.2]} /><meshStandardMaterial color="#232D3C" roughness={0.7} /></mesh>
       <Town build={(m) => buildStreet(m, shops)} />
       {/* across the street: its lamps (its row of shops is in the merged street above) */}
       <group position={[0, 0, 16]} rotation-y={Math.PI}>
-        {[-10, 0, 10, 20, 30, 40].map((x) => <Lamp key={x} x={x} z={3.1} />)}
+        {[-23, -13, 9, 19, 29].map((x) => <Lamp key={x} x={x} z={3.1} />)}
       </group>
-      {[-6, -16, -26, -36, -46, 7, 17].map((x) => <Lamp key={x} x={x} z={3.1} />)}
+      {[-6, -16, -26, 7, 17, 27].map((x) => <Lamp key={x} x={x} z={3.1} />)}
     </group>
   );
 };

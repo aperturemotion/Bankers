@@ -34,8 +34,9 @@ const shotsAll = STATIONS.flatMap((s) => s.shots().map(real(s))).sort((p, q) => 
 const story = (s, f) => (s.id === HOOK_ID ? f : Math.max(0, f - S));   // the frame a station is handed
 // the camera's final move: up and away into the navy sky as the close comes in (the world falls away under BANKER$)
 const lastShot = shotsAll[shotsAll.length - 1];
-const OUTRO = { a: CLOSE_AT + 32, b: CLOSE_AT + 82,   // rev 2: after the slower fly-out
-   pos: [lastShot.pos[0], lastShot.pos[1] + 22, lastShot.pos[2] + 10], target: [lastShot.target[0], lastShot.target[1] + 26, lastShot.target[2] - 6], fov: 40 };
+// rev 5 (builder S): the lift keeps the last subject (the lit storefront) in frame: a slow rise and pull back, the store sinking into the fog under BANKER$
+const OUTRO = { a: CLOSE_AT + 32, b: CLOSE_AT + 96,
+   pos: [lastShot.pos[0], lastShot.pos[1] + 9, lastShot.pos[2] + 3], target: [lastShot.target[0], lastShot.target[1] + 0.5, lastShot.target[2]], fov: lastShot.fov ?? 40 };
 export const CAM_RAW = makeCam([...shotsAll, OUTRO]);
 // one continuous glide (kit.smoothCam). rev 3 (Timur, 2026-11-26: "smoothen the camera move as much as you can … really pleasant"):
 //   SIGMA 14 → CAM_SIGMA; shots flagged `raw` (a move threading an opening) stay as authored
@@ -49,7 +50,8 @@ export const CAM = smoothCam(CAM_RAW, TOTAL, shotsAll.filter((s) => s.cut).map((
 //   the blank back wall: 8 grey frames).
 const HALF = 7;
 // rev 5 (builder Q): rolldown → test is a MATCH CUT on Jerry's ticket stack now (st_test TEST_ARRIVE "match"), not a dissolve
-export const DISSOLVES = [{ at: TOTAL_PUSH_END() + S, pre: "total", post: "rules" }].map((d) => ({
+// rev 5: no dissolves left — rolldown → test is a match cut (builder Q), total → rules a crane over the roof (builder S)
+export const DISSOLVES = [].map((d) => ({
   ...d, camPre: makeCam([...shotsAll.filter((s) => s.a < d.at), OUTRO].filter((s) => s.a < d.at)), camPost: makeCam(shotsAll.filter((s) => s.a >= d.at))
 }));
 const dissolveAt = (f) => DISSOLVES.find((d) => f >= d.at + 1 - HALF && f < d.at + 1 + HALF);   // a cut shot at `at` lands on at + 1
