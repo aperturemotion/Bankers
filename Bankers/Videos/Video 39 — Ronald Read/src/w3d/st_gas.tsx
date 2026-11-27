@@ -232,7 +232,7 @@ const shots = () => {
   const t = T();
   return [
     { a: t.start, b: t.start, cut: true, pos: A([1.0, 2.6, 16.8]), target: A([-1.3, 1.05, -3]), fov: 40 },
-    { a: t.start, b: t.end + 14, pos: A([-1.45, 2.9, 8.4]), target: A([-2.2, 0.05, -3]), fov: 40 }             // one slow push in and down onto the pumps
+    { a: t.start, b: t.end + 14, pos: A([-1.0, 2.4, 10.4]), target: A([-1.7, 0.95, -3]), fov: 40 }             // one slow push in and down onto the pumps
   ];
 };
 const Overlay = ({ f, P }) => {
@@ -241,7 +241,7 @@ const Overlay = ({ f, P }) => {
   return (
     <>
       <Tag text="After WWII" at={t.war - 4} out={t.years - 30} x={96} y={500} to={sign.behind ? null : sign} />
-      <Counter at={t.years - 28} out={t.end - 13} x={540} y={300} value={25} unit="YEARS" label="At the pumps" size={112} countDur={26} />
+      <Counter at={t.years - 28} out={t.end - 13} x={540} y={470} value={25} unit="YEARS" label="At the pumps" size={112} countDur={26} />
     </>
   );
 };
