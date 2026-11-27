@@ -9,7 +9,9 @@
 //   <World3D shots>     the canvas: renderer (ACES, sRGB, soft shadows), an environment for reflections, fog, the key/fill/rim
 //   MAT / TEX           the house materials and canvas-drawn textures (print, paper, signage), deterministic
 import React, { useMemo } from "react";
-import { useCurrentFrame, useVideoConfig, delayRender, continueRender } from "remotion";
+import { useCurrentFrame, useVideoConfig, delayRender, continueRender, getInputProps } from "remotion";
+// a quick low-res PREVIEW render (inputProps.preview): the WebGL buffer at 0.4 of the frame, no MSAA, 1024-px shadow maps — never the master
+const PREVIEW = (() => { try { return getInputProps()?.preview === true; } catch { return false; } })();
 import { ThreeCanvas } from "@remotion/three";
 import { useThree, useFrame } from "@react-three/fiber";
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
@@ -172,7 +174,7 @@ export const HouseLights = ({ keyPos = [-9, 14, 8], keyI = 2.6, keyColor = "#DCE
       <primitive object={tgt} />
       <hemisphereLight args={["#7FA9E6", "#0A2448", fillI * gain]} />
       <directionalLight castShadow={casts} position={[target[0] + key[0], target[1] + key[1], target[2] + key[2]]} target={tgt} intensity={keyI * gain} color={keyColor}
-        shadow-mapSize-width={2048} shadow-mapSize-height={2048} shadow-bias={-0.0004} shadow-normalBias={0.02}
+        shadow-mapSize-width={PREVIEW ? 1024 : 2048} shadow-mapSize-height={PREVIEW ? 1024 : 2048} shadow-bias={-0.0004} shadow-normalBias={0.02}
         shadow-camera-left={-shadowBox} shadow-camera-right={shadowBox} shadow-camera-top={shadowBox} shadow-camera-bottom={-shadowBox} shadow-camera-near={0.5} shadow-camera-far={80} />
       <directionalLight position={[target[0] + rim[0], target[1] + rim[1], target[2] + rim[2]]} target={tgt} intensity={rimI * gain} color="#7FB0F0" />
     </>
@@ -217,7 +219,7 @@ const AmbientOcclusion = () => {
   return null;
 };
 export const World3D = ({ cam, fog = FOG, children }) => (
-  <ThreeCanvas width={W} height={H} shadows gl={{ antialias: true, preserveDrawingBuffer: true }} camera={{ fov: 34, near: 0.05, far: 600, position: [0, 2, 10] }}
+  <ThreeCanvas width={W} height={H} shadows dpr={PREVIEW ? 0.4 : undefined} gl={{ antialias: !PREVIEW, preserveDrawingBuffer: true }} camera={{ fov: 34, near: 0.05, far: 600, position: [0, 2, 10] }}
     style={{ position: "absolute", left: 0, top: 0 }}>
     <Setup fog={fog} />
     <CamDriver cam={cam} />

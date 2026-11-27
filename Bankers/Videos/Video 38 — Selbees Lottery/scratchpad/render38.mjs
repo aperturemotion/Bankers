@@ -18,7 +18,7 @@ const SCALE = PREVIEW ? 0.4 : CHECK ? 0.5 : 1;
 const chromiumOptions = { gl: "swangle" };
 const serveUrl = await bundle({ entryPoint: path.resolve("src/index.ts") });
 process.on("exit", () => { try { fs.rmSync(serveUrl, { recursive: true, force: true }); } catch {} });
-const comp = await selectComposition({ serveUrl, id: "SelbeesLottery", port: PORT, chromiumOptions, inputProps: { solo: "picture" } });
+const comp = await selectComposition({ serveUrl, id: "SelbeesLottery", port: PORT, chromiumOptions, inputProps: { solo: "picture", ...(PREVIEW ? { preview: true } : {}) } });
 const N = comp.durationInFrames;
 const frames = (file) => { try { return parseInt(execFileSync(FFPROBE, ["-v", "error", "-count_packets", "-select_streams", "v:0", "-show_entries", "stream=nb_read_packets", "-of", "csv=p=0", file]).toString().trim(), 10); } catch { return -1; } };
 let [lo, hi] = ONLY ? ONLY.split("-").map(Number) : [0, N - 1];
@@ -31,7 +31,7 @@ for (let a = 0; a < N; a += CHUNK) {
   const tmp = out.replace(".mp4", ".part.mp4");
   const ts = Date.now();
   await renderMedia({ serveUrl, composition: comp, codec: "h264", crf: PREVIEW ? 26 : 16, muted: true, frameRange: [a, b], outputLocation: tmp, concurrency: CONC, port: PORT, scale: SCALE,
-    chromiumOptions, inputProps: { solo: "picture" }, timeoutInMilliseconds: 240000,
+    chromiumOptions, inputProps: { solo: "picture", ...(PREVIEW ? { preview: true } : {}) }, timeoutInMilliseconds: 240000,
     onBrowserLog: (l) => { if (l.type === "error") console.log("BROWSER", l.text.slice(0, 200)); } });
   const n = frames(tmp);
   if (n !== b - a + 1) throw new Error(`chunk ${a}-${b}: ${n} frames`);
