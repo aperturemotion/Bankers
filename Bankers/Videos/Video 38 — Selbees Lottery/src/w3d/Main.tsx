@@ -74,57 +74,7 @@ const CUT_FLASH = [{ at: 481 + S, o: 0.58, dur: 16, color: "#C8DBF4" }, { at: 88
 // a flight between stations crosses the navy HAZE (the reference style's "through a boundary" transition): the fog thickens to full
 // as the camera crosses and clears as it lands, so a fast arrival into a small room never flashes (test: 51 → 81 levels in one frame)
 const HAZE = [];   // rev 3: the 24 s flight through the haze is a cross-dissolve now (DISSOLVES)
-// ── rev 8 (Timur, 2026-11-27: "Don't make that pinging sound so often … I don't hear any sound effects other than the bicycle chain and
-// the pinging sound … use Openverse, the Earn Edits SFX pack, Earshot … apply sound effects throughout the video"). The ping is kept only
-// for the kitchen timer's beep (3:00) and the last "rules." — every other ping becomes the sound of what the picture does there.
-const W = (word, n = 1) => { let k = 0; for (const c of CHIPS) for (const p of c.parts) if (p.word.replace(/[^\w$,]/g, "").toLowerCase().startsWith(word.toLowerCase()) && ++k === n) return p.at; throw new Error("rev8 SFX: no word " + word); };
-const PING_KEEP = (at) => Math.abs(at - 508) <= 2 || Math.abs(at - 2245) <= 2;
-const PING_SWAP = [   // [near this real frame, the sound, vol]
-  [186, "ee_impact_low_hit_01", 0.9],          // "Legally." — a low hit on the word
-  [269, "ee_click_designed_click_01", 0.9],    // the banner lamps switch on (In 2003)
-  [484, "ee_pen_marker_stroke_01", 0.8],       // the loophole rule is highlighted on the leaflet
-  [577, "ee_money_coin_drop_01", 0.8],         // the coins reach the $5M ring
-  [944, "ee_pen_pen_stroke_01", 0.8],          // $500 PER SHARE is written
-  [1331, "ee_whoosh_designed_medium_whoosh_01", 0.8],   // the shell turns to glass
-  [1561, "ee_paper_page_turn_02", 0.9],        // the Globe's dateline, JULY 2011
-  [1862, "ee_pen_pen_stroke_01", 0.9],         // the cheque's amount is written out
-  [1984, "ee_whoosh_cinematic_whoosh_hit", 0.7],// the case flashes to glass
-  [2054, "ee_money_counting_banknotes", 0.8],  // the $8M band on its stack
-  [2231, "ee_pen_marker_stroke_01", 0.8],      // the highlight on the rules starts
-];
-const swapPing = (c) => {
-  if (c.s !== "pingshort" || PING_KEEP(c.at)) return c;
-  const m = PING_SWAP.find(([f]) => Math.abs(f - c.at) <= 3);
-  if (!m) throw new Error("rev8 SFX: unmapped ping at " + c.at);
-  return cueAt(m[1], c.at, 24, m[2]);
-};
-const REV8 = [
-  // the street at night under the hook and the store (Openverse ambience)
-  { ...cueAt("ov_night_street", 0, 470, 0.9), fade: 40, fadeIn: 0 },
-  // rolldown: "to the smaller prizes" — coins spill to the lower tiers
-  cueAt("ee_money_coins_tossed_on_table", W("smaller") + 4, 40, 0.8),
-  // test: "$3,600 in" — the stack is counted out
-  cueAt("ee_money_counting_banknotes", W("$3,600") + 4, 50, 0.7),
-  // company: "formed a company" — the papers are signed
-  cueAt("ee_pen_pencil_stroke_01", W("formed") + 2, 30, 0.8),
-  // road: the highway under the drive, a car passing on "drove", the clipboard figure on "$600,000"
-  { ...cueAt("ov_highway", W("Then") + 4, 250, 0.8), fade: 40, fadeIn: 20 },
-  cueAt("ov_car_pass", W("drove") + 2, 70, 0.8),
-  cueAt("ee_pen_pencil_stroke_01", W("$600,000") + 2, 30, 0.8),
-  // globe: the MIT group's computers, the Globe's typewriter and press cameras, the rigged-game sting
-  cueAt("ee_click_keyboard_typing_02", W("students") - 6, 40, 0.8),
-  cueAt("ov_typewriter", W("Globe") + 2, 40, 0.8),
-  cueAt("ee_amb_press_conference_busy_camera_shutters", W("story") + 2, 50, 0.6),
-  cueAt("ee_impact_creepy_impact", W("rigged") + 2, 40, 0.7),
-  // state: "The state investigated" — files riffled
-  cueAt("ee_paper_fast_page_turn_01", W("investigated") + 4, 24, 0.9),
-  // "$120 million" counted, "$26 million" won
-  cueAt("ee_money_counting_banknotes", W("$120") + 6, 50, 0.7),
-  cueAt("ee_money_counting_banknotes", W("$26") + 4, 50, 0.7),
-  // "Theirs went to family" — a soft travel
-  cueAt("ee_whoosh_medium_whoosh_02", W("Theirs") + 4, 30, 0.6),
-];
-export const SFX = [...STATIONS.flatMap((s) => (s.sfx ? s.sfx().map((c) => (s.id === HOOK_ID ? c : { ...c, at: c.at + S })) : [])).map(swapPing), ...REV8, cueAt("whooshlong", CLOSE_AT + 6, 40, 0.5)];
+export const SFX = [...STATIONS.flatMap((s) => (s.sfx ? s.sfx().map((c) => (s.id === HOOK_ID ? c : { ...c, at: c.at + S })) : [])), cueAt("whooshlong", CLOSE_AT + 6, 40, 0.5)];
 
 const AudioLayers = () => (
   <>
