@@ -2,19 +2,19 @@
 // ★ V39 station LEHMAN (builder D): "Not every pick worked. He held Lehman Brothers when it collapsed in 2008. It was one stock out of dozens."
 //   A big physical LED stock board in a dark hall (d_board.tsx): a steel housing with 95 LED tile modules — the seven holdings the WSJ
 //   named by their full names in their brand colours (Chase's and GE's free marks), tickers small; the rest idle, unnamed slots.
-//   · cut in on the board's upper left, gliding right along the lit tiles ("Not every pick worked.")
-//   · "Lehman": the LEH tile flares white and its LEHMAN / BROTHERS lines light; the camera has pushed onto it
-//   · "collapsed": it turns RED (the only red in the scene), flickers, cracks and goes dark, tipping back into its socket (it stays on
-//     the board); tag LEHMAN BROTHERS, 2008 on "2008"
-//   · "one stock out of dozens": the camera pulls straight back until the whole board is in frame — 94 blue tiles and one dark —
-//     counter 1 OF 95; it keeps drifting back through the dissolve.
+//   REV STYLE (Timur 2026-11-27 rules 1–18):
+//   · ARRIVAL (match cut): the vault pushes down onto the stack's top certificate, THE PROCTER & GAMBLE COMPANY; the board opens on
+//     Procter & Gamble's tile filling the frame (P&G now sits two slots left of LEH), and one long glide pulls back along the row to LEH.
+//   · "Lehman": LEH flares white; "collapsed": it turns RED (the only red), its status row prints BANKRUPT 2008, lit on "2008" — the
+//     figure lives on the tile (FACTCHECK line 7); as "It was one stock…" begins its lamps die, the glass cracks, it tips back.
+//   · "one stock out of dozens": one long pull-back until the whole board is in frame — 94 lit tiles and one dark — no 2-D counter.
+//   · idle slots read HOLDING (real type, no placeholder dashes); no invented names or prices.
 import React, { useMemo } from "react";
 import * as THREE from "three";
 import { ease, clamp01, rnd, Glow } from "./kit";
-import { Tag, Counter } from "./overlays";
 import { WIN, wAt } from "./windows";
 import { cueAt } from "../bnx/SfxLayer";
-import { Board, LehTile, BoardFloor, LEH_POS, GRID_CY, GRID_W, BD } from "./d_board";
+import { Board, LehTile, BoardFloor, LEH_POS, GRID_CY, GRID_W, BD, HOLDINGS, tilePos } from "./d_board";
 import { LightPool, LightWash } from "./d_fx";
 
 export const O_LEHMAN = [2100, 0, 0];
@@ -22,12 +22,16 @@ const T = () => {
   const w = WIN().lehman, s0 = w.start;
   return { s0, end: w.end, L: wAt("lehman", s0), C: wAt("collapsed", s0), y08: wAt("2008", s0), it: wAt("it", wAt("2008", s0)), one: wAt("one", s0), dozens: wAt("dozens", s0) };
 };
+// rev style (V39, Timur's cinematic rules): red on "collapsed", its status row lights BANKRUPT 2008 on "2008" (the figure lives ON the tile,
+// FACTCHECK line 7), it stays red through "2008.", then its lamps die, the glass cracks and it tips back into its socket as "It was one
+// stock…" begins — so the pull-back shows one dark tile among the lit ones
 export const lehState = (t, f) => {
-  const red = ease(f, t.C - 1, t.C + 3);
-  const flick = f > t.C + 3 && f < t.C + 16 ? 0.35 + 0.65 * rnd(Math.floor(f) * 3.7 + 1) : 1;
-  const fall = ease(f, t.C + 10, t.C + 19);
-  const settle = -0.07 * Math.sin(Math.PI * clamp01((f - t.C - 19) / 6));   // it knocks the socket's back and settles
-  return { flare: ease(f, t.L - 3, t.L + 5), red, flick, dark: ease(f, t.C + 12, t.C + 24), crack: ease(f, t.C + 1, t.C + 5), tip: clamp01(fall + (f > t.C + 19 ? settle : 0)) };
+  const red = ease(f, t.C - 1, t.C + 4);
+  const flick = f > t.C + 2 && f < t.C + 12 ? 0.55 + 0.45 * rnd(Math.floor(f / 2) * 3.7 + 1) : 1;
+  const d0 = t.it - 8;                                                       // the lamps die from here
+  const fall = ease(f, d0 + 8, d0 + 18);
+  const settle = -0.07 * Math.sin(Math.PI * clamp01((f - d0 - 18) / 6));   // it knocks the socket's back and settles
+  return { flare: ease(f, t.L - 3, t.L + 5), red, flick, year: ease(f, t.y08 - 3, t.y08 + 3), dark: ease(f, d0, d0 + 10), crack: ease(f, d0 + 2, d0 + 6), tip: clamp01(fall + (f > d0 + 18 ? settle : 0)) };
 };
 const Scene = ({ f }) => {
   const t = useMemo(T, []);
@@ -51,38 +55,33 @@ const Scene = ({ f }) => {
   );
 };
 const W = (p) => [p[0] + O_LEHMAN[0], p[1] + O_LEHMAN[1], p[2] + O_LEHMAN[2]];
+// rev style camera (rule 1: slow, on a subject; rule 2: the arrival is a MATCH CUT): the vault's last shot pushes down onto the top
+// certificate of the stack, THE PROCTER & GAMBLE COMPANY; the board opens on the same company's tile, Procter & Gamble, filling the
+// frame. One long eased glide pulls back off it and along the row to LEH (two tiles right) by "Lehman"; a slow creep in through the
+// collapse; on "It was one stock out of dozens" one long pull-back until the whole board is in frame (94 lit, one dark), still easing
+// back at the cut to the will.
+const PG_POS = tilePos(...HOLDINGS.find((h) => h.t === "PG").rc);
 const shots = () => {
-  const t = T(), [lx, ly] = LEH_POS;
+  const t = T(), [lx, ly] = LEH_POS, [px, py] = PG_POS;
   return [
-    { a: t.s0, b: t.s0, cut: true, pos: W([-3.4, 5.5, 3.8]), target: W([-1.2, 5.0, 0]), fov: 38 },
-    // gliding right along the lit tiles, closing on LEH by "Lehman"
-    { a: t.s0 + 2, b: t.L + 2, pos: W([-0.3, 5.05, 3.6]), target: W([lx - 0.25, ly + 0.02, 0]), fov: 37 },
-    { a: t.L - 6, b: t.C + 4, pos: W([lx - 0.3, ly + 0.12, 3.0]), target: W([lx, ly - 0.02, 0]), fov: 36 },
-    // the collapse: a slow creep in while it reddens, cracks and tips back
-    { a: t.C - 2, b: t.it - 2, pos: W([lx - 0.42, ly + 0.08, 2.6]), target: W([lx - 0.04, ly - 0.04, 0]), fov: 36 },
-    // "one stock out of dozens": straight back until the whole board is seen
-    { a: t.it - 6, b: t.dozens + 2, pos: W([-1.1, 4.5, 20.5]), target: W([0, 4.0, 0]), fov: 38 },
-    { a: t.dozens - 4, b: t.end + 12, pos: W([-1.7, 4.6, 22.2]), target: W([0, 4.05, 0]), fov: 38 }
+    { a: t.s0, b: t.s0, cut: true, pos: W([px, py + 0.01, 1.5]), target: W([px, py, 0]), fov: 38 },
+    { a: t.s0 + 2, b: t.L + 6, pos: W([lx - 0.42, ly + 0.08, 3.1]), target: W([lx - 0.2, ly, 0]), fov: 37 },
+    // the collapse: a slow creep in while it reddens, prints BANKRUPT 2008, dies and tips back
+    { a: t.L - 2, b: t.it - 4, pos: W([lx - 0.36, ly + 0.06, 2.55]), target: W([lx - 0.06, ly - 0.02, 0]), fov: 36 },
+    // "one stock out of dozens": one long pull-back to the whole board (it starts as the tile dies)
+    { a: t.it - 14, b: t.end + 4, pos: W([-1.0, 4.5, 16.5]), target: W([0, 4.0, 0]), fov: 42 },
+    { a: t.end - 4, b: t.end + 40, pos: W([-1.2, 4.55, 17.6]), target: W([0, 4.02, 0]), fov: 42 }
   ];
 };
-const Overlay = ({ f, P }) => {
-  const t = T();
-  const [lx, ly] = LEH_POS;
-  const p = P([lx, ly + BD.th / 2, 0.05]);
-  return (
-    <>
-      <Tag text="Lehman Brothers, 2008" at={t.y08 - 6} out={t.it + 8} x={86} y={340} to={p.behind ? null : p} size={30} />
-      <Counter at={t.one - 4} out={t.end - 16} x={540} y={300} from={0} value={1} unit="OF 95" label="One stock" size={112} countDur={10} />
-    </>
-  );
-};
+// rev style: no 2-D labels (overlays render nothing); the figures live on the board (BANKRUPT 2008 on the tile; 95 tiles, one dark)
+const Overlay = () => null;
+// rev style sound (rules 14/16/18): only the tile's own actions, quiet (≈ −20 dB under bed + voice), each spanning its action
 const sfx = () => {
-  const t = T();
+  const t = T(), d0 = t.it - 8;
   return [
-    cueAt("ee_click_click_01", t.L - 2, 6, 0.32),          // LEH lights
-    cueAt("ee_click_click_01", t.C + 12, 6, 0.22),         // its lamps die
-    cueAt("thud", t.C + 19, 12, 0.32),                     // it knocks back into its socket
-    cueAt("whooshsoft", t.it + 12, 26, 0.35)               // the pull-back (fastest ≈ its middle)
+    cueAt("ee_click_click_01", t.L - 3, 6, 0.24),          // LEH's lamps flare (L−3 … L+5)
+    cueAt("ee_click_click_01", d0, 6, 0.18),               // its lamps die (d0 … d0+10)
+    cueAt("thud", d0 + 17, 10, 0.24)                       // it knocks back into its socket (d0+18)
   ];
 };
 const w0 = WIN().lehman;

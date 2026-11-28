@@ -30,13 +30,13 @@ export const tilePos = (r, c) => [(c - (BD.cols - 1) / 2) * BD.px, BD.y0 + (BD.r
 export const GRID_W = BD.cols * BD.px, GRID_H = BD.rows * BD.py, GRID_CY = BD.y0 + GRID_H / 2;
 // the named holdings (WSJ 19 Mar 2015 via CNBC; FACTCHECK.md) — full name, ticker, brand colour, where they sit (row, col)
 export const HOLDINGS = [
-  { t: "PG", name: ["Procter", "& Gamble"], col: "#1F5FD0", rc: [1, 2] },             // P&G blue (#003DA5), lifted for an LED
+  { t: "PG", name: ["Procter", "& Gamble"], col: "#1F5FD0", rc: [3, 4] },             // rev style: beside LEH (the vault's top certificate is P&G → the match cut lands here)             // P&G blue (#003DA5), lifted for an LED
   { t: "JPM", name: ["JPMorgan", "Chase & Co."], col: "#117ACA", rc: [2, 7], logo: "chase" },
   { t: "GE", name: ["General", "Electric"], col: "#0870D8", rc: [0, 5], logo: "ge" },
   { t: "DOW", name: ["Dow", "Chemical"], col: "#E80033", rc: [4, 1] },
   { t: "SJM", name: ["J.M.", "Smucker"], col: "#C8102E", rc: [5, 8] },
   { t: "CVS", name: ["CVS", "Health"], col: "#CC0000", rc: [6, 3] },
-  { t: "JNJ", name: ["Johnson", "& Johnson"], col: "#EB1700", rc: [3, 3] }
+  { t: "JNJ", name: ["Johnson", "& Johnson"], col: "#EB1700", rc: [1, 2] }
 ];
 export const NAMED = Object.fromEntries(HOLDINGS.map((h) => [`${h.rc[0]},${h.rc[1]}`, h.t]));
 export const LEH_RC = [3, 6];
@@ -62,15 +62,14 @@ const drawNamed = (h) => (o, w, ht) => {
 };
 /** an unnamed slot: the board's idle quote format — dashes in the ticker field (2–4, as tickers vary) and the price field */
 const drawIdle = (v) => (o, w, ht) => {
-  const n = 2 + (v % 3), c1 = "#3F78C8", c2 = "#24497E";
-  for (let k = 0; k < n; k++) { o.fillStyle = c1; o.fillRect(M + k * 62, 96, 46, 14); }
-  for (let k = 0; k < 4; k++) { o.fillStyle = c2; o.fillRect(w - M - 260 + k * 66 + (k > 1 ? 22 : 0), 196, 46, 12); }
-  o.fillStyle = c2; o.fillRect(w - M - 260 + 2 * 66 - 2, 202, 10, 10);   // the decimal point
+  // rev style (rule: real text, never placeholder dashes): an unnamed slot reads HOLDING in the board's dim blue, no invented name or price
+  o.font = `700 52px ${LED_FONT}`; if ("letterSpacing" in o) o.letterSpacing = "6px";
+  o.fillStyle = v % 2 ? "#2C5797" : "#29508C"; o.textAlign = "left"; o.textBaseline = "alphabetic"; o.fillText("HOLDING", M, 150);
+  if ("letterSpacing" in o) o.letterSpacing = "0px";
   o.fillStyle = "#16294A"; o.fillRect(M, 300, w - 2 * M, 6);
-  for (let k = 0; k < 3; k++) { o.fillStyle = "#1E3A66"; o.fillRect(M + k * 40, ht - 74, 26, 10); }
   o.fillStyle = "#2A5698"; o.fillRect(w - M - 22, ht - 74, 22, 22);
 };
-const atlasTex = () => canvasTex("d_board_faces2", 2048, 1600, (c) => {
+const atlasTex = () => canvasTex("d_board_faces3", 2048, 1600, (c) => {
   c.fillStyle = "#000"; c.fillRect(0, 0, 2048, 1600);
   for (let i = 0; i < 16; i++) {
     const x = (i % 4) * CW, y = Math.floor(i / 4) * CH;
@@ -87,6 +86,20 @@ const lehTop = () => canvasTex("d_leh_top2", CW, CH, (c, w, h) => {
     o.fillStyle = "#FFFFFF"; o.fillRect(M, 300, w - 2 * M, 6);
     o.font = `700 50px ${LED_FONT}`; if ("letterSpacing" in o) o.letterSpacing = "6px"; o.textAlign = "left"; o.fillText("LEH", M, h - 36); if ("letterSpacing" in o) o.letterSpacing = "0px";
     o.fillRect(w - M - 22, h - 74, 22, 22);
+  }, { off: [0, 0, 0], seams: 0 });
+});
+const lehRed = () => canvasTex("d_leh_red4", CW, CH, (c, w, h) => {   // the failure state: the name a size down, the status row above the rule
+  c.fillStyle = "#000"; c.fillRect(0, 0, w, h);
+  ledPanel(c, 0, 0, w, h, (o) => {
+    fitLines(o, ["Lehman", "Brothers"], M, 22, w - 2 * M, 186, { maxPx: 84, weight: 800, color: "#FFFFFF", lead: 1.0, track: -0.015 });
+    o.fillStyle = "#FFFFFF"; o.fillRect(M, 300, w - 2 * M, 6);
+    o.font = `700 50px ${LED_FONT}`; if ("letterSpacing" in o) o.letterSpacing = "6px"; o.textAlign = "left"; o.fillText("LEH", M, h - 36); if ("letterSpacing" in o) o.letterSpacing = "0px";
+  }, { off: [0, 0, 0], seams: 0 });
+});
+const lehYear = () => canvasTex("d_leh_year4", CW, CH, (c, w, h) => {   // BANKRUPT 2008: its own row between the name and the rule (lights on "2008")
+  c.fillStyle = "#000"; c.fillRect(0, 0, w, h);
+  ledPanel(c, 0, 0, w, h, (o) => {
+    o.font = `800 52px ${LED_FONT}`; if ("letterSpacing" in o) o.letterSpacing = "4px"; o.textAlign = "left"; o.fillStyle = "#FFFFFF"; o.fillText("BANKRUPT 2008", M, 272); if ("letterSpacing" in o) o.letterSpacing = "0px";
   }, { off: [0, 0, 0], seams: 0 });
 });
 const lehSub = () => canvasTex("d_leh_sub2", CW, CH, (c, w, h) => {   // the flare: a lit frame of lamps round the face
@@ -327,7 +340,7 @@ const lehMats = () => ({
   glass: new THREE.MeshStandardMaterial({ map: glassTex(), color: "#BFD3F0", transparent: true, opacity: 0.16, roughness: 0.06, metalness: 0.2, envMapIntensity: 1.4, depthWrite: false })
 });
 export const LehTile = ({ s }) => {
-  const tex = useMemo(() => ({ base: lehBase(), top: lehTop(), sub: lehSub(), crack: crackTex(), M: lehMats() }), []);
+  const tex = useMemo(() => ({ base: lehBase(), top: lehTop(), red: lehRed(), year: lehYear(), sub: lehSub(), crack: crackTex(), M: lehMats() }), []);
   const blue = new THREE.Color("#5C9CF0"), white = new THREE.Color("#E6F1FF"), red = new THREE.Color("#FF3A30");
   const col = blue.clone().lerp(white, s.flare * (1 - s.red)).lerp(red, s.red);
   const I = (1 + 0.9 * s.flare * (1 - s.red)) * (1 - s.dark) * s.flick;
@@ -342,7 +355,9 @@ export const LehTile = ({ s }) => {
         {[-1, 1].map((sd) => <mesh key={"h" + sd} position={[0, sd * (fh / 2 + bw / 2), 0.012]} material={tex.M.bez}><boxGeometry args={[fw, bw, 0.026]} /></mesh>)}
         {[[-1, -1], [-1, 1], [1, -1], [1, 1]].map(([a, b]) => <mesh key={a + "_" + b} position={[a * (fw / 2 + bw / 2), b * (fh / 2 + bw / 2), 0.027]} rotation-x={Math.PI / 2} material={tex.M.bolt}><cylinderGeometry args={[0.0065, 0.0065, 0.004, 8]} /></mesh>)}
         <mesh position={[0, 0, 0.0015]}><planeGeometry args={[fw, fh]} /><meshBasicMaterial map={tex.base} color="#B4BCC8" /></mesh>
-        {I > 0.004 && <mesh position={[0, 0, 0.003]}><planeGeometry args={[fw, fh]} /><meshBasicMaterial map={tex.top} color={col.clone().multiplyScalar(I)} transparent blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} /></mesh>}
+        {I * (1 - s.red) > 0.004 && <mesh position={[0, 0, 0.003]}><planeGeometry args={[fw, fh]} /><meshBasicMaterial map={tex.top} color={col.clone().multiplyScalar(I * (1 - s.red))} transparent blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} /></mesh>}
+        {I * s.red > 0.004 && <mesh position={[0, 0, 0.0031]}><planeGeometry args={[fw, fh]} /><meshBasicMaterial map={tex.red} color={col.clone().multiplyScalar(I * s.red)} transparent blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} /></mesh>}
+        {I * (s.year ?? 0) > 0.004 && <mesh position={[0, 0, 0.0032]}><planeGeometry args={[fw, fh]} /><meshBasicMaterial map={tex.year} color={col.clone().multiplyScalar(I * s.year)} transparent blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} /></mesh>}
         {I * s.flare > 0.004 && <mesh position={[0, 0, 0.004]}><planeGeometry args={[fw, fh]} /><meshBasicMaterial map={tex.sub} color={col.clone().multiplyScalar(I * s.flare)} transparent blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} /></mesh>}
         <mesh position={[0, 0, 0.02]} material={tex.M.glass} renderOrder={3}><planeGeometry args={[fw, fh]} /></mesh>
         {s.crack > 0.004 && <mesh position={[0, 0, 0.021]} renderOrder={4}><planeGeometry args={[fw, fh]} /><meshBasicMaterial map={tex.crack} color="#A9BEDA" transparent opacity={(0.75 - 0.4 * s.tip) * s.crack} depthWrite={false} /></mesh>}

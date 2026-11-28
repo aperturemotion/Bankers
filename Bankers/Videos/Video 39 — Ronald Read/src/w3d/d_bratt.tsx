@@ -37,8 +37,11 @@ export const HOSP = { x: -17, z: -10, W: 24, D: 16, H: 15.6 };
 export const LIB = { x: 13, z: -6, W: 20, D: 22, H: 8.4, over: 2.6 };
 export const WING = { x: -38, z: -9, W: 18, D: 14, H: 18.6, glass0: -4, band: 1.8 };
 // where the money stands (station-local): 8 pallets of $600,000 at the hospital (4 × 2), 2 at the library, the budget block beside them
-export const HOSP_PALLETS = [0, 1, 2, 3].flatMap((i) => [-4.5, -3.2].map((z) => [HOSP.x + (i - 1.5) * 1.45, PL, z]));
-export const LIB_PALLETS = [[14.6, PL, -2.2], [16.1, PL, -2.2]];
+// rev style: the pallets stand as one block (shrink-wrap gaps only), so the bequest's wrapper band runs round all of them
+export const HOSP_PALLETS = [0, 1, 2, 3].flatMap((i) => [-4.42, -3.38].map((z) => [HOSP.x + (i - 1.5) * 1.22, PL, z]));
+export const HOSP_BLOCK = { c: [HOSP.x, -3.9], w: 3 * 1.22 + 1.092, d: 1.04 + 0.99 };
+export const LIB_PALLETS = [[14.6, PL, -2.2], [15.82, PL, -2.2]];
+export const LIB_BLOCK = { c: [15.21, -2.2], w: 1.22 + 1.092, d: 0.99 };
 export const GHOST = [12.75, PL, -2.2];
 // the pavilion sign: two lines on the parapet band over the glass (local), cap height
 export const SIGN_LINES = ["RONALD READ", "PAVILION"];

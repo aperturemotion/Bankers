@@ -13,7 +13,7 @@ import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { canvasTex, rnd, clamp01, lerp } from "./kit";
 import { billFaceMat, billEdgeTex, strapTex } from "./money";
-import { BODY } from "./fonts3d";
+import { BODY, FIGURE } from "./fonts3d";
 
 export const PAL = { w: 1.2, d: 1.0, h: 0.144 };
 export const STACK = { w: 1.092, d: 0.99, h: 0.644, nx: 7, nz: 15, layer: 0.0113 };
@@ -167,10 +167,14 @@ export const streamItems = (f, { N, a0, a1, dur = 26, src, dst, topAt, seed = 0,
   return { p: [x, y, z], r: [spin * 0.5 * (rnd(i + 18) - 0.5), spin + (rnd(i + 20) * 0.4), spin * 0.3 * (rnd(i + 19) - 0.5)], s };
 });
 // ── the budget block ─────────────────────────────────────────────────────────────────────────────────────────────────────────
-const ghostLabel = () => canvasTex("d_ghost_label", 512, 256, (c, w, h) => {
+const ghostLabel = () => canvasTex("d_ghost_label3", 512, 256, (c, w, h) => {
   c.clearRect(0, 0, w, h);
   c.fillStyle = "#EAF3FF"; c.textAlign = "center"; c.textBaseline = "middle";
-  c.font = `800 64px ${BODY}`; if ("letterSpacing" in c) c.letterSpacing = "4px"; c.fillText("YEARLY", w / 2, 92); c.fillText("BUDGET", w / 2, 168);
+  // rev style: the library's own yearly budget (FACTCHECK line 8: "a $600,000 budget", Rutland Herald 2015) printed on the block
+  c.font = `800 46px ${BODY}`; if ("letterSpacing" in c) c.letterSpacing = "5px"; c.fillText("YEARLY BUDGET", w / 2, 62);
+  c.font = `400 104px ${FIGURE}`; if ("letterSpacing" in c) c.letterSpacing = "2px"; c.fillText("$600,000", w / 2, 150);
+  c.font = `700 30px ${BODY}`; if ("letterSpacing" in c) c.letterSpacing = "6px"; c.fillText("ABOUT", w / 2, 222);
+  if ("letterSpacing" in c) c.letterSpacing = "0px";
 });
 const GHOST_EDGE = new THREE.MeshBasicMaterial({ color: "#DCEBFF", toneMapped: false, transparent: true });
 export const Ghost = ({ position, k = 1, ry = 0 }) => {
@@ -186,6 +190,42 @@ export const Ghost = ({ position, k = 1, ry = 0 }) => {
       <mesh position={[0, H / 2, 0]} renderOrder={3}><boxGeometry args={[PAL.w, H, PAL.d]} /><meshStandardMaterial color="#7FB4F2" transparent opacity={0.16 * gK} roughness={0.1} metalness={0.1} emissive="#4D8ED9" emissiveIntensity={0.35 * gK} depthWrite={false} /></mesh>
       <mesh position={[0, PAL.h, 0]} rotation-x={-Math.PI / 2} renderOrder={3}><planeGeometry args={[PAL.w, PAL.d]} /><meshBasicMaterial color="#7FB4F2" transparent opacity={0.12 * gK} depthWrite={false} toneMapped={false} /></mesh>
       <mesh position={[0, H * 0.52, PAL.d / 2 + 0.003]} renderOrder={4}><planeGeometry args={[1.08, 0.54]} /><meshBasicMaterial map={lab} transparent opacity={gK} depthWrite={false} toneMapped={false} /></mesh>
+    </group>
+  );
+};
+
+// ── rev style (Timur's rule 11: figures live IN the scene): the bequest's WRAPPER BAND round a block of pallets — the figure in the
+//   film's figure face, what it is in small caps (V38's "$8 MILLION" profit band, the same idea). k 0..1 wraps the front on from the left,
+//   then the band's run round the sides and back. Plain paper (no emissive glow): it is lit by the station's key and casts with the stack.
+const bandTex = (key, fig, l1, l2) => canvasTex("d_band_" + key, 2560, 200, (c, w, h) => {
+  c.fillStyle = "#EEF3FA"; c.fillRect(0, 0, w, h);
+  c.fillStyle = "#2F66B4"; c.fillRect(0, 0, w, 16); c.fillRect(0, h - 16, w, 16);
+  c.textBaseline = "alphabetic"; c.fillStyle = "#0B2547";
+  c.font = `400 150px ${FIGURE}`; if ("letterSpacing" in c) c.letterSpacing = "3px";
+  const fw = c.measureText(fig).width, gap = 60;
+  c.font = `700 46px ${BODY}`; if ("letterSpacing" in c) c.letterSpacing = "8px";
+  const lw = Math.max(c.measureText(l1).width, c.measureText(l2).width);
+  const x0 = (w - (fw + gap + 6 + gap + lw)) / 2;
+  c.font = `400 150px ${FIGURE}`; if ("letterSpacing" in c) c.letterSpacing = "3px"; c.textAlign = "left"; c.fillText(fig, x0, 160);
+  c.fillStyle = "#2F66B4"; c.fillRect(x0 + fw + gap, 40, 6, 120);
+  c.fillStyle = "#0B2547"; c.font = `700 46px ${BODY}`; if ("letterSpacing" in c) c.letterSpacing = "8px";
+  c.fillText(l1, x0 + fw + gap + 6 + gap, 92); c.fillText(l2, x0 + fw + gap + 6 + gap, 152);
+  if ("letterSpacing" in c) c.letterSpacing = "0px";
+});
+/** <WrapBand c={[x,z] centre} w d y h k fig l1 l2 tkey /> — y: the band's centre height (station-local) */
+export const WrapBand = ({ c, w, d, y, h = 0.34, k = 1, fig, l1, l2, tkey }) => {
+  const tex = useMemo(() => { const x = bandTex(tkey, fig, l1, l2).clone(); x.needsUpdate = true; return x; }, [tkey]);
+  if (k <= 0.002) return null;
+  tex.repeat.set(Math.max(0.001, k), 1);
+  const W = w + 0.02, D = d + 0.02, zf = c[1] + D / 2 + 0.004;
+  return (
+    <group position={[c[0], y, 0]}>
+      <mesh position={[-W / 2 + (W * k) / 2, 0, zf]} scale={[Math.max(0.001, k), 1, 1]}><planeGeometry args={[W, h]} /><meshStandardMaterial map={tex} roughness={0.6} /></mesh>
+      {k > 0.98 && <>
+        <mesh position={[W / 2 + 0.004, 0, c[1]]} rotation-y={Math.PI / 2}><planeGeometry args={[D, h]} /><meshStandardMaterial color="#E6ECF4" roughness={0.6} /></mesh>
+        <mesh position={[-W / 2 - 0.004, 0, c[1]]} rotation-y={-Math.PI / 2}><planeGeometry args={[D, h]} /><meshStandardMaterial color="#E6ECF4" roughness={0.6} /></mesh>
+        <mesh position={[0, 0, c[1] - D / 2 - 0.004]} rotation-y={Math.PI}><planeGeometry args={[W, h]} /><meshStandardMaterial color="#E6ECF4" roughness={0.6} /></mesh>
+      </>}
     </group>
   );
 };
