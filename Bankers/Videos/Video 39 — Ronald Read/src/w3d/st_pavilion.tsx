@@ -81,18 +81,20 @@ const Scene = ({ f }) => {
   );
 };
 const W = (p) => [p[0] + O_BRATT[0], p[1] + O_BRATT[1], p[2] + O_BRATT[2]];
+// the final framing (square-on, level): distance and fov so RONALD READ spans ≈ 45 % of the width
+const SIGN_FOV = 46, SIGN_D = 22.7;
 const shots = () => {
-  const t = T(), sy = PL + (SIGN.y[0] + SIGN.y[1]) / 2;
+  const t = T(), yRR = PL + SIGN.y[0], yF = yRR - 0.084 * SIGN_D * Math.tan((SIGN_FOV / 2) * Math.PI / 180);
   return [
     // the cut: the plaque filling the frame's width, as the library's stone sign did (the lit lobby glass at its right edge)
     { a: t.s0, b: t.s0, cut: true, pos: W([PLQ.x, PLQ.y + 0.03, PLQ.z + 1.75]), target: W([PLQ.x, PLQ.y, PLQ.z]), fov: 40 },
     // a hair of drift while "2023" is read on the plaque
-    { a: t.s0 + 1, b: t.y23 + 6, pos: W([PLQ.x + 0.06, PLQ.y + 0.05, PLQ.z + 1.95]), target: W([PLQ.x + 0.05, PLQ.y, PLQ.z]), fov: 40 },
+    { a: t.s0 + 1, b: t.s0 + 12, pos: W([PLQ.x + 0.06, PLQ.y + 0.05, PLQ.z + 1.95]), target: W([PLQ.x + 0.05, PLQ.y, PLQ.z]), fov: 40 },
     // "the hospital opened a new wing": one long pull straight back off the plaque, the lobby and the lit floors coming into frame
-    { a: t.y23 + 2, b: t.wing + 34, pos: W([PLQ.x - 0.2, PL + 2.8, WING.z + 9.8]), target: W([PLQ.x + 0.9, PL + 3.4, WING.z]), fov: 44 },
-    // "partly paid for by his gift": the crane up the wing at that distance (no dive) to the parapet band and its sign
-    { a: t.wing + 14, b: t.ronald + 8, pos: W([SIGN.cx - 2.8, sy - 7.0, WING.z + 16.6]), target: W([SIGN.cx - 0.4, sy - 4.0, WING.z]), fov: 46 },
-    { a: t.ronald - 8, b: t.end + 30, pos: W([SIGN.cx - 2.5, sy - 6.6, WING.z + 16.4]), target: W([SIGN.cx - 0.2, sy - 3.7, WING.z]), fov: 45 }
+    { a: t.s0 + 4, b: t.wing + 26, pos: W([PLQ.x + 0.3, PL + 3.0, WING.z + 8.6]), target: W([PLQ.x + 1.1, PL + 3.6, WING.z]), fov: 44 },
+    // "partly paid for by his gift": one slow crane up the wing, arriving SQUARE-ON and LEVEL to the sign by 1982 — RONALD READ ≈ 45 %
+    // of the frame's width, centred ≈ 47 % down (the match into line's band, whose RONALD READ is the same Figtree 700 caps)
+    { a: t.wing - 16, b: t.end - 2, pos: W([SIGN.cx, yF, WING.z + SIGN_D]), target: W([SIGN.cx, yF, WING.z]), fov: SIGN_FOV }
   ];
 };
 const Overlay = () => null;
