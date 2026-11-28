@@ -1,58 +1,29 @@
 // @ts-nocheck
-// ★ BANKERS 3-D WORLD — the KARAOKE CAPTION (CLAUDE.md "3-D World" §C, measured from the 8 references, in the Bankers dress).
-//   Centred, a one-line chip's centre at 68 % of the height (two-line chips grow upward), ≤ 2 lines. Word by word: each word fades in
-//   (~3 f) on its voice onset; the CURRENT word is white bold, SPOKEN words grey regular, FUTURE words hidden (each line's pill grows word by
-//   word, centred, as in the references). Each line on its own dark translucent pill. One KEYWORD per chip (take.ts `kw`: a number, else the key noun) in a
-//   thin light-blue outline box with filled dots on its top-left and bottom-right corners, from its onset to the chip's end.
+// ★ rev 6 (Timur, 2026-11-27): "take the subtitles and change them back to the version that we had on the original Bankers style, but just at
+//   the bottom. Maybe with a slight like black fade out in the background, but a smooth one, a slight one, subtle one."
+//   = Video 1–37's WordCaption (src/bnx/text.tsx): each caption chunk appears WHOLE on its first word, Figtree 400 at 50 px, white, tracking 0,
+//   centred, no pill, no keyword box, no text shadow — placed low (centre y 1500), over a soft full-width black gradient at the foot of the frame.
 import React from "react";
 import { useCurrentFrame } from "remotion";
-import { clamp01 } from "./kit";
+import { ease } from "./kit";
 import { BODY } from "./fonts3d";
 
-const BOX = "#7FB4F2";
-const SPOKEN = "#A3B0C2";
-export const Karaoke = ({ chips, cy = 1306, size = 56, maxW = 660, hideFrom = 1e9 }) => {
+export const CAPTION_Y = 1500;
+export const Karaoke = ({ chips, cy = CAPTION_Y, size = 50, maxW = 860, hideFrom = 1e9 }) => {
   const f = useCurrentFrame();
-  if (f >= hideFrom) return null;
-  const c = chips.find((q) => f >= q.at && f < q.until);
-  if (!c) return null;
-  const parts = c.parts;
-  const est = (w) => (w.length + 1) * size * 0.53;
-  let lines = [[]], width = 0;
-  parts.forEach((p, i) => {
-    const wd = est(p.word);
-    if (width + wd > maxW && lines[lines.length - 1].length) { lines.push([]); width = 0; }
-    lines[lines.length - 1].push({ ...p, i }); width += wd;
-  });
-  const cur = parts.reduce((k, p, i) => (f >= p.at ? i : k), -1);
-  const lineH = size * 1.42;
-  const top = cy - lineH / 2 - (lines.length - 1) * lineH;
+  const shade = 1 - ease(f, hideFrom - 10, hideFrom + 10);
+  const c = f < hideFrom ? chips.find((q) => f >= q.at && f < q.until) : null;
   return (
-    <div style={{ position: "absolute", left: 0, top, width: 1080, display: "flex", flexDirection: "column", alignItems: "center", gap: size * 0.14, pointerEvents: "none" }}>
-      {lines.map((ln, li) => {
-        const anyOn = ln.some((p) => p.i <= cur);
-        return (
-          <div key={li} style={{ display: "flex", gap: size * 0.24, padding: `${size * 0.1}px ${size * 0.24}px`, background: "rgba(2, 9, 20, 0.70)", borderRadius: 9,
-            opacity: anyOn ? 1 : 0 }}>
-            {ln.filter((p) => p.i <= cur).map((p) => {
-              const spoken = p.i <= cur, now = p.i === cur, kw = p.i === c.kw && spoken;
-              const fade = clamp01((f - p.at + 1) / 3);
-              return (
-                <span key={p.i} style={{ position: "relative", fontFamily: BODY, fontWeight: now ? 800 : 500, fontSize: size, lineHeight: 1.12,
-                  color: now ? "#FFFFFF" : SPOKEN, opacity: spoken ? fade : 0, padding: `0 ${size * 0.05}px` }}>
-                  {p.word}
-                  {kw && (
-                    <span style={{ position: "absolute", left: -size * 0.06, right: -size * 0.06, top: size * 0.02, bottom: size * 0.0, border: `3px solid ${BOX}`, background: "rgba(127,180,242,0.10)", borderRadius: 2 }}>
-                      <span style={{ position: "absolute", left: -6, top: -6, width: 10, height: 10, borderRadius: 5, background: BOX }} />
-                      <span style={{ position: "absolute", right: -6, bottom: -6, width: 10, height: 10, borderRadius: 5, background: BOX }} />
-                    </span>
-                  )}
-                </span>
-              );
-            })}
-          </div>
-        );
-      })}
-    </div>
+    <>
+      {/* the subtle black fade at the bottom: transparent at y 1150, ~40 % black at the frame's foot */}
+      {shade > 0.001 && <div style={{ position: "absolute", left: 0, top: 1150, width: 1080, height: 770, pointerEvents: "none", opacity: shade,
+        background: "linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.16) 38%, rgba(0,0,0,0.34) 72%, rgba(0,0,0,0.42) 100%)" }} />}
+      {c && (
+        <div style={{ position: "absolute", left: (1080 - maxW) / 2, width: maxW, top: cy, transform: "translateY(-50%)", textAlign: "center", pointerEvents: "none",
+          fontFamily: BODY, fontWeight: 400, fontSize: size, lineHeight: 1.22, letterSpacing: 0, color: "#FFFFFF" }}>
+          {c.parts.map((p) => p.word).join(" ")}
+        </div>
+      )}
+    </>
   );
 };

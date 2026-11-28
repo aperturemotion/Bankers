@@ -63,7 +63,6 @@ const sfx = () => {
   return [
     cueAt("ee_click_click_01", t.open[0] - 2, 6, 0.3),        // the locks turn
     cueAt("whooshsoft", t.slide[0] + 18, 30, 0.25),           // the box slides out / the camera's travel
-    cueAt("pingshort", t.stocks, 12, 0.3),                    // the counter lands
     cueAt("airwoosh", t.glass[0], 14, 0.3),                   // the shell turns to glass
     cueAt("ee_click_click_01", t.level[1], 6, 0.25),          // the level line meets the 5
   ];

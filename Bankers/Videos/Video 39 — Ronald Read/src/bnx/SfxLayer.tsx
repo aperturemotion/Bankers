@@ -5,6 +5,19 @@ import * as jsx_runtime from "react/jsx-runtime";
 import { aud } from "./aud";
 
 const EVEN = {
+  ov_stamp: 0.2061,
+  ov_money_drop: 0.1062,
+  ov_coins: 0.3308,
+  ov_paper_flutter: 0.4548,
+  ov_steps: 0.4767,
+  ov_chalk: 0.4704,
+  ov_clank: 0.0721,
+  ov_newspaper: 0.4052,
+  ov_paper_unfold: 0.2287,
+  ov_printer: 0.1666,
+  ov_drawer: 0.359,
+  ov_car_away: 0.2633,
+  ov_car_start: 0.0842,
   coin: 0.1,
   ding: 0.699,
   flick: 0.09,
@@ -123,6 +136,19 @@ const GAIN = Object.fromEntries(
 );
 const AUDIO_LEAD = 1;
 const LEN = {
+  ov_stamp: 24,
+  ov_money_drop: 16,
+  ov_coins: 54,
+  ov_paper_flutter: 28,
+  ov_steps: 120,
+  ov_chalk: 90,
+  ov_clank: 27,
+  ov_newspaper: 48,
+  ov_paper_unfold: 72,
+  ov_printer: 78,
+  ov_drawer: 66,
+  ov_car_away: 195,
+  ov_car_start: 92,
   coin: 24,
   ding: 40,
   flick: 16,
@@ -181,6 +207,19 @@ const LEN = {
   ee_amb_press_conference_busy_camera_shutters: 293
 };
 const ONSET = {
+  ov_stamp: 2,
+  ov_money_drop: 1,
+  ov_coins: 1,
+  ov_paper_flutter: 10,
+  ov_steps: 15,
+  ov_chalk: 16,
+  ov_clank: 2,
+  ov_newspaper: 1,
+  ov_paper_unfold: 1,
+  ov_printer: 12,
+  ov_drawer: 1,
+  ov_car_away: 17,
+  ov_car_start: 1,
   coin: 0,
   ding: 0,
   flick: 0,
@@ -315,6 +354,8 @@ export const SfxLayer = ({ cues, total }) => /* @__PURE__ */ (0,jsx_runtime.jsx)
     {
       src: aud(`sfx/${c.s}.wav`),
       startFrom: trim + (c.skip ?? 0),
+      // rev 8d: a time-stretched cue (pitch kept) — a whoosh fitted to a camera move's exact start and end
+      ...(c.rate ? { playbackRate: c.rate } : {}),
       volume: fade > 0 || fadeIn > 0 ? (f) => base * ramp(f) : base
     }
   ) }, i);

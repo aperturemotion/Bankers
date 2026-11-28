@@ -72,9 +72,7 @@ const sfx = () => {
   const t = T();
   return [
     cueAt("airwoosh", t.will - 6, 30, 0.25),                // the stream begins
-    cueAt("pingshort", t.m48 + 24, 12, 0.3),                // $4.8 MILLION lands
     cueAt("whooshsoft", t.hosp - 6, 26, 0.35),              // the truck to the library (fastest ≈ its middle)
-    cueAt("pingshort", t.m12 + 20, 12, 0.28),               // $1.2 MILLION lands
     cueAt("ee_click_click_01", t.twice - 2, 6, 0.22)        // the budget block draws in
   ];
 };

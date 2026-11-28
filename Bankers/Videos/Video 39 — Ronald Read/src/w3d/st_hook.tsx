@@ -89,7 +89,6 @@ const sfx = () => {
   const t = T();
   return [
     cueAt("whooshsoft", 22, 30, 0.22),            // the glide in (its fastest frames)
-    cueAt("pingshort", t.will + 2, 14, 0.32),     // the shell turns to glass
     cueAt("whooshsoft", t.will + 30, 26, 0.18),   // the rise onto the bin
     cueAt("coin", t.m8, 16, 0.3),                 // $8 MILLION lands
     ...LIGHTS_OFF.map(([fr], i) => cueAt("ee_click_click_01", fr, 12, i === LIGHTS_OFF.length - 1 ? 0.2 : 0.14)),  // each row switching off

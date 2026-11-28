@@ -59,7 +59,6 @@ const Overlay = ({ f, P }) => {
 const sfx = () => {
   const t = T();
   const out = [cueAt("whooshsoft", t.start + 30, 40, 0.2)];
-  out.push(cueAt("pingshort", t.held, 12, 0.3));
   return out;
 };
 export const ST = { id: "shares", origin: O, from: WIN().shares.start - 8, to: WIN().shares.end + 8, light: { target: [0, KT, 0], shadowBox: 1.6, keyI: 0.5, fillI: 0.2, rimI: 0.55 }, shots, Scene, Overlay, sfx };

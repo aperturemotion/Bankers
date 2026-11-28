@@ -55,7 +55,9 @@ export const CAM = smoothCam(CAM_RAW, TOTAL, shotsAll.filter((s) => s.cut).map((
 //   the blank back wall: 8 grey frames).
 const HALF = 7;
 // V39: EVERY scene boundary is a cross-dissolve (twelve unlike places): the incoming station's first shot is a cut at its window start
-export const DISSOLVES = STATIONS.slice(1).filter((s) => s.arrive !== "fly").map((s) => ({ at: WIN()[s.id].start, pre: STATIONS[STATIONS.indexOf(s) - 1].id, post: s.id })).map((d) => ({
+// Bankers style rule 2 (Timur, 2026-11-27, V38: "seamless transitions … preferably no fade outs"): NO cross-dissolves — every station designs
+// its own arrival (a continuous camera move, or a motivated match cut on a shared/filling surface). The old every-boundary dissolve is off.
+export const DISSOLVES = [].filter((s) => s.arrive !== "fly").map((s) => ({ at: WIN()[s.id].start, pre: STATIONS[STATIONS.indexOf(s) - 1].id, post: s.id })).map((d) => ({
   ...d, camPre: makeCam([...shotsAll.filter((s) => s.a < d.at), OUTRO].filter((s) => s.a < d.at)), camPost: makeCam(shotsAll.filter((s) => s.a >= d.at))
 }));
 const dissolveAt = (f) => DISSOLVES.find((d) => f >= d.at + 1 - HALF && f < d.at + 1 + HALF);   // a cut shot at `at` lands on at + 1
@@ -64,7 +66,22 @@ const CUT_FLASH = [];   // V39: none yet
 // a flight between stations crosses the navy HAZE (the reference style's "through a boundary" transition): the fog thickens to full
 // as the camera crosses and clears as it lands, so a fast arrival into a small room never flashes (test: 51 → 81 levels in one frame)
 const HAZE = [];   // rev 3: the 24 s flight through the haze is a cross-dissolve now (DISSOLVES)
-export const SFX = [...STATIONS.flatMap((s) => (s.sfx ? s.sfx().map((c) => (s.id === HOOK_ID ? c : { ...c, at: c.at + S })) : [])), cueAt("whooshlong", CLOSE_AT + 6, 40, 0.5)];
+// ── Bankers style rule 18 (Timur, 2026-11-27, V38): "each sound effect should be linked to an actual visual or change … perfectly synced …
+// starts when the movement … starts and ends when the movement … finishes". Camera whooshes ONLY on fast camera moves MEASURED on the film's own
+// camera (scratchpad/fastmoves.py out/cam_s.json 40 18) — REAL frames [start, end]; re-run it after any camera change and paste its list here.
+const FAST_MOVES = [];
+const CAM_WHOOSH = new Set(["whooshsoft", "whooshlong", "airwoosh"]);   // the old per-travel whooshes: replaced by the synced ones below
+const WH_VOL = { whooshlong: 0.56, airwoosh: 0.4, ee_whoosh_medium_whoosh_01: 0.29, ee_whoosh_large_whoosh_01: 0.37 };   // each ≈ −19 dB under bed + voice (V38 sfxaudit.py)
+const WH_FILES = { whooshlong: 31.5, airwoosh: 53.4, ee_whoosh_medium_whoosh_01: 62.9, ee_whoosh_large_whoosh_01: 74.4 };   // file length, frames
+const moveWhoosh = ([a, b], i) => {
+  const L = b - a + 1;
+  const s = L < 40 ? "whooshlong" : L < 58 ? "airwoosh" : i % 2 ? "ee_whoosh_medium_whoosh_01" : "ee_whoosh_large_whoosh_01";
+  return { s, at: a, dur: L, rate: WH_FILES[s] / L, fadeIn: Math.round(L * 0.25), fade: Math.round(L * 0.35), xf: true, vol: WH_VOL[s] };
+};
+export const SFX = [
+  ...STATIONS.flatMap((s) => (s.sfx ? s.sfx().map((c) => (s.id === HOOK_ID ? c : { ...c, at: c.at + S })) : [])).filter((c) => !CAM_WHOOSH.has(c.s)),
+  ...FAST_MOVES.map(moveWhoosh),
+];
 
 const AudioLayers = () => (
   <>

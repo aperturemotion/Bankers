@@ -9,9 +9,15 @@
 //   <World3D shots>     the canvas: renderer (ACES, sRGB, soft shadows), an environment for reflections, fog, the key/fill/rim
 //   MAT / TEX           the house materials and canvas-drawn textures (print, paper, signage), deterministic
 import React, { useMemo } from "react";
-import { useCurrentFrame, useVideoConfig, delayRender, continueRender } from "remotion";
+import { useCurrentFrame, useVideoConfig, delayRender, continueRender, getInputProps } from "remotion";
+// a quick low-res PREVIEW render (inputProps.preview): the WebGL buffer at 0.4 of the frame, no MSAA, 1024-px shadow maps — never the master
+const PREVIEW = (() => { try { return getInputProps()?.preview === true; } catch { return false; } })();
 import { ThreeCanvas } from "@remotion/three";
-import { useThree } from "@react-three/fiber";
+import { useThree, useFrame } from "@react-three/fiber";
+import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
+import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
+import { GTAOPass } from "three/examples/jsm/postprocessing/GTAOPass.js";
+import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import * as THREE from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 
@@ -166,19 +172,59 @@ export const HouseLights = ({ keyPos = [-9, 14, 8], keyI = 2.6, keyColor = "#DCE
   return (
     <>
       <primitive object={tgt} />
-      <hemisphereLight args={["#8DB4EA", "#03101F", fillI * gain]} />
+      <hemisphereLight args={["#7FA9E6", "#0A2448", fillI * gain]} />
       <directionalLight castShadow={casts} position={[target[0] + key[0], target[1] + key[1], target[2] + key[2]]} target={tgt} intensity={keyI * gain} color={keyColor}
-        shadow-mapSize-width={2048} shadow-mapSize-height={2048} shadow-bias={-0.0004} shadow-normalBias={0.02}
+        shadow-mapSize-width={PREVIEW ? 1024 : 2048} shadow-mapSize-height={PREVIEW ? 1024 : 2048} shadow-bias={-0.0004} shadow-normalBias={0.02}
         shadow-camera-left={-shadowBox} shadow-camera-right={shadowBox} shadow-camera-top={shadowBox} shadow-camera-bottom={-shadowBox} shadow-camera-near={0.5} shadow-camera-far={80} />
       <directionalLight position={[target[0] + rim[0], target[1] + rim[1], target[2] + rim[2]]} target={tgt} intensity={rimI * gain} color="#7FB0F0" />
     </>
   );
 };
-export const World3D = ({ cam, fog = { color: "#0A2A52", density: 0.018, sky: "#071F3E" }, children }) => (
-  <ThreeCanvas width={W} height={H} shadows gl={{ antialias: true, preserveDrawingBuffer: true }} camera={{ fov: 34, near: 0.05, far: 600, position: [0, 2, 10] }}
+// ★ rev 5 (Timur, 2026-11-27): "the distance … should always be covered up … by adding fog, blue fog"; "a little bit more blue throughout".
+//   FOG is the Bankers blue and denser (0.018 → 0.03: a subject 10 m away keeps 91 %, 40 m 24 %, 60 m 4 % — the world's edge is never seen).
+export const FOG = { color: "#0C3060", density: 0.03, sky: "#0A2A55" };
+// ★ rev 6 (Timur): "if you're not going to add shadows to things like the food shelves … at least add those fake shadows … a dark subtle shape
+//   under it, the correct one … you can see the corners better … we don't want unlit objects." = AMBIENT OCCLUSION over the whole world:
+//   GTAO (three's GTAOPass) darkens creases, corners and the ground under every object, correctly from the geometry, subtly (blend AO_K).
+export const AO_ON = false, AO_K = 0.85;   // rev 6: GTAO tried and parked — on SwiftShader it left a hard dark block (640 f) and darkened whole frames (1110 f)
+// rev 6: instead, EVERY solid object casts and receives the station key's shadow (no unlit, unshadowed visuals): each frame the scene's opaque
+// meshes are switched to castShadow + receiveShadow (glass, glows, sprites, sky and fog-only planes excluded: transparent, additive or unlit)
+const ShadowAll = () => {
+  const { scene } = useThree();
+  useFrame(() => {
+    scene.traverse((o) => {
+      if (!o.isMesh || o.userData?.noShadow) return;
+      const ms = Array.isArray(o.material) ? o.material : [o.material];
+      if (ms.some((m) => !m || m.transparent || m.isMeshBasicMaterial || m.blending === THREE.AdditiveBlending || m.side === THREE.BackSide)) return;
+      o.castShadow = true; o.receiveShadow = true;
+    });
+  }, -1);
+  return null;
+};
+const AmbientOcclusion = () => {
+  const { gl, scene, camera } = useThree();
+  const comp = useMemo(() => {
+    const c = new EffectComposer(gl);
+    c.setPixelRatio(1); c.setSize(W, H);
+    c.addPass(new RenderPass(scene, camera));
+    const g = new GTAOPass(scene, camera, W, H);
+    g.updateGtaoMaterial({ radius: 0.55, distanceExponent: 1.6, thickness: 1.2, scale: 1.0, samples: 12, distanceFallOff: 1.0 });
+    g.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 6, rings: 2, samples: 12 });
+    g.blendIntensity = AO_K;
+    c.addPass(g);
+    c.addPass(new OutputPass());
+    return c;
+  }, [gl, scene, camera]);
+  useFrame(() => { comp.render(); }, 1);
+  return null;
+};
+export const World3D = ({ cam, fog = FOG, children }) => (
+  <ThreeCanvas width={W} height={H} shadows dpr={PREVIEW ? 0.4 : undefined} gl={{ antialias: !PREVIEW, preserveDrawingBuffer: true }} camera={{ fov: 34, near: 0.05, far: 600, position: [0, 2, 10] }}
     style={{ position: "absolute", left: 0, top: 0 }}>
     <Setup fog={fog} />
     <CamDriver cam={cam} />
+    {AO_ON && <AmbientOcclusion />}
+    <ShadowAll />
     {children}
   </ThreeCanvas>
 );
@@ -214,13 +260,16 @@ export const rnd = (i) => { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; 
 export const Sky = ({ zenith = "#020F24", mid = "#082A57", horizon = "#3F72B4", glowAt = 0.52, radius = 400 }) => {
   const tex = useMemo(() => canvasTex(`sky_${zenith}_${mid}_${horizon}_${glowAt}`, 8, 512, (c, w, h) => {
     const g = c.createLinearGradient(0, 0, 0, h);
-    g.addColorStop(0, zenith); g.addColorStop(0.32, mid); g.addColorStop(glowAt, horizon); g.addColorStop(0.62, "#0B2A50"); g.addColorStop(1, "#061A33");
+    // rev 5: the horizon sits INSIDE the fog — the lower sky (from just above the horizon down) is the fog's own blue, so the ground's far
+    // edge and the sky meet in one blue haze (no white band, no visible end of the world); the horizon glow is a soft blue, never pale
+    const hz = new THREE.Color(horizon).lerp(new THREE.Color(FOG.color), 0.55).getStyle();
+    g.addColorStop(0, zenith); g.addColorStop(0.3, mid); g.addColorStop(Math.max(0.36, glowAt - 0.1), hz); g.addColorStop(glowAt, FOG.color); g.addColorStop(1, FOG.color);
     c.fillStyle = g; c.fillRect(0, 0, w, h);
   }), [zenith, mid, horizon, glowAt]);
   return (
     <mesh scale={[-1, 1, 1]}>
       <sphereGeometry args={[radius, 48, 32]} />
-      <meshBasicMaterial map={tex} side={THREE.BackSide} fog={false} depthWrite={false} />
+      <meshBasicMaterial map={tex} side={THREE.BackSide} fog={false} depthWrite={false} toneMapped={false} />   {/* rev 5: un-tone-mapped, so its fog-blue lower half meets the fogged ground without a dark band (builder Q) */}
     </mesh>
   );
 };

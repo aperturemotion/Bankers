@@ -11,6 +11,7 @@ import React from "react";
 import { Img, useCurrentFrame } from "remotion";
 import { clamp01, ease, easeOut } from "./kit";
 import { BODY, FIGURE } from "./fonts3d";
+import { LABEL_STYLE, PHOTOS, PILLS, COUNTERS } from "./label_style";
 
 const CHIP_BG = "rgba(4, 18, 38, 0.82)";
 const ACCENT = "#4D8ED9";
@@ -21,6 +22,29 @@ export const Tag = ({ text, at, out = 1e9, x, y, to, side = "left", size = 30 })
   const kIn = ease(f, at, at + 12), kOut = ease(f, out, out + 10);
   const vis = kIn * (1 - kOut);
   if (vis <= 0.001) return null;
+  if (LABEL_STYLE === "off" || LABEL_STYLE === "world") return null;
+  if (LABEL_STYLE === "type") {
+    // a typographic kicker: small spaced caps, a short light-blue rule above, no chip, no leader; rises in, fades out
+    return (
+      <div style={{ position: "absolute", left: 0, width: 1080, top: 1236, display: "flex", flexDirection: "column", alignItems: "center", opacity: vis, transform: `translateY(${(1 - kIn) * 16}px)`, pointerEvents: "none" }}>
+        <div style={{ width: 64 * kIn, height: 3, background: "#7FB4F2", marginBottom: 12, borderRadius: 2 }} />
+        <div style={{ fontFamily: BODY, fontWeight: 700, fontSize: 34, letterSpacing: 7, color: "#F2F7FD", textTransform: "uppercase", whiteSpace: "nowrap",
+          textShadow: "0 2px 4px rgba(0,6,16,0.8), 0 0 16px rgba(0,6,16,0.5)" }}>{text}</div>
+      </div>
+    );
+  }
+  if (LABEL_STYLE === "pin") {
+    // a small ring ON the object and the words right beside it — no box, no long line
+    if (!to) return null;
+    const left = to.x < 700;
+    return (
+      <div style={{ position: "absolute", left: 0, top: 0, opacity: vis, pointerEvents: "none" }}>
+        <div style={{ position: "absolute", left: to.x - 9, top: to.y - 9, width: 18, height: 18, borderRadius: 9, border: "3px solid #FFFFFF", boxShadow: "0 0 10px rgba(127,180,242,0.9)", transform: `scale(${0.6 + 0.4 * kIn})` }} />
+        <div style={{ position: "absolute", left: left ? to.x + 22 : undefined, right: left ? undefined : 1080 - to.x + 22, top: to.y - 20, fontFamily: BODY, fontWeight: 700, fontSize: 30,
+          letterSpacing: 3, color: "#FFFFFF", textTransform: "uppercase", whiteSpace: "nowrap", textShadow: "0 2px 4px rgba(0,6,16,0.85), 0 0 14px rgba(0,6,16,0.6)" }}>{text}</div>
+      </div>
+    );
+  }
   const line = to ? ease(f, at - 4, at + 8) * (1 - kOut) : 0;
   const pad = size * 0.42;
   const chip = (
@@ -53,6 +77,7 @@ export const Tag = ({ text, at, out = 1e9, x, y, to, side = "left", size = 30 })
 };
 export const Counter = ({ at, out = 1e9, x, y, from = 0, value, prefix = "", unit = "", label, size = 120, decimals = 0, countDur = 26, align = "center" }) => {
   const f = useCurrentFrame();
+  if (!COUNTERS) return null;
   const kIn = easeOut(f, at, at + 14), kOut = ease(f, out, out + 10);
   const vis = kIn * (1 - kOut);
   if (vis <= 0.001) return null;
@@ -71,6 +96,7 @@ export const Counter = ({ at, out = 1e9, x, y, from = 0, value, prefix = "", uni
 };
 export const Inset = ({ src, credit, at, out = 1e9, x, y, w, h, fit = "cover", pos = "50% 30%" }) => {
   const f = useCurrentFrame();
+  if (!PHOTOS) return null;
   const kIn = easeOut(f, at, at + 16), kOut = ease(f, out, out + 12);
   const vis = kIn * (1 - kOut);
   if (vis <= 0.001) return null;
@@ -84,6 +110,7 @@ export const Inset = ({ src, credit, at, out = 1e9, x, y, w, h, fit = "cover", p
 };
 export const Pill = ({ at, out = 1e9, x = 1040, y = 150, icon, value, prevValue, changeAt = -1, label }) => {
   const f = useCurrentFrame();
+  if (!PILLS) return null;
   const kIn = easeOut(f, at, at + 12), kOut = ease(f, out, out + 10);
   const vis = kIn * (1 - kOut);
   if (vis <= 0.001) return null;
@@ -95,6 +122,28 @@ export const Pill = ({ at, out = 1e9, x = 1040, y = 150, icon, value, prevValue,
       {icon}
       {label && <span style={{ fontFamily: BODY, fontWeight: 700, fontSize: 22, color: "#2A4A73", letterSpacing: 1.5, textTransform: "uppercase" }}>{label}</span>}
       <span style={{ fontFamily: FIGURE, fontSize: 44, color: "#00244D", lineHeight: 1 }}>{shown}</span>
+    </div>
+  );
+};
+
+// ★ rev 6 (Timur, 2026-11-27): "for the big words that should appear as large text, like $600,000, let's do large text, large bold text, just the
+//   way it is at 1,368 frames, but without that weird background label and the 'often' around … apply that to the rest of the video too. Those
+//   kinds of important words should get that sort of larger text and in a more prominent and visible part of the screen, and even larger
+//   sometimes." — a BIG WORD: the figure in Anton, white, its unit in the light blue, NO panel and NO small label; it comes out of depth (a
+//   short scale + blur settle), numbers roll up onto their spoken word, and it lifts away before its line ends.
+export const BigWord = ({ at, out, value = null, text = "", prefix = "", unit = "", size = 210, y = 600 }) => {
+  const f = useCurrentFrame();
+  const kIn = easeOut(f, at, at + 12), kOut = ease(f, out - 10, out);
+  const vis = kIn * (1 - kOut);
+  if (vis <= 0.001) return null;
+  const shown = value === null ? text : prefix + Math.round(value * easeOut(f, at, at + 16)).toLocaleString("en-US");
+  return (
+    <div style={{ position: "absolute", left: 0, width: 1080, top: y, display: "flex", flexDirection: "column", alignItems: "center", pointerEvents: "none",
+      opacity: vis, transform: `translateY(${-50 - kOut * 18}%) scale(${0.86 + 0.14 * kIn})`, filter: `blur(${(1 - kIn) * 8}px)` }}>
+      <div style={{ fontFamily: FIGURE, fontSize: size, lineHeight: 0.95, color: "#FFFFFF", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums",
+        textShadow: "0 6px 24px rgba(0,8,24,0.55), 0 2px 6px rgba(0,8,24,0.6)" }}>{shown}</div>
+      {unit && <div style={{ fontFamily: FIGURE, fontSize: size * 0.36, letterSpacing: size * 0.02, color: "#7FB4F2", marginTop: size * 0.04,
+        textShadow: "0 3px 12px rgba(0,8,24,0.6)" }}>{unit}</div>}
     </div>
   );
 };

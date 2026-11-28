@@ -251,7 +251,6 @@ const sfx = () => {
     cueAt("whooshsoft", t.start + 30, 34, 0.3),            // the push in (fastest ≈ the middle)
     cueAt("ee_click_click_01", t.war - 4, 10, 0.32),
     cueAt("ee_clock_clock_ticking_01", t.years - 26, 26, 0.25),   // the counter rolling
-    cueAt("pingshort", t.years + 1, 16, 0.3)
   ];
 };
 export const ST = { id: "gas", origin: GAS_O, from: W0().start - 8, to: W0().end + 8, light: { target: [-1, 0, -2], shadowBox: 14, keyI: 1.15, fillI: 0.42, rimI: 1.0 }, shots, Scene, Overlay, sfx };
