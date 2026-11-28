@@ -4,12 +4,17 @@
 //   "well into his 90s".)  His modest house in Brattleboro in winter at blue hour: a small clapboard Cape with one lit window and a
 //   porch light; the silver Yaris parked in the plowed driveway with snow on its roof; on the porch his worn khaki work jacket on a peg,
 //   held shut by one big safety pin; beside the shed a big neat woodpile, the chopping block with the axe in it, chips on the snow.
-//   ONE continuous dolly to the right (no reversals): the car (Tag USED 2007 YARIS on "Yaris,") → in close on the jacket (Tag SAFETY PIN
-//   on "pin,") → out and on to the woodpile (Tag INTO HIS 90S on "nineties.") and a gentle drift to the end of the window.
+//   ★ rev STYLE (2026-11-28, the V38 cinematic rules): no 2-D labels — the car names itself (YARIS on its hatch), the pin is the pin.
+//   594  (MATCH CUT from the JCPenney lot: the same silver Yaris's hatch, close — see the report) lands square on the hatch: the
+//        YARIS badge, the chrome ellipse, the VERMONT plate ("He drove a second-hand Toyota Yaris,").
+//   594→650  one slow pull back, rising and arcing right: the whole car in the plowed driveway, the house behind it.
+//   636→712  one glide right and in along the house onto the jacket on its peg ("held his coat together") → the pin on "pin,".
+//   716→778  one glide out and right onto the woodpile stacked under the kitchen window, the chopping block and the axe ("chopped
+//            his own firewood"), then (774→816, "into his nineties.") one slow push up into the lit kitchen window until its warm light
+//            fills the frame at 814: the match cut to the warm close-up under Friendly's pendant (diner). Every move overlaps the last.
 import React, { useMemo } from "react";
 import * as THREE from "three";
 import { Sky, Glow, rnd, canvasTex } from "./kit";
-import { Tag } from "./overlays";
 import { cueAt } from "../bnx/SfxLayer";
 import { WIN, wAt } from "./windows";
 import { Built, addHouse, addMaple, Pines, Snowfield, Ridges, fbm, smooth, addRailFence } from "./b_winter";
@@ -18,6 +23,7 @@ import { PegRail, PIN_Y, frontZ } from "./b_jacket";
 import { Splits, pilePieces, ChoppingBlock, Chips } from "./b_wood";
 import { poolTex } from "./st_farm";
 import { Conifers, Maples } from "./e_trees";
+import { ShadeLayer, keyDir } from "./b_fakeshade";
 
 export const YARD_O = [900, 0, 0];
 const A = (p) => [p[0] + YARD_O[0], p[1] + YARD_O[1], p[2] + YARD_O[2]];
@@ -33,10 +39,13 @@ const FRONT_Z = HOUSE.z + HOUSE.d / 2;             // −1.5
 const DOOR_X = -0.35, PORCH = { x0: -1.55, x1: 1.45, z1: 0.25, y: 0.5 };
 const RAIL = { x: 0.64, y: 2.13 };                 // the peg rail; the jacket hangs from its first peg
 export const PIN_W = [RAIL.x, RAIL.y - 0.01 + PIN_Y, FRONT_Z + 0.026 + frontZ(0, PIN_Y) + 0.006];
-const CAR = { x: -6.4, z: 0.9 };
-const SHED = { x: 8.0, z: -4.4, w: 4.6, d: 3.6 };
-const PILE = { x0: 5.75, z: SHED.z + SHED.d / 2 + 0.86 };   // the pile's front face; it stands against the shed's front wall, under the eave
-const BLOCK = [6.9, 0, 0.55];
+const CAR = { x: -5.7, z: 0.9 };   // rev STYLE: 0.7 m nearer the house (the glide to the jacket is shorter, so slower)
+const SHED = { x: 7.4, z: -4.4, w: 4.6, d: 3.6 };   // rev STYLE: 0.6 m nearer the house (a shorter glide from the jacket)
+// rev STYLE (integrator, yard → diner): the winter's wood is stacked against the HOUSE's front wall right of the porch, under the lit
+// kitchen window (front, x 2.4, now atlas cell 3), so the camera ends the station pushing from the pile up into that warm window
+const PILE = { x0: 1.75, L: 2.5, H: 1.0, z: FRONT_Z + 0.86 };   // the pile's front face (two rows deep against the clapboards)
+const BLOCK = [3.15, 0, 1.15];
+const WIN_R = [2.4, 1.92, FRONT_Z];   // the lit kitchen window over the pile (centre of the glass; y checked on a still)
 
 const buildYard = (m) => {
   // his house: a small 1½-storey Cape, painted clapboard (pale grey-blue), white trim, black shutters, an asphalt-shingle roof under snow
@@ -46,7 +55,7 @@ const buildYard = (m) => {
     chimney: [2.2, -0.4],
     win: [
       { f: "front", x: -2.6, y: 1.25, ww: 0.85, wh: 1.35, cell: 5, shutters: "#1E2530" },
-      { f: "front", x: 2.4, y: 1.25, ww: 0.85, wh: 1.35, cell: 4, shutters: "#1E2530" },
+      { f: "front", x: 2.4, y: 1.25, ww: 0.85, wh: 1.35, cell: 3, shutters: "#1E2530" },
       { f: "left", x: -1.4, y: 1.25, ww: 0.85, wh: 1.35, cell: 4 },
       { f: "left", x: 1.4, y: 1.25, ww: 0.85, wh: 1.35, cell: 5 },
       { f: "left", x: 0, y: 4.0, ww: 0.75, wh: 1.0, cell: 1 },
@@ -112,7 +121,7 @@ const buildYard = (m) => {
   for (let k = 0; k < 14; k++) {
     const z = 14 - k * 1.25;
     m.sph("snow", [CAR.x - 2.2 - rnd(k) * 0.3, 0.0, z], [1.1 + rnd(k * 3) * 0.3, 0.5 + rnd(k * 5) * 0.2, 0.95], "#EEF3FA", { seg: 14, r: [0, rnd(k) * 3, 0] });
-    if (z < 3.2) m.sph("snow", [CAR.x + 2.0 + rnd(k + 1) * 0.2, 0.0, z], [0.7, 0.28 + rnd(k * 7) * 0.1, 0.8], "#EEF3FA", { seg: 14, r: [0, rnd(k) * 3, 0] });
+    if (z < 3.2) m.sph("snow", [CAR.x + 1.55 + rnd(k + 1) * 0.15, 0.0, z], [0.7, 0.28 + rnd(k * 7) * 0.1, 0.8], "#EEF3FA", { seg: 14, r: [0, rnd(k) * 3, 0] });
   }
   // the shed: board-and-batten, a tin roof (the woodpile against its front wall, under the eave)
   m.push([SHED.x, 0, SHED.z]);
@@ -153,7 +162,7 @@ const pathTex = () => canvasTex("b_path", 256, 512, (c, w, h) => {
   for (let y = 0; y < h; y += 36) for (const s of [0, 1]) { c.fillStyle = "rgba(90,104,130,0.45)"; c.beginPath(); c.ellipse(w * (0.4 + s * 0.2) + (rnd(y + s) - 0.5) * 12, y + s * 18, 14, 26, (rnd(y) - 0.5) * 0.4, 0, 7); c.fill(); }
 });
 const Yard = ({ f }) => {
-  const pile = useMemo(() => pilePieces(4.6, 1.5, 2, 3).map((q) => ({ ...q, p: [q.p[0] + PILE.x0, q.p[1], q.p[2] + PILE.z] })), []);
+  const pile = useMemo(() => pilePieces(PILE.L, PILE.H, 2, 3).map((q) => ({ ...q, p: [q.p[0] + PILE.x0, q.p[1], q.p[2] + PILE.z] })), []);
   const loose = useMemo(() => [
     { p: [BLOCK[0] - 0.55, 0.06, BLOCK[2] + 0.35], k: 0, rz: -Math.PI / 4, ry: 1.1, rx: 0 },
     { p: [BLOCK[0] + 0.45, 0.06, BLOCK[2] + 0.45], k: 2, rz: -Math.PI * 0.49, ry: -0.6, rx: 0 },
@@ -176,7 +185,7 @@ const Yard = ({ f }) => {
       <group position={[RAIL.x, RAIL.y, FRONT_Z + 0.001]}><PegRail /></group>
       <pointLight position={[DOOR_X - 0.75, 2.36, FRONT_Z + 0.35]} color="#FFC890" intensity={1.6} distance={4.5} decay={1.5} />
       {/* the woodpile against the shed, the dark gaps behind it, the block, the axe, chips */}
-      <mesh position={[PILE.x0 + 2.3, 0.75, SHED.z + SHED.d / 2 + 0.01]} material={mats.back}><planeGeometry args={[4.6, 1.5]} /></mesh>
+      <mesh position={[PILE.x0 + PILE.L / 2, PILE.H / 2, FRONT_Z + 0.012]} material={mats.back}><planeGeometry args={[PILE.L, PILE.H]} /></mesh>
       <Splits pieces={pile} seedTex={1} />
       <Splits pieces={loose} seedTex={5} />
       <ChoppingBlock position={BLOCK} ry={2.25} />
@@ -198,44 +207,51 @@ const Scene = ({ f }) => {
       <Conifers items={pines} near={[0, -3]} farDist={28} />
       <Maples items={[{ p: [-16, hgt(-16, -11) - 0.1, -11], h: 11, seed: 31 }, { p: [13, hgt(13, 1) - 0.1, 1], h: 10, seed: 32 }]} />
       <Yard f={f} />
+      <ShadeLayer build={buildYardShade} />
     </group>
   );
 };
 // ── the camera: one sweep to the right ──────────────────────────────────────────────────────────────────────────────────────
+// the car's hatch (world-local): the YARIS badge on its right, the plate in the middle (b_yaris: rear = local −x; the car is turned
+// π/2 + 0.06, so its rear faces +z, toward the road)
+export const HATCH = [CAR.x + 0.25, 0.84, CAR.z + 1.88];
+export const YARD_KEY = [-10, 13, 7];
 const shots = () => {
   const t = T();
   const pin = PIN_W;
   return [
-    { a: t.start, b: t.start, cut: true, pos: A([-2.2, 2.6, 9.5]), target: A([CAR.x - 0.6, 0.35, CAR.z + 0.7]), fov: 40 },
-    { a: t.start, b: t.yaris + 2, pos: A([-1.6, 2.5, 8.7]), target: A([CAR.x - 0.45, 0.4, CAR.z + 0.6]), fov: 40 },          // the car
-    { a: t.yaris - 6, b: t.pin - 12, pos: A([pin[0] + 0.0, pin[1] + 0.12, FRONT_Z + 3.05]), target: A([pin[0] - 0.01, pin[1] + 0.05, pin[2]]), fov: 26 },   // in to the jacket
-    { a: t.pin - 20, b: t.pin + 30, pos: A([pin[0] + 0.07, pin[1] + 0.11, FRONT_Z + 2.85]), target: A([pin[0] + 0.03, pin[1] + 0.05, pin[2]]), fov: 26, raw: true },   // creeping in on the pin (kept as authored: the hold on the pin)
-    { a: t.pin + 18, b: t.pin + 46, pos: A([1.0, 2.25, 6.6]), target: A([1.15, 1.35, -1.5]), fov: 34 },                       // pull straight back off the jacket
-    { a: t.pin + 38, b: t.nineties + 4, pos: A([3.7, 1.85, 4.3]), target: A([7.3, 0.55, -0.9]), fov: 38 },                    // and on to the woodpile
-    { a: t.nineties - 4, b: t.end + 14, pos: A([4.3, 1.85, 4.1]), target: A([7.7, 0.55, -1.0]), fov: 38 }                    // a gentle drift on
+    // the match cut: square on the hatch, close — YARIS, the chrome ellipse, the VERMONT plate
+    { a: t.start, b: t.start, cut: true, pos: A([HATCH[0] + 0.2, HATCH[1] + 0.3, HATCH[2] + 1.95]), target: A(HATCH), fov: 30 },
+    // one slow pull back, rising and arcing right: the car in its plowed driveway, the house behind ("…Toyota Yaris,")
+    { a: t.start, b: t.yaris + 10, pos: A([-1.5, 2.0, 7.0]), target: A([CAR.x + 0.1, 0.8, CAR.z + 0.5]), fov: 34 },
+    // one glide right and in along the house onto the jacket on its peg; settles on the pin on "pin,"
+    { a: t.yaris - 10, b: t.pin + 2, pos: A([pin[0] + 0.0, pin[1] + 0.2, FRONT_Z + 3.7]), target: A([pin[0] - 0.01, pin[1] + 0.07, pin[2]]), fov: 29 },
+    // creeping on the pin
+    { a: t.pin - 8, b: t.pin + 20, pos: A([pin[0] + 0.1, pin[1] + 0.18, FRONT_Z + 3.45]), target: A([pin[0] + 0.03, pin[1] + 0.06, pin[2]]), fov: 28 },
+    // one glide out and right onto the woodpile under the kitchen window, the block and the axe ("chopped his own firewood")
+    { a: t.pin + 6, b: t.nineties - 10, pos: A([1.75, 1.8, 4.7]), target: A([3.0, 0.8, -0.5]), fov: 38 },
+    // one slow push up into the lit kitchen window: its warm light fills the frame at 814 (the match cut to the diner's pendant)
+    { a: t.nineties - 22, b: t.end + 2, pos: A([WIN_R[0], WIN_R[1] + 0.06, FRONT_Z + 1.85]), target: A(WIN_R), fov: 32 },
+    { a: t.end - 4, b: t.end + 14, pos: A([WIN_R[0], WIN_R[1] + 0.05, FRONT_Z + 1.55]), target: A(WIN_R), fov: 31 }
   ];
 };
-const Overlay = ({ f, P }) => {
-  const t = T();
-  const car = P([CAR.x - 0.2, 1.1, CAR.z + 1.9]);
-  const pin = P([PIN_W[0] + 0.01, PIN_W[1] + 0.004, PIN_W[2] + 0.005]);
-  const pile = P([PILE.x0 + 1.6, 1.1, PILE.z + 0.05]);
-  return (
-    <>
-      <Tag text="Used 2007 Yaris" at={t.yaris - 4} out={t.held - 2} x={96} y={430} to={car.behind ? null : car} />
-      <Tag text="Safety pin" at={t.pin - 8} out={t.pin + 20} x={110} y={600} to={pin.behind ? null : pin} />
-      <Tag text="Into his 90s" at={t.nineties - 14} out={t.end - 12} x={96} y={430} to={pile.behind ? null : pile} />
-    </>
-  );
+// rev STYLE: no 2-D labels; nothing visibly acts here, so no sound (rules 14–18)
+const Overlay = () => null;
+const sfx = () => [];
+// the hand-placed contact shadows (b_fakeshade): under the car, the porch, the woodpile and shed, the block, the sawbuck, the mailbox
+const buildYardShade = (s) => {
+  const [kx, kz] = keyDir(YARD_KEY);
+  s.floor("rect", [CAR.x + kx * 0.15, 0.025, CAR.z + kz * 0.15], 2.05, 4.1, 0.06, 0.62);        // the car's footprint (it sits low)
+  for (const [dx, dz] of [[0.75, 1.13], [-0.75, 1.13], [0.75, -1.33], [-0.75, -1.33]]) s.floor("blob", [CAR.x + dx, 0.026, CAR.z - dz], 0.5, 0.7, 0, 0.6);   // the tyres
+  s.edge([HOUSE.x, 0.03, FRONT_Z + 0.02], [1, 0, 0], [0, 0, 1], HOUSE.w, 1.0, 0.42);           // the house's foot along the front
+  s.edge([HOUSE.x + HOUSE.w / 2 + 0.02, 0.03, HOUSE.z], [0, 0, 1], [1, 0, 0], HOUSE.d, 1.3, 0.42);
+  s.edge([HOUSE.x - HOUSE.w / 2 - 0.02, 0.03, HOUSE.z], [0, 0, 1], [-1, 0, 0], HOUSE.d, 0.9, 0.35);
+  s.floor("rect", [(PORCH.x0 + PORCH.x1) / 2 + kx * 0.2, 0.03, PORCH.z1 + 0.25 + kz * 0.2], PORCH.x1 - PORCH.x0 + 0.4, 0.8, 0, 0.45);
+  s.floor("rect", [PILE.x0 + PILE.L / 2 + kx * 0.1, 0.03, PILE.z + 0.05 + kz * 0.1], PILE.L + 0.3, 0.6, 0, 0.35);   // the pile's foot
+  s.edge([SHED.x, 0.03, SHED.z + SHED.d / 2 + 0.02], [1, 0, 0], [0, 0, 1], SHED.w, 0.9, 0.4);
+  s.edge([SHED.x + SHED.w / 2 + 0.02, 0.03, SHED.z], [0, 0, 1], [1, 0, 0], SHED.d, 1.2, 0.42);
+  s.floor("blob", [BLOCK[0] + kx * 0.12, 0.025, BLOCK[2] + kz * 0.12], 0.95, 0.95, 0, 0.6);
+  s.floor("rect", [BLOCK[0] + 1.1, 0.025, BLOCK[2] - 0.5], 1.1, 0.7, 0.4, 0.4);
+  s.floor("blob", [CAR.x + 2.6, 0.025, 13.0], 0.4, 0.4, 0, 0.5);
 };
-const sfx = () => {
-  const t = T();
-  return [
-    cueAt("ee_click_click_01", t.yaris - 4, 10, 0.32),
-    cueAt("whooshsoft", t.yaris + 30, 30, 0.32),            // in to the jacket
-    cueAt("ee_click_click_01", t.pin - 4, 10, 0.32),
-    cueAt("whooshsoft", t.pin + 40, 32, 0.32),              // out to the woodpile
-    cueAt("ee_click_click_01", t.nineties - 14, 10, 0.3)
-  ];
-};
-export const ST = { id: "yard", origin: YARD_O, from: W0().start - 8, to: W0().end + 8, light: { target: [1, 0, -1], shadowBox: 16, keyI: 1.15, fillI: 0.42, rimI: 1.0 }, shots, Scene, Overlay, sfx };
+export const ST = { id: "yard", origin: YARD_O, from: W0().start - 8, to: W0().end + 8, light: { target: [1, 0, -1], key: YARD_KEY, keyColor: "#C4D8F6", shadowBox: 16, keyI: 2.1, fillI: 0.3, rimI: 1.2 }, shots, Scene, Overlay, sfx };

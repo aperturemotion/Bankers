@@ -352,7 +352,7 @@ export const bMats = () => {
     clap: std({ map: rep(canvasTex("bw_clap_e2", 1024, 2048, clapDraw(false)), 1, 1.6), bumpMap: lin(rep(canvasTex("bw_clapB_e2", 1024, 2048, clapDraw(true)), 1, 1.6)), bumpScale: 3.2, roughness: 0.82 }),
     board: std({ map: rep(canvasTex("bw_board", 1024, 1024, boardDraw(false)), 2), bumpMap: lin(rep(canvasTex("bw_boardB", 1024, 1024, boardDraw(true)), 2)), bumpScale: 3, roughness: 0.92 }),
     tin: std({ map: rep(canvasTex("bw_tin", 512, 1024, tinDraw(false)), 1.8, 3.6), bumpMap: lin(rep(canvasTex("bw_tinB", 512, 1024, tinDraw(true)), 1.8, 3.6)), bumpScale: 2, roughness: 0.48, metalness: 0.55 }),
-    snow: std({ map: rep(canvasTex("bw_snowS", 512, 512, snowDraw(false)), 2.5), roughness: 0.78, metalness: 0, envMapIntensity: 0.6 }),
+    snow: std({ map: rep(canvasTex("bw_snowS", 512, 512, snowDraw(false)), 2.5), color: new THREE.Color("#D3E0F4"), roughness: 0.78, metalness: 0, envMapIntensity: 0.6 }),
     stone: std({ map: rep(canvasTex("bw_stone", 512, 512, stoneDraw), 0.8), roughness: 0.92, flatShading: true }),
     split: std({ map: rep(canvasTex("bw_split", 256, 256, splitDraw), 1.2, 0.6), roughness: 0.9 }),
     trimb: std({ map: rep(canvasTex("bw_trim", 256, 256, trimDrawB), 1), roughness: 0.7 }),
@@ -888,7 +888,7 @@ export const Snowfield = ({ hgt, size = 260, segs = 180, cx = 0, cz = 0, tint = 
       const x = P.getX(i), z = P.getZ(i);
       P.setY(i, hgt(x, z));
       const t = tint(x, z) * (0.93 + 0.07 * fbm(x * 0.15, z * 0.15, 3));
-      col.setRGB(0.93 * t, 0.95 * t, 0.99 * t); C.push(col.r, col.g, col.b);
+      col.setRGB(0.80 * t, 0.87 * t, 0.985 * t); C.push(col.r, col.g, col.b);   // rev STYLE (rules 3–4): the snow leans into the Bankers blue (was 0.93/0.95/0.99)
     }
     g.setAttribute("color", new THREE.Float32BufferAttribute(C, 3));
     g.computeVertexNormals();

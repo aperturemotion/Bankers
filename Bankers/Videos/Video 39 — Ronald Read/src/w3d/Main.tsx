@@ -72,7 +72,7 @@ const HAZE = [];   // rev 3: the 24 s flight through the haze is a cross-dissolv
 // ── Bankers style rule 18 (Timur, 2026-11-27, V38): "each sound effect should be linked to an actual visual or change … perfectly synced …
 // starts when the movement … starts and ends when the movement … finishes". Camera whooshes ONLY on fast camera moves MEASURED on the film's own
 // camera (scratchpad/fastmoves.py out/cam_s.json 40 18) — REAL frames [start, end]; re-run it after any camera change and paste its list here.
-const FAST_MOVES = [];
+const FAST_MOVES = [[263,343],[606,771],[776,808],[1346,1376],[1470,1517],[1600,1728]];   // fastmoves.py out/cam_s.json 40 18, 2026-11-28 after the style pass
 const CAM_WHOOSH = new Set(["whooshsoft", "whooshlong", "airwoosh"]);   // the old per-travel whooshes: replaced by the synced ones below
 const WH_VOL = { whooshlong: 0.56, airwoosh: 0.4, ee_whoosh_medium_whoosh_01: 0.29, ee_whoosh_large_whoosh_01: 0.37 };   // each ≈ −19 dB under bed + voice (V38 sfxaudit.py)
 const WH_FILES = { whooshlong: 31.5, airwoosh: 53.4, ee_whoosh_medium_whoosh_01: 62.9, ee_whoosh_large_whoosh_01: 74.4 };   // file length, frames

@@ -5,12 +5,15 @@
 //   overhead door glowing from inside, the porcelain fascia sign HAVILAND'S / SERVICE STATION under two gooseneck lamps; on the
 //   concrete island two tall computing pumps (REGULAR, PREMIUM) with lighted milk-glass globes, a wire rack of quart oil cans between
 //   them; a stack of tires by the bay, an air post, a SNOW TIRES board by the road, the plowed lot, a utility pole, pines behind.
-//   370  (cut, the dissolve from the farm) a low view from the road; the camera pushes slowly in past the pumps.
-//        Tag AFTER WWII on "war,"; Counter 25 YEARS · AT THE PUMPS rolls and lands on "25 years,".
+//   ★ rev STYLE (2026-11-28, the V38 cinematic rules): no 2-D labels or counters — the place is named by its own sign.
+//   370  (MATCH CUT from the farm's push into the framed diploma's cream paper) — lands square on the cream porcelain fascia sign
+//        HAVILAND'S / SERVICE STATION (a framed, lettered panel, like the diploma) on "After the war,".
+//   370→468  ONE slow pull back and down along the sign's axis: the station rises into the frame under it (the lit office, the bay, the
+//        pump island on "pumped gas"); it ends square-on, the sign's lettering ≈ 60 % of the width ≈ 33 % down — the match cut to A's
+//        JCPenney letters at 472.
 import React, { useMemo } from "react";
 import * as THREE from "three";
 import { Sky, Glow, rnd, canvasTex } from "./kit";
-import { Tag, Counter } from "./overlays";
 import { cueAt } from "../bnx/SfxLayer";
 import { WIN, wAt } from "./windows";
 import { Built, Pines, Snowfield, Ridges, fbm, smooth, addMaple } from "./b_winter";
@@ -19,6 +22,7 @@ import { OfficeRoom, BayDoor, PoleSign, lotTex, roadTex, LOT } from "./e_gas";
 import { poolTex } from "./st_farm";
 import { Conifers, Maples } from "./e_trees";
 import { BODY } from "./fonts3d";
+import { ShadeLayer, keyDir } from "./b_fakeshade";
 
 export const GAS_O = [600, 0, 0];
 const A = (p) => [p[0] + GAS_O[0], p[1] + GAS_O[1], p[2] + GAS_O[2]];
@@ -225,32 +229,43 @@ const Scene = ({ f }) => {
       <Conifers items={pines} near={[0, -3]} farDist={28} />
       <Maples items={[{ p: [-9, hgt(-9, -7) - 0.1, -7], h: 10, seed: 21 }, { p: [11.5, hgt(11.5, -4) - 0.1, -4], h: 9, seed: 22 }]} />
       <Station f={f} />
+      <ShadeLayer build={buildGasShade} />
     </group>
   );
 };
+export const GAS_KEY = [-10, 13, 7];
 const shots = () => {
   const t = T();
+  const sc = [SIGN.x, SIGN.y, FRONT + SIGN.z];
+  // A's jcp opens (472) on the lit JCPenney letters ≈ 60 % of the width, centred ≈ 33 % down, nearly square-on: the gas station ENDS the
+  // same way on its own sign — HAVILAND'S ≈ 2.9 m of lettering = 60 % of a 4.9 m frame width (fov 38 → 12.6 m), the sign 1.47 m above
+  // the aim (17 % of the 8.7 m frame height)
+  const dEnd = 12.6, end = [sc[0], 3.9, sc[2] + dEnd], endT = [sc[0], sc[1] - 1.47, sc[2]];
   return [
-    { a: t.start, b: t.start, cut: true, pos: A([1.0, 2.6, 16.8]), target: A([-1.3, 1.05, -3]), fov: 40 },
-    { a: t.start, b: t.end + 14, pos: A([-1.0, 2.4, 10.4]), target: A([-1.7, 0.95, -3]), fov: 40 }             // one slow push in and down onto the pumps
+    // the match cut: square on the sign, its panel filling the frame's width (the farm's diploma filled it the frame before)
+    { a: t.start, b: t.start, cut: true, pos: A([sc[0] + 0.05, sc[1] - 0.05, sc[2] + 8.6]), target: A([sc[0], sc[1] - 0.1, sc[2]]), fov: 38 },
+    // ONE slow pull back and down along the sign's axis ("After the war, he pumped gas …"): the roofs, the lit office window, the bay
+    // and the pump island rise into the lower frame under the sign; it ends square-on with the sign in the upper third (A's match)
+    { a: t.start, b: t.end - 4, pos: A(end), target: A(endT), fov: 38 },
+    // a hair further back through the cut (monotone)
+    { a: t.end - 10, b: t.end + 14, pos: A([end[0], end[1] - 0.05, end[2] + 0.35]), target: A(endT), fov: 38 }
   ];
 };
-const Overlay = ({ f, P }) => {
-  const t = T();
-  const sign = P([SIGN.x - SIGN.w / 2 + 0.2, SIGN.y + 0.18, FRONT + SIGN.z]);   // (E) the ring sits in the panel's left margin, clear of the lettering
-  return (
-    <>
-      <Tag text="After WWII" at={t.war - 4} out={t.years - 30} x={96} y={500} to={sign.behind ? null : sign} />
-      <Counter at={t.years - 28} out={t.end - 13} x={540} y={470} value={25} unit="YEARS" label="At the pumps" size={112} countDur={26} />
-    </>
-  );
+// rev STYLE: no 2-D labels or counters (the sign names the place; "25 years" is the voice's); nothing visibly acts → no sound (rules 14–18)
+const Overlay = () => null;
+const sfx = () => [];
+// the hand-placed contact shadows (b_fakeshade): the island and pumps, the tire stack, the building's foot, the bumper posts
+const buildGasShade = (s) => {
+  const [kx, kz] = keyDir(GAS_KEY);
+  s.floor("rect", [-2.2 + kx * 0.2, 0.02, 0.3 + kz * 0.2], 4.9, 1.6, 0, 0.5);
+  for (const p of [PUMP1, PUMP2]) s.floor("rect", [p[0] + kx * 0.12, 0.172, p[2] + kz * 0.12], 0.95, 0.75, 0, 0.55);
+  s.floor("blob", [4.05 + kx * 0.15, 0.02, -2.75 + kz * 0.15], 1.0, 1.0, 0, 0.55);
+  s.floor("blob", [5.15, 0.02, -3.0], 1.6, 0.8, 0, 0.45);
+  s.edge([(OFF.x0 + BAY.x1) / 2, 0.025, FRONT + 0.05], [1, 0, 0], [0, 0, 1], BAY.x1 - OFF.x0 + 0.2, 0.9, 0.45);
+  s.edge([BAY.x1 + 0.05, 0.025, FRONT - DEPTH / 2], [0, 0, 1], [1, 0, 0], DEPTH, 1.3, 0.45);
+  for (const x of [-4.55, 0.15]) s.floor("blob", [x + kx * 0.06, 0.172, 0.3 + kz * 0.06], 0.3, 0.3, 0, 0.5);
+  s.floor("blob", [0.75 + kx * 0.1, 0.02, 0.3 + kz * 0.1], 0.5, 0.5, 0, 0.5);
+  s.floor("blob", [-4.9 + kx * 0.1, 0.02, -2.9 + kz * 0.1], 0.8, 0.8, 0, 0.5);
+  s.floor("rect", [5.6, 0.02, 7.4], 1.2, 0.7, -0.5, 0.45);
 };
-const sfx = () => {
-  const t = T();
-  return [
-    cueAt("whooshsoft", t.start + 30, 34, 0.3),            // the push in (fastest ≈ the middle)
-    cueAt("ee_click_click_01", t.war - 4, 10, 0.32),
-    cueAt("ee_clock_clock_ticking_01", t.years - 26, 26, 0.25),   // the counter rolling
-  ];
-};
-export const ST = { id: "gas", origin: GAS_O, from: W0().start - 8, to: W0().end + 8, light: { target: [-1, 0, -2], shadowBox: 14, keyI: 1.15, fillI: 0.42, rimI: 1.0 }, shots, Scene, Overlay, sfx };
+export const ST = { id: "gas", origin: GAS_O, from: W0().start - 8, to: W0().end + 8, light: { target: [-1, 0, -2], key: GAS_KEY, keyColor: "#C4D8F6", shadowBox: 15, keyI: 2.1, fillI: 0.3, rimI: 1.2 }, shots, Scene, Overlay, sfx };

@@ -3,22 +3,25 @@
 //   A poor 1920s–30s hill farm in Dummerston, Vermont, at blue hour in winter: a weathered clapboard farmhouse (one window lit) with its
 //   kitchen ell, a sun-silvered board barn with a tin roof and cupola, fieldstone walls and a split-rail fence across the snowy
 //   fields, milk cans on their stand by the lane, bare sugar maples and dark pines up the hill, the Green Mountains in the haze.
-//   217  (cut, the dissolve from the hook) a low wide view across the field; the camera cranes up and dollies in.
-//        Tag BORN 1921 on "Ronald" (the house he grew up in); DUMMERSTON, VERMONT on the 2nd "Vermont".
-//   ~304 "first … high school": the camera eases toward the lit parlour window — through its lower sash the framed diploma on the
-//        wallpapered wall in lamplight: BRATTLEBORO UNION HIGH SCHOOL · CLASS OF 1940 (FACTCHECK row 2; no name on it).
-//        Tag CLASS OF 1940 on "high school." (gone before the dissolve to the gas station at 370).
+//   ★ rev STYLE (2026-11-28, the V38 cinematic rules): no 2-D labels; the names and figures live on real objects; one slow glide.
+//   217  (MATCH CUT from the hook ending square-on to the printed band round the certificate stack) — lands square-on to the lettered
+//        side of the rural MAILBOX at the road wall: hand-lettered READ (on "Read") / DUMMERSTON, VT. (on "Vermont").
+//   217→305  one long crane up and over the mailbox and the road wall, tilting onto the farmhouse (the lit parlour window) on "farm".
+//   269→364  one slow push across the front yard into the lit parlour window — through its lower sash the framed diploma in lamplight:
+//        BRATTLEBORO UNION HIGH SCHOOL · CLASS OF 1940 (FACTCHECK row 2; no name on it) on "high school."
+//   352→384  the push creeps on until the diploma's paper fills the frame: the match cut to Haviland's porcelain sign (gas, 370).
 import React, { useMemo } from "react";
 import * as THREE from "three";
 import { useCurrentFrame } from "remotion";
 import { Sky, Glow, rnd, canvasTex, ease } from "./kit";
-import { Tag } from "./overlays";
 import { cueAt } from "../bnx/SfxLayer";
 import { WIN, wAt } from "./windows";
 import { Built, addHouse, addStoneWall, addRailFence, Snowfield, Ridges, fbm, smooth, bpick, addLane } from "./b_winter";
 import { diplomaTex, wallpaperTex, glareTex } from "./b_diploma";
 import { Mesher } from "./town_parts";
 import { Conifers, Maples } from "./e_trees";
+import { ShadeLayer, keyDir } from "./b_fakeshade";
+import { SIGNF } from "./b_pump";
 
 export const FARM_O = [300, 0, 0];
 const A = (p) => [p[0] + FARM_O[0], p[1] + FARM_O[1], p[2] + FARM_O[2]];
@@ -45,6 +48,9 @@ const PANE_X = WINX;                                        // the camera looks 
 export const DIPLOMA = { x: PANE_X, y: 1.86, z: BACK_Z + 0.035, w: 0.56, h: 0.42 };
 const FRAME = { w: 0.7, h: 0.56 };
 const BARN = { x: 8.5, z: -21, len: 14, wid: 10, h: 4.4 };
+// the rural mailbox by the lane (between the lane's left fence and the plowed lane), its lettered side (+x) facing the lane
+export const MB = { x: -2.35, z: 6.75, ry: -Math.PI / 2 + 0.06, top: 1.27 };   // by the road wall, square in front of the parlour window: ry turns the lettered (+x) side to the road (+z), the house straight behind it
+export const FARM_KEY = [-11, 13, 6];   // the station's key (upper left, a little in front): shadows fall back and to the right
 
 // ── (E) the farmhouse's front porch (house-local frame, the front wall at z = d/2): a plank deck on fieldstone piers with a lattice
 //   skirt, four turned posts with sawn brackets, a shed roof in standing-seam tin under snow with icicles, a beadboard ceiling, a
@@ -412,6 +418,63 @@ export const Smoke = ({ f, at, n = 14, rise = 0.035, color = "#AFC0D6" }) => {
   );
 };
 
+// ── the rural mailbox (READ / DUMMERSTON, VT.): a galvanised tunnel box on a 4×4 post, hand-lettered in black on its lane side ────
+const mailTex = () => canvasTex("b_mailbox_v1", 1024, 330, (c, w, h) => {
+  // galvanised sheet: a cool grey with spangle, a little rust bloom along the bottom seam; lettering brushed on in black
+  c.fillStyle = "#9AA3AE"; c.fillRect(0, 0, w, h);
+  for (let i = 0; i < 900; i++) { c.fillStyle = `rgba(${rnd(i) < 0.5 ? "230,236,244" : "60,66,76"},${0.04 + rnd(i + 1) * 0.08})`; c.beginPath(); c.ellipse(rnd(i + 2) * w, rnd(i + 3) * h, 6 + rnd(i + 4) * 22, 4 + rnd(i + 5) * 14, rnd(i) * 3, 0, 7); c.fill(); }
+  const g = c.createLinearGradient(0, h - 60, 0, h); g.addColorStop(0, "rgba(120,70,40,0)"); g.addColorStop(1, "rgba(120,70,40,0.35)"); c.fillStyle = g; c.fillRect(0, h - 60, w, 60);
+  c.fillStyle = "#14171B"; c.textAlign = "center"; c.textBaseline = "alphabetic";
+  c.font = `700 168px ${SIGNF}`; c.fillText("READ", w / 2, 190);
+  c.font = `600 64px ${SIGNF}`; c.fillText("DUMMERSTON, VT.", w / 2, 290);
+});
+const Mailbox = () => {
+  const mats = useMemo(() => ({
+    galv: new THREE.MeshStandardMaterial({ color: "#9AA3AE", roughness: 0.42, metalness: 0.7 }),
+    side: new THREE.MeshStandardMaterial({ map: mailTex(), roughness: 0.45, metalness: 0.55 }),
+    post: new THREE.MeshStandardMaterial({ color: "#6A5E52", roughness: 0.95 }),
+    flag: new THREE.MeshStandardMaterial({ color: "#9E2B25", roughness: 0.6 }),
+    snow: new THREE.MeshStandardMaterial({ color: "#E6EEFA", roughness: 0.8 })
+  }), []);
+  const W2 = 0.09, HB = 0.15, L = 0.5, y0 = MB.top - 0.085 - HB, gy = hgt(MB.x, MB.z);
+  return (
+    <group position={[MB.x, gy, MB.z]} rotation-y={MB.ry}>
+      {/* the 4×4 post (leaning a hair), the arm the box sits on */}
+      <mesh position={[0, (y0 - 0.02) / 2 - 0.1, -0.05]} rotation-z={0.015} material={mats.post}><boxGeometry args={[0.09, y0 + 0.16, 0.09]} /></mesh>
+      <mesh position={[0, y0 - 0.03, 0]} material={mats.post}><boxGeometry args={[0.12, 0.05, 0.46]} /></mesh>
+      {/* the tunnel box: flat sides, a half-round top, the door at the lane end with its latch, the lettered side */}
+      <mesh position={[0, y0 + HB / 2, 0]} material={mats.galv}><boxGeometry args={[2 * W2, HB, L]} /></mesh>
+      <mesh position={[0, y0 + HB, 0]} rotation-x={Math.PI / 2} material={mats.galv}><cylinderGeometry args={[W2, W2, L, 24, 1, false, Math.PI / 2, Math.PI]} /></mesh>
+      <mesh position={[W2 + 0.0015, y0 + HB / 2 + 0.005, 0]} rotation-y={Math.PI / 2} material={mats.side}><planeGeometry args={[L * 0.94, HB * 0.97]} /></mesh>
+      <mesh position={[0, y0 + HB * 0.8, L / 2 + 0.006]} material={mats.galv}><boxGeometry args={[2 * W2 + 0.01, HB * 1.6 + 0.02, 0.012]} /></mesh>
+      <mesh position={[0, y0 + HB + 0.07, L / 2 + 0.016]} material={mats.post}><boxGeometry args={[0.03, 0.02, 0.02]} /></mesh>
+      {/* the red flag on the far side, down */}
+      <mesh position={[-W2 - 0.01, y0 + 0.07, -0.05]} material={mats.flag}><boxGeometry args={[0.008, 0.035, 0.26]} /></mesh>
+      <mesh position={[-W2 - 0.01, y0 + 0.07, -0.21]} material={mats.flag}><boxGeometry args={[0.008, 0.1, 0.07]} /></mesh>
+      {/* snow on the round top: a blanket following its curve, thicker along the crown */}
+      <mesh position={[0, y0 + HB + 0.004, 0]} rotation-x={Math.PI / 2} material={mats.snow}><cylinderGeometry args={[W2 + 0.005, W2 + 0.005, L - 0.03, 24, 1, false, Math.PI / 2 + 0.75, Math.PI - 1.5]} /></mesh>
+      <mesh position={[0, y0 + HB + W2 - 0.004, 0]} scale={[0.075, 0.03, (L - 0.04) / 2]} material={mats.snow}><sphereGeometry args={[1, 20, 12]} /></mesh>
+    </group>
+  );
+};
+// the hand-placed contact shadows (b_fakeshade): where things meet the snow, leaning with the key (FARM_KEY)
+const buildFarmShade = (s) => {
+  const [kx, kz] = keyDir(FARM_KEY);
+  const off = (x, z, d) => [x + kx * d, z + kz * d];
+  // the farmhouse, the ell and the woodshed: a soft dark band along every wall foot on the snow
+  const foot = (x0, x1, z0, z1, k = 0.45) => {
+    s.edge([(x0 + x1) / 2, 0.03, z1], [1, 0, 0], [0, 0, 1], x1 - x0, 1.1, k); s.edge([(x0 + x1) / 2, 0.03, z0], [1, 0, 0], [0, 0, -1], x1 - x0, 1.1, k * 0.8);
+    s.edge([x0, 0.03, (z0 + z1) / 2], [0, 0, 1], [-1, 0, 0], z1 - z0, 1.1, k * 0.8); s.edge([x1, 0.03, (z0 + z1) / 2], [0, 0, 1], [1, 0, 0], z1 - z0, 1.4, k);
+  };
+  foot(HOUSE.x - HOUSE.w / 2, HOUSE.x + HOUSE.w / 2, HOUSE.z - HOUSE.d / 2, HOUSE.z + HOUSE.d / 2 + 2.15, 0.4);
+  foot(HOUSE.x + HOUSE.w / 2 + 2.6 - 2.6, HOUSE.x + HOUSE.w / 2 + 2.6 + 2.6, HOUSE.z - 0.8 - 2.5, HOUSE.z - 0.8 + 2.5, 0.42);
+  foot(HOUSE.x + HOUSE.w / 2 + 7.5 - 2.1, HOUSE.x + HOUSE.w / 2 + 7.5 + 2.1, HOUSE.z - 1.2 - 2.2, HOUSE.z - 1.2 + 2.2, 0.42);
+  foot(BARN.x - BARN.wid / 2, BARN.x + BARN.wid / 2, BARN.z - BARN.len / 2, BARN.z + BARN.len / 2, 0.45);
+  // the mailbox post, the milk-can stand, the hand pump, the porch steps
+  const [mx, mz] = off(MB.x, MB.z, 0.12); s.floor("blob", [mx, hgt(MB.x, MB.z) + 0.03, mz], 0.5, 0.42, 0, 0.6);
+  const [cx, cz] = off(10.4, 7.6, 0.3); s.floor("rect", [cx, hgt(10.4, 7.6) + 0.03, cz], 2.0, 1.3, -0.2, 0.5);
+  s.floor("blob", [HOUSE.x + HOUSE.w / 2 + 1.0, 0.03, HOUSE.z + 3.6], 0.9, 0.9, 0, 0.5);
+};
 // bare sugar maples (front yard, by the barn, along the wall), each from its own seed
 const MAPLES = [{ p: [-10.5, hgt(-10.5, 1.0) - 0.1, 1.0], h: 12, seed: 11 }, { p: [6.6, -0.1, 3.2], h: 10.5, seed: 12 }, { p: [-19, hgt(-19, 7) - 0.1, 7], h: 11, seed: 13 }, { p: [24, hgt(24, 7.5) - 0.1, 7.5], h: 10, seed: 14 }];
 const Scene = ({ f }) => {
@@ -426,6 +489,8 @@ const Scene = ({ f }) => {
       <Maples items={MAPLES} />
       <Parlour f={f} />
       <RealWindow />
+      <Mailbox />
+      <ShadeLayer build={buildFarmShade} />
       {/* the kitchen window glows too; the ell's chimney smokes (the stove is lit) */}
       <Glow position={[HOUSE.x + HOUSE.w / 2 + 2.6 - 1.2, 1.75, HOUSE.z - 0.8 + 2.6]} size={2.2} color="#FFB060" opacity={0.25} />
       <mesh position={[HOUSE.x + HOUSE.w / 2 + 1.4, 0.04, HOUSE.z + 3.2]} rotation-x={-Math.PI / 2}><planeGeometry args={[2, 2.2]} /><meshBasicMaterial map={poolTex()} color="#FFB46A" transparent opacity={0.18} blending={THREE.AdditiveBlending} depthWrite={false} /></mesh>
@@ -437,35 +502,28 @@ const Scene = ({ f }) => {
 // ── the camera (local; + FARM_O) ─────────────────────────────────────────────────────────────────────────────────────────
 const shots = () => {
   const t = T();
-  const fin = [PANE_X, 1.53, FRONT_Z + 1.45], aim = [DIPLOMA.x, DIPLOMA.y - 0.01, DIPLOMA.z];
+  const aim = [DIPLOMA.x, DIPLOMA.y - 0.01, DIPLOMA.z];
+  const mb = [MB.x, hgt(MB.x, MB.z) + MB.top - 0.06, MB.z];
+  const u = [-Math.cos(MB.ry), Math.sin(MB.ry)].map((v) => -v);          // the lettered side's outward normal (toward the lens), [x, z]
+  const at = (d, y) => [mb[0] + u[0] * d, mb[1] + y, mb[2] + u[1] * d];
+  // aim FAR along the ray through the mailbox (≈ the house's distance), so the tilt up to the house turns at an even angular rate
+  // (a near aim lerped to a far one front-loads the whole turn into a few frames)
+  const far = (p, q, L = 19) => { const d = [q[0] - p[0], q[1] - p[1], q[2] - p[2]], n = Math.hypot(...d); return p.map((v, i) => v + d[i] / n * L); };
   return [
-    { a: t.start, b: t.start, cut: true, pos: A([-7.5, 2.3, 24]), target: A([1.8, 3.6, -9]), fov: 46 },
-    { a: t.start, b: t.first + 4, pos: A([-6.2, 4.4, 13.0]), target: A([WINX + 0.6, 2.3, FRONT_Z - 1]), fov: 40 },      // crane up, dolly in
-    { a: t.first - 10, b: t.school + 2, pos: A([PANE_X, 1.56, FRONT_Z + 1.7]), target: A(aim), fov: 21 },            // ease in to the lit window
-    { a: t.school - 6, b: t.end + 14, pos: A(fin), target: A(aim), fov: 20.5 }                                        // and keep drifting in
-  ];
+    // the match cut (A's hook ends square-on to the printed band on the certificate stack): square-on to the mailbox's lettered side —
+    // READ lands on "Read"; the road wall and the farmhouse lie straight beyond it
+    { a: t.start, b: t.start, cut: true, pos: at(1.7, -0.02), target: far(at(1.7, -0.02), [mb[0], mb[1] - 0.12, mb[2]]), fov: 30 },
+    // a slow rise over the box, tilting down onto its snowy top (DUMMERSTON, VT. still reads on "Vermont")
+    { a: t.start, b: t.vermont + 6, pos: at(1.75, 0.75), target: far(at(1.75, 0.75), [mb[0] - u[0] * 0.3, mb[1] - 0.06, mb[2] - u[1] * 0.3]), fov: 30 },
+    // one crane up, tilting onto the farmhouse up the lane (the mailbox sinks out under the frame) — on "farm"
+    { a: t.vermont - 14, b: t.farm + 24, pos: [WINX + 0.25, 3.3, 5.2], target: [WINX + 0.6, 1.9, -6], fov: 34 },
+    // one slow push up the lane into the lit parlour window (the diploma on "high school.")
+    { a: t.farm - 10, b: t.school + 6, pos: [PANE_X + 0.05, 1.58, FRONT_Z + 1.75], target: aim, fov: 21 },
+    // creeping on until the diploma's paper fills the frame at the match cut to Haviland's sign
+    { a: t.school - 6, b: t.end + 14, pos: [PANE_X, 1.6, FRONT_Z + 0.95], target: aim, fov: 19 }
+  ].map((sh) => ({ ...sh, pos: A(sh.pos), target: A(sh.target) }));
 };
-const Overlay = ({ f, P }) => {
-  const t = T();
-  const house = P([HOUSE.x + 0.0, HOUSE.found + 2.2, FRONT_Z + 0.05]);
-  const ridge = P([HOUSE.x - 1.2, HOUSE.h + HOUSE.found + 3.0, HOUSE.z]);
-  const cls = P([DIPLOMA.x, DIPLOMA.y - 0.08, DIPLOMA.z + 0.03]);
-  return (
-    <>
-      <Tag text="Born 1921" at={t.ronald} out={t.vermont - 10} x={96} y={430} to={house.behind ? null : house} />
-      <Tag text="Dummerston, Vermont" at={t.vermont - 2} out={t.first - 4} x={96} y={330} to={ridge.behind ? null : ridge} />
-      <Tag text="Class of 1940" at={t.school - 10} out={t.end - 11} x={110} y={400} to={cls.behind ? null : cls} />
-    </>
-  );
-};
-const sfx = () => {
-  const t = T();
-  return [
-    cueAt("ee_click_click_01", t.ronald, 10, 0.32),
-    cueAt("whooshsoft", t.start + 30, 30, 0.3),                 // the crane up
-    cueAt("ee_click_click_01", t.vermont - 2, 10, 0.32),
-    cueAt("whooshsoft", t.first + 18, 34, 0.35),                // the push to the window (fastest ≈ mid-move)
-    cueAt("ee_click_click_01", t.school - 10, 10, 0.3)
-  ];
-};
-export const ST = { id: "farm", origin: FARM_O, from: W0().start - 8, to: W0().end + 8, light: { target: [2, 0, -6], shadowBox: 22, keyI: 1.15, fillI: 0.42, rimI: 1.0 }, shots, Scene, Overlay, sfx };
+// rev STYLE: no 2-D labels (the names are on the mailbox, the year on the diploma); nothing visibly acts here, so no sound (rules 14–18)
+const Overlay = () => null;
+const sfx = () => [];
+export const ST = { id: "farm", origin: FARM_O, from: W0().start - 8, to: W0().end + 8, light: { target: [2, 0, -2], key: FARM_KEY, keyColor: "#C4D8F6", shadowBox: 24, keyI: 2.1, fillI: 0.3, rimI: 1.2 }, shots, Scene, Overlay, sfx };
