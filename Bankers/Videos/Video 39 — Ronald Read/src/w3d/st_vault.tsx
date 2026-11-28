@@ -41,13 +41,27 @@ const state = (f) => {
   };
 };
 const Scene = ({ f }) => <VaultSet {...state(f)} />;
+// a camera pose round a target: azimuth from +z toward +x, elevation above the horizontal, distance (degrees, metres)
+const orb = (tg, az, el, D) => { const A = az * Math.PI / 180, E = el * Math.PI / 180; return [tg[0] + D * Math.cos(E) * Math.sin(A), tg[1] + D * Math.sin(E), tg[2] + D * Math.cos(E) * Math.cos(A)]; };
+// the centre of the top certificate's name line (Stack: on the stack's top at the box's centre, the sheet turned a quarter so its name runs along −z)
+const TOPNAME = (() => { const b = boxCentre(1); return [b[0] + 0.001, TT + FLOOR_T + STACK_H + 0.0006, b[2]]; })();   // (Stack is centred in the box)
 const shots = () => {
   const t = T();
   return [
     // the inventory on the table (lower frame), the brass doors above it — the match on the certificates' stack
-    { a: t.start, b: t.start, cut: true, pos: Wp([0.24, 1.33, 0.46]), target: Wp([0.145, 0.975, -0.4]), fov: 40 },
-    // one slow glide up and to the right, onto the box, the stack and the rule (still moving gently at the cut into `lehman`)
-    { a: t.start + 1, b: t.end + 8, pos: Wp([0.37, 1.31, 0.015]), target: Wp([0.2, 1.0, -0.57]), fov: 40 },
+    { a: t.start, b: t.start, cut: true, pos: Wp(orb([0.43, 0.93, -0.53], 34, 32, 0.92)), target: Wp([0.43, 0.93, -0.53]), fov: 40 },
+    // ★ integrator follow-up (2026-11-28): the vault ends on the stack's top certificate, THE PROCTER & GAMBLE COMPANY, its name
+    //   horizontal and upright, filling the frame width at 1333 — the match onto D's P&G tile at the lehman cut (1334). The sheet's name
+    //   reads along −z with its top toward −x, so the camera arcs round to the box's +x side in ONE continuous sweep from the cut (no
+    //   reversal; the distance only shrinks), the shots overlapping 8 f; the inventory lies at the box's right front, so it stays in
+    //   frame (95 written on its word) as the arc begins:
+    // 1. round from the inventory to the box as it slides out and turns to glass
+    { a: t.start + 1, b: t.certs + 2, pos: Wp(orb([0.3, 1.0, -0.64], 60, 42, 0.8)), target: Wp([0.3, 1.0, -0.64]), fov: 40 },
+    // 2. on round to the box's +x side, over the stack's top and the rule beside it (face to +x): the lit 5 IN readable to ~1317
+    { a: t.certs - 6, b: t.inches + 8, pos: Wp(orb([0.16, 1.05, -0.69], 87, 55, 0.7)), target: Wp([0.16, 1.05, -0.69]), fov: 40 },
+    // 3. up and over onto the top certificate, looking down steeply from its +x side: the name across the frame at 1333 (az 100: with the
+    //    idle drift the name lands level on screen, measured −0.4° at 1333; 1031 px of 1080 wide)
+    { a: t.inches, b: t.end + 6, pos: Wp(orb(TOPNAME, 100, 60, 0.61)), target: Wp(TOPNAME), fov: 40 },
   ];
 };
 const sfx = () => {

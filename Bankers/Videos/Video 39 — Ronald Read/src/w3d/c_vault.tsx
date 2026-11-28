@@ -397,7 +397,9 @@ const Box = ({ slide, glass, flash }) => {
 };
 // ── the steel rule on its foot ───────────────────────────────────────────────────────────────────────────────────────
 // the rule stands just outside the glass, in line with the stack's FRONT face (so the level line runs straight along x)
-export const rulerPos = (k) => [BOX.x + BOX.w / 2 + 0.022 + 0.5 * (1 - k), TT, boxCentre(1)[2] + STACK_Z + CW / 2];
+// rev 2026-11-28 (integrator: the vault ends looking down on the top certificate from the box's +x side, its name across the frame):
+//   the rule now stands at the box's +x side level with the stack's MIDDLE, its face turned to +x (that view); it slides in from the side
+export const rulerPos = (k) => [BOX.x + BOX.w / 2 + 0.022 + 0.5 * (1 - k), TT, boxCentre(1)[2]];
 const Ruler = ({ k, ready, level = 0 }) => {
   const tex = useMemo(() => (ready ? canvasTex("c_v_ruler2", RW, RH, rulerDraw) : null), [ready]);
   const glow = useMemo(() => (ready ? canvasTex("c_v_ruler2g", RW, RH, rulerGlow) : null), [ready]);
@@ -410,7 +412,7 @@ const Ruler = ({ k, ready, level = 0 }) => {
   mats[4].emissiveIntensity = 0.25 + 1.6 * level;
   const p = rulerPos(k), y5 = FLOOR_T + 5 * INCH;
   return (
-    <group position={p} rotation-y={-0.25}>
+    <group position={p} rotation-y={Math.PI / 2}>   {/* rev 2026-11-28: its face to +x, the camera's side at the end */}
       <mesh position={[0, RULER.h / 2, 0]} material={mats} castShadow><boxGeometry args={[RULER.w, RULER.h, RULER.t]} /></mesh>
       {/* bright chamfers down both long edges */}
       {[-1, 1].map((s) => <mesh key={s} position={[s * (RULER.w / 2), RULER.h / 2, 0]} rotation-y={Math.PI / 4}><boxGeometry args={[0.0011, RULER.h, 0.0011]} /><meshStandardMaterial color="#F2F6FA" metalness={0.95} roughness={0.1} /></mesh>)}
@@ -446,7 +448,7 @@ const Level = ({ k }) => {
 //   A typed estate inventory sheet lying on the viewing table in front of the box: SCHEDULE B — STOCKS, the WSJ-named holdings typed
 //   one per line (names as at his death, June 2014), "(continued)"; on "95 stocks." the appraiser's pencil writes the count in the
 //   blank — "95" — and rings it (a wipe through its own texture). No person's name, no values, no share counts.
-export const INV = { x: 0.12, z: WALLZ + 0.8, ry: 0.06, w: 0.21, d: 0.297 };
+export const INV = { x: 0.45, z: WALLZ + 0.55, ry: 0.06, w: 0.21, d: 0.297 };   // to the box's right front: it stays in frame as the camera arcs round to the +x side
 const IW = 1240, IH = 1754;
 const TYPE = `"Liberation Mono", "DejaVu Sans Mono", "Courier New", monospace`;
 const invDraw = (c, w, h) => {
