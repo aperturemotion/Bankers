@@ -74,21 +74,46 @@ const checkDraw = (c, w, h) => {
   c.fillStyle = ink; c.font = `700 26px ${SANSF}`; c.textAlign = "left"; c.fillText("GUEST RECEIPT", 44, py + 56);
   c.textAlign = "right"; c.font = `500 34px "Liberation Mono", "DejaVu Sans Mono", monospace`; /* no invented check number */
   c.font = `600 20px ${SANSF}`; c.textAlign = "left"; c.fillText("Friendly's  ·  Thank you for visiting", 44, py + 96);
-  // ── the server's handwriting (ballpoint blue-black) ──
-  const pen = "rgba(18,30,62,0.92)";
-  const hand = (s, x, y, px, rot = 0, wt = 500, col = pen) => { c.save(); c.translate(x, y); c.rotate(rot); c.font = `${wt} ${px}px "${HAND}"`; c.fillStyle = col; c.textAlign = "left"; c.fillText(s, 0, 0); c.restore(); };
-  // PAID, written big across the lines and underlined twice
-  c.save(); c.translate(w / 2 - 8, y0 + 7.2 * lh); c.rotate(-0.16);
-  c.font = `700 250px "${HAND}"`; c.fillStyle = pen; c.textAlign = "center"; c.fillText("PAID", 0, 0);
-  c.strokeStyle = pen; c.lineWidth = 9; c.lineCap = "round";
-  c.beginPath(); c.moveTo(-260, 40); c.bezierCurveTo(-120, 58, 120, 46, 270, 30); c.stroke();
-  c.lineWidth = 7; c.beginPath(); c.moveTo(-230, 72); c.bezierCurveTo(-90, 86, 110, 76, 250, 62); c.stroke();
-  c.restore();
-  // the note line
-  hand("Paid by another guest", 128, y0 + 11 * lh + 54, 60, -0.02);
-  c.strokeStyle = pen; c.lineWidth = 4; c.beginPath(); c.moveTo(560, y0 + 11 * lh + 44); c.lineTo(560 + 0, y0 + 11 * lh + 44); c.stroke();
-  // the total box gets a slash: settled
-  c.lineWidth = 5; c.beginPath(); c.moveTo(w - 200, ty + 116); c.lineTo(w - 52, ty + 92); c.stroke();
+  // ★ rev 2026-11-28 (style rules 6/11: the figure lives ON the object and lands on its word): the server's handwriting — PAID and the
+  //   note — is no longer printed here; it WRITES ITSELF onto the check on "paid" / "meal," (WriteDecal below, the same pen and hand)
+};
+// the server's handwriting, drawn into its own transparent canvases (ballpoint blue-black), in check-canvas px (960 × 1832) rects
+const CK_W = 960, CK_H = 1832, CK_Y0 = 370, CK_LH = 74;
+const PEN = "rgba(18,30,62,0.92)";
+export const INK = {
+  // PAID, written big across the item lines, underlined twice (left → right as it is written)
+  paid: { r: [150, 700, 680, 400], draw: (c) => {
+    c.save(); c.translate(472 - 150, CK_Y0 + 7.2 * CK_LH - 700); c.rotate(-0.16);
+    c.font = `700 250px "${HAND}"`; c.fillStyle = PEN; c.textAlign = "center"; c.fillText("PAID", 0, 0);
+    c.strokeStyle = PEN; c.lineWidth = 9; c.lineCap = "round";
+    c.beginPath(); c.moveTo(-260, 40); c.bezierCurveTo(-120, 58, 120, 46, 270, 30); c.stroke();
+    c.lineWidth = 7; c.beginPath(); c.moveTo(-230, 72); c.bezierCurveTo(-90, 86, 110, 76, 250, 62); c.stroke();
+    c.restore();
+  } },
+  // the note line under it
+  note: { r: [112, CK_Y0 + 11 * CK_LH - 4, 720, 90], draw: (c) => {
+    c.save(); c.translate(128 - 112, 54 + 4); c.rotate(-0.02); c.font = `500 60px "${HAND}"`; c.fillStyle = PEN; c.textAlign = "left"; c.fillText("Paid by another guest", 0, 0); c.restore();
+  } },
+};
+/** a line of handwriting on the check that appears left → right as k goes 0 → 1 (a wipe through the texture: no rebuild per frame) */
+const WriteDecal = ({ id, k, ready }) => {
+  const d = INK[id], [rx, ry, rw, rh] = d.r;
+  const tex = useMemo(() => {
+    if (!ready) return null;
+    const t = canvasTex("c_diner_ink_" + id, rw, rh, (c) => { c.clearRect(0, 0, rw, rh); d.draw(c); }).clone();
+    t.wrapS = THREE.ClampToEdgeWrapping; t.needsUpdate = true; return t;
+  }, [ready]);
+  const mat = useMemo(() => new THREE.MeshStandardMaterial({ map: tex, transparent: true, depthWrite: false, roughness: 0.6, polygonOffset: true, polygonOffsetFactor: -2 }), [tex]);
+  if (!tex || k <= 0.001) return null;
+  const pw = (rw / CK_W) * CHECK.w, pd = (rh / CK_H) * CHECK.d;
+  const cx = ((rx + rw / 2) / CK_W - 0.5) * CHECK.w, cz = ((ry + rh / 2) / CK_H - 0.5) * CHECK.d;
+  const kk = Math.min(1, k);
+  tex.repeat.set(kk, 1); tex.offset.set(0, 0);
+  return (
+    <mesh position={[cx - (1 - kk) * pw / 2, 0.0002, cz]} rotation-x={-Math.PI / 2} scale={[kk, 1, 1]} material={mat} renderOrder={2} userData={{ noShadow: true }}>
+      <planeGeometry args={[pw, pd]} />
+    </mesh>
+  );
 };
 const tentDraw = (c, w, h) => {
   c.fillStyle = "#F4F1E8"; c.fillRect(0, 0, w, h);
@@ -415,7 +440,7 @@ const Tent = ({ ready, position, ry }) => {
     </group>
   );
 };
-const CheckTray = ({ M, ready }) => {
+const CheckTray = ({ M, ready, ink = {} }) => {
   const tex = useMemo(() => (ready ? canvasTex("c_diner_check", 960, 1832, checkDraw) : null), [ready]);
   const tray = useMemo(() => new THREE.MeshPhysicalMaterial({ color: "#2A1E16", roughness: 0.28, clearcoat: 0.9, clearcoatRoughness: 0.12 }), []);
   const base = useMemo(() => new RoundedBoxGeometry(TRAY.w, 0.006, TRAY.d, 2, 0.003), []);
@@ -427,6 +452,11 @@ const CheckTray = ({ M, ready }) => {
       {[TRAY.w / 2 - 0.003, -TRAY.w / 2 + 0.003].map((x, i) => <mesh key={i} position={[x, 0.0085, 0]} material={tray} castShadow><boxGeometry args={[0.006, 0.011, TRAY.d]} /></mesh>)}
       {/* the check, lying on the tray floor */}
       <mesh position={[CHECK.x, 0.0068, CHECK.z]} rotation-y={CHECK.ry} material={paper} receiveShadow castShadow><boxGeometry args={[CHECK.w, 0.0004, CHECK.d]} /></mesh>
+      {/* the server's hand, written on the word (c_diner INK) */}
+      <group position={[CHECK.x, 0.0072, CHECK.z]} rotation-y={CHECK.ry}>
+        <WriteDecal id="paid" k={ink.paid ?? 1} ready={ready} />
+        <WriteDecal id="note" k={ink.note ?? 1} ready={ready} />
+      </group>
       {/* the pen beside it */}
       <group position={[0.05, 0.0105, 0.0]} rotation-y={Math.PI / 2 - 0.08}>
         <mesh rotation-z={Math.PI / 2} castShadow><cylinderGeometry args={[0.0042, 0.0042, 0.12, 14]} /><meshStandardMaterial color="#163E7A" roughness={0.3} metalness={0.2} /></mesh>
@@ -437,7 +467,7 @@ const CheckTray = ({ M, ready }) => {
   );
 };
 // ── the whole set ─────────────────────────────────────────────────────────────────────────────────────────────────────
-export const DinerSet = () => {
+export const DinerSet = ({ ink = {} } = {}) => {
   const M = useMats();
   const ready = usePropFonts();
   return (
@@ -456,7 +486,7 @@ export const DinerSet = () => {
       <Shaker M={M} position={[0.275, TOP, -0.52]} fill="#F2F2F0" />
       <Shaker M={M} position={[0.315, TOP, -0.48]} fill="#3A332C" />
       <Tent ready={ready} position={[-0.17, TOP, -0.5]} ry={0.18} />
-      <CheckTray M={M} ready={ready} />
+      <CheckTray M={M} ready={ready} ink={ink} />
     </group>
   );
 };

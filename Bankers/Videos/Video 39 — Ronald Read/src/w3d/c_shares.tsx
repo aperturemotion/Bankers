@@ -203,7 +203,7 @@ const Lamp = () => {
     </group>
   );
 };
-export const SharesSet = ({ f, t0, span }) => {
+export const SharesSet = ({ f, t0, span, lidAt }) => {
   const ready = usePropFonts();
   return (
     <group>
@@ -213,7 +213,7 @@ export const SharesSet = ({ f, t0, span }) => {
       <Glasses position={[-0.22, KT + 0.006, 0.17]} ry={0.5} />
       <Pencil position={[-0.08, KT + 0.0098, 0.25]} ry={-0.35} />
       <StoneMug position={[0.44, KT, -0.12]} ry={-0.6} />
-      <group position={[0, KT, 0]}><DocBox open={lidOpen(f, t0)} /></group>
+      <group position={[0, KT, 0]}><DocBox open={lidAt === undefined ? lidOpen(f, t0) : lidOpen(f, lidAt + 30)} /></group>
       <CertRain f={f} t0={t0} span={span} />
     </group>
   );

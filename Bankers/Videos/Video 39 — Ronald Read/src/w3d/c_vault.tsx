@@ -14,7 +14,7 @@ import React, { useMemo } from "react";
 import * as THREE from "three";
 import { canvasTex, rnd, Glow, clamp01, ease } from "./kit";
 import { Mesher } from "./town_parts";
-import { SANSF, usePropFonts, brushedTex, tileTex, speckTex, sheetEdgeTex } from "./c_tex";
+import { SANSF, HAND, usePropFonts, brushedTex, tileTex, speckTex, sheetEdgeTex } from "./c_tex";
 import { CW, CH, certMats, certIndex, certGeo, CSERIF } from "./c_cert";
 import { VaultFront } from "./c_vdoor";
 export { CW };
@@ -265,7 +265,7 @@ const Wall = ({ M }) => {
   );
 };
 // ── the viewing table ────────────────────────────────────────────────────────────────────────────────────────────────
-export const TABLE = { x0: -0.62, x1: 0.82, z0: WALLZ + 0.005, z1: WALLZ + 0.72 };
+export const TABLE = { x0: -0.62, x1: 0.82, z0: WALLZ + 0.005, z1: WALLZ + 1.0 };   // rev 2026-11-28: 0.72 → 1.0 deep (the inventory lies in front of the box)
 const Table = ({ M }) => {
   const w = TABLE.x1 - TABLE.x0, d = TABLE.z1 - TABLE.z0, cx = (TABLE.x0 + TABLE.x1) / 2, cz = (TABLE.z0 + TABLE.z1) / 2;
   return (
@@ -363,7 +363,7 @@ const Box = ({ slide, glass, flash }) => {
     m.color.set("#FFFFFF").lerp(new THREE.Color("#CFE4FA"), glass); m.clearcoat = glass;
     m.emissive = m.emissive || new THREE.Color(); m.emissive.set("#B3CEEF"); m.emissiveIntensity = 0.12 * glass + 0.5 * flash;
   });
-  edges.m.opacity = clamp01(0.55 * glass + 0.9 * flash);
+  edges.m.opacity = clamp01(0.16 * glass + 0.9 * flash);   // rev 2026-11-28: the rim flashes, then holds faint (no stray white lines)
   const T = 0.003, w = BOX.w, h = BOX.h, d = BOX.d;
   const c = boxCentre(slide);
   return (
@@ -424,7 +424,7 @@ const Ruler = ({ k, ready, level = 0 }) => {
         <mesh position={[0, 0.008, 0]}><cylinderGeometry args={[0.0055, 0.0055, 0.004, 18]} /><meshStandardMaterial color="#AEB8C4" metalness={0.9} roughness={0.35} /></mesh>
       </group>
       {/* the 5-inch mark's light: a small glow at its edge, brightening as the level line arrives */}
-      {level > 0.01 && <Glow position={[-RULER.w * 0.5, y5, 0.003]} size={0.05} color="#B3CEEF" opacity={0.8 * level} />}
+      {level > 0.01 && <Glow position={[-RULER.w * 0.5, y5, 0.003]} size={0.05} color="#B3CEEF" opacity={0.4 * level} />}
     </group>
   );
 };
@@ -442,7 +442,70 @@ const Level = ({ k }) => {
     </group>
   );
 };
-export const VaultSet = ({ open, slide, glass, flash, ruler, level }) => {
+// ── THE ESTATE INVENTORY (rev 2026-11-28, style rule 11: "at least 95 stocks" lives on the object that would carry it) ─────────────
+//   A typed estate inventory sheet lying on the viewing table in front of the box: SCHEDULE B — STOCKS, the WSJ-named holdings typed
+//   one per line (names as at his death, June 2014), "(continued)"; on "95 stocks." the appraiser's pencil writes the count in the
+//   blank — "95" — and rings it (a wipe through its own texture). No person's name, no values, no share counts.
+export const INV = { x: 0.12, z: WALLZ + 0.8, ry: 0.06, w: 0.21, d: 0.297 };
+const IW = 1240, IH = 1754;
+const TYPE = `"Liberation Mono", "DejaVu Sans Mono", "Courier New", monospace`;
+const invDraw = (c, w, h) => {
+  c.fillStyle = "#F3F0E6"; c.fillRect(0, 0, w, h);
+  for (let i = 0; i < 9000; i++) { c.fillStyle = `rgba(110,100,80,${0.015 + rnd(i) * 0.03})`; c.fillRect(rnd(i + 1) * w, rnd(i + 2) * h, 2, 2); }
+  const ink = "#1C222C"; c.fillStyle = ink; c.textAlign = "center";
+  c.font = `700 52px ${TYPE}`; c.fillText("INVENTORY OF ESTATE", w / 2, 150);
+  c.font = `400 34px ${TYPE}`; c.fillText("SCHEDULE B  -  STOCKS AND BONDS", w / 2, 210);
+  c.fillRect(110, 244, w - 220, 3);
+  c.textAlign = "left"; c.font = `400 30px ${TYPE}`;
+  c.fillText("Securities owned by the decedent at the", 110, 300); c.fillText("date of death, by name of issuer.", 110, 340);
+  // the summary the pencil fills in (left blank in type)
+  c.font = `700 34px ${TYPE}`; c.fillText("NUMBER OF STOCKS HELD:", 110, 440); c.fillRect(640, 448, 330, 2.5);
+  c.fillRect(110, 500, w - 220, 2);
+  c.font = `700 28px ${TYPE}`; c.fillText("ITEM", 110, 560); c.fillText("DESCRIPTION", 250, 560); c.fillRect(110, 576, w - 220, 2);
+  const rows = ["The Procter & Gamble Company", "JPMorgan Chase & Co.", "General Electric Company", "The Dow Chemical Company", "The J. M. Smucker Company", "CVS Caremark Corporation", "Johnson & Johnson"];
+  c.font = `400 34px ${TYPE}`;
+  rows.forEach((r, i) => { const y = 640 + i * 70; c.fillText(String(i + 1) + ".", 120, y); c.fillText(r, 250, y); c.font = `400 26px ${TYPE}`; c.fillText("common stock", 250, y + 30); c.font = `400 34px ${TYPE}`; });
+  c.font = `italic 400 30px ${TYPE}`; c.fillText("(continued)", 250, 640 + rows.length * 70 + 10);
+  c.fillRect(110, 1220, w - 220, 2);
+  c.font = `400 26px ${TYPE}`; c.fillText("Certificates held in safe deposit box", 110, 1290); c.fillText("at the bank; see Schedule B-1.", 110, 1328);
+  c.fillRect(110, h - 150, w - 220, 2);
+  c.font = `400 24px ${TYPE}`; c.fillText("Page 1", 110, h - 100); c.textAlign = "right"; c.fillText("Schedule B", w - 110, h - 100);
+};
+const INK95 = { r: [600, 310, 470, 230] };   // the pencil's rect on the sheet (canvas px): "95" in the blank, ringed
+const ink95Draw = (c) => {
+  const [rx, ry] = INK95.r, gr = "rgba(46,52,62,0.9)";
+  c.save(); c.translate(-rx, -ry);
+  c.font = `700 150px "${HAND}"`; c.fillStyle = gr; c.textAlign = "center"; c.fillText("95", 805, 436);
+  c.strokeStyle = gr; c.lineWidth = 7; c.lineCap = "round";
+  c.beginPath(); c.ellipse(805, 390, 150, 82, -0.08, Math.PI * 0.95, Math.PI * 0.95 + Math.PI * 2.08); c.stroke();
+  c.restore();
+};
+const Inventory = ({ ready, write }) => {
+  const tex = useMemo(() => (ready ? canvasTex("c_v_inventory", IW, IH, invDraw) : null), [ready]);
+  const ink = useMemo(() => { if (!ready) return null; const [, , rw, rh] = INK95.r; const t = canvasTex("c_v_inv95", rw, rh, (c) => { c.clearRect(0, 0, rw, rh); ink95Draw(c); }).clone(); t.wrapS = THREE.ClampToEdgeWrapping; t.needsUpdate = true; return t; }, [ready]);
+  const mats = useMemo(() => { const e = new THREE.MeshStandardMaterial({ color: "#E6E2D6", roughness: 0.9 }); return [e, e, new THREE.MeshStandardMaterial({ map: tex, color: tex ? "#FFFFFF" : "#EEEBE2", roughness: 0.85 }), e, e, e]; }, [tex]);
+  const inkM = useMemo(() => new THREE.MeshStandardMaterial({ map: ink, transparent: true, depthWrite: false, roughness: 0.5, polygonOffset: true, polygonOffsetFactor: -2 }), [ink]);
+  const [rx, ry, rw, rh] = INK95.r, k = clamp01(write);
+  const pw = (rw / IW) * INV.w, pd = (rh / IH) * INV.d, cx = ((rx + rw / 2) / IW - 0.5) * INV.w, cz = ((ry + rh / 2) / IH - 0.5) * INV.d;
+  if (ink) ink.repeat.set(Math.max(1e-3, k), 1);
+  return (
+    <group position={[INV.x, TT, INV.z]} rotation-y={INV.ry}>
+      <mesh position={[0, 0.0006, 0]} material={mats} castShadow receiveShadow><boxGeometry args={[INV.w, 0.0008, INV.d]} /></mesh>
+      {ink && k > 0.001 && (
+        <mesh position={[cx - (1 - k) * pw / 2, 0.0012, cz]} rotation-x={-Math.PI / 2} scale={[k, 1, 1]} material={inkM} renderOrder={2} userData={{ noShadow: true }}><planeGeometry args={[pw, pd]} /></mesh>
+      )}
+      {/* the appraiser's pencil, laid down beside the sheet */}
+      <group position={[INV.w / 2 + 0.03, 0.004, 0.02]} rotation-y={1.35}>
+        <mesh rotation-z={Math.PI / 2} castShadow><cylinderGeometry args={[0.0038, 0.0038, 0.17, 6]} /><meshStandardMaterial color="#D9A53A" roughness={0.5} /></mesh>
+        <mesh position={[0.093, 0, 0]} rotation-z={-Math.PI / 2}><coneGeometry args={[0.0038, 0.016, 6]} /><meshStandardMaterial color="#E8CFA6" roughness={0.8} /></mesh>
+        <mesh position={[0.1, 0, 0]} rotation-z={-Math.PI / 2}><coneGeometry args={[0.0012, 0.004, 6]} /><meshStandardMaterial color="#2A2E34" roughness={0.6} /></mesh>
+        <mesh position={[-0.091, 0, 0]} rotation-z={Math.PI / 2}><cylinderGeometry args={[0.004, 0.004, 0.012, 10]} /><meshStandardMaterial color="#B8C0C8" metalness={0.8} roughness={0.3} /></mesh>
+        <mesh position={[-0.1, 0, 0]} rotation-z={Math.PI / 2}><cylinderGeometry args={[0.0038, 0.0038, 0.008, 10]} /><meshStandardMaterial color="#C98A8A" roughness={0.8} /></mesh>
+      </group>
+    </group>
+  );
+};
+export const VaultSet = ({ open, slide, glass, flash, ruler, level, write = 1 }) => {
   const M = useVaultMats();
   const ready = usePropFonts();
   return (
@@ -453,7 +516,7 @@ export const VaultSet = ({ open, slide, glass, flash, ruler, level }) => {
       <Door M={M} open={open} />
       <Box slide={slide} glass={glass} flash={flash} />
       <Ruler k={ruler} ready={ready} level={level} />
-      <Level k={level} />
+      <Inventory ready={ready} write={write} />
       {/* the vault's ceiling lights: cool panels overhead (their light on the table and the doors) */}
       <pointLight position={[0.1, 2.6, -0.4]} intensity={2.2} distance={6} decay={2} color="#E4EEFA" />
       <pointLight position={[-1.2, 2.6, -0.2]} intensity={1.0} distance={5} decay={2} color="#D6E4F6" />

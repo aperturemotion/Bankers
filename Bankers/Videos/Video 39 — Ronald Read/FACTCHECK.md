@@ -29,3 +29,5 @@ Companies on screen: the top certificate in the cart's bin is "The Procter & Gam
 The kitchen-table stack starts with Pacific Gas and Electric and the year counter rolls 1959 → 2014: his earliest known purchase was 39 PG&E shares on 13 Jan 1959 (WSJ 19 Mar 2015, via Wikipedia). The stock board's tickers are only the WSJ-named holdings.
 No investing advice, no stock picks; company names (JCPenney, Toyota, Lehman Brothers, and the blue chips named in the WSJ) are allowed on screen (Videos 3–5 ruling).
 No AI images of real people: Ronald Read appears only as credited press photos if any are used; he is never modelled.
+
+- (2026-11-28, style pass) The vault's estate-inventory prop lists "CVS Caremark Corporation": the company's name at his death (June 2014); it was renamed CVS Health in Sept 2014 (the WSJ's 2015 list uses the newer name). The inventory is a reconstructed prop: no values, share counts or names; the one figure on it, 95 (stocks held, "at least"), is this file's.
