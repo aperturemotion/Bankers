@@ -40,8 +40,11 @@ const story = (s, f) => (s.id === HOOK_ID ? f : Math.max(0, f - S));   // the fr
 const lastShot = shotsAll[shotsAll.length - 1];
 // V39: the last place is INSIDE the store, so the outro PULLS BACK along the view (12 m, rising 1.5 m) instead of lifting into the sky
 const _d = [lastShot.pos[0] - lastShot.target[0], lastShot.pos[2] - lastShot.target[2]], _n = Math.hypot(_d[0], _d[1]) || 1;
-const OUTRO = { a: CLOSE_AT + 32, b: CLOSE_AT + 82,
-   pos: [lastShot.pos[0] + (_d[0] / _n) * 12, lastShot.pos[1] + 1.5, lastShot.pos[2] + (_d[1] / _n) * 12], target: [lastShot.target[0], lastShot.target[1] + 0.5, lastShot.target[2]], fov: 40 };
+// style pass (2026-11-28): the pull-back scales with the last shot's aim distance (≈ 2.5×, over 80 f) so a close last pose doesn't zip
+const _aim = Math.hypot(lastShot.pos[0] - lastShot.target[0], lastShot.pos[1] - lastShot.target[1], lastShot.pos[2] - lastShot.target[2]);
+const _back = Math.min(12, 2.5 * _aim);
+const OUTRO = { a: CLOSE_AT + 24, b: Math.min(TOTAL - 1, CLOSE_AT + 104),
+   pos: [lastShot.pos[0] + (_d[0] / _n) * _back, lastShot.pos[1] + 0.12 * _back, lastShot.pos[2] + (_d[1] / _n) * _back], target: [lastShot.target[0], lastShot.target[1] + 0.5, lastShot.target[2]], fov: 40 };
 export const CAM_RAW = makeCam([...shotsAll, OUTRO]);
 // one continuous glide (kit.smoothCam). rev 3 (Timur, 2026-11-26: "smoothen the camera move as much as you can … really pleasant"):
 //   SIGMA 14 → CAM_SIGMA; shots flagged `raw` (a move threading an opening) stay as authored

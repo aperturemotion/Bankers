@@ -1,19 +1,16 @@
 // @ts-nocheck
 // ★ V39 station HOOK (0 → 217, origin [0,0,0]): "When a retired janitor in Vermont died in 2014, his will revealed he was worth almost
 //   $8 million."  Inside the closed JCPenney in Brattleboro at night (a_store.tsx). Frame 0 is already moving: low along the glossy
-//   terrazzo aisle toward the janitor's cart, the glass entrance doors glowing blue-hour at the far end. "Brattleboro, Vermont" on
-//   "Vermont"; "Died 2014" (pinned to the cart) on "2014,". On "will" the signature reveal: the cart's trash bin turns to clear glass
-//   (white rim), the tall stack of share certificates inside glows in the Bankers light blue, the camera rises and closes in on it;
-//   ESTATE ≈ rolls to $8 MILLION on "$8 million.". The camera keeps drifting on the glass bin through the dissolve (end + 8).
+//   terrazzo aisle toward the janitor's cart, the glass entrance doors glowing blue-hour at the far end; the ceiling's rows switch off
+//   toward the cart and ONE spotlight clicks on over it (rev 2, Timur-approved: lightGain + the vignette). On "will" the signature reveal:
+//   the cart's trash bin turns to clear glass (white rim), the tall stack of share certificates inside glows in the Bankers light blue.
+//   ★ V39 style pass: no 2-D labels/counters; the figures are printed on the estate's paper band round the stack (see shots()).
 import React from "react";
-import { Tag, Counter } from "./overlays";
 import { WIN, wAt } from "./windows";
 import { cueAt } from "../bnx/SfxLayer";
-import { ease, easeOut, clamp01 } from "./kit";
-import { useCurrentFrame } from "remotion";
-import { BODY } from "./fonts3d";
+import { ease, clamp01 } from "./kit";
 import { StoreSet, cartPt, CART } from "./a_store";
-import { BIN, STACK_TOP } from "./a_cart";
+import { BIN, BAND, stackPt } from "./a_cart";
 
 const T = () => ({ vermont: wAt("Vermont"), y2014: wAt("2014,"), will: wAt("will"), almost: wAt("almost"), m8: wAt("$8 million.") });
 export const revealAt = (t, f) => ({
@@ -39,63 +36,39 @@ export const trofAt = (f) => (x, z) => {
   return ev ? 1 - ease(f, ev[0], ev[0] + 4) : 1;
 };
 const BINW = (y) => cartPt([BIN.x, y, BIN.z]);
-const Scene = ({ f }) => <StoreSet mode="in" cart={revealAt(T(), f)} trof={trofAt(f)} spot={spotAt(f)} />;
+const Scene = ({ f }) => { const t = T(); return <StoreSet mode="in" cart={{ ...revealAt(t, f), fig: ease(f, t.m8 - 3, t.m8 + 9) }} trof={trofAt(f)} spot={spotAt(f)} />; };
+// ★ V39 style pass (Timur's rules 1, 6, 11): ONE slow glide, always on the cart — from frame 0 low along the aisle (the ceiling's rows
+//   switching off over it), rising a little and easing in on the glass bin until the cut to the farm; it ends square-on to the estate's
+//   paper BAND round the certificate stack. The figures that were 2-D labels now live on that band (a_tex bandTex): ESTATE OF RONALD READ ·
+//   ALMOST $8 MILLION · BRATTLEBORO, VERMONT · 2014 — its figure lights on "$8 million.".
+export const strapW = (p) => cartPt(stackPt(p));            // a point in the stack's frame → world (station origin 0)
+export const strapDir = () => { const o = strapW([0, 0, 0]), z = strapW([0, 0, 1]); const d = [z[0] - o[0], z[2] - o[2]], n = Math.hypot(d[0], d[1]); return [d[0] / n, d[1] / n]; };
+export const bandBack = (c, h, v) => { const d = strapDir(); return [c[0] + d[0] * h, c[1] + v, c[2] + d[1] * h]; };
+export const HOOK_END = { h: 2.22, v: 0.6, fov: 32 };
 const shots = () => {
-  const t = T(), b = BINW(0.55);
+  const c = strapW([0, BAND.y, BAND.hz]);
   return [
-    { a: -60, b: -60, pos: [-0.35, 0.32, -37.0], target: [0.0, 0.55, -21], fov: 42 },
-    // already gliding at frame 0: low over the polished aisle toward the cart (eased from before the film starts)
-    { a: -60, b: t.will + 30, pos: [-0.2, 0.6, -28.4], target: [0.05, 0.62, -21.6], fov: 40 },
-    // on "will": up and in, onto the glass bin with its stack (≈ 2.4 m, looking down into it)
-    { a: t.will - 22, b: t.m8 + 30, pos: [b[0] + 1.55, 2.2, b[2] - 3.75], target: [b[0], 0.3, b[2] + 0.25], fov: 34 },
-    // the drift on through the dissolve
-    { a: t.m8 + 20, b: t.m8 + 150, pos: [b[0] + 2.05, 2.25, b[2] - 3.85], target: [b[0], 0.31, b[2] + 0.3], fov: 34 }
+    { a: -150, b: -150, pos: bandBack(c, 5.0, 0.3), target: [c[0], c[1] + 0.12, c[2]], fov: 36 },
+    // one long eased glide (it is already moving at frame 0 and lands just before the cut)
+    { a: -150, b: 214, pos: bandBack(c, HOOK_END.h, HOOK_END.v), target: c, fov: HOOK_END.fov }
   ];
 };
-// V39 rev 1 (idea 5): the open question under the counter in the hook's last second — HOW? (the film answers it); it rises in after the
-// counter has landed and leaves with it, before the dissolve
-const HowChip = ({ at, out }) => {
-  const f = useCurrentFrame();
-  const kIn = easeOut(f, at, at + 12), kOut = ease(f, out, out + 10), vis = kIn * (1 - kOut);
-  if (vis <= 0.001) return null;
-  return (
-    <div style={{ position: "absolute", left: 540, top: 512, transform: `translate(-50%, ${(1 - kIn) * 18 - kOut * 12}px) scale(${0.9 + 0.1 * kIn})`, opacity: vis,
-      display: "flex", alignItems: "stretch", background: "rgba(4, 18, 38, 0.82)", borderRadius: 10, overflow: "hidden", boxShadow: "0 8px 30px rgba(0,8,20,0.5)" }}>
-      <div style={{ width: 6, background: "#4D8ED9" }} />
-      <div style={{ padding: "12px 26px 12px 22px", fontFamily: BODY, fontWeight: 800, fontSize: 58, letterSpacing: 6, lineHeight: 1, color: "#F2F7FD" }}>
-        HOW<span style={{ color: "#7FB4F2" }}>?</span>
-      </div>
-    </div>
-  );
-};
+// the spotlight's vignette (rev 2, Timur-approved): the frame darkens around the bin as the spot comes on. No 2-D text any more (rule 6/11):
+// the "Brattleboro, Vermont" / "Died 2014" tags, the ESTATE ≈ $8 MILLION counter and the HOW? chip are gone — the strap carries the figures.
 const Overlay = ({ f, P }) => {
-  const t = T(), end = WIN().hook.end;
-  const cart = P(cartPt([-0.25, 1.06, 0]));
   const k = spotAt(f), bin = P(BINW(0.55));
-  return (
-    <>
-      {k > 0.002 && !bin.behind && (
-        <div style={{ position: "absolute", left: 0, top: 0, width: 1080, height: 1920, pointerEvents: "none",
-          background: `radial-gradient(circle at ${bin.x}px ${bin.y}px, rgba(0,5,14,0) 0px, rgba(0,5,14,0) 240px, rgba(0,5,14,${(0.42 * k).toFixed(3)}) 560px, rgba(0,5,14,${(0.7 * k).toFixed(3)}) 1100px)` }} />
-      )}
-      <Tag text="Brattleboro, Vermont" at={t.vermont - 12} out={t.will - 8} x={70} y={300} to={null} />
-      <Tag text="Died 2014" at={t.y2014 - 12} out={t.will - 4} x={70} y={392} to={cart.behind ? null : cart} />
-      <Counter at={t.m8 - 26} out={end - 16} x={540} y={318} from={0} value={8} prefix="$" unit="MILLION" label="ESTATE ≈" size={112} countDur={32} />
-      <HowChip at={t.m8 + 15} out={end - 16} />
-    </>
-  );
+  return k > 0.002 && !bin.behind ? (
+    <div style={{ position: "absolute", left: 0, top: 0, width: 1080, height: 1920, pointerEvents: "none",
+      background: `radial-gradient(circle at ${bin.x}px ${bin.y}px, rgba(0,5,14,0) 0px, rgba(0,5,14,0) 240px, rgba(0,5,14,${(0.42 * k).toFixed(3)}) 560px, rgba(0,5,14,${(0.7 * k).toFixed(3)}) 1100px)` }} />
+  ) : null;
 };
-const sfx = () => {
-  const t = T();
-  return [
-    cueAt("whooshsoft", 22, 30, 0.22),            // the glide in (its fastest frames)
-    cueAt("whooshsoft", t.will + 30, 26, 0.18),   // the rise onto the bin
-    cueAt("coin", t.m8, 16, 0.3),                 // $8 MILLION lands
-    ...LIGHTS_OFF.map(([fr], i) => cueAt("ee_click_click_01", fr, 12, i === LIGHTS_OFF.length - 1 ? 0.2 : 0.14)),  // each row switching off
-    cueAt("ee_click_click_01", SPOT_ON, 12, 0.3),  // the spotlight clicking on over the cart
-    cueAt("sub", SPOT_ON + 1, 20, 0.22)            // its soft low thump
-  ];
-};
+const sfx = () => [
+  // rule 16–18: only visible actions, subtle — each row of troffers switching off, the spotlight clicking on (the camera whooshes and the
+  // $8 MILLION coin are gone: Main makes the measured camera whooshes; nothing in frame is a coin)
+  ...LIGHTS_OFF.map(([fr], i) => cueAt("ee_click_click_01", fr, 12, i === LIGHTS_OFF.length - 1 ? 0.2 : 0.14)),
+  cueAt("ee_click_click_01", SPOT_ON, 12, 0.3),
+  cueAt("sub", SPOT_ON + 1, 20, 0.22)
+];
 const W0 = () => WIN().hook;
 export const ST = { id: "hook", origin: [0, 0, 0], get from() { return 0; }, get to() { return W0().end + 8; },
   light: { target: [CART.p[0], 0, CART.p[2]], shadowBox: 7, keyI: 0.4, fillI: 0.16, key: [-5, 12, 10] }, shots, Scene, Overlay, sfx, lightGain: (f) => 1 - 0.7 * spotAt(f) };

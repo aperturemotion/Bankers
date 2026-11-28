@@ -20,7 +20,8 @@ import { Sky, Glow, rnd, clamp01, canvasTex } from "./kit";
 import * as T from "./a_tex";
 import { JanitorCart } from "./a_cart";
 import { hang, divider, foldPiece, printTex, wallCell, notice, bagCell, doorNoCell, WALLWORDS } from "./a_fixtures";
-import { LotGround, LotLamps, buildFront, StoreTrees, LOTY } from "./a_lot";
+import { LotGround, LotLamps, buildFront, StoreTrees, LOTY, LAMPS } from "./a_lot";
+import { ShadeLayer, keyDir } from "./a_fakeshade";
 import { barkMat } from "./a_trees";
 
 export const X0 = -18, X1 = 18, ZB = -70, CEIL = 4.2, AISLE = 1.25;
@@ -99,8 +100,13 @@ const garment = (m, p, ry, w, len, col, cell, thick = 0.045) => {
   const kind = cell === 2 || cell === 7 ? "pants" : cell === 5 ? "dress" : "top";
   hang(m, p, ry, w, len, col, T.garCell(cell), _gs++, kind, kind === "top" && (cell === 3 || cell === 1) ? thick * 1.4 : thick);
 };
+// ★ V39 style pass (Timur rule 13): every fixture records its footprint here as it is built; <StoreShade> lays a soft, correct fake contact
+//   shadow under each (the key's real shadow only reaches ~3.5 m round the cart) — see a_fakeshade.tsx
+let FOOT = [];
+const foot = (kind, x, z, w, d, ry = 0, k = 0.5) => FOOT.push({ kind, x, z, w, d, ry, k });
 // a round rack: a cross base, the upright, a chrome ring of garments hanging radially, a topper sign
 const roundRack = (m, x, z, seed, pal, cells, topper) => {
+  foot("blob", x, z, 1.75, 1.75, 0, 0.5);
   m.push([x, 0, z], rnd(seed) * 3);
   for (let k = 0; k < 4; k++) m.box("chrome", [0, 0.025, 0], [0.62, 0.025, 0.035], "#C9D1DA", { ry: (k * Math.PI) / 4 + 0.4 });
   for (let k = 0; k < 4; k++) m.sph("dark", [Math.cos(k * Math.PI / 2 + 0.4) * 0.3, 0.012, -Math.sin(k * Math.PI / 2 + 0.4) * 0.3], 0.018, "#1A1E24", { seg: 6 });
@@ -122,6 +128,7 @@ const _tor = {};
 const torusG = (R) => _tor[R] ??= new THREE.TorusGeometry(R, 0.011, 6, 40);
 // a four-way rack: a square upright, four straight arms, garments hung face-out along each arm
 const fourWay = (m, x, z, seed, pal, cells, ry = 0) => {
+  foot("blob", x, z, 1.7, 1.7, ry, 0.42);
   m.push([x, 0, z], ry);
   for (let k = 0; k < 2; k++) m.box("chrome", [0, 0.025, 0], [0.95, 0.025, 0.04], "#C9D1DA", { ry: k * Math.PI / 2 + Math.PI / 4 });
   m.box("chrome", [0, 0.72, 0], [0.045, 1.44, 0.045], "#C9D1DA");
@@ -138,6 +145,7 @@ const fourWay = (m, x, z, seed, pal, cells, ry = 0) => {
 };
 // a wooden display table with stacks of folded goods on the top and the shelf below, and an acrylic sign stand
 const foldTable = (m, x, z, seed, pal, kind, ry = 0, topper = null) => {
+  foot("rect", x, z, 1.95, 1.15, ry, 0.55);
   m.push([x, 0, z], ry);
   const L = 1.52, D = 0.76, H = 0.78;
   m.box("wood", [0, H - 0.02, 0], [L, 0.04, D], "#FFFFFF", { metric: true });
@@ -162,6 +170,7 @@ const foldTable = (m, x, z, seed, pal, kind, ry = 0, topper = null) => {
 };
 // a glass-topped jewellery case: a laminate cabinet with a kick, a lit vitrine with velvet trays and pieces
 const jewelCase = (m, x, z, ry, seed) => {
+  foot("rect", x, z, 2.15, 0.9, ry, 0.6);
   m.push([x, 0, z], ry);
   const L = 1.8, D = 0.6;
   m.box("dark", [0, 0.05, 0], [L - 0.04, 0.1, D - 0.06], "#11161F");
@@ -178,6 +187,7 @@ const jewelCase = (m, x, z, ry, seed) => {
 };
 // a gondola of shelves (bedding, towels in packs): a pegboard spine, a base deck, three shelves each face, an end cap
 const gondola = (m, x, z, L, seed, pal, ry = 0) => {
+  foot("rect", x, z, L + 0.4, 1.3, ry, 0.6);
   m.push([x, 0, z], ry);
   m.box("paint", [0, 0.8, 0], [L, 1.5, 0.05], "#AEB6C1");
   m.box("dark", [0, 0.08, 0], [L, 0.16, 0.9], "#2A3240");
@@ -192,6 +202,7 @@ const gondola = (m, x, z, L, seed, pal, ry = 0) => {
 };
 // a store column: a square painted column, mirror panels on two faces, a base and corner guards
 const column = (m, x, z) => {
+  foot("rect", x, z, 1.0, 1.0, 0, 0.55);
   m.box("paint", [x, CEIL / 2, z], [0.56, CEIL, 0.56], "#C3CBD6");
   m.box("dark", [x, 0.06, z], [0.6, 0.12, 0.6], "#2A3240");
   for (const s of [-1, 1]) m.box("mirror", [x, 1.5, z + s * 0.285], [0.46, 1.9, 0.01], "#DDE6F0");
@@ -221,6 +232,7 @@ const shoeWall = (m, x, z0, z1, seed) => {
 };
 // the service counter: a cash wrap with two registers, a receipt printer, a bag well, a sign pole
 const cashWrap = (m, x, z) => {
+  foot("rect", x, z, 3.7, 1.15, 0, 0.6);
   m.push([x, 0, z], 0);
   m.box("lam", [0, 0.5, 0], [3.2, 1.0, 0.7], "#E3E7EC"); m.box("dark", [0, 0.05, 0.02], [3.14, 0.1, 0.66], "#11161F");
   m.box("wood", [0, 1.02, 0], [3.3, 0.04, 0.8], "#FFFFFF", { metric: true });
@@ -238,6 +250,7 @@ const cashWrap = (m, x, z) => {
 
 // ── the whole merged construction ──────────────────────────────────────────────────────────────────────────────────────────
 const buildStore = (m) => {
+  FOOT = [];
   const W_ = X1 - X0, L_ = -ZB;
   // ── shell: side and back walls (painted inside, brick outside), the front wall around the entrance and the display windows ──
   for (const s of [-1, 1]) {
@@ -565,6 +578,27 @@ const StoreSign = () => {
   );
 };
 
+// ★ V39 style pass (rule 13): the fake contact shadows — under every fixture (FOOT), under the cart, along the walls' feet inside, and
+//   outside along the building's foot, under the lot lamps' bases. Soft, low, nudged with the key (shadows fall toward +x, −z inside).
+const StoreShade = ({ inside }) => (
+  <ShadeLayer deps={[inside]} build={(sh) => {
+    if (inside) {
+      const kd = keyDir([-5, 12, 10]);
+      for (const f of FOOT) sh.floor(f.kind, [f.x + kd[0] * 0.08, 0.009, f.z + kd[1] * 0.08], f.w, f.d, f.ry, f.k);
+      // the cart (its deck, wheels and the bucket): one soft footprint, then darker pads under the wheels
+      const cc = cartPt([0, 0, 0]);
+      sh.floor("rect", [cc[0] + kd[0] * 0.05, 0.0105, cc[2] + kd[1] * 0.05], 1.55, 1.0, CART.ry, 0.5);
+      for (const [x, z] of [[-0.5, -0.22], [-0.5, 0.22], [0.52, -0.22], [0.52, 0.22]]) { const p = cartPt([x, 0, z]); sh.floor("blob", [p[0], 0.011, p[2]], 0.2, 0.2, 0, 0.6); }
+      // the walls' feet (inside): side walls, the back wall, the front wall either side of the vestibule
+      for (const sx of [-1, 1]) sh.edge([sx * (X1 - 0.1), 0.008, ZB / 2], [0, 0, 1], [-sx, 0, 0], -ZB - 0.4, 0.55, 0.42);
+      sh.edge([0, 0.008, ZB + 0.12], [1, 0, 0], [0, 0, 1], X1 - X0 - 0.4, 0.55, 0.42);
+    } else {
+      // the building's foot along the sidewalk, and the lot lamps' bases
+      sh.edge([0, 0.012, 0.02], [1, 0, 0], [0, 0, 1], X1 - X0, 0.7, 0.45);
+      for (const [x, z] of LAMPS) sh.floor("blob", [x + 0.35, LOTY + 0.006, z + 0.45], 1.5, 1.5, 0, 0.55);
+    }
+  }} />
+);
 /**
  * THE STORE SET. mode "in" (the closed store at night, the aisle mirror, the security lights) or "out" (the store front at blue hour);
  * cart: { xray, flash, glow } for the bin's reveal; ceilFade 0–1 (the close's rising camera: the ceiling fades under the veil).
@@ -622,6 +656,7 @@ export const StoreSet = ({ mode = "in", cart = {}, ceilFade = 0, trof = null, sp
       <Sky zenith="#020F24" mid="#0A3366" horizon="#5C8FD0" glowAt={0.52} />
       <Floors mode={mode} />
       <primitive object={grp} />
+      <StoreShade inside={inside} />
       <Ceiling fade={ceilFade} dyn={!!trof} />
       {trof && inside && <TrofferBank level={trof} />}
       <StoreSign />

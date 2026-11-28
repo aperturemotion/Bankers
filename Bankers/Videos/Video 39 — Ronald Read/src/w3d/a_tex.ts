@@ -498,3 +498,35 @@ export const newsTex = () => canvasTex("a_news", 512, 512, (c, w, h) => {
   ["LOCAL NEWS", "SPORTS", "WEATHER", "OPINION", "CLASSIFIEDS"].forEach((t, k) => c.fillText(t, 96, 300 + k * 32));
   c.fillStyle = "#9AA3AE"; c.fillRect(300, 290, 120, 130);
 });
+// ★ V39 style pass (builder A, Timur rule 11 "figures live in the scene"): the PAPER BAND round the certificate stack in the glass bin —
+//   the estate's bundle, banded the way a bank bands a stack. Its front carries the hook's figures in real print (the removed 2-D
+//   "Brattleboro, Vermont" · "Died 2014" · "$8 MILLION ESTATE" labels): ESTATE OF / RONALD READ / ALMOST $8 MILLION / BRATTLEBORO,
+//   VERMONT · 2014 (FACTCHECK line 1). RONALD READ is set in Figtree 700 caps, the pavilion sign's face (the line station's match cut).
+//   mode "base": the printed band; mode "glow": the emissive mask (only ALMOST $8 MILLION, lit on the spoken "$8 million").
+export const BAND_PX = [2048, 896];
+export const BAND_ROWS = { name: 262 / 896, fig: 577 / 896 };   // the rows' centres as a fraction of the height from the top
+export const bandTex = (mode = "base") => canvasTex("a_band_" + mode, BAND_PX[0], BAND_PX[1], (c, w, h) => {
+  const glow = mode === "glow";
+  if (glow) { c.fillStyle = "#000"; c.fillRect(0, 0, w, h); }
+  else {
+    const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "#1D4F93"); g.addColorStop(0.5, "#1A4888"); g.addColorStop(1, "#163E78"); c.fillStyle = g; c.fillRect(0, 0, w, h);
+    for (let i = 0; i < 16000; i++) { c.fillStyle = `rgba(${rnd(i + 7) < 0.5 ? "6,20,48" : "190,215,250"},${0.025 + rnd(i + 9) * 0.05})`; c.fillRect(rnd(i + 3) * w, rnd(i + 5) * h, 2 + rnd(i) * 3, 1.5); }
+  }
+  const ink = glow ? "rgba(0,0,0,0)" : "#EEF4FC";
+  c.textAlign = "center"; c.textBaseline = "alphabetic";
+  c.fillStyle = ink; c.font = F(700, 56); spaced(c, "ESTATE OF", w / 2, 122, 16);
+  c.font = F(700, 192); if ("letterSpacing" in c) c.letterSpacing = "6px"; c.fillText("RONALD READ", w / 2, 330); if ("letterSpacing" in c) c.letterSpacing = "0px";
+  // ALMOST (small caps, on the figure's cap line) + $8 MILLION (Anton)
+  c.font = F(400, 312, FIGURE); const fw = c.measureText("$8 MILLION").width;
+  c.font = F(800, 60); const aw = c.measureText("ALMOST").width + 30;
+  const x0 = w / 2 - (fw + aw) / 2;
+  c.fillStyle = glow ? "#FFFFFF" : "#F6F9FE"; c.textAlign = "left";
+  c.font = F(800, 60); c.fillText("ALMOST", x0, 512);
+  c.font = F(400, 312, FIGURE); c.fillText("$8 MILLION", x0 + aw, 690);
+  c.textAlign = "center"; c.fillStyle = ink; c.font = F(600, 50); spaced(c, "BRATTLEBORO, VERMONT · 2014", w / 2, 812, 9);
+});
+// the band's ends (round the stack's two ends): the same blue paper, plain
+export const bandEndTex = () => canvasTex("a_band_end", 256, 256, (c, w, h) => {
+  c.fillStyle = "#1A4888"; c.fillRect(0, 0, w, h);
+  for (let i = 0; i < 2000; i++) { c.fillStyle = `rgba(${rnd(i + 7) < 0.5 ? "6,20,48" : "190,215,250"},${0.025 + rnd(i + 9) * 0.05})`; c.fillRect(rnd(i + 3) * w, rnd(i + 5) * h, 2 + rnd(i) * 3, 1.5); }
+});

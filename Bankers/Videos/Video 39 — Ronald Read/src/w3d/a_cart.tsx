@@ -13,7 +13,7 @@ import React, { useMemo } from "react";
 import * as THREE from "three";
 import { Mesher, Lm } from "./town_parts";
 import { Glow, rnd, clamp01 } from "./kit";
-import { labelTex, labelCell, wetTex, miscTex, miscCell, linerTex, certTopTex, certTex2, rep } from "./a_tex";
+import { labelTex, labelCell, wetTex, miscTex, miscCell, linerTex, certTopTex, certTex2, rep, bandTex, bandEndTex, BAND_ROWS } from "./a_tex";
 
 // ── geometry helpers (cached, unit-sized) ────────────────────────────────────────────────────────────────────────────────
 const GC = {};
@@ -72,6 +72,15 @@ export const BIN = { x: 0.32, z: 0, y0: DECK.y1, h: 0.68, rTop: 0.245, rBot: 0.2
 export const BIN_TOP = BIN.y0 + BIN.h;                               // the rim (0.89)
 export const STACK = { n: 190, t: 0.0031, w: 0.3, d: 0.2, y0: BIN.y0 + 0.025 };
 export const STACK_TOP = STACK.y0 + STACK.n * STACK.t;               // ≈ 0.76
+// ★ V39 style pass: the stack (with its top certificate and its paper BAND) is turned in the round bin so the hook's and the line's camera
+//   read the band's print square-on (the stack's +z faces the bin end of the cart, cart +x)
+export const STACK_YAW = Math.PI / 2;   // the band faces the cart's bin end (+x), square between two of the bin's ribs (they fall just outside the print), under its handle
+/** a point in the STACK's own frame (x along its long side, z across; its print reads upright from +z) → the cart's local frame */
+export const stackPt = ([x, y, z]) => { const c = Math.cos(STACK_YAW), s = Math.sin(STACK_YAW); return [BIN.x + x * c + z * s, y, BIN.z - x * s + z * c]; };
+// the BAND: one strip of blue paper round the stack's middle (the sheets it binds are squared up under it); its front (+z, the face the
+// camera reads) carries the print (a_tex bandTex), the back the same print, the two ends plain
+export const BAND = { y: 0.56, h: 0.14, hx: 0.166, hz: 0.113 };
+export const BAND_TEXT = { nameY: BAND.y + BAND.h / 2 - BAND.h * BAND_ROWS.name, figY: BAND.y + BAND.h / 2 - BAND.h * BAND_ROWS.fig };
 export const BUCKET = { x: -0.32, z: 0.66, ry: 0.12 };
 const GREY = "#646B74", GREY_D = "#4A5058";
 
@@ -264,14 +273,15 @@ const buildStack = (m) => {
   let i = 0, b = 0;
   while (i < n) {
     const size = 8 + Math.floor(rnd(b * 7 + 1) * 18), k = [0, 1, 2, 0, 2, 1, 0, 0, 1][b % 9];
-    const bw = w * (0.94 + rnd(b * 7 + 2) * 0.08), bd = d * (0.93 + rnd(b * 7 + 3) * 0.1);
-    const bx = (rnd(b * 7 + 4) - 0.5) * 0.022, bz = (rnd(b * 7 + 5) - 0.5) * 0.018, bry = (rnd(b * 7 + 6) - 0.5) * 0.16;
+    const sqk = (y0 + t * i < BAND.y + BAND.h / 2 + 0.03 && y0 + t * (i + size) > BAND.y - BAND.h / 2 - 0.03) ? 0.08 : 1;
+    const bw = w * (sqk < 1 ? 0.97 + rnd(b * 7 + 2) * 0.03 : 0.94 + rnd(b * 7 + 2) * 0.08), bd = d * (sqk < 1 ? 0.97 + rnd(b * 7 + 3) * 0.03 : 0.93 + rnd(b * 7 + 3) * 0.1);
+    const bx = (rnd(b * 7 + 4) - 0.5) * 0.022 * sqk, bz = (rnd(b * 7 + 5) - 0.5) * 0.018 * sqk, bry = (rnd(b * 7 + 6) - 0.5) * 0.16 * sqk;
     const env = b % 4 === 2 && i + 2 < n;   // a manila envelope under this bundle (two sheet-thicknesses)
-    if (env) { m.box("env", [BIN.x + bx * 0.5, y0 + t * (i + 1), BIN.z + bz * 0.5], [w * 1.04, t * 1.9, d * 1.06], "#C9B184", { ry: bry * 0.4, rectFn: () => [0.1, 0.1, 0.9, 0.9] }); i += 2; }
+    if (env) { m.box("env", [bx * 0.5, y0 + t * (i + 1), bz * 0.5], [w * 1.04, t * 1.9, d * 1.06], "#C9B184", { ry: bry * 0.4, rectFn: () => [0.1, 0.1, 0.9, 0.9] }); i += 2; }
     for (let q = 0; q < size && i < n; q++, i++) {
-      const jx = (rnd(i + 11) - 0.5) * 0.006, jz = (rnd(i + 12) - 0.5) * 0.005, ry = bry + (rnd(i + 13) - 0.5) * 0.03;
+      const jx = (rnd(i + 11) - 0.5) * 0.006 * sqk, jz = (rnd(i + 12) - 0.5) * 0.005 * sqk, ry = bry + (rnd(i + 13) - 0.5) * 0.03 * sqk;
       const tone = rnd(i + 14), col = tone < 0.3 ? "#E9DCC0" : tone < 0.7 ? "#F3E9D2" : "#EFE3C8";
-      m.box("cert" + k, [BIN.x + bx + jx, y0 + t * (i + 0.5), BIN.z + bz + jz], [bw, t * 0.9, bd], col, { ry, rectFn: (j) => { const f = Math.floor(j / 4); return f === 2 || f === 3 ? [0, 0, 1, 1] : EDGE; } });
+      m.box("cert" + k, [bx + jx, y0 + t * (i + 0.5), bz + jz], [bw, t * 0.9, bd], col, { ry, rectFn: (j) => { const f = Math.floor(j / 4); return f === 2 || f === 3 ? [0, 0, 1, 1] : EDGE; } });
     }
     b++;
   }
@@ -291,9 +301,16 @@ const stackMats = () => {
   return SM;
 };
 
+let STM = null;
+const bandMats = () => {
+  if (STM) return STM;
+  const face = new THREE.MeshStandardMaterial({ map: bandTex("base"), roughness: 0.72, metalness: 0, emissive: new THREE.Color("#A9CDF6"), emissiveMap: bandTex("glow"), emissiveIntensity: 0 });
+  const end = new THREE.MeshStandardMaterial({ map: bandEndTex(), roughness: 0.75, metalness: 0, emissive: new THREE.Color("#4D8ED9"), emissiveMap: bandEndTex(), emissiveIntensity: 0 });
+  STM = { face, end }; return STM;
+};
 /** the cart with its bin; xray 0–1 (shell → glass), flash 0–1 (rim peak), glow 0–1 (the stack's light);
  *  leak 0–1 (V39 rev 1, the hook's tease: before the reveal a faint blue light spills out of the bin's open top) */
-export const JanitorCart = ({ xray = 0, flash = 0, glow = 0, leak = 0 }) => {
+export const JanitorCart = ({ xray = 0, flash = 0, glow = 0, leak = 0, fig = 0 }) => {
   const body = useMemo(() => { const m = new Mesher(); buildCart(m); return m.build(cartMats()); }, []);
   const stack = useMemo(() => { const m = new Mesher(); buildStack(m); return m.build(stackMats()); }, []);
   const B = useMemo(() => ({
@@ -314,6 +331,7 @@ export const JanitorCart = ({ xray = 0, flash = 0, glow = 0, leak = 0 }) => {
   B.liner.transparent = glass; B.liner.opacity = 1 - x; B.liner.depthWrite = !glass; B.liner.visible = x < 0.995;
   B.rim.uniforms.k.value = clamp01(0.3 * x + 0.9 * flash); B.rim2.uniforms.k.value = clamp01(0.2 * x + 0.6 * flash);
   B.ring.opacity = clamp01(0.4 * x + 0.6 * flash);
+  const SM2 = bandMats(); SM2.face.emissiveIntensity = 1.5 * clamp01(fig); SM2.end.emissiveIntensity = 0.12 * gl;
   for (const k of ["cert0", "cert1", "cert2", "top", "env"]) stackMats()[k].emissiveIntensity = (k === "top" ? 0.3 : k === "env" ? 0.07 : 0.22) * gl;
   const cast = x < 0.3;
   return (
@@ -328,9 +346,17 @@ export const JanitorCart = ({ xray = 0, flash = 0, glow = 0, leak = 0 }) => {
           <mesh key={i} position={[0, y, 0]} rotation-x={Math.PI / 2} material={B.ring} renderOrder={7}><torusGeometry args={[r, 0.0035, 6, 64]} /></mesh>
         ))}
       </group>
-      <primitive object={stack} />
-      {/* the top certificate (the hero sheet, full print) */}
-      <mesh position={[BIN.x, STACK_TOP + 0.0012, BIN.z]} rotation={[-Math.PI / 2, 0, 0.05]} geometry={curlGeo()} material={stackMats().top} />
+      {/* the stack, its top certificate (the hero sheet, full print) and the estate's band, turned in the bin (STACK_YAW) */}
+      <group position={[BIN.x, 0, BIN.z]} rotation-y={STACK_YAW}>
+        <primitive object={stack} />
+        <mesh position={[0, STACK_TOP + 0.0012, 0]} rotation={[-Math.PI / 2, 0, 0.05]} geometry={curlGeo()} material={stackMats().top} />
+        {[1, -1].map((sz) => (
+          <mesh key={"f" + sz} position={[0, BAND.y, sz * BAND.hz]} rotation-y={sz > 0 ? 0 : Math.PI} material={SM2.face}><planeGeometry args={[2 * BAND.hx, BAND.h]} /></mesh>
+        ))}
+        {[1, -1].map((sx) => (
+          <mesh key={"e" + sx} position={[sx * BAND.hx, BAND.y, 0]} rotation-y={sx * Math.PI / 2} material={SM2.end}><planeGeometry args={[2 * BAND.hz, BAND.h]} /></mesh>
+        ))}
+      </group>
       {leak > 0.002 && <>
         <Glow position={[BIN.x, BIN_TOP + 0.05, BIN.z]} size={0.85} color="#7FB4F2" opacity={0.34 * leak} />
         <Glow position={[BIN.x, BIN_TOP + 0.22, BIN.z]} size={1.7} color="#4D8ED9" opacity={0.12 * leak} />
